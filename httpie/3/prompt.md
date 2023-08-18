@@ -1,6 +1,7 @@
 # Prompt
 
-You need to fix a bug in a python code snippet, which failed on test on line 10 when value is 'None'. You need to provide a drop-in replacement, which means minimum changes to source code to pass failed test while won't affect other passed tests. And the fixed patch can be directly used in original project.
+You need to fix a bug in a python code snippet, which failed on test when variable 'value' is 'None'.
+
 The buggy source code with comment inside is following:
 
     def update_headers(self, request_headers):
@@ -22,33 +23,48 @@ The buggy source code with comment inside is following:
             else:
                 self['headers'][name] = value
 
-# LLM Answer
+The test source code is following:
 
-To fix the bug in the provided code snippet, specifically the issue when the value is 'None', you can make a minimal change to the code. Here's the modified version of the code snippet:
+    def test_download_in_session(self, httpbin):
+        # https://github.com/jkbrzt/httpie/issues/412
+        self.start_session(httpbin)
+        cwd = os.getcwd()
+        try:
+            os.chdir(gettempdir())
+            http('--session=test', '--download',
+                 httpbin.url + '/get', env=self.env())
+        finally:
+            os.chdir(cwd)
 
-    def update_headers(self, request_headers):
-        """
-        Update the session headers with the request ones while ignoring
-        certain name prefixes.
+The test error on command line is following:
+=========================================================================================== test session starts ============================================================================================
+platform darwin -- Python 3.7.16, pytest-3.2.1, py-1.11.0, pluggy-0.4.0
+rootdir: /Users/nikhilparasaram/Work/PyRepair/benchmarks/BugsInPy_REPOS/httpie:3, inifile: pytest.ini
+plugins: timeout-1.2.1, httpbin-2.0.0
+timeout: 10.0s method: signal
+collected 1 item                                                                                                                                                                                            
+ 
+tests/test_sessions.py F
+ 
+================================================================================================= FAILURES =================================================================================================
+___________________________________________________________________________________ TestSession.test_download_in_session ___________________________________________________________________________________
+Traceback (most recent call last):
+  File "/Users/nikhilparasaram/Work/PyRepair/benchmarks/BugsInPy_REPOS/httpie:3/tests/test_sessions.py", line 186, in test_download_in_session
+    httpbin.url + '/get', env=self.env()
+  File "/Users/nikhilparasaram/Work/PyRepair/benchmarks/BugsInPy_REPOS/httpie:3/tests/utils.py", line 136, in http
+    exit_status = main(args=args, **kwargs)
+  File "/Users/nikhilparasaram/Work/PyRepair/benchmarks/BugsInPy_REPOS/httpie:3/httpie/core.py", line 115, in main
+    response = get_response(args, config_dir=env.config.directory)
+  File "/Users/nikhilparasaram/Work/PyRepair/benchmarks/BugsInPy_REPOS/httpie:3/httpie/client.py", line 55, in get_response
+    read_only=bool(args.session_read_only),
+  File "/Users/nikhilparasaram/Work/PyRepair/benchmarks/BugsInPy_REPOS/httpie:3/httpie/sessions.py", line 52, in get_response
+    session.update_headers(kwargs['headers'])
+  File "/Users/nikhilparasaram/Work/PyRepair/benchmarks/BugsInPy_REPOS/httpie:3/httpie/sessions.py", line 104, in update_headers
+    value = value.decode('utf8')
+AttributeError: 'NoneType' object has no attribute 'decode'
+========================================================================================= 1 failed in 0.63 seconds =========================================================================================
+Error: Command '['venv/bin/python3.7', '-m', 'pytest', 'tests/test_sessions.py::TestSession::test_download_in_session', '--timeout=10']' returned non-zero exit status 1.
 
-        :type request_headers: dict
+The author's fix comment is 'Ignore explicitely unset headers'
 
-        """
-        for name, value in request_headers.items():
-            if value is None:
-                continue
-            value = value.decode('utf8')
-            if name == 'User-Agent' and value.startswith('HTTPie/'):
-                continue
-
-            for prefix in SESSION_IGNORED_HEADER_PREFIXES:
-                if name.lower().startswith(prefix.lower()):
-                    break
-            else:
-                self['headers'][name] = value
-
-The only change made here is the addition of a condition to check if value is None. If it is None, the loop will continue to the next iteration, skipping the decoding and further checks. This change ensures that the code won't break when encountering a 'None' value for value. The rest of the code remains unchanged to ensure that the fix is minimal and won't affect other parts of the code or passed tests.
-
-# Fix commit link
-
-https://github.com/httpie/cli/commit/589887939507ff26d36ec74bd2c045819cfa3d56
+You need to provide a drop-in replacement, with 'minimum changes to source code' that 'pass failed test' while 'won't affect other already passed tests'. And the fixed patch can be directly used in original project.
