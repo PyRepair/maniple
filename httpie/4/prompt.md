@@ -1,5 +1,3 @@
-# Prompt
-
 You need to fix a bug in a python code snippet.
 
 The buggy source code is following:
@@ -68,7 +66,7 @@ tests/test_regressions.py:17: AssertionError
 ============================================================================================= warnings summary =============================================================================================
 
 
-And the fix commit of the project author is 'Fixed custom Host'.
+And the raised issue description for this bug is 'need specify custom Host'.
 
 
 You need to provide a drop-in replacement, with 'minimum changes to source code' that 'pass failed test' while 'won't affect other already passed tests'. And the fixed patch can be directly used in original project.

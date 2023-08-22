@@ -1,8 +1,6 @@
-# Prompt
-
 You need to fix a bug in a python code snippet, which failed on test when variable 'value' is 'None'.
 
-The buggy source code with comment inside is following:
+The buggy source code with comment inside is following, and you should follow all specification in comment:
 
     def update_headers(self, request_headers):
         """
@@ -65,6 +63,6 @@ AttributeError: 'NoneType' object has no attribute 'decode'
 ========================================================================================= 1 failed in 0.63 seconds =========================================================================================
 Error: Command '['venv/bin/python3.7', '-m', 'pytest', 'tests/test_sessions.py::TestSession::test_download_in_session', '--timeout=10']' returned non-zero exit status 1.
 
-The author's fix comment is 'Ignore explicitely unset headers'
+And the raised issue description for this bug is 'AttributeError: 'NoneType' object has no attribute 'decode' on --download'.
 
 You need to provide a drop-in replacement, with 'minimum changes to source code' that 'pass failed test' while 'won't affect other already passed tests'. And the fixed patch can be directly used in original project.

@@ -1,5 +1,3 @@
-# LLM Answer
-
 Sure, here's the fixed version of the code snippet that should pass the test without affecting other already passed tests:
 
     def headers(self):

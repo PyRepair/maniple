@@ -1,5 +1,3 @@
-# LLM Answer
-
 It seems like the issue here is that the value variable can be None in the update_headers function, and the code doesn't handle this case properly. To fix this bug while making minimal changes to the source code and preserving the existing behavior, you can modify the code like this:
 
     def update_headers(self, request_headers):

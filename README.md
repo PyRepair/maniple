@@ -1,10 +1,15 @@
 # Daily summary Part
 
+## 22/08/23
+Mention: Instructions in the bugsinpy database are not available, and pyrepair support for bugsinpy is still under development. I'm trying to run tests manually direct from a specific project, so for some bugs i use manual test error, cause still need some time to set up the testing env.
+
+Test error and raised issue description are crucial for LLM to understand how to correct bugs, yet the raised issue description of many bugs is very vague and misleading.
+
 ## 18/08/23
 
 Update prompt for httpie 2,3,4.
 
-Adding colon to constrains word instructs LLM to focus on them, reduces the probability of generated fix patche that break already passed tests.
+Adding 'Apostrophe' to constrains word instructs LLM to focus on them, reduces the probability of generated fix patche that break already passed tests.
 
 Again for short and isolated program, in most cases, bugs can be resolved simply by making changes that follow language syntax even you don't provide 'test error'.
 Programs that are more difficult to fix often require an understanding of the author's needs. If the author already wrote fix description in fix commit while fixing the bug, the description can be passed to LLM as a repair requirement to increase the probability of successful repair. In addition, for such bugs, if the definition of the relevant parameters used in repair is avaiable, the probability of successful repair also increases, which implicitly provide a repair options for LLM.

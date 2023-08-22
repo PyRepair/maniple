@@ -1,5 +1,3 @@
-# Prompt
-
 You need to fix a bug in a python code snippet, which failed on test.
 
 The buggy source code is following:
@@ -95,7 +93,7 @@ AssertionError: assert 0 == 6
 ========================================================================================= 1 failed in 0.68 seconds =========================================================================================
 
 
-And the fix commit of the project author is "Fixed --max-redirects".
+And the raised issue description for this bug is 'I think we should have an 'option' to set max redirect'.
 
 
 You need to provide a drop-in replacement, with 'minimum changes to source code' that 'pass failed test' while 'won't affect other already passed tests'. And the fixed patch can be directly used in original project.
