@@ -1,5 +1,24 @@
 # Daily summary Part
 
+## 29/08/23
+Add example demonstration in Daily summary, which focus on critical features to justify why and when they are 'important'. Develop tools that can automatically generate templates and pass them into LLM to generate patches. Currently it's still in a broken state and in developing, so I push an example input jason file for cookiecutter project to give a overview.
+
+Example demonstration for test error:
+For some simple bugs, they can be fixed by making some small changes following the language syntax, in this case even you don't use test error you can still get the correct fix patch. These bugs are quite similar to bugs in QuixBugs datasets, you can see an example there https://github.com/HuijieYan/LLM-prompt-data-for-APR/blob/master/PySnooper/3/prompt.md
+
+For more bugs, test error can provide a general repair direction by value assertion and stack trace. Value assertion can provide input-output value pair to constrain return value. For example: https://github.com/HuijieYan/LLM-prompt-data-for-APR/blob/master/cookiecutter/2/Answer.md.
+
+Stack Trace can be used to locate relevant code snippets, sometimes these snippets can provide definition to supplement variable or class definition. Although there is still not a succeed example fix patch rn, while doing the experiment i can see function definition or comment contains useful infomation 'occasionally'.
+
+Example demonstration for raised issue description:
+Raised issue description can be treated as alternative for bug report. Ideally, a mature project should have a bug report that gives you detailed information about each bug. 
+
+Unfortunately, serveral projects in BugsInPy that i've checked so far have no bug report, everytime the developer fixed a bug they just closed a issue raised. Although issue description are very unclear and misleading 'occasionally', for example in httpie bug 4: https://github.com/httpie/cli/issues/235.
+
+But in most time the 'title' summary is concise, and the 'content' gives a correct fix direction or a specific description when the bug happened or how to reproduce the bug.
+
+Note that there are still some bugs (may be 20%) are found and fixed by the auther, so in the fix commit you can't find raised issue, and you also can't find a bug report as said before.
+
 ## 22/08/23
 Mention: Instructions in the bugsinpy database are not available, and pyrepair support for bugsinpy is still under development. I'm trying to run tests manually direct from a specific project, so for some bugs i use manual test error, cause still need some time to set up the testing env.
 

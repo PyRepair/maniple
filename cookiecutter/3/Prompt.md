@@ -66,4 +66,6 @@ show_default ¨C shows or hides the default value in the prompt.
 err ¨C if set to true the file defaults to stderr instead of stdout, the same as with echo.
 
 
+The raised issue discription is 'Fix typos'.
+
 You need to provide a drop-in replacement, with 'minimum changes to source code' that 'pass failed test' while 'won't affect other already passed tests'. And the fixed patch can be directly used in original project.
