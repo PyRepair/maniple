@@ -47,23 +47,23 @@ If the user aborts the input by sending a interrupt signal, this function will c
 New in version 4.0: Added the err parameter.
 
 Parameters
-text 每 the text to show for the prompt.
+text – the text to show for the prompt.
 
-default 每 the default value to use if no input happens. If this is not given it will prompt until it＊s aborted.
+default – the default value to use if no input happens. If this is not given it will prompt until it’s aborted.
 
-hide_input 每 if this is set to true then the input value will be hidden.
+hide_input – if this is set to true then the input value will be hidden.
 
-confirmation_prompt 每 asks for confirmation for the value.
+confirmation_prompt – asks for confirmation for the value.
 
-type 每 the type to use to check the value against.
+type – the type to use to check the value against.
 
-value_proc 每 if this parameter is provided it＊s a function that is invoked instead of the type conversion to convert a value.
+value_proc – if this parameter is provided it’s a function that is invoked instead of the type conversion to convert a value.
 
-prompt_suffix 每 a suffix that should be added to the prompt.
+prompt_suffix – a suffix that should be added to the prompt.
 
-show_default 每 shows or hides the default value in the prompt.
+show_default – shows or hides the default value in the prompt.
 
-err 每 if set to true the file defaults to stderr instead of stdout, the same as with echo.
+err – if set to true the file defaults to stderr instead of stdout, the same as with echo.
 
 
 The raised issue discription is 'Fix typos'.

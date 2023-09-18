@@ -30,15 +30,15 @@ The buggy source code is following:
 The test source code is following:
 
     def test_Host_header_overwrite():
-    """
-    https://github.com/jakubroztocil/httpie/issues/235
-    """
-    host = 'httpbin.org'
-    url = 'http://{httpbin_ip}/get'.format(
-        httpbin_ip=socket.gethostbyname(host))
-    r = http('--print=hH', url, 'host:{}'.format(host))
-    assert HTTP_OK in r
-    assert r.lower().count('host:') == 1
+        """
+        https://github.com/jakubroztocil/httpie/issues/235
+        """
+        host = 'httpbin.org'
+        url = 'http://{httpbin_ip}/get'.format(
+            httpbin_ip=socket.gethostbyname(host))
+        r = http('--print=hH', url, 'host:{}'.format(host))
+        assert HTTP_OK in r
+        assert r.lower().count('host:') == 1
 
 
 The test error on command line is following:
