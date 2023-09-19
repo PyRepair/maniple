@@ -3,7 +3,6 @@ Using anaconda is recommended. If you don't have it, you can install it from [he
 
 ## Install dependencies
 ```bash
-cd experiment
 conda create -n pyrepair python=3.11.5
 conda activate pyrepair
 pip install -r requirements.txt
