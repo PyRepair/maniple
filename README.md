@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 ## Run the experiment
 ```bash
-python llm_repair.py
+python llm_repair.py <PROJECT NAME>  (e.g. python llm_repair.py httpie)
 ```
 
 # Relevant docs
