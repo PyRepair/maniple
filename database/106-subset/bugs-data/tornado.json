@@ -1,0 +1,31 @@
+{
+  "project": "tornado",
+  "bugs": [
+    {
+      "id": 14,
+      "buggy_code_blocks": [
+        {
+          "filename": "tornado/ioloop.py",
+          "source_code": "    def initialize(self, make_current=None):\n        if make_current is None:\n            if IOLoop.current(instance=False) is None:\n                self.make_current()\n        elif make_current:\n            if IOLoop.current(instance=False) is None:\n                raise RuntimeError(\"current IOLoop already exists\")\n            self.make_current()"
+        }
+      ],
+      "features": {
+        "class_definition": null,
+        "variable_definitions": null,
+        "error_message": "======================================================================\nERROR: test_force_current (tornado.test.ioloop_test.TestIOLoopCurrent)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/tornado:14/tornado/test/ioloop_test.py\", line 443, in test_force_current\n    self.io_loop = IOLoop(make_current=True)\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/tornado:14/tornado/util.py\", line 221, in __new__\n    instance.initialize(*args, **init_kwargs)\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/tornado:14/tornado/platform/kqueue.py\", line 91, in initialize\n    super(KQueueIOLoop, self).initialize(impl=_KQueue(), **kwargs)\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/tornado:14/tornado/ioloop.py\", line 664, in initialize\n    super(PollIOLoop, self).initialize(**kwargs)\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/tornado:14/tornado/ioloop.py\", line 253, in initialize\n    raise RuntimeError(\"current IOLoop already exists\")\nRuntimeError: current IOLoop already exists\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (errors=1)",
+        "test_code_blocks": [
+          {
+            "filename": "tornado/test/ioloop_test.py",
+            "test_code": "# automatically set as current.\nclass TestIOLoopCurrent(unittest.TestCase):\n    def setUp(self):\n        self.io_loop = None\n        IOLoop.clear_current()\n\n    def tearDown(self):\n        if self.io_loop is not None:\n            self.io_loop.close()\n\n    def test_default_current(self):\n        self.io_loop = IOLoop()\n        # The first IOLoop with default arguments is made current.\n        self.assertIs(self.io_loop, IOLoop.current())\n        # A second IOLoop can be created but is not made current.\n        io_loop2 = IOLoop()\n        self.assertIs(self.io_loop, IOLoop.current())\n        io_loop2.close()\n\n    def test_non_current(self):\n        self.io_loop = IOLoop(make_current=False)\n        # The new IOLoop is not initially made current.\n        self.assertIsNone(IOLoop.current(instance=False))\n        def f():\n            # But it is current after it is started.\n            self.current_io_loop = IOLoop.current()\n            self.io_loop.stop()\n        self.io_loop.add_callback(f)\n        self.io_loop.start()\n        self.assertIs(self.current_io_loop, self.io_loop)\n        # Now that the loop is stopped, it is no longer current.\n        self.assertIsNone(IOLoop.current(instance=False))\n\n    def test_force_current(self):\n        self.io_loop = IOLoop(make_current=True)\n        self.assertIs(self.io_loop, IOLoop.current())\n        with self.assertRaises(RuntimeError):\n            # A second make_current=True construction cannot succeed.\n            IOLoop(make_current=True)\n        # current() was not affected by the failed construction.\n        self.assertIs(self.io_loop, IOLoop.current())"
+          }
+        ],
+        "raised_issue_descriptions": [
+          {
+            "title": "ioloop.py(line 252) is None or not None",
+            "content": "line 252， IOLoop.current(instance=False) is None。why then raise \"already exists\"?"
+          }
+        ]
+      }
+    }
+  ]
+}
