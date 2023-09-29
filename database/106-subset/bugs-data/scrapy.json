@@ -1,0 +1,47 @@
+{
+  "project": "scrapy",
+  "bugs": [
+    {
+      "id": 29,
+      "buggy_code_blocks": [
+        {
+          "filename": "scrapy/utils/request.py",
+          "source_code": "def request_httprepr(request):\n    \"\"\"Return the raw HTTP representation (as bytes) of the given request.\n    This is provided only for reference since it's not the actual stream of\n    bytes that will be send when performing the request (that's controlled\n    by Twisted).\n    \"\"\"\n    parsed = urlparse_cached(request)\n    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))\n    s = to_bytes(request.method) + b\" \" + to_bytes(path) + b\" HTTP/1.1\\r\\n\"\n    s += b\"Host: \" + to_bytes(parsed.hostname) + b\"\\r\\n\"\n    if request.headers:\n        s += request.headers.to_string() + b\"\\r\\n\"\n    s += b\"\\r\\n\"\n    s += request.body\n    return s"
+        }
+      ],
+      "features": {
+        "class_definition": null,
+        "variable_definitions": null,
+        "error_message": "======================================================================\nERROR: test_request_httprepr_for_non_http_request (tests.test_utils_request.UtilsRequestTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/scrapy:29/tests/test_utils_request.py\", line 76, in test_request_httprepr_for_non_http_request\n    request_httprepr(Request(\"file:///tmp/foo.txt\"))\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/scrapy:29/scrapy/utils/request.py\", line 82, in request_httprepr\n    s += b\"Host: \" + to_bytes(parsed.hostname) + b\"\\r\\n\"\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/scrapy:29/scrapy/utils/python.py\", line 116, in to_bytes\n    raise TypeError('to_bytes must receive a unicode, str or bytes '\nTypeError: to_bytes must receive a unicode, str or bytes object, got NoneType\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (errors=1)",
+        "test_code_blocks": [
+          {
+            "filename": "tests/test_utils_request.py",
+            "test_code": "    def test_request_httprepr_for_non_http_request(self):\n        # the representation is not important but it must not fail.\n        request_httprepr(Request(\"file:///tmp/foo.txt\"))\n        request_httprepr(Request(\"ftp://localhost/tmp/foo.txt\"))"
+          }
+        ],
+        "raised_issue_descriptions": null
+      }
+    },
+    {
+      "id": 28,
+      "buggy_code_blocks": [
+        {
+          "filename": "scrapy/dupefilters.py",
+          "source_code": "    def __init__(self, path=None, debug=False):\n        self.file = None\n        self.fingerprints = set()\n        self.logdupes = True\n        self.debug = debug\n        self.logger = logging.getLogger(__name__)\n        if path:\n            self.file = open(os.path.join(path, 'requests.seen'), 'a+')\n            self.fingerprints.update(x.rstrip() for x in self.file)"
+        }
+      ],
+      "features": {
+        "class_definition": null,
+        "variable_definitions": null,
+        "error_message": "/usr/local/Cellar/python@3.8/3.8.18/Frameworks/Python.framework/Versions/3.8/lib/python3.8/unittest/case.py:704: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp53dl5uqz/requests.seen' mode='a+' encoding='UTF-8'>\n  outcome.errors.clear()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n======================================================================\nFAIL: test_dupefilter_path (tests.test_dupefilters.RFPDupeFilterTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/scrapy:28/tests/test_dupefilters.py\", line 43, in test_dupefilter_path\n    assert df2.request_seen(r1)\nAssertionError\n\n----------------------------------------------------------------------\nRan 1 test in 0.032s\n\nFAILED (failures=1)",
+        "test_code_blocks": [
+          {
+            "filename": "tests/test_dupefilters.py",
+            "test_code": "    def test_dupefilter_path(self):\n        r1 = Request('http://scrapytest.org/1')\n        r2 = Request('http://scrapytest.org/2')\n\n        path = tempfile.mkdtemp()\n        try:\n            df = RFPDupeFilter(path)\n            df.open()\n            assert not df.request_seen(r1)\n            assert df.request_seen(r1)\n            df.close('finished')\n\n            df2 = RFPDupeFilter(path)\n            df2.open()\n            assert df2.request_seen(r1)\n            assert not df2.request_seen(r2)\n            assert df2.request_seen(r2)\n            df2.close('finished')\n        finally:\n            shutil.rmtree(path)"
+          }
+        ],
+        "raised_issue_descriptions": null
+      }
+    }
+  ]
+}
