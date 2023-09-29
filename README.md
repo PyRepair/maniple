@@ -53,5 +53,5 @@ python3.11 bgp.py run_test —bug_list <project name>:<id>
 
 - [Project Planning (Google Doc)](https://docs.google.com/document/d/1XVV7IkuQQ8rD3oK32kgK2NNJ0A5LC93uxbUYW7T9TGg/edit?usp=sharing)
 - [Result Spreadsheet for manually selected bugs (Google Sheet)](https://docs.google.com/spreadsheets/d/1XYWpsnhUVL7p8IS9K6jc1vadp2cirJ5O7VIA-F8hCH8/edit?usp=sharing)
-- [Result Spreadsheet for random selected 30 bugs in 107 subset in bgp](https://docs.google.com/spreadsheets/d/1YBWC5g7Or081PAXBJg5UFxidwlLGj6hWCl7MMVbrugo/edit?usp=sharing)
+- [Result Spreadsheet for random selected 30 bugs in 106 subset in bgp](https://docs.google.com/spreadsheets/d/1YBWC5g7Or081PAXBJg5UFxidwlLGj6hWCl7MMVbrugo/edit?usp=sharing)
 - [Result Spreadsheet for random selected 30 bugs in 395 subset in bgp](https://docs.google.com/spreadsheets/d/100q3GdNcR0SfvsLZoskePINhFVXp8jx1bY5IbZzf6rs/edit?usp=sharing)
