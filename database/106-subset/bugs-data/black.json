@@ -1,0 +1,56 @@
+{
+  "project": "black",
+  "bugs": [
+    {
+      "id": 10,
+      "buggy_code_blocks": [
+        {
+          "filename": "blib2to3/pgen2/driver.py",
+          "source_code": "    def _partially_consume_prefix(self, prefix, column):\n        lines = []\n        current_line = \"\"\n        current_column = 0\n        wait_for_nl = False\n        for char in prefix:\n            current_line += char\n            if wait_for_nl:\n                if char == '\\n':\n                    if current_line.strip() and current_column < column:\n                        res = ''.join(lines)\n                        return res, prefix[len(res):]\n                    lines.append(current_line)\n                    current_line = \"\"\n                    current_column = 0\n                    wait_for_nl = False\n            elif char == ' ':\n                current_column += 1\n            elif char == '\\t':\n                current_column += 4\n            elif char == '\\n':\n                # unexpected empty line\n                current_column = 0\n            else:\n                # indent is finished\n                wait_for_nl = True\n        return ''.join(lines), current_line"
+        }
+      ],
+      "features": {
+        "class_definition": null,
+        "variable_definitions": null,
+        "error_message": "Expected tree:\nfile_input\n  if_stmt\n    NAME 'if'\n    NUMBER ' ' '1'\n    COLON ':'\n    suite\n      NEWLINE '\\n'\n      INDENT ''\n      if_stmt\n        NAME '    ' 'if'\n        NUMBER ' ' '2'\n        COLON ':'\n        suite\n          NEWLINE '\\n'\n          INDENT ''\n          simple_stmt\n            NAME '        ' 'pass'\n            NEWLINE '\\n'\n          /simple_stmt\n          DEDENT '        # comment\\n' ''\n        /suite\n      /if_stmt\n      simple_stmt\n        NAME '    ' 'pass'\n        NEWLINE '\\n'\n      /simple_stmt\n      DEDENT ''\n    /suite\n  /if_stmt\n  ENDMARKER ''\n/file_input\nActual tree:\nfile_input\n  if_stmt\n    NAME 'if'\n    NUMBER ' ' '1'\n    COLON ':'\n    suite\n      NEWLINE '\\n'\n      INDENT ''\n      if_stmt\n        NAME '    ' 'if'\n        NUMBER ' ' '2'\n        COLON ':'\n        suite\n          NEWLINE '\\n'\n          INDENT ''\n          simple_stmt\n            NAME '        ' 'pass'\n            NEWLINE '\\n'\n          /simple_stmt\n          DEDENT ''\n        /suite\n      /if_stmt\n      simple_stmt\n        NAME '    # comment\\n    ' 'pass'\n        NEWLINE '\\n'\n      /simple_stmt\n      DEDENT ''\n    /suite\n  /if_stmt\n  ENDMARKER ''\n/file_input\n======================================================================\nFAIL: test_comment_indentation (tests.test_black.BlackTestCase)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/black:10/tests/test_black.py\", line 517, in test_comment_indentation\n    self.assertFormatEqual(fs(contents_tab), contents_spc)\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/black:10/tests/test_black.py\", line 156, in assertFormatEqual\n    self.assertEqual(expected, actual)\nAssertionError: 'if 1:\\n    if 2:\\n        pass\\n        # comment\\n    pass\\n' != 'if 1:\\n    if 2:\\n        pass\\n    # comment\\n    pass\\n'\n  if 1:\n      if 2:\n          pass\n-         # comment\n? ----\n+     # comment\n      pass\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.005s\n\nFAILED (failures=1)",
+        "test_code_blocks": [
+          {
+            "filename": "tests/test_black.py",
+            "test_code": "    def test_comment_indentation(self) -> None:\n        contents_tab = \"if 1:\\n\\tif 2:\\n\\t\\tpass\\n\\t# comment\\n\\tpass\\n\"\n        contents_spc = \"if 1:\\n    if 2:\\n        pass\\n    # comment\\n    pass\\n\"\n\n        self.assertFormatEqual(fs(contents_spc), contents_spc)\n        self.assertFormatEqual(fs(contents_tab), contents_spc)\n\n        contents_tab = \"if 1:\\n\\tif 2:\\n\\t\\tpass\\n\\t\\t# comment\\n\\tpass\\n\"\n        contents_spc = \"if 1:\\n    if 2:\\n        pass\\n        # comment\\n    pass\\n\"\n\n        self.assertFormatEqual(fs(contents_tab), contents_spc)\n        self.assertFormatEqual(fs(contents_spc), contents_spc)"
+          }
+        ],
+        "raised_issue_descriptions": [
+          {
+            "title": "Indentation is incorrectly changed for tabulated comments after a dedent",
+            "content": "Operating system: Ubuntu 18.04\nPython version: 3.6.3\nBlack version: master\n\nThank you @ambv for this library. When trying to run this on a codebase that uses tabs, indentation for comments past depth 0 is changed incorrectly after a dedent. Sample input (NB tabs):\n\nif 1:\n\tif 2:\n\t\tpass\n\t# This comment should be indented the same as the next line\n\tpass\nBlack reformats this to:\n\nif 1:\n    if 2:\n        pass\n        # This comment should be indented the same as the next line\n    pass\nNote that this only happens when the input file uses tabs."
+          }
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "buggy_code_blocks": [
+        {
+          "filename": "black.py",
+          "source_code": "    def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:\n        max_allowed = 1\n        if current_line.depth == 0:\n            max_allowed = 2\n        if current_line.leaves:\n            # Consume the first leaf's extra newlines.\n            first_leaf = current_line.leaves[0]\n            before = first_leaf.prefix.count(\"\\n\")\n            before = min(before, max_allowed)\n            first_leaf.prefix = \"\"\n        else:\n            before = 0\n        depth = current_line.depth\n        while self.previous_defs and self.previous_defs[-1] >= depth:\n            self.previous_defs.pop()\n            before = 1 if depth else 2\n        is_decorator = current_line.is_decorator\n        if is_decorator or current_line.is_def or current_line.is_class:\n            if not is_decorator:\n                self.previous_defs.append(depth)\n            if self.previous_line is None:\n                # Don't insert empty lines before the first line in the file.\n                return 0, 0\n            if self.previous_line and self.previous_line.is_decorator:\n                # Don't insert empty lines between decorators.\n                return 0, 0\n\n            newlines = 2\n            if current_line.depth:\n                newlines -= 1\n            return newlines, 0\n        if current_line.is_flow_control:\n            return before, 1\n        if (\n            self.previous_line\n            and self.previous_line.is_import\n            and not current_line.is_import\n            and depth == self.previous_line.depth\n        ):\n            return (before or 1), 0\n        if (\n            self.previous_line\n            and self.previous_line.is_yield\n            and (not current_line.is_yield or depth != self.previous_line.depth)\n        ):\n            return (before or 1), 0\n        return before, 0"
+        }
+      ],
+      "features": {
+        "class_definition": null,
+        "variable_definitions": null,
+        "error_message": "Expected tree:\nfile_input\n  decorated\n    decorators\n      decorator\n        AT '@'\n        NAME 'property'\n        NEWLINE '\\n'\n      /decorator\n      decorator\n        AT '# TODO: X\\n' '@'\n        NAME 'property'\n        NEWLINE '\\n'\n      /decorator\n      decorator\n        AT '# TODO: Y\\n# TODO: Z\\n' '@'\n        NAME 'property'\n        NEWLINE '\\n'\n      /decorator\n    /decorators\n    funcdef\n      NAME 'def'\n      NAME ' ' 'foo'\n      parameters\n        LPAR '('\n        RPAR ')'\n      /parameters\n      COLON ':'\n      suite\n        NEWLINE '\\n'\n        INDENT '    '\n        simple_stmt\n          NAME 'pass'\n          NEWLINE '\\n'\n        /simple_stmt\n        DEDENT ''\n      /suite\n    /funcdef\n  /decorated\n  ENDMARKER ''\n/file_input\nActual tree:\nfile_input\n  decorated\n    decorators\n      decorator\n        AT '@'\n        NAME 'property'\n        NEWLINE '\\n'\n      /decorator\n      decorator\n        AT '# TODO: X\\n\\n\\n' '@'\n        NAME 'property'\n        NEWLINE '\\n'\n      /decorator\n      decorator\n        AT '# TODO: Y\\n# TODO: Z\\n\\n\\n' '@'\n        NAME 'property'\n        NEWLINE '\\n'\n      /decorator\n    /decorators\n    funcdef\n      NAME 'def'\n      NAME ' ' 'foo'\n      parameters\n        LPAR '('\n        RPAR ')'\n      /parameters\n      COLON ':'\n      suite\n        NEWLINE '\\n'\n        INDENT '    '\n        simple_stmt\n          NAME 'pass'\n          NEWLINE '\\n'\n        /simple_stmt\n        DEDENT ''\n      /suite\n    /funcdef\n  /decorated\n  ENDMARKER ''\n/file_input\n======================================================================\nFAIL: test_comment_in_decorator (tests.test_black.BlackTestCase)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/usr/local/Cellar/python@3.8/3.8.18/Frameworks/Python.framework/Versions/3.8/lib/python3.8/unittest/mock.py\", line 1325, in patched\n    return func(*newargs, **newkeywargs)\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/black:19/tests/test_black.py\", line 633, in test_comment_in_decorator\n    self.assertFormatEqual(expected, actual)\n  File \"/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/black:19/tests/test_black.py\", line 100, in assertFormatEqual\n    self.assertEqual(expected, actual)\nAssertionError: '@pro[13 chars]: X\\n@property\\n# TODO: Y\\n# TODO: Z\\n@propert[21 chars]ss\\n' != '@pro[13 chars]: X\\n\\n\\n@property\\n# TODO: Y\\n# TODO: Z\\n\\n\\n[29 chars]ss\\n'\n  @property\n  # TODO: X\n+ \n+ \n  @property\n  # TODO: Y\n  # TODO: Z\n+ \n+ \n  @property\n  def foo():\n      pass\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.008s\n\nFAILED (failures=1)",
+        "test_code_blocks": [
+          {
+            "filename": "tests/comments6.py",
+            "test_code": "@property\n# TODO: X\n@property\n# TODO: Y\n# TODO: Z\n@property\ndef foo():\n    pass"
+          },
+          {
+            "filename": "tests/test_black.py",
+            "test_code": "    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_comment_in_decorator(self) -> None:\n        source, expected = read_data(\"comments6\")\n        actual = fs(source)\n        self.assertFormatEqual(expected, actual)\n        black.assert_equivalent(source, actual)\n        black.assert_stable(source, actual, line_length=ll)"
+          }
+        ],
+        "raised_issue_descriptions": null
+      }
+    }
+  ]
+}
