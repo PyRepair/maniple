@@ -1,12 +1,13 @@
 from typing import Dict
+from bug_type import ProjectData, ProjectInfo
+import argparse
 
 import openai
 import sys
 import json
 from os import path
-import argparse
+sys.path.append('..')
 
-from bug_type import ProjectData, ProjectInfo
 
 openai.api_key = "rg-B09kO5jDDdG0axfeuA5YP0LLTX8Fxi0rxNrgtzU6ZfiPRVNE"
 openai.api_base = "https://ai.redgatefoundry.com/v1"
@@ -44,30 +45,31 @@ def main():
 
 def traversal_bugs(bugs_data: ProjectData):
     project_name = bugs_data["project"]
-    for bug in bugs_data["bugs"]:
-        bug_id = bug["id"]
+    for bug_index in range(len(bugs_data["bugs"])):
+        bug_id = bugs_data["bugs"][bug_index]["id"]
 
-        # only use available features
+        # only use avaialable features
         exist_features = []
-        exist_feature_indexes = []
+        exist_feature_indeces = []
 
         feature_index = 0
-        d: Dict[str, str] = bug["features"]
-        for feature in d:
-            if d[feature] is not None:
-                print(d[feature])
+        for feature in bugs_data["bugs"][bug_index]:
+            if feature == "id" or feature == "source_code":
+                feature_index += 1
+                continue
+            if bugs_data["bugs"][bug_index][feature] is not None:
                 exist_features.append(feature)
-                exist_feature_indexes.append(feature_index)
+                exist_feature_indeces.append(feature_index)
                 feature_index += 1
 
         # run with all features
-        generate_answers(bugs_data["bugs"][bug_index], exist_features, exist_feature_indexes, project_name, bug_id)
+        generate_answers(bugs_data["bugs"][bug_index], exist_features, exist_feature_indeces, project_name, bug_id)
 
         # drop only one feature once
         for drop_index in range(len(exist_features)):
             selected_features = exist_features.copy()
             selected_features.pop(drop_index)
-            selected_indeces = exist_feature_indexes.copy()
+            selected_indeces = exist_feature_indeces.copy()
             selected_indeces.pop(drop_index)
 
             generate_answers(bugs_data["bugs"][bug_index], selected_features, selected_indeces, project_name, bug_id)
@@ -193,4 +195,4 @@ def get_answer_from_chatgpt(prompt):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
