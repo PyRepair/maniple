@@ -49,6 +49,22 @@ python3.11 bgp.py prep —bug_list <project name>:<id>
 python3.11 bgp.py run_test —bug_list <project name>:<id>
 ```
 
+## Build prompt and run result generator for prompt
+```bash
+cd experiment
+python3.8 llm_repair.py -d <dataset> -p <project> -t <0|1> -f <0|1> -m <llm model name> -r 3
+```
+Explaination:
+```bash
+python llm_repair.py -d <dataset> -p <project> -t <0|1> (0 : single prompt type, 1 : multi prompt type) -f <0|1> (0 : use all features, 1 : traversal all features drop one feature every run) -m <llm model name> -r 3 (how many answers are generated from prompt)
+```
+Example:
+```bash
+python llm_repair.py -d "106-subset" -p tornado -t 0 -f 0 -m gpt-3.5-turbo -r 3
+```
+
+
+
 # Relevant docs
 
 - [Project Planning (Google Doc)](https://docs.google.com/document/d/1XVV7IkuQQ8rD3oK32kgK2NNJ0A5LC93uxbUYW7T9TGg/edit?usp=sharing)
