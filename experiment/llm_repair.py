@@ -1,13 +1,13 @@
-from typing import Dict
+from os import path, makedirs
+from typing import Dict, List
 from bug_type import ProjectData, ProjectInfo
 import argparse
 
 import openai
 import sys
 import json
-from os import path
-sys.path.append('..')
 
+sys.path.append('..')
 
 openai.api_key = "rg-B09kO5jDDdG0axfeuA5YP0LLTX8Fxi0rxNrgtzU6ZfiPRVNE"
 openai.api_base = "https://ai.redgatefoundry.com/v1"
@@ -15,99 +15,111 @@ openai.api_base = "https://ai.redgatefoundry.com/v1"
 
 def main():
     parser = argparse.ArgumentParser(description="Create prompt and write result")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-d', '--database',
-                       help="Database name, should be a folder under database directory", required=True, type=str)
-    group.add_argument('-p', '--project', help="Project name", required=True, type=str)
+    parser.add_argument('-d', '--database', help="Database name, should be a folder under the database directory",
+                        type=str, required=True)
+    parser.add_argument('-p', '--project', help="Project name", type=str, required=True)
     parser.add_argument('-t', '--type', help="Prompt type, single: 0, multi: 1", required=True, type=int)
-    group.add_argument('-f', '--feature_split',
-                       help="Split the features, drop one feature every run", required=True, type=str)
+    parser.add_argument('-f', '--feature_split',
+                        help="Split features, and drop one feature every run. 0: all feature, 1: split", required=True,
+                        type=int)
+    parser.add_argument('-m', '--model', help="LLM model name, Should be 'gpt-4' or 'gpt-3.5-turbo'",
+                        required=True, type=str)
+    parser.add_argument('-r', '--repeat', help="how many times answer are generated for a prompt",
+                        required=True, type=int)
 
     args = parser.parse_args()
 
-    if args.database:
-        print(args.database)
-    if args.project:
-        print(args.project)
-    if args.type:
-        print(args.type)
-    if args.feature_split:
-        print(args.feature_split)
-
     # load project data form database
-    # project_name = args[0]
-    # data_address = path.join("..", "database", "bugs-data", project_name + ".json")
-    # bugs_data: ProjectData = json.load(open(data_address, "r"))
+    project_name = args.project
+    data_address = path.join("..", "database", args.database, "bugs-data", project_name + ".json")
+    bugs_data = json.load(open(data_address, "r", encoding="utf-8"))
 
-    # traversal whole dataset, generate prompt and answer for every bug, and drop only one feature once
-    # traversal_bugs(bugs_data)
+    # traversal whole dataset, generate prompt and answer for every bug
+    if args.type == 0:
+        write_directory = path.join("..", "prompt-results", "single-prompt", args.database, args.model, args.project)
+    else:
+        write_directory = path.join("..", "prompt-results", "multi-prompt", args.database, args.model, args.project)
+    traversal_bugs(bugs_data, args.feature_split, write_directory, args.repeat, args.model)
 
 
-def traversal_bugs(bugs_data: ProjectData):
-    project_name = bugs_data["project"]
+def traversal_bugs(bugs_data, feature_split: int, write_directory: str, number_of_answers: int, llm_model: str):
     for bug_index in range(len(bugs_data["bugs"])):
         bug_id = bugs_data["bugs"][bug_index]["id"]
 
-        # only use avaialable features
+        # only use available features
         exist_features = []
-        exist_feature_indeces = []
+        exist_feature_indexes = []
 
         feature_index = 0
-        for feature in bugs_data["bugs"][bug_index]:
-            if feature == "id" or feature == "source_code":
-                feature_index += 1
-                continue
-            if bugs_data["bugs"][bug_index][feature] is not None:
+        for feature in bugs_data["bugs"][bug_index]["features"]:
+            if bugs_data["bugs"][bug_index]["features"][feature] is not None:
                 exist_features.append(feature)
-                exist_feature_indeces.append(feature_index)
+                exist_feature_indexes.append(feature_index)
                 feature_index += 1
 
         # run with all features
-        generate_answers(bugs_data["bugs"][bug_index], exist_features, exist_feature_indeces, project_name, bug_id)
+        if feature_split == 0:
+            generate_single_prompt_answers(bugs_data["bugs"][bug_index], exist_features, exist_feature_indexes,
+                                           write_directory, bug_id, number_of_answers, llm_model)
+        elif feature_split == 1:
+            # drop only one feature once
+            for drop_index in range(len(exist_features)):
+                selected_features = exist_features.copy()
+                selected_features.pop(drop_index)
+                selected_indexes = exist_feature_indexes.copy()
+                selected_indexes.pop(drop_index)
 
-        # drop only one feature once
-        for drop_index in range(len(exist_features)):
-            selected_features = exist_features.copy()
-            selected_features.pop(drop_index)
-            selected_indeces = exist_feature_indeces.copy()
-            selected_indeces.pop(drop_index)
-
-            generate_answers(bugs_data["bugs"][bug_index], selected_features, selected_indeces, project_name, bug_id)
+                generate_single_prompt_answers(bugs_data["bugs"][bug_index], selected_features, selected_indexes,
+                                               write_directory, bug_id, number_of_answers, llm_model)
 
 
-def generate_answers(features, selected_features, selected_indeces, project_name, bug_id):
-    prompt_filename = "prompt-"
-    answer_filename = "answer-"
-    for selected_index in selected_indeces:
+def generate_single_prompt_answers(bug_info, selected_features: List[str], selected_indexes: List[int],
+                                   write_directory: str, bug_id: int, number_of_answers: int, llm_model: str):
+    prompt_filename = "prompt"
+    for selected_index in selected_indexes:
+        prompt_filename += "-"
         prompt_filename += str(selected_index)
-        answer_filename += str(selected_index)
+
     prompt_filename += ".md"
-    answer_filename += ".md"
 
     # Build prompt from template
-    prompt = build_prompt(features, selected_features)
+    prompt = build_prompt(bug_info, selected_features)
 
     # write prompt into md file
-    write_prompt(prompt, project_name, bug_id, prompt_filename)
+    write_prompt(prompt, write_directory, bug_id, prompt_filename)
 
-    # connect to chatgpt to get answer
-    answer = get_answer_from_chatgpt(prompt)
+    # repeat to get answer, number are defined by user input
+    for number in range(number_of_answers):
+        answer_filename = "answer"
+        for selected_index in selected_indexes:
+            answer_filename += "-"
+            answer_filename += str(selected_index)
 
-    # write answer into md file
-    write_answer(answer, project_name, bug_id, answer_filename)
+        answer_filename = answer_filename + "(" + str(number + 1) + ")" + ".md"
+
+        # connect to chatgpt to get answer
+        answer = get_answer_from_chatgpt(prompt, llm_model)
+
+        # write answer into md file
+        write_answer(answer, write_directory, bug_id, answer_filename)
 
 
-def build_prompt(features, selected_features):
+def build_prompt(bug_info, selected_features: List[str]):
     prompt_template = json.load(open("prompt_template.json", "r"))
 
     prompt = f"""{prompt_template["preface"]}
 
-{prompt_template["source_code"]}
+{prompt_template["buggy_code_blocks"]}
+"""
 
-{features["source_code"]}
+    for code_block in bug_info["buggy_code_blocks"]:
+        prompt = prompt + f"""
+{code_block["source_code"]}
 
 
 """
+
+    features = bug_info["features"]
 
     if "class_definition" in selected_features:
         prompt = prompt + f"""
@@ -145,53 +157,61 @@ def build_prompt(features, selected_features):
 
 """
 
-    if "test_code" in selected_features:
-        prompt = prompt + f"""
-{prompt_template["test_code"]}
+    if "test_code_blocks" in selected_features:
+        for test in features["test_code_blocks"]:
+            prompt = prompt + f"""
+{prompt_template["test_code_blocks"]}
 
-{features["test_code"]}
-
-
-"""
-
-    if "raised_issue_description" in selected_features:
-        prompt = prompt + f"""
-{prompt_template["raised_issue_description"]} '{features["raised_issue_description"]}'.
+{test["test_code"]}
 
 
 """
 
-    prompt = prompt + f"""
-{prompt_template["constrain_conclusion"]}"""
+    if "raised_issue_descriptions" in selected_features:
+        for issue in features["raised_issue_descriptions"]:
+            prompt = prompt + f"""
+{prompt_template["raised_issue_descriptions"]}
+{issue["title"]}
+
+{issue["content"]}"""
+
+    #     prompt = prompt + f"""
+    # {prompt_template["constrain_conclusion"]}"""
 
     return prompt
 
 
-def write_prompt(prompt, project_name, bug_id, filename):
-    prompt_fileaddress = "./" + project_name + "/" + str(bug_id) + "/" + filename
-    with open(prompt_fileaddress, "w") as promptfile:
+def write_prompt(prompt: str, directory: str, bug_id: int, filename: str):
+    makedirs(path.join(directory, str(bug_id)), exist_ok=True)
+    with open(path.join(directory, str(bug_id), filename), "w") as promptfile:
         promptfile.write(prompt)
 
 
-def write_answer(answer, project_name, bug_id, filename):
-    answer_fileaddress = "./" + project_name + "/" + str(bug_id) + "/" + filename
-    with open(answer_fileaddress, "w") as answerfile:
+def write_answer(answer: str, directory: str, bug_id: int, filename: str):
+    makedirs(path.join(directory, str(bug_id)), exist_ok=True)
+    with open(path.join(directory, str(bug_id), filename), "w") as answerfile:
         answerfile.write(answer)
 
 
-def get_answer_from_chatgpt(prompt):
-    model = "gpt-4"  # "gpt-4" or "gpt-3.5-turbo"
+def get_answer_from_chatgpt(prompt: str, llm_model: str):
+    system_prompt = """Your task is to repair a program by offering a replacement that requires minimal alterations to 
+the source code,allowing it to pass a failed test without impacting other successfully passed tests. The fixed patch
+should be readily applicable to the original project. And you should output complete code.""".replace("\n", "")
 
-    system_prompt = "You role is to fix program"
+    # llm_model should be "gpt-4" or "gpt-3.5-turbo"
+    try:
+        chat_completion = openai.ChatCompletion.create(
+            model=llm_model, messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ]
+        )
 
-    chat_completion = openai.ChatCompletion.create(
-        model=model, messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ]
-    )
+        return chat_completion.choices[0].message.content
 
-    return chat_completion.choices[0].message.content
+    # ignore if token length exceeds window size
+    except Exception:
+        return ""
 
 
 if __name__ == "__main__":
