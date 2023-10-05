@@ -12,6 +12,13 @@ sys.path.append('..')
 openai.api_key = "rg-B09kO5jDDdG0axfeuA5YP0LLTX8Fxi0rxNrgtzU6ZfiPRVNE"
 openai.api_base = "https://ai.redgatefoundry.com/v1"
 
+database = ""
+project = ""
+prompt_type = 1
+feature_split = 1
+model = ""
+repeat = 1
+
 
 def main():
     parser = argparse.ArgumentParser(description="Create prompt and write result")
@@ -28,6 +35,15 @@ def main():
                         required=True, type=int)
 
     args = parser.parse_args()
+
+    global database, project, prompt_type, feature_split, model, repeat
+
+    database = args.database
+    project = args.project
+    prompt_type = args.type
+    feature_split = args.feature_split
+    model = args.model
+    repeat = args.repeat
 
     # load project data form database
     project_name = args.project
@@ -119,7 +135,7 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], selec
             answer_filename += "-"
             answer_filename += str(selected_index)
 
-        answer_filename = answer_filename + "(" + str(number + 1) + ")" + ".md"
+        answer_filename = answer_filename + "(" + str(number + 1) + ")"
 
         # connect to chatgpt to get answer
         answer = get_answer_from_chatgpt(prompt, llm_model)
@@ -129,7 +145,10 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], selec
         function_snippet = remove_import_statement(code_snippet)
 
         # write answer into md file
-        write_answer(function_snippet, write_directory, bug_id, answer_filename)
+        write_answer_markdown(answer, write_directory, bug_id, answer_filename)
+
+        # write answer into json
+        write_answer_json(function_snippet, write_directory, bug_id, answer_filename)
 
 
 def build_prompt(bug_info, selected_features: List[str]):
@@ -211,14 +230,45 @@ def build_prompt(bug_info, selected_features: List[str]):
 
 def write_prompt(prompt: str, directory: str, bug_id: int, filename: str):
     makedirs(path.join(directory, str(bug_id)), exist_ok=True)
-    with open(path.join(directory, str(bug_id), filename), "w") as promptfile:
-        promptfile.write(prompt)
+    with open(path.join(directory, str(bug_id), filename), "w") as prompt_file:
+        prompt_file.write(prompt)
 
 
-def write_answer(answer: str, directory: str, bug_id: int, filename: str):
+def write_answer_markdown(answer: str, directory: str, bug_id: int, filename: str):
     makedirs(path.join(directory, str(bug_id)), exist_ok=True)
-    with open(path.join(directory, str(bug_id), filename), "w") as answerfile:
-        answerfile.write(answer)
+    with open(path.join(directory, str(bug_id), filename + ".md"), "w") as answer_file:
+        answer_file.write(answer)
+
+
+def write_answer_json(code_snippets: str, directory: str, bug_id: int, filename: str):
+    makedirs(path.join(directory, str(bug_id)), exist_ok=True)
+    global database, project
+
+    data_info_address = path.join("..", "database", database, "bugs-info", project + ".json")
+
+    with open(data_info_address, "r", encoding="utf-8") as read_json_file:
+        bugs_data = json.load(read_json_file)
+
+    info_list: List = bugs_data["bugs"]
+
+    fix_line = None
+    for bug in info_list:
+        if bug["id"] == bug_id:
+            fix_line = bug["fix_lines"][0]
+
+    input_json = {
+        project: [
+            {
+                "bugID": bug_id,
+                "start_line": fix_line["start_line"],
+                "file_name": fix_line["filename"],
+                "replace_code": code_snippets
+            }
+        ]
+    }
+
+    with open(path.join(directory, str(bug_id), filename + ".json"), "w") as json_file:
+        json.dump(input_json, json_file, indent=4)
 
 
 def get_answer_from_chatgpt(prompt: str, llm_model: str):
