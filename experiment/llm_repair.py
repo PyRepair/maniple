@@ -1,7 +1,7 @@
 from os import path, makedirs
 from typing import Dict, List
-from bug_type import ProjectData, ProjectInfo
 import argparse
+import re
 
 import openai
 import sys
@@ -73,6 +73,17 @@ def traversal_bugs(bugs_data, feature_split: int, write_directory: str, number_o
                                                write_directory, bug_id, number_of_answers, llm_model)
 
 
+def extract_code_snippets(answer: str):
+    code_snippets = []
+    code_block_pattern = r'```python(.*?)```'
+    code_blocks = re.findall(code_block_pattern, answer, re.DOTALL)
+
+    for code_block in code_blocks:
+        code_snippets.append(code_block.strip())
+
+    return "\n".join(code_snippets)
+
+
 def generate_single_prompt_answers(bug_info, selected_features: List[str], selected_indexes: List[int],
                                    write_directory: str, bug_id: int, number_of_answers: int, llm_model: str):
     prompt_filename = "prompt"
@@ -100,8 +111,10 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], selec
         # connect to chatgpt to get answer
         answer = get_answer_from_chatgpt(prompt, llm_model)
 
+        code_snippet = extract_code_snippets(answer)
+
         # write answer into md file
-        write_answer(answer, write_directory, bug_id, answer_filename)
+        write_answer(code_snippet, write_directory, bug_id, answer_filename)
 
 
 def build_prompt(bug_info, selected_features: List[str]):
@@ -194,9 +207,12 @@ def write_answer(answer: str, directory: str, bug_id: int, filename: str):
 
 
 def get_answer_from_chatgpt(prompt: str, llm_model: str):
-    system_prompt = """Your task is to repair a program by offering a replacement that requires minimal alterations to 
-the source code,allowing it to pass a failed test without impacting other successfully passed tests. The fixed patch
-should be readily applicable to the original project. And you should output complete code.""".replace("\n", "")
+    system_prompt = """Your role:
+- Repair the program with a replacement that requires minimal changes to the source code.
+- Ensure that the replacement allows the program to pass a failed test without affecting other successful tests.
+- Make sure the fixed patch can be easily applied to the original project.
+- Provide a complete code snippet as your response, representing a fully functional function.
+"""
 
     # llm_model should be "gpt-4" or "gpt-3.5-turbo"
     try:
