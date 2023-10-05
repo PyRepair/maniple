@@ -84,6 +84,19 @@ def extract_code_snippets(answer: str):
     return "\n".join(code_snippets)
 
 
+def remove_import_statement(code_snippet: str) -> str:
+    # Define a regular expression pattern to match import statements
+    import_pattern = r'^\s*import\s+.*?$|^\s*from\s+\S+\s+import\s+.*?$'
+
+    # Use re.sub to replace all matching import statements with an empty string
+    cleaned_code = re.sub(import_pattern, '', code_snippet, flags=re.MULTILINE)
+
+    # Remove any leading and trailing whitespace
+    cleaned_code = cleaned_code.strip()
+
+    return cleaned_code
+
+
 def generate_single_prompt_answers(bug_info, selected_features: List[str], selected_indexes: List[int],
                                    write_directory: str, bug_id: int, number_of_answers: int, llm_model: str):
     prompt_filename = "prompt"
@@ -113,8 +126,10 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], selec
 
         code_snippet = extract_code_snippets(answer)
 
+        function_snippet = remove_import_statement(code_snippet)
+
         # write answer into md file
-        write_answer(code_snippet, write_directory, bug_id, answer_filename)
+        write_answer(function_snippet, write_directory, bug_id, answer_filename)
 
 
 def build_prompt(bug_info, selected_features: List[str]):
