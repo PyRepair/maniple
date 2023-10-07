@@ -38,6 +38,17 @@ def multiply(a, b):
         expected_output = ""
         self.assertEqual(expected_output, extract_code_snippets(markdown_content))
 
+    def test_code_snippet_without_language_annotation(self):
+        markdown_content = ("Some text\n"
+                            "```"
+                            "def add(a, b):"
+                            "   return a + b"
+                            "```"
+                            "Some text")
+        expected_output = ("def add(a, b):"
+                           "   return a + b")
+        self.assertEqual(expected_output, extract_code_snippets(markdown_content))
+
 
 if __name__ == "__main__":
     unittest.main()

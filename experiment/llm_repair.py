@@ -91,7 +91,7 @@ def traversal_bugs(bugs_data, feature_split: int, write_directory: str, number_o
 
 def extract_code_snippets(answer: str):
     code_snippets = []
-    code_block_pattern = r'```python(.*?)```'
+    code_block_pattern = r'```(?:python)?(.*?)```'
     code_blocks = re.findall(code_block_pattern, answer, re.DOTALL)
 
     for code_block in code_blocks:
