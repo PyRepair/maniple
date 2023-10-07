@@ -1,3 +1,4 @@
+import os.path
 from os import path, makedirs
 from typing import Dict, List
 import argparse
@@ -136,6 +137,11 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], selec
             answer_filename += str(selected_index)
 
         answer_filename = answer_filename + "(" + str(number + 1) + ")"
+        json_filepath = path.join(write_directory, str(bug_id), answer_filename + ".json")
+        markdown_filepath = path.join(write_directory, str(bug_id), answer_filename + ".md")
+        if os.path.exists(json_filepath) and os.path.exists(markdown_filepath):
+            print(f"json file {json_filepath} and markdown file {markdown_filepath} already exist")
+            continue
 
         # connect to chatgpt to get answer
         answer = get_answer_from_chatgpt(prompt, llm_model)
@@ -222,9 +228,6 @@ def build_prompt(bug_info, selected_features: List[str]):
 
 {issue["content"]}"""
 
-    #     prompt = prompt + f"""
-    # {prompt_template["constrain_conclusion"]}"""
-
     return prompt
 
 
@@ -255,6 +258,9 @@ def write_answer_json(code_snippets: str, directory: str, bug_id: int, filename:
     for bug in info_list:
         if bug["id"] == bug_id:
             fix_line = bug["fix_lines"][0]
+    if fix_line is None:
+        print(f"bug-data's id is not match with bug-info's id for bug {project}:{bug_id}")
+        return
 
     input_json = {
         project: [
