@@ -13,14 +13,14 @@ run_bgp_commands() {
 }
 
 # Call the function manually for 30 bug records
-run_bgp_commands "matplotlib" 9
-run_bgp_commands "matplotlib" 17
-run_bgp_commands "matplotlib" 3
-run_bgp_commands "matplotlib" 22
+#run_bgp_commands "matplotlib" 9
+#run_bgp_commands "matplotlib" 17
+#run_bgp_commands "matplotlib" 3
+#run_bgp_commands "matplotlib" 22
 run_bgp_commands "Luigi" 4
 run_bgp_commands "Luigi" 25
 run_bgp_commands "Luigi" 28
-run_bgp_commands "Spacy" 3
+#run_bgp_commands "Spacy" 3
 run_bgp_commands "Scrapy" 29
 run_bgp_commands "Scrapy" 28
 run_bgp_commands "Pandas" 30
