@@ -1,7 +1,4 @@
-To fix the issue, you need to update the `_partially_consume_prefix` function to correctly handle the indentation of comments after dedent.
-
-Here is the updated `_partially_consume_prefix` function:
-
+Here is the fixed `_partially_consume_prefix` function:
 ```python
 def _partially_consume_prefix(self, prefix, column):
     lines = []
@@ -30,11 +27,11 @@ def _partially_consume_prefix(self, prefix, column):
             # indent is finished
             wait_for_nl = True
 
-    if current_line.strip():
-        res = ''.join(lines)
-        return res, prefix[len(res):]
-    else:
-        return ''.join(lines), current_line
+    if current_line.strip() and current_column < column:
+        lines.append(current_line)
+        current_line = ""
+
+    return ''.join(lines), current_line
 ```
 
-This fix should allow the test to pass without impacting other successfully passed tests. You can now use this updated function in your original project.
+The problem with the original `_partially_consume_prefix` was that it only appended the current line if there was another newline after it. In the case of comments, there was no newline after the comment, so the line was not appended, causing the indentation to be off in the output. The fix is to explicitly handle this case by adding the conditional statement just after the for loop, ensuring that if the current line has useful content and the current column is less than the given column, the line is appended to the lines list.

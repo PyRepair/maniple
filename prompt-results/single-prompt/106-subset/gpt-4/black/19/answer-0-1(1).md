@@ -1,6 +1,8 @@
-Based on the test error, it seems that the extra newlines are not being properly removed from the decorators. The bug seems to be in the part that deals with decorators in the `_maybe_empty_lines` function. We can fix this issue by updating the function to properly handle comments within decorators, and only remove the extra newlines when necessary.
+The error is due to extra new lines being inserted when there's a comment within decorators. In the faulty source code, the `is_decorator` condition block is responsible for handling of new lines associated with decorators. 
 
-Here's the fixed version of the `_maybe_empty_lines` function:
+Currently the `is_decorator` block does not handle the case when the decorator line also has comments. In these kind of situations, it is not supposed to add new lines as per the expectations stated in the testcase.
+
+To fix this issue, add another condition within the `is_decorator` block to handle lines that are both decorators and contain comments. Following is the modified piece
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -12,10 +14,7 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         first_leaf = current_line.leaves[0]
         before = first_leaf.prefix.count("\n")
         before = min(before, max_allowed)
-        if current_line.is_decorator:
-            first_leaf.prefix = first_leaf.prefix.lstrip("\n")
-        else:
-            first_leaf.prefix = ""
+        first_leaf.prefix = ""
     else:
         before = 0
     depth = current_line.depth
@@ -36,6 +35,9 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         newlines = 2
         if current_line.depth:
             newlines -= 1
+        # Check if the current line is also a comment line, then skip the newline
+        if current_line.is_comment:
+            return before, 0
         return newlines, 0
     if current_line.is_flow_control:
         return before, 1
@@ -55,13 +57,4 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     return before, 0
 ```
 
-The fix consists of modifying the part of the code that removes extra newlines from the first leaf's prefix:
-
-```python
-        if current_line.is_decorator:
-            first_leaf.prefix = first_leaf.prefix.lstrip("\n")
-        else:
-            first_leaf.prefix = ""
-```
-
-With this updated implementation, the test_comment_in_decorator test should now pass.
+Please note that the `is_comment` attribute is expected to be present on a `Line` object in order for the fix to be effective. If such attribute does not exist, it will need to be implemented before applying this bug fix.

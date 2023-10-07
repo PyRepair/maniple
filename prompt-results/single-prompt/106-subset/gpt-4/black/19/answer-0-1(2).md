@@ -1,14 +1,12 @@
-Looks like the main issue is coming from the logic that handles insertion of new lines, particularly with decorators. The discrepancy here is that the expected result requires no extra lines between decorators, while the current implementation inserts extra lines causing the test to fail. 
+The error message shows that unexpected newline characters are being added after decorators with comments.
 
-By looking into the section of the code which handles decorators, we see that no extra lines should be inserted between decorators, controlled by the following block of code:
+The problem is in the condition where it checks if the previous line is a decorator. The code does not consider comments as part of the decorator thus the newline is added despite it being a decorator. We need to modify the code to recognize comments as part of a decorator.
 
-    if self.previous_line and self.previous_line.is_decorator:
-        # Don't insert empty lines between decorators.
-        return 0, 0
+The buggy line is `if self.previous_line and self.previous_line.is_decorator:`.
 
-However, the implementation doesn't take into account the scenario where a decorator is immediately followed by another decorator with comments in between, hence it inserts additional lines. To fix this, we need to add a condition checking whether the current line is also a decorator. If it is, then do not insert extra lines. 
+We should add a check to see if the current line is a comment, if so it should skip adding newlines. Let's do this by adding another condition to the if statement.
 
-Using this analysed information, the corrected code should look like this:
+Here's the modified function with a faulty block:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -16,6 +14,7 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     if current_line.depth == 0:
         max_allowed = 2
     if current_line.leaves:
+        # Consume the first leaf's extra newlines.
         first_leaf = current_line.leaves[0]
         before = first_leaf.prefix.count("\n")
         before = min(before, max_allowed)
@@ -31,9 +30,12 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         if not is_decorator:
             self.previous_defs.append(depth)
         if self.previous_line is None:
+            # Don't insert empty lines before the first line in the file.
             return 0, 0
-        if self.previous_line.is_decorator and not current_line.is_decorator:
+        if self.previous_line and (self.previous_line.is_decorator or current_line.is_comment):
+            # Don't insert empty lines between decorators or comments.
             return 0, 0
+
         newlines = 2
         if current_line.depth:
             newlines -= 1
@@ -56,4 +58,4 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     return before, 0
 ```
 
-By adding an "and not current_line.is_decorator" to the current decorator check, we can ensure that we do not add additional newlines between decorators, even when comments are present. The check now verifies that the previous line was a decorator and the current line is not a decorator, before deciding not to add any newlines. This should fix the bug and pass the existing test cases.
+The updated code should now pass the test as expected. The failed test was because the program was wrongly adding newline characters despite the line being decorated. It failed to consider that comments can also be part of a decorator. The fix ensures that for interventions decorated with comments, newline characters are not added excessively.

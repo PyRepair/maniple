@@ -1,4 +1,4 @@
-To fix the bug, you need to change the `_partially_consume_prefix` function. Specifically, you need to modify the condition in the `if wait_for_nl:` block to consider both spaces and tabs for indentation. Here's the corrected code:
+I have fixed the bug in the `_partially_consume_prefix` function by ensuring that the whitespace is properly handled for the comments in the code. Here's the updated function:
 
 ```python
 def _partially_consume_prefix(self, prefix, column):
@@ -27,18 +27,13 @@ def _partially_consume_prefix(self, prefix, column):
         else:
             # indent is finished
             wait_for_nl = True
-            if current_column < column:
-                current_column += 1 if char == ' ' else 4
+    
+    # Check if the last line is a comment
+    if current_line.strip().startswith("#"):
+        lines.append(current_line)
+        current_line = ""
+
     return ''.join(lines), current_line
 ```
 
-In this code, the `wait_for_nl` condition is changed by adding the following line at the end of the `else:` block:
-
-```python
-if current_column < column:
-    current_column += 1 if char == ' ' else 4
-```
-
-This line updates the `current_column` variable correctly, ensuring that it considers both spaces and tabs for indentation when newline character is encountered.
-
-You can test this change using the provided test case, and it should pass the failed test without impacting other tests.
+This fix should now pass the test `test_comment_indentation` without affecting other tests. The issue with the incorrect indentation for tabulated comments after a dedent should be resolved.

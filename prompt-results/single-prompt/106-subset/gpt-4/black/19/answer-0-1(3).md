@@ -1,6 +1,6 @@
-It seems that the issue is related to newlines in decorators with comments. To fix the bug, you can update the "_maybe_empty_lines" function to handle this case properly.
+To provide a fix to the issue, you need to ensure that your python function does not insert newlines between decorators. The part of the code adding potential empty lines is `newlines = 2`, it should be modified to handle decorator cases. Also, the section checking for `is_decorator` should be enhanced to handle different cases of decorators.
 
-Here's the fixed code snippet:
+The updated code snippet would look like:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -21,17 +21,15 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         before = 1 if depth else 2
     is_decorator = current_line.is_decorator
     if is_decorator or current_line.is_def or current_line.is_class:
-        if not is_decorator:
+        if not is_decorator and not self.previous_line.is_decorator:
             self.previous_defs.append(depth)
         if self.previous_line is None:
             # Don't insert empty lines before the first line in the file.
             return 0, 0
-        if self.previous_line and self.previous_line.is_decorator:
-            _, num_extra_newlines = divmod(self.previous_line.indent, 4)  # Assuming 4-space indentation
-            # Don't insert empty lines between decorators.
-            return max(0, num_extra_newlines - 1), 0
-
-        newlines = 2
+        if self.previous_line and (self.previous_line.is_decorator or current_line.is_decorator):
+                # Don't insert empty lines between decorators.
+            return 0, 0
+        newlines = 1 if current_line.is_decorator else 2
         if current_line.depth:
             newlines -= 1
         return newlines, 0
@@ -53,6 +51,8 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     return before, 0
 ```
 
-This update takes care of not adding extra newlines between decorators with comments by checking the number of extra newlines present in the previous line's indentation and adjusting the returned value accordingly.
+The key changes are:
 
-You can now apply this updated function to the original project to fix the bug and pass the failed test.
+- Add a check for `not self.previous_line.is_decorator` when appending `depth` to `previous_defs`.
+- Enhance check before inserting empty lines: empty lines shouldn't be inserted if the current line is a decorator or if the previous line is a decorator.
+- Adjust the calculation for `newlines`. In case the current line is a decorator, `newlines` should be set to 1. So, it does not insert an additional new line between decorators.
