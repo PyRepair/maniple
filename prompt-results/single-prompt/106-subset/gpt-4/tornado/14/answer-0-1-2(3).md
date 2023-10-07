@@ -1,4 +1,4 @@
-Here is the fixed code snippet:
+The bug resides in the `initialize` function's condition, which should raise a RuntimeError when the current IOLoop exists and make_current is True, but the condition in the code is reversed. The correct implementation of the `initialize` function is as follows:
 
 ```python
 def initialize(self, make_current=None):
@@ -11,9 +11,4 @@ def initialize(self, make_current=None):
         self.make_current()
 ```
 
-I have changed the condition in the second `if` block:
-
-`if IOLoop.current(instance=False) is None:` to
-`if IOLoop.current(instance=False) is not None:`.
-
-With this minimal change, it should fix the bug and pass the failed test without affecting other successful tests.
+With this change, the function checks for the existence of the current IOLoop correctly and raises an error only when there is an existing IOLoop with make_current set to True.

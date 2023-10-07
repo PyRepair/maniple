@@ -1,4 +1,6 @@
-Based on the error description and test scenarios, it seems like there is an issue with the logic in the `initialize` method. Here's the fixed version of the method:
+The issue lies in the `elif make_current:` part of the `initialize` function, where a `RuntimeError` is raised when there isn't an instance and make_current is set as `True`.
+
+The corrected version of the code is the following:
 
 ```python
 def initialize(self, make_current=None):
@@ -6,9 +8,9 @@ def initialize(self, make_current=None):
         if IOLoop.current(instance=False) is None:
             self.make_current()
     elif make_current:
-        if IOLoop.current(instance=False) is not None: # Change this line
+        if IOLoop.current(instance=False) is not None:  # code fixed on this line
             raise RuntimeError("current IOLoop already exists")
         self.make_current()
 ```
 
-This fix reverses the conditions for raising the runtime error. Now, when `make_current` is `True`, the method will raise a runtime error if there is already an existing current IOLoop. This should resolve the test error, as it now allows multiple IOLoop instances with `make_current=True` to coexist without conflicting each other.
+In the fixed patch, `if IOLoop.current(instance=False) is not None:` is used to check if there is an existing instance when `make_current` is `True`. If an instance already exists, it raises a `RuntimeError` because another instance is trying to be made as current which conflicts with the existing instance. By this code fix, the test error "RuntimeError: current IOLoop already exists" wouldn't be triggered improperly as before.
