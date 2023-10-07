@@ -277,6 +277,7 @@ def get_answer_from_chatgpt(prompt: str, llm_model: str):
 - Ensure that the replacement allows the program to pass a failed test without affecting other successful tests.
 - Make sure the fixed patch can be easily applied to the original project.
 - Provide a complete code snippet as your response, representing a fully functional function.
+- Your response should be in Markdown format.
 """
 
     # llm_model should be "gpt-4" or "gpt-3.5-turbo"
