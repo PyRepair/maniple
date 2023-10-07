@@ -1,4 +1,10 @@
-You can fix the bug by adding an additional check in the equals function that verifies if the column names in both DataFrames are the same. Here's the modified code with the additional condition:
+From the error, it is clear that the `DataFrame.equals()` method is returning `True` even when the two dataframes are not equal.
+
+The `equals()` function compares the types and values within the dataframes, but it fails to address the situation when the two dataframes have identical blocks but in different locations. 
+
+To fix this issue, the reference to `mgr_locs` should be changed from `mgr_locs.as_array.tolist()` to `tuple(mgr_locs.as_array)`. This change will allow the `mgr_locs` (Manager Locations) to be compared correctly, thereby addressing the bug.
+
+Here is the corrected function:
 
 ```python
 def equals(self, other):
@@ -7,17 +13,18 @@ def equals(self, other):
         return False
     if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
         return False
-    # Check if the columns have the same names
-    if not self.columns.equals(other.columns):
-        return False
-
     self._consolidate_inplace()
     other._consolidate_inplace()
     if len(self.blocks) != len(other.blocks):
         return False
 
+    # canonicalize block order, using a tuple combining the type
+    # name and then mgr_locs because there might be unconsolidated
+    # blocks (say, Categorical) which can only be distinguished by
+    # the iteration order
     def canonicalize(block):
-        return (block.dtype.name, block.mgr_locs.as_array.tolist())
+        # Changes made in the following line of code
+        return (block.dtype.name, tuple(block.mgr_locs.as_array))
 
     self_blocks = sorted(self.blocks, key=canonicalize)
     other_blocks = sorted(other.blocks, key=canonicalize)
@@ -26,4 +33,4 @@ def equals(self, other):
     )
 ```
 
-This added condition will ensure that the columns have the same names in both DataFrames, preventing the test case failure.
+With this corrected function, the test `test_dataframe_not_equal()` should return `False` as expected, because `df1` and `df2` are not equal.

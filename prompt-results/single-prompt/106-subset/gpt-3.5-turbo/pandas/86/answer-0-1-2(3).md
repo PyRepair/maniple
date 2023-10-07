@@ -1,12 +1,18 @@
-To fix the bug, you need to modify the `pivot` function to raise a `ValueError` with a clear error message when the `columns` argument is `None`. The updated code should be as follows:
+The bug in the code occurs when the `columns` parameter is set to `None` in the `pivot` function. The code should raise a `ValueError` indicating that the `columns` argument is required. However, instead, it raises a `KeyError` with the message "None." This is not an appropriate error message for this scenario.
+
+To fix the bug, we need to modify the code to raise a `ValueError` when the `columns` parameter is `None`.
+
+Here's the fixed code:
 
 ```python
+from typing import Any
+
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+def pivot(data: "DataFrame", index=None, columns: Any = None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("The 'columns' argument is required in df.pivot")
-
+        raise ValueError("pivot() missing 1 required argument: 'columns'")
+    
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -28,4 +34,15 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
     return indexed.unstack(columns)
 ```
 
-This modification checks if the `columns` argument is `None` and raises a `ValueError` with the appropriate error message. This fix ensures that the error message is clear and indicates that `columns` is a required argument in `df.pivot`.
+With this fixed code, the test `test_pivot_columns_none_raise_error` will pass without raising a KeyError.
+
+```python
+def test_pivot_columns_none_raise_error(self):
+    # GH 30924
+    df = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]}
+    )
+    msg = r"pivot\(\) missing 1 required argument: 'columns'"
+    with pytest.raises(ValueError, match=msg):
+        df.pivot(index="col1", values="col3")
+```

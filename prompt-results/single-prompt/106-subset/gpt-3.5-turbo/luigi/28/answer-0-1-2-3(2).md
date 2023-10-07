@@ -1,23 +1,25 @@
-The bug in the code is that the `table_exists` method does not handle case sensitivity when checking if a table exists in Hive. To fix this, we need to modify the method to check if the lowercase table name exists in the lowercase output of the `show tables` or `show partitions` command.
+To fix the bug in the `table_exists` method in the `HiveCommandClient` class, we need to modify the return statement when partition is not None. Instead of checking if `stdout` is truthy, we should check if `table.lower()` is in `stdout.lower()`. This will make the check case insensitive.
 
-Here's the fixed code with minimal alterations:
+Here is the modified code snippet:
 
 ```python
-def table_exists(self, table, database='default', partition=None):
-    if partition is None:
-        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+class HiveCommandClient(HiveClient):
+    """
+    Uses `hive` invocations to find information.
+    """
 
-        return stdout and table.lower() in stdout.lower()
-    else:
-        stdout = run_hive_cmd("""use %s; show partitions %s partition
-                            (%s)""" % (database, table, self.partition_spec(partition)))
+    def table_exists(self, table, database='default', partition=None):
+        if partition is None:
+            stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
 
-        if stdout:
-            return True
+            return stdout and table in stdout.lower()
         else:
-            return False
+            stdout = run_hive_cmd("""use %s; show partitions %s partition
+                                (%s)""" % (database, table, self.partition_spec(partition)))
+
+            return stdout and table.lower() in stdout.lower()
 ```
 
-Now the `table_exists` method will first convert the table name and stdout to lowercase using the `lower()` method, and then compare if the lowercase table name exists in the lowercase output.
+This fix makes the `table_exists` method case insensitive when checking if the table exists.
 
-By making this change, the method will be case insensitive and the test case that checks if a table exists in Hive will pass properly.
+Please note that this code snippet assumes that the `run_hive_cmd` function is defined and working correctly.

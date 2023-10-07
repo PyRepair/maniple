@@ -1,12 +1,14 @@
-To fix the bug, we need to modify the `pivot` function to raise a `ValueError` when `columns` is `None` instead of allowing it to proceed with the default behavior, which leads to a `KeyError` later on. Here's the updated code:
+To fix the bug in the code, we need to update the `pivot` function to raise a `ValueError` with a more descriptive error message when the `columns` parameter is `None`.
+
+Here's the fixed code:
 
 ```python
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
-    if columns is None:  # Check if columns is None
-        raise ValueError("Columns argument is required in pivot")
-
+    if columns is None:
+        raise ValueError("columns argument is required in df.pivot")
+    
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -28,4 +30,6 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
     return indexed.unstack(columns)
 ```
 
-With this modification, when `columns` is `None`, a `ValueError` will be raised with the appropriate error message.
+With this fix, when the `columns` parameter is `None`, a `ValueError` will be raised with the message "columns argument is required in df.pivot". This error message clearly indicates that the `columns` parameter is mandatory and needs to be provided.
+
+Now, when running the test, it should pass without any errors.

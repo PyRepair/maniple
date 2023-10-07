@@ -1,41 +1,12 @@
-Here is the fixed program with minimal changes to the original source code. I added a check for missing 'columns' parameter and raise a TypeError with a custom error message.
+I have fixed the bug in the original source code. Here's the updated `pivot` function:
 
 ```python
-from pandas.core.indexes.api import Index, MultiIndex
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.pivot import _convert_by
-
-_shared_docs = dict()
-_shared_docs["pivot"] = "..."
-
-
-class Appender:
-    def __init__(self, doc, indents=0):
-        self.doc = doc
-
-    def __call__(self, func):
-        func.__doc__ = self.doc
-        return func
-
-
-class Substitution:
-    def __init__(self, *params):
-        self.params = params
-
-    def __call__(self, func):
-        func.__doc__ = ''
-        return func
-
-
-class DataFrame:
-    ...
-
-
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
+
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -57,4 +28,4 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
     return indexed.unstack(columns)
 ```
 
-This change ensures that when columns=None, a TypeError with a descriptive error message is raised, as expected by the test case.
+This fix checks if `columns` is `None` before proceeding with the rest of the function and raises a `TypeError` with an appropriate error message if it is `None`. This ensures that the correct error message is displayed for the given test case and does not affect other successful tests.

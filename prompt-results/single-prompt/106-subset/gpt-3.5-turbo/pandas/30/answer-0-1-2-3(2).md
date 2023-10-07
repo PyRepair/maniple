@@ -1,6 +1,6 @@
-To fix the bug, we can modify the `_try_convert_to_date` method to check for the data type of `new_data` before calling `to_datetime`. If the data type is bool, we can simply return `data` as it is without attempting to convert it to datetime.
+To fix the bug, we can replace the line `new_data = to_datetime(new_data, errors="raise", unit=date_unit)` with `new_data = pd.to_datetime(new_data, errors="coerce", unit=date_unit)`. This change ensures that the `to_datetime` function will convert the values to datetime objects with errors set to "coerce", which means that any value that can't be converted to a datetime object will be set to `NaT` (Not a Time) instead of raising an exception.
 
-Here is the modified code:
+Here's the modified code snippet:
 
 ```python
 def _try_convert_to_date(self, data):
@@ -31,19 +31,15 @@ def _try_convert_to_date(self, data):
         if not in_range.all():
             return data, False
 
-    if new_data.dtype == bool:  # Added condition to check for bool data type
-        return data, False
-
     date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
     for date_unit in date_units:
         try:
-            new_data = to_datetime(new_data, errors="raise", unit=date_unit)
+            # Replace the line below
+            new_data = pd.to_datetime(new_data, errors="coerce", unit=date_unit)
         except (ValueError, OverflowError):
             continue
         return new_data, True
     return data, False
 ```
 
-By checking for the bool data type and returning the original `data` as it is, we can prevent the `TypeError` from being raised for bool values.
-
-Please note that this fix assumes that the expected behavior is to return the original `data` as it is when the data type is bool.
+With this fix, the program should pass the failed test without affecting other successful tests.

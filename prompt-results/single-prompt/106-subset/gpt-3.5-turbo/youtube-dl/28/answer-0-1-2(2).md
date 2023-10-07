@@ -1,13 +1,10 @@
-The issue in the code is that the ValueError is raised when trying to convert the Unicode codepoint `numstr` to a character using `compat_chr()`. The error occurs because the codepoint value exceeds the valid range of Unicode characters.
+There is an issue with the _htmlentity_transform function. The bug occurs when the input is a Unicode code point greater than 0x110000. The `int()` function throws a `ValueError` when converting a number outside the valid range of Unicode code points.
 
-To fix this issue, we can modify the code to check if the codepoint value is within the valid range before converting it to a character. If the codepoint value is greater than or equal to 0x110000, we can return the original entity without converting it.
+To fix this issue, we need to update the _htmlentity_transform function to handle values greater than 0x110000. We can replace the `int()` function with `int(numstr, base)` with a check to ensure that the resulting value is within the valid range.
 
-Here's the modified code:
+Here's the updated code:
 
 ```python
-import re
-import html.entities as compat_html_entities
-
 def _htmlentity_transform(entity):
     """Transforms an HTML entity to a character."""
     # Known non-numeric HTML entity
@@ -21,12 +18,10 @@ def _htmlentity_transform(entity):
             numstr = '0%s' % numstr
         else:
             base = 10
-        codepoint = int(numstr, base)
-        if codepoint < 0x110000:
-            return compat_chr(codepoint)
-    return entity
+        num = int(numstr, base)
+        if num <= 0x110000:
+            return compat_chr(num)
+    return ''  # Return an empty string if the value is not within the valid range
 ```
 
-This code adds a check to see if the `codepoint` value is less than 0x110000 before converting it to a character. If the check fails, it returns the original entity without converting it.
-
-With this modification, the code should pass the failed test without impacting other successfully passed tests.
+With this fix, the _htmlentity_transform function will return an empty string if the Unicode code point is outside the valid range, and the program will not throw a ValueError.

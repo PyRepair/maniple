@@ -1,4 +1,4 @@
-To fix the bug, you can modify the `copy` method in the `S3CopyToTable` class as follows:
+To fix the bug, you can modify the `copy` function in the `S3CopyToTable` class. Here's the modified code:
 
 ```python
 def copy(self, cursor, f):
@@ -9,7 +9,7 @@ def copy(self, cursor, f):
     """
     logger.info("Inserting file: %s", f)
     colnames = ''
-    if self.columns is not None and len(self.columns) > 0:
+    if self.columns and len(self.columns) > 0:  # Check if self.columns is not None before taking its length
         colnames = ",".join([x[0] for x in self.columns])
         colnames = '({})'.format(colnames)
 
@@ -26,4 +26,6 @@ def copy(self, cursor, f):
     )
 ```
 
-This change ensures that `self.columns` is not `None` before checking its length.
+This fix checks if `self.columns` is not `None` before checking its length, preventing the `TypeError` when `self.columns` is `None`. This approach requires minimal changes to the code and resolves the issue.
+
+You can apply this fix by replacing the existing `copy` function in the code with the modified version provided above.

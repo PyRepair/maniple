@@ -1,4 +1,4 @@
-The bug in the code is that the `raw` parameter is not being considered in the `apply` method when the `engine` is set to `'cython'` or `'numba'`. To fix this bug, we need to modify the code to include the `raw` parameter in the function calls for both the `'cython'` and `'numba'` engines.
+The bug in the code is that the `raw` parameter is not being properly applied to the `apply_func` function. To fix this bug, we need to modify the code to pass the `raw` parameter to the `apply_func` function.
 
 Here is the fixed code:
 
@@ -42,15 +42,15 @@ def apply(
     else:
         raise ValueError("engine must be either 'numba' or 'cython'")
 
-    # Modify apply_func call to include raw parameter
+    # Pass the raw parameter to the apply_func function
     return self._apply(
         apply_func,
         center=False,
         floor=0,
         name=func,
         use_numba_cache=engine == "numba",
-        raw=raw,
+        raw=raw  # Pass raw parameter to apply_func
     )
 ```
 
-With this fix, the `raw` parameter will be considered correctly in the `apply` method for both the `'cython'` and `'numba'` engines.
+By adding the `raw=raw` parameter to the `_apply` function call, the `raw` parameter will be passed along to the `apply_func` function. This will ensure that the `raw` parameter is properly applied to the rolling apply operation, allowing the test to pass with the expected results.

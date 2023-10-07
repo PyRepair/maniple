@@ -1,4 +1,6 @@
-Here is the fixed code:
+To fix the bug, we need to ensure that the `AmbiguousTimeError` is handled properly. One way to do this is to catch the exception and adjust the bin edges to avoid the ambiguous timestamp.
+
+Here's the modified code:
 
 ```python
 def _get_time_bins(self, ax):
@@ -34,9 +36,16 @@ def _get_time_bins(self, ax):
     binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
     # general version, knowing nothing about relative frequencies
-    bins = lib.generate_bins_dt64(
-        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
-    )
+    try:
+        bins = lib.generate_bins_dt64(
+            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+        )
+    except AmbiguousTimeError:
+        # Adjust bin edges to avoid ambiguous timestamp
+        bin_edges = self._adjust_bin_edges_for_ambiguous(ax_values, bin_edges)
+        bins = lib.generate_bins_dt64(
+            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+        )
 
     if self.closed == "right":
         labels = binner
@@ -55,11 +64,7 @@ def _get_time_bins(self, ax):
     if len(bins) < len(labels):
         labels = labels[: len(bins)]
 
-    # Fix for AmbiguousTimeError
-    if ax.tz.zone == "America/Havana":
-        binner = binner.tz_localize(None)
-
     return binner, bins, labels
 ```
 
-The fix involves adding a condition to check if the timezone is "America/Havana" and removing the timezone localization from `binner` if it is. This ensures that the ambiguous timestamp on the day of the clock change is handled correctly.
+With this fix, the program should be able to handle the `AmbiguousTimeError` by adjusting the bin edges and generating the bins again.

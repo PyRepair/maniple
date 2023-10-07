@@ -1,10 +1,13 @@
-To fix the bug in the code, we need to modify the `_htmlentity_transform` function to handle entities that are outside the range of Unicode characters.
+The bug in the code is being caused by the fact that `compat_chr()` is returning a value that is not within the range of a valid Unicode character. To fix this issue, we can replace the `compat_chr()` function with `chr()`, which is a built-in function in Python that already handles the conversion from unicode code points to characters.
 
-The fixed code is as follows:
+Here's the fixed code:
 
-```python
+```
+import re
+
 def _htmlentity_transform(entity):
     """Transforms an HTML entity to a character."""
+    # Known non-numeric HTML entity
     if entity in compat_html_entities.name2codepoint:
         return compat_chr(compat_html_entities.name2codepoint[entity])
     mobj = re.match(r'#(x[0-9a-fA-F]+|[0-9]+)', entity)
@@ -12,16 +15,10 @@ def _htmlentity_transform(entity):
         numstr = mobj.group(1)
         if numstr.startswith('x'):
             base = 16
+            numstr = '0%s' % numstr
         else:
             base = 10
-        try:
-            # check if the argument is within the range of Unicode characters
-            value = int(numstr, base)
-            if 0 <= value <= 0x10FFFF:
-                return compat_chr(value)
-        except ValueError:
-            pass
-    return entity
+        return chr(int(numstr, base))
 ```
 
-With this modification, the program should be able to handle entities that are outside the range of Unicode characters without raising an error.
+This fix should allow the program to pass the failing test without affecting other successful tests.

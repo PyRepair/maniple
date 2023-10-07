@@ -1,6 +1,6 @@
-To fix the bug in the `table_exists` method, we can modify the code to make it case-insensitive by comparing the lowercase versions of the table name and the output from Hive.
+To fix the bug, we need to modify the `table_exists` function to make it case insensitive when checking if the table exists in the output of the query.
 
-Here's the updated code:
+Here is the fixed code:
 
 ```python
 def table_exists(self, table, database='default', partition=None):
@@ -18,6 +18,6 @@ def table_exists(self, table, database='default', partition=None):
             return False
 ```
 
-Now, the comparison `table.lower() in stdout.lower()` ensures that the table name is matched in a case-insensitive manner.
+By using `table.lower()` and `stdout.lower()`, we ensure that both the table name and the output are converted to lowercase before comparing.
 
-Please note that this fix assumes that the output from Hive is in lowercase. If it's not the case, you may need to modify the code accordingly.
+With this fix, the `table_exists` function will now be case insensitive when checking if a table exists in the Hive database.

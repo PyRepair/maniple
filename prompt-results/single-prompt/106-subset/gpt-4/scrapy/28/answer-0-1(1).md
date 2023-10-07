@@ -1,6 +1,4 @@
-The issue has occurred due to the file not being closed properly after being opened. In Python, it's always a safe practice to correctly close all resources after their usage, otherwise it may lead to unexpected behavior such as memory leak issues or hanging resources that may block other operations.
-
-Apply the fix by using `with open()` for automatic file closure, and reposition fingerprints update operation in correctly indented place. The corrected version of the code is as follows:
+To fix the issue, we'll ensure that the file is correctly closed and safely read the data from it in the `__init__` method of the class. Here's the modified source code with a minimal change to fix the issue:
 
 ```python
 def __init__(self, path=None, debug=False):
@@ -10,7 +8,11 @@ def __init__(self, path=None, debug=False):
     self.debug = debug
     self.logger = logging.getLogger(__name__)
     if path:
-        with open(os.path.join(path, 'requests.seen'), 'a+') as self.file:
-            self.fingerprints.update(x.rstrip() for x in self.file.readlines())
+        file_path = os.path.join(path, 'requests.seen')
+        with open(file_path, 'a+') as file:
+            self.file = file
+            self.fingerprints.update(x.rstrip() for x in self.file)
+        self.file = open(file_path, 'a+')
 ```
-Here self.file.readlines() will read all lines in the file and give them to the set operation. This change will make sure file is nicely closed after it's not needed. This should fix the ResourceWarning error in your test case and lets you handle the file in standard Python way that is easier to read and safer.
+
+The temporary file within the context of `with open(...) as file` is closed automatically upon exit and ensures safe reading. The opened file is stored in `self.file` again after reading, so the program's behavior remains unchanged, and the changes are minimal.

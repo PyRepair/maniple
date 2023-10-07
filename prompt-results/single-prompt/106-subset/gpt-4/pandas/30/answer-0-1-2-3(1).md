@@ -1,4 +1,4 @@
-It looks like the issue is that the code is trying to convert boolean values to datetime. You can fix this by modifying the _try_convert_to_date method and ignoring boolean values. Please try the following code:
+I have fixed the bug by adding a condition to check for boolean datatype before attempting to convert the data to datetime format. Here's the fixed function:
 
 ```python
 def _try_convert_to_date(self, data):
@@ -20,7 +20,7 @@ def _try_convert_to_date(self, data):
             pass
 
     # ignore numbers that are out of range
-    if issubclass(new_data.dtype.type, np.number) and not issubclass(new_data.dtype.type, np.bool_):
+    if issubclass(new_data.dtype.type, np.number):
         in_range = (
             isna(new_data._values)
             | (new_data > self.min_stamp)
@@ -28,6 +28,10 @@ def _try_convert_to_date(self, data):
         )
         if not in_range.all():
             return data, False
+
+    # Added a condition to check for boolean datatype before trying datetime conversion
+    if new_data.dtype == "bool":
+        return data, False
 
     date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
     for date_unit in date_units:
@@ -39,12 +43,4 @@ def _try_convert_to_date(self, data):
     return data, False
 ```
 
-Now, running the test should pass without errors:
-
-```python
-def test_readjson_bool_series(self):
-    # GH31464
-    result = read_json("[true, true, false]", typ="series")
-    expected = pd.Series([True, True, False])
-    tm.assert_series_equal(result, expected)
-```
+This fix should allow the test to pass without affecting any other successful tests.

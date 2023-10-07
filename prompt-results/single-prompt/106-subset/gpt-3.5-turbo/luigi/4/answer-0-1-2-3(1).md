@@ -1,6 +1,4 @@
-To fix the bug in the code, you can add a check for `self.columns` to ensure that it is not None before checking its length. This way, the code won't throw a TypeError when `self.columns` is None.
-
-Here's the modified code:
+To fix the bug in the code, you can modify the `copy` method in the `S3CopyToTable` class as follows:
 
 ```python
 def copy(self, cursor, f):
@@ -11,7 +9,7 @@ def copy(self, cursor, f):
     """
     logger.info("Inserting file: %s", f)
     colnames = ''
-    if self.columns and len(self.columns) > 0:
+    if self.columns is not None and len(self.columns) > 0:
         colnames = ",".join([x[0] for x in self.columns])
         colnames = '({})'.format(colnames)
 
@@ -28,4 +26,4 @@ def copy(self, cursor, f):
     )
 ```
 
-By adding the check `if self.columns`, we ensure that the code only checks the length of `self.columns` when it is not None. This modification will prevent the code from throwing a TypeError when `self.columns` is None.
+This change checks if `self.columns` is not `None` before checking its length. This ensures that if no columns are specified (i.e., `columns=None`), the len() function is not called on a `NoneType` object, preventing the `TypeError` from occurring.

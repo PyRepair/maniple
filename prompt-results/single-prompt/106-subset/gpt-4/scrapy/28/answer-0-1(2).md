@@ -1,22 +1,27 @@
-Based on the given error message and test case, it seems that the problem is related to the file not being closed properly. To fix this issue, you can use the `with` statement when opening the file. This ensures that the file is properly closed after it's used. Here is the fixed code for the `__init__` method:
+The error you're receiving is related to an unclosed file warning and the function `request_seen(r1)` returning `None` instead of `True`. 
+
+To resolve the unclosed file warning, you can use the `with` statement in Python. The `with` statement in Python is used in exception handling to make the code cleaner and much more readable. It simplifies the management of common resources like file streams. To resolve the `AssertionError`, you have to implement the `request_seen()` method, which updates the `fingerprints` set and returns `True` if a request is seen and `False` if not.
+
+Here's the repaired code:
 
 ```python
-import os
-import logging
+def __init__(self, path=None, debug=False):
+    self.file = None
+    self.fingerprints = set()
+    self.logdupes = True
+    self.debug = debug
+    self.logger = logging.getLogger(__name__)
+    if path:
+        with open(os.path.join(path, 'requests.seen'), 'a+') as self.file:
+            self.fingerprints.update(x.rstrip() for x in self.file)
 
-class RFPDupeFilter:
-
-    def __init__(self, path=None, debug=False):
-        self.file = None
-        self.fingerprints = set()
-        self.logdupes = True
-        self.debug = debug
-        self.logger = logging.getLogger(__name__)
-        if path:
-            seen_file_path = os.path.join(path, 'requests.seen')
-            with open(seen_file_path, 'a+') as file:
-                self.fingerprints.update(x.rstrip() for x in file)
-            self.file = open(seen_file_path, 'a+')
+ # create request_seen method
+def request_seen(self, request):
+    fp = self.request_fingerprint(request)
+    if fp in self.fingerprints:
+        return True
+    self.fingerprints.add(fp)
+    return False
 ```
 
-This change ensures that the file is properly closed after reading its contents during the initialization, preventing the `ResourceWarning`.
+This code will now properly handle the file resource by ensuring that it gets closed when it's no longer needed, and it will correctly report whether a request has been seen or not.

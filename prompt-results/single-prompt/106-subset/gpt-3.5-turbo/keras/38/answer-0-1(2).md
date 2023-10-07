@@ -1,1 +1,1 @@
-The issue in the code is that the `build` method of the `MinimalRNNCell` class is failing the test because it checks if the length of the `input_shape` is equal to 2. However, in the test case, the `input_shape` passed to the `build` method has a length
+To fix the bug in the code, we need to modify the line that checks the length of the `input_shape` parameter. Instead of checking that `len(input_shape) == 2`, we need

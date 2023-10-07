@@ -1,13 +1,19 @@
-Here is the fixed code snippet:
+To fix the bug in the program, I will replace the line `before = min(before, max_allowed)` with `before = min(before, max_allowed) if current_line.leaves else before` in the `_maybe_empty_lines` function.
+
+This will ensure that `before` is only updated when `current_line.leaves` is not empty, preserving the original functionality of the code.
+
+Here is the fixed code:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
-    max_allowed = 1 if current_line.depth != 0 else 2
+    max_allowed = 1
+    if current_line.depth == 0:
+        max_allowed = 2
     if current_line.leaves:
         # Consume the first leaf's extra newlines.
         first_leaf = current_line.leaves[0]
         before = first_leaf.prefix.count("\n")
-        before = min(before, max_allowed)
+        before = min(before, max_allowed) if current_line.leaves else before
         first_leaf.prefix = ""
     else:
         before = 0
@@ -26,7 +32,9 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
             # Don't insert empty lines between decorators.
             return 0, 0
 
-        newlines = 2 - int(bool(current_line.depth))
+        newlines = 2
+        if current_line.depth:
+            newlines -= 1
         return newlines, 0
     if current_line.is_flow_control:
         return before, 1
@@ -44,11 +52,7 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     ):
         return (before or 1), 0
     return before, 0
+
 ```
 
-Explanation:
-- In the first line, we replaced the condition inside the `max_allowed` assignment with a ternary expression that checks if `current_line.depth` is not equal to 0. This avoids unnecessary reassignment of the variable.
-- In the block of code under the `if is_decorator or current_line.is_def or current_line.is_class` condition, we replaced the calculation of `newlines` with a single line that subtracts `int(bool(current_line.depth))` from 2. This ensures that if `current_line.depth` is not zero, only 1 newline will be returned, otherwise 2 newlines will be returned.
-- Finally, we changed the return statement for `before` and `0` in the last line from `return before, 0` to `return before or 1, 0`. This ensures that if `before` is 0, it will be changed to 1 before being returned.
-
-Please let me know if you need any further assistance.
+With this fix, the program should be able to pass the failed test without affecting other successful tests.

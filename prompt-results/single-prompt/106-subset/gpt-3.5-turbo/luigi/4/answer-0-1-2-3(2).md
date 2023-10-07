@@ -1,9 +1,14 @@
-To fix the bug, you can modify the `copy` method in the `S3CopyToTable` class by changing the condition for checking the length of `self.columns` to `if self.columns is not None and len(self.columns) > 0`. This will handle the case when `self.columns` is `None` and prevent the `TypeError` from occurring.
+To fix the bug, you need to modify the `copy` method in the `S3CopyToTable` class. Instead of checking `len(self.columns) > 0`, you should check `self.columns is not None and len(self.columns) > 0` to handle the case when `columns` is `None`.
 
-Here's the modified code:
+Here is the fixed code:
 
 ```python
 def copy(self, cursor, f):
+    """
+    Defines copying from s3 into redshift.
+
+    If both key-based and role-based credentials are provided, role-based will be used.
+    """
     logger.info("Inserting file: %s", f)
     colnames = ''
     if self.columns is not None and len(self.columns) > 0:
@@ -23,6 +28,4 @@ def copy(self, cursor, f):
     )
 ```
 
-By adding `self.columns is not None` to the condition, it ensures that `self.columns` is checked for `None` before performing the length check. This modification will allow the code to handle the case when `self.columns` is `None` and prevent the `TypeError` from occurring.
-
-Please note that this fix assumes that `self.columns` can be `None`. If `self.columns` should always have a value (i.e., it should not be `None`), then you might need to investigate why `self.columns` is `None` in this case and ensure that it has a valid value.
+This code fixes the bug by first checking if `self.columns` is not `None` before checking its length. If `self.columns` is `None`, the `if` condition will evaluate to `False` and the `copy` operation will skip the column names logic.

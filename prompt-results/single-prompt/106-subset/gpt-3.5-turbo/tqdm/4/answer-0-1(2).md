@@ -1,9 +1,7 @@
-The issue in the code is that when `unit_scale` is True and `total` is None, the program tries to multiply `total` with `unit_scale`, which raises a TypeError.
+To fix the bug in the `format_meter` method, you can simply replace the line `total *= unit_scale` with `total = total * unit_scale if total else None`. This change ensures that the multiplication operation is only performed if `total` is not `None`. If `total` is `None`, it remains `None`.
 
-To fix this issue, you need to add a check before multiplying `total` with `unit_scale`. If `total` is not None, then perform the multiplication, otherwise, leave `total` unchanged.
-
-Here is the fixed code:
+Here's the fixed code:
 
 ```python
 @staticmethod
-def format_meter(n, total, elapsed, ncols=None, prefix='', ascii
+def format_meter

@@ -1,6 +1,6 @@
-To fix the bug, we need to modify the `_maybe_empty_lines` function. Specifically, we need to update the logic to handle cases where there are empty lines after a decorator.
+To fix the bug in the code, we need to modify the `_maybe_empty_lines` function. The bug is caused by not correctly counting the number of newlines before the decorator comment (`AT` token). We need to modify the code to count the number of newlines after the decorator comment, which can be done by checking the `first_leaf.comments` attribute.
 
-Here's the updated code snippet:
+Here's the fixed code:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -31,10 +31,9 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
             return 0, 0
 
         newlines = 2
-        if current_line.depth == self.previous_line.depth:
+        if current_line.depth:
             newlines -= 1
         return newlines, 0
-
     if current_line.is_flow_control:
         return before, 1
     if (
@@ -50,7 +49,17 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         and (not current_line.is_yield or depth != self.previous_line.depth)
     ):
         return (before or 1), 0
+    
+    # Fix for counting newlines after decorator comment
+    if before > 0 and current_line.leaves:
+        next_leaf = current_line.leaves[1] if len(current_line.leaves) > 1 else None
+        if next_leaf and next_leaf.comments:
+            after = next_leaf.comments[0].count("\n")
+            before = min(before, max_allowed) - after
+
     return before, 0
 ```
 
-With this fix, the program should pass the failed test without affecting other successful tests.
+This fix takes into account the presence of comments after the decorator comment (`AT` token) and adjusts the number of newlines accordingly. The rest of the function remains unchanged.
+
+After applying this fix, the program should pass the failed test without affecting other successful tests.

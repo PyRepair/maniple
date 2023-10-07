@@ -1,18 +1,15 @@
-The issue seems to be with the `equals` method of the `DataFrame` class in the `pandas` library. The method is incorrectly returning True when it should return False.
+The bug in the code is that the `equals` method is not correctly implementing the comparison of the DataFrame blocks. It is using the `equals` method of each block, but due to the unconsolidated blocks, the order of the blocks might be different between the two DataFrames, causing incorrect results.
 
-To fix this issue, you can modify the `equals` method to compare the values of the columns instead of the column names. This will ensure that even if the order of columns is different, the method will still correctly identify them as unequal.
+To fix this issue, I would suggest using the `equals` method of the `BlockManager` class instead of comparing each block individually. This method checks the equality of all blocks in a consolidated manner.
 
-Here's the modified code:
+Here is the updated code:
 
 ```python
 def equals(self, other):
     self_axes, other_axes = self.axes, other.axes
     if len(self_axes) != len(other_axes):
         return False
-    if not all(
-        ax1.equals(ax2) and self._get_values_for_block(ax1) == other._get_values_for_block(ax2) 
-        for ax1, ax2 in zip(self_axes, other_axes)
-    ):
+    if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
         return False
     self._consolidate_inplace()
     other._consolidate_inplace()
@@ -28,9 +25,8 @@ def equals(self, other):
 
     self_blocks = sorted(self.blocks, key=canonicalize)
     other_blocks = sorted(other.blocks, key=canonicalize)
-    return all(
-        block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
-    )
+
+    return self_blocks.equals(other_blocks)
 ```
 
-This should fix the bug and make the test case `test_dataframe_not_equal()` pass.
+With this update, the `equals` method should correctly compare the blocks of the two DataFrames and return the expected results.

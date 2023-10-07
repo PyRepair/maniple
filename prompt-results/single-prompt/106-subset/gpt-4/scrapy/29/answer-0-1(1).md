@@ -1,10 +1,10 @@
-The error message indicates that the `parsed.hostname` is `None` when a file URL or an FTP URL is passed to the `request_httprepr` function, making the `to_bytes` function fail. 
+The error message indicates that the function `to_bytes` receives `None` from `parsed.hostname` which leads to a `TypeError`. The error is likely to occur for URL schemas like `file://` or `ftp://` that do not use the host field.
 
-You can easily fix this issue by checking if parsed.hostname is None before trying to convert it to bytes. 
+You can fix this error by adding a check before trying to encode `parsed.hostname`. If `parsed.hostname` is `None`, use an empty string instead. 
 
-Here the corrected version of the function:
+The modified source code should look like this:
 
-```python
+```Python
 def request_httprepr(request):
     """Return the raw HTTP representation (as bytes) of the given request.
     This is provided only for reference since it's not the actual stream of
@@ -14,12 +14,13 @@ def request_httprepr(request):
     parsed = urlparse_cached(request)
     path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
     s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
-    if parsed.hostname is not None:   # Check for None before converting to bytes
-        s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"
+    hostname = parsed.hostname or '' # Use an empty string if parsed.hostname is None
+    s += b"Host: " + to_bytes(hostname) + b"\r\n"
     if request.headers:
         s += request.headers.to_string() + b"\r\n"
     s += b"\r\n"
-    if request.body:   # Check if request.body is not None to avoid TypeError
-        s += request.body   
+    s += request.body
     return s
 ```
+
+This patch will fix the bug without affecting other successful tests and can be easily applied to the original project.

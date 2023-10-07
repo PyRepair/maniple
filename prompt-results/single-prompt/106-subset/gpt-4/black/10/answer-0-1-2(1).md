@@ -1,4 +1,4 @@
-I have fixed the bug in the `_partially_consume_prefix` function by ensuring that the whitespace is properly handled for the comments in the code. Here's the updated function:
+Here is the fixed `_partially_consume_prefix` function:
 
 ```python
 def _partially_consume_prefix(self, prefix, column):
@@ -24,16 +24,13 @@ def _partially_consume_prefix(self, prefix, column):
         elif char == '\n':
             # unexpected empty line
             current_column = 0
+            if not current_line.strip(): # Fix: Check if the line is empty
+                lines.append(current_line)
+                current_line = ""
         else:
             # indent is finished
             wait_for_nl = True
-    
-    # Check if the last line is a comment
-    if current_line.strip().startswith("#"):
-        lines.append(current_line)
-        current_line = ""
-
     return ''.join(lines), current_line
 ```
 
-This fix should now pass the test `test_comment_indentation` without affecting other tests. The issue with the incorrect indentation for tabulated comments after a dedent should be resolved.
+The change is in the `elif char == '\n':` block, where it now checks if the line is empty and, if so, appends the line to `lines`, and resets `current_line`. With this fix, the test should pass without affecting other successful tests.

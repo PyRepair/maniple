@@ -1,4 +1,8 @@
-The issue arises when the function tries to wrangle a character out of a string that has an associaed Unicode number greater than `0x110000`. Here is the corrected code:
+The problem with the above code is that the function `compat_chr` is trying to create an unicode character with a value that is higher than `0x110000`, which is the limit. The error is triggered when we try to undergo transformation of a HTML entity that is not inside this allowed range, giving us a `ValueError`.
+
+One way to handle this situation without making much change in existing logic is to wrap our transformation attempt inside a `try`-`except` clause. If the transformation fails due to `ValueError`, we simply return the initial HTML entity string, as we're not supposed to transform it.
+
+Here's the corrected Python code snippet:
 
 ```python
 def _htmlentity_transform(entity):
@@ -14,12 +18,10 @@ def _htmlentity_transform(entity):
             numstr = '0%s' % numstr
         else:
             base = 10
-        # Add a range check for chr function
-        num = int(numstr, base)
-        if num in range(0x110000):
-            return compat_chr(num)
-        else:
-            # if the number is not within the range return the original entity
-            return "&" + entity + ";"
+        try:
+            return compat_chr(int(numstr, base))
+        except ValueError:  # chr() arg not in range(0x110000)
+            return '&%s;' % entity  # return initial HTML entity string
 ```
-Now the function will return the original entity if the number is not within the unicode range. This would fix the exception without impacting the other tests.
+
+This code snippet will not throw a `ValueError` when it encounters an HTML entity that can't be mapped to a Unicode character, it will just return the initial entity. It ensures `&#2013266066;` is returned as is when it can't be transformed, passing the failed test, and doesn't affect any other tests.

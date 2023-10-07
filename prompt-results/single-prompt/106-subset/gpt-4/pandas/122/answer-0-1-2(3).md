@@ -1,4 +1,4 @@
-You can fix the bug by amending the `canonicalize` function to include the dtype's kind as well. Here's the complete fixed code:
+Here's the fixed version of the program with minimal changes. The issue was with the `canonicalize` function, which was comparing the dtype name and block locations. To consider the underlying data, we should add `block.values.tolist()` to the tuple returned by the `canonicalize` function:
 
 ```python
 def equals(self, other):
@@ -12,12 +12,12 @@ def equals(self, other):
     if len(self.blocks) != len(other.blocks):
         return False
 
-    # canonicalize block order, using a tuple combining the type
+    # Canonicalize block order, using a tuple combining the type
     # name and then mgr_locs because there might be unconsolidated
     # blocks (say, Categorical) which can only be distinguished by
     # the iteration order
     def canonicalize(block):
-        return (block.dtype.name, block.dtype.kind, block.mgr_locs.as_array.tolist())
+        return (block.dtype.name, block.mgr_locs.as_array.tolist(), block.values.tolist())
 
     self_blocks = sorted(self.blocks, key=canonicalize)
     other_blocks = sorted(other.blocks, key=canonicalize)
@@ -26,4 +26,4 @@ def equals(self, other):
     )
 ```
 
-This fix should allow the test to pass and preserve the original intent of the code, taking the kind of each dtype into account when comparing equality.
+This change should fix the failing test without affecting other successful tests, and this patch can be easily applied to the original project.

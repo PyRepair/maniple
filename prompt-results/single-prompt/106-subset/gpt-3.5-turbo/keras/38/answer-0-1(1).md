@@ -1,1 +1,1 @@
-The issue in the code is that it assumes the input shape passed to RNN cells has a length of 2, but the actual input shape in the failing test case has a length of 3. To fix this issue, you can modify the code to check for a minimum length of 2 instead of an exact length
+The error in the code is occuring because the `build` method of the `MinimalRNNCell` class is asserting that `len(input_shape) == 2`, but in the test case,
