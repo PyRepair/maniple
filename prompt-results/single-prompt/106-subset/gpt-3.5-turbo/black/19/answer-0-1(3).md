@@ -1,4 +1,4 @@
-The bug in the code is that the first leaf's extra newlines are not being consumed correctly. To fix this bug, we can modify the code as shown below:
+Here's a fix for the bug:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -10,7 +10,7 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         first_leaf = current_line.leaves[0]
         before = first_leaf.prefix.count("\n")
         before = min(before, max_allowed)
-        first_leaf.prefix = first_leaf.prefix.lstrip("\n")
+        first_leaf.prefix = ""
     else:
         before = 0
     depth = current_line.depth
@@ -47,7 +47,13 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         and (not current_line.is_yield or depth != self.previous_line.depth)
     ):
         return (before or 1), 0
+
+    # Fix starts here
+    if current_line.is_decorator and current_line.prefix.startswith('#'):
+        return (before or 1), 0
+    # Fix ends here
+
     return before, 0
 ```
 
-With this fix, the code should pass the failing test without impacting other successfully passed tests.
+The fix checks if the current line is a decorator and its prefix starts with '#'. If so, it returns `(before or 1), 0` to keep the empty lines between decorators intact. This fix should ensure that the test case `test_comment_in_decorator` passes without affecting other test cases.

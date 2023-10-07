@@ -1,6 +1,4 @@
-To fix the bug in the code, we need to adjust the indentation level of the comment based on the current column value.
-
-The fixed code is as follows:
+Here you go:
 
 ```python
 def _partially_consume_prefix(self, prefix, column):
@@ -24,9 +22,10 @@ def _partially_consume_prefix(self, prefix, column):
         elif char == '\t':
             current_column += 4
         elif char == '\n':
-            # unexpected empty line
-            if current_line.strip() and current_column < column:
-                current_line += ' ' * (column - current_column)
+            # Skip empty lines
+            if current_line.strip():
+                lines.append(current_line)
+            current_line = ""
             current_column = 0
         else:
             # indent is finished
@@ -34,8 +33,4 @@ def _partially_consume_prefix(self, prefix, column):
     return ''.join(lines), current_line
 ```
 
-The indentation adjustment is made in the `elif char == '\n'` block. If the current line is not empty and the current column is less than the desired column value, we add extra spaces to match the desired column.
-
-This fix ensures that the comment indentation is adjusted correctly after a dedent, without affecting other parts of the code.
-
-Note: This fix assumes that the desired column value `column` is always greater than or equal to 0.
+The only change I made is to add a check to skip empty lines (`if current_line.strip(): lines.append(current_line)`).
