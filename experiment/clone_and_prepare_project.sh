@@ -1,51 +1,45 @@
 #!/bin/bash
 
-# Bug records
-bug_records=(
-    "matplotlib 9"
-    "matplotlib 17"
-    "matplotlib 3"
-    "matplotlib 22"
-    "Luigi 4"
-    "Luigi 25"
-    "Luigi 28"
-    "Spacy 3"
-    "Scrapy 29"
-    "Scrapy 28"
-    "Pandas 30"
-    "Pandas 88"
-    "Pandas 48"
-    "Pandas 35"
-    "Pandas 122"
-    "Pandas 86"
-    "Pandas 60"
-    "Pandas 34"
-    "Pandas 129"
-    "Pandas 69"
-    "Youtube-DL 28"
-    "Youtube-DL 17"
-    "Keras 38"
-    "Keras 9"
-    "Keras 25"
-    "Keras 14"
-    "Black 10"
-    "Black 19"
-    "tqdm 4"
-    "tornado 14"
-)
-
 python3.11 bgp.py update_bug_records
 
-# Iterate over the bug records and run the commands manually
-for bug_record in "${bug_records[@]}"; do
-    project_name=$(echo "$bug_record" | awk '{print $1}')
-    bug_id=$(echo "$bug_record" | awk '{print $2}')
-    
-    echo "Processing $project_name:$bug_id"
-    
+# Define a function to run the bgp.py commands
+run_bgp_commands() {
+    project_name="$1"
+    bug_id="$2"
+
     # Run the bgp.py commands
     python3.11 bgp.py clone --bug_list "$project_name:$bug_id"
     python3.11 bgp.py prep --bug_list "$project_name:$bug_id"
+}
 
-    echo "Finished $project_name:$bug_id"
-done
+# Call the function manually for 30 bug records
+run_bgp_commands "matplotlib" 9
+run_bgp_commands "matplotlib" 17
+run_bgp_commands "matplotlib" 3
+run_bgp_commands "matplotlib" 22
+run_bgp_commands "Luigi" 4
+run_bgp_commands "Luigi" 25
+run_bgp_commands "Luigi" 28
+run_bgp_commands "Spacy" 3
+run_bgp_commands "Scrapy" 29
+run_bgp_commands "Scrapy" 28
+run_bgp_commands "Pandas" 30
+run_bgp_commands "Pandas" 88
+run_bgp_commands "Pandas" 48
+run_bgp_commands "Pandas" 35
+run_bgp_commands "Pandas" 122
+run_bgp_commands "Pandas" 86
+run_bgp_commands "Pandas" 60
+run_bgp_commands "Pandas" 34
+run_bgp_commands "Pandas" 129
+run_bgp_commands "Pandas" 69
+run_bgp_commands "Youtube-DL" 28
+run_bgp_commands "Youtube-DL" 17
+run_bgp_commands "Keras" 38
+run_bgp_commands "Keras" 9
+run_bgp_commands "Keras" 25
+run_bgp_commands "Keras" 14
+run_bgp_commands "Black" 10
+run_bgp_commands "Black" 19
+run_bgp_commands "tqdm" 4
+run_bgp_commands "tornado" 14
