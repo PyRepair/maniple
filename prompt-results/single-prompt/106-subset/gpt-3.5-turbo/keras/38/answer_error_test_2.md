@@ -1,0 +1,1 @@
+The issue in the code is that the `build` function is checking for an incorrect condition. The assertion `assert len(input_shape) == 2` assumes that the input shape should have a length of

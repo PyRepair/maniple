@@ -1,0 +1,14 @@
+{
+    "scrapy": [
+        {
+            "bugID": 28,
+            "used_features": [
+                "error_message",
+                "test_code_blocks"
+            ],
+            "start_line": 31,
+            "file_name": "scrapy/dupefilters.py",
+            "replace_code": "class RFPDupeFilter:\n    def __init__(self, path=None, debug=False):\n        self.file_path = None\n        self.file = None\n        self.fingerprints = set()\n        self.logdupes = True\n        self.debug = debug\n        self.logger = logging.getLogger(__name__)\n        if path:\n            self.file_path = os.path.join(path, 'requests.seen')\n\n    def open(self):\n        if not self.file_path:\n            return\n\n        if os.path.exists(self.file_path):\n            self.file = open(self.file_path, 'r+')\n            self.fingerprints.update(x.rstrip() for x in self.file)\n        else:\n            self.file = open(self.file_path, 'a+')\n\n        self.file.seek(0, os.SEEK_END)  # move file marker to the end of file.\n\n    def request_seen(self, request):\n        fp = self.request_fingerprint(request)\n        if fp in self.fingerprints:\n            return True\n        self.fingerprints.add(fp)\n        if self.file:\n            self.file.write(fp + '\\n')  # add the new fingerprint to 'requests.seen' file.\n        return False\n\n    def close(self, reason):\n        if self.file:\n            self.file.close()"
+        }
+    ]
+}

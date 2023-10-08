@@ -1,1 +1,0 @@
-To fix the bug in the code, we need to modify the line that checks the length of the `input_shape` parameter. Instead of checking that `len(input_shape) == 2`, we need

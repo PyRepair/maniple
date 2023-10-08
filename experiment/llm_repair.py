@@ -56,41 +56,34 @@ def main():
         write_directory = path.join("..", "prompt-results", "single-prompt", args.database, args.model, args.project)
     else:
         write_directory = path.join("..", "prompt-results", "multi-prompt", args.database, args.model, args.project)
-    traversal_bugs(bugs_data, args.feature_split, write_directory, args.repeat, args.model)
+    traversal_bugs(bugs_data, write_directory, args.repeat, args.model)
 
 
-def traversal_bugs(bugs_data, feature_split: int, write_directory: str, number_of_answers: int, llm_model: str):
+def traversal_bugs(bugs_data, write_directory: str, number_of_answers: int, llm_model: str):
     for bug_index in range(len(bugs_data["bugs"])):
         bug_id = bugs_data["bugs"][bug_index]["id"]
 
         # only use available features
         exist_features = []
-        exist_feature_indexes = []
-
-        feature_index = 0
         for feature in bugs_data["bugs"][bug_index]["features"]:
             if bugs_data["bugs"][bug_index]["features"][feature] is not None:
                 exist_features.append(feature)
-                exist_feature_indexes.append(feature_index)
-                feature_index += 1
 
         # run with all features
         if feature_split == 0:
-            generate_single_prompt_answers(bugs_data["bugs"][bug_index], exist_features, exist_feature_indexes,
-                                           write_directory, bug_id, number_of_answers, llm_model)
+            generate_single_prompt_answers(bugs_data["bugs"][bug_index], exist_features, write_directory, bug_id,
+                                           number_of_answers, llm_model)
         elif feature_split == 1:
             # drop only one feature once
             for drop_index in range(len(exist_features)):
                 selected_features = exist_features.copy()
                 selected_features.pop(drop_index)
-                selected_indexes = exist_feature_indexes.copy()
-                selected_indexes.pop(drop_index)
 
-                generate_single_prompt_answers(bugs_data["bugs"][bug_index], selected_features, selected_indexes,
-                                               write_directory, bug_id, number_of_answers, llm_model)
+                generate_single_prompt_answers(bugs_data["bugs"][bug_index], selected_features, write_directory,
+                                               bug_id, number_of_answers, llm_model)
 
 
-def extract_code_snippets(answer: str):
+def extract_code_snippets(answer: str) -> str:
     code_snippets = []
     code_block_pattern = r'```(?:python)?(.*?)```'
     code_blocks = re.findall(code_block_pattern, answer, re.DOTALL)
@@ -114,12 +107,18 @@ def remove_import_statement(code_snippet: str) -> str:
     return cleaned_code
 
 
-def generate_single_prompt_answers(bug_info, selected_features: List[str], selected_indexes: List[int],
-                                   write_directory: str, bug_id: int, number_of_answers: int, llm_model: str):
+def generate_single_prompt_answers(bug_info, selected_features: List[str], write_directory: str,
+                                   bug_id: int, number_of_answers: int, llm_model: str):
     prompt_filename = "prompt"
-    for selected_index in selected_indexes:
-        prompt_filename += "-"
-        prompt_filename += str(selected_index)
+
+    for feature in selected_features:
+        prompt_filename += "_"
+        if feature == "error_message":
+            prompt_filename += "error"
+        elif feature == "test_code_blocks":
+            prompt_filename += "test"
+        elif feature == "raised_issue_descriptions":
+            prompt_filename += "issue"
 
     prompt_filename += ".md"
 
@@ -132,11 +131,17 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], selec
     # repeat to get answer, number are defined by user input
     for number in range(number_of_answers):
         answer_filename = "answer"
-        for selected_index in selected_indexes:
-            answer_filename += "-"
-            answer_filename += str(selected_index)
 
-        answer_filename = answer_filename + "(" + str(number + 1) + ")"
+        for feature in selected_features:
+            answer_filename += "_"
+            if feature == "error_message":
+                answer_filename += "error"
+            elif feature == "test_code_blocks":
+                answer_filename += "test"
+            elif feature == "raised_issue_descriptions":
+                answer_filename += "issue"
+
+        answer_filename = answer_filename + "_" + str(number + 1)
         json_filepath = path.join(write_directory, str(bug_id), answer_filename + ".json")
         markdown_filepath = path.join(write_directory, str(bug_id), answer_filename + ".md")
         if os.path.exists(json_filepath) and os.path.exists(markdown_filepath):
@@ -154,10 +159,10 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], selec
         write_answer_markdown(answer, write_directory, bug_id, answer_filename)
 
         # write answer into json
-        write_answer_json(function_snippet, write_directory, bug_id, answer_filename)
+        write_code_snippet_json(function_snippet, selected_features, write_directory, bug_id, answer_filename)
 
 
-def build_prompt(bug_info, selected_features: List[str]):
+def build_prompt(bug_info, selected_features: List[str]) -> str:
     prompt_template = json.load(open("prompt_template.json", "r"))
 
     prompt = f"""{prompt_template["preface"]}
@@ -243,7 +248,8 @@ def write_answer_markdown(answer: str, directory: str, bug_id: int, filename: st
         answer_file.write(answer)
 
 
-def write_answer_json(code_snippets: str, directory: str, bug_id: int, filename: str):
+def write_code_snippet_json(code_snippets: str, selected_features: List[str], directory: str, bug_id: int,
+                            filename: str):
     makedirs(path.join(directory, str(bug_id)), exist_ok=True)
     global database, project
 
@@ -266,6 +272,7 @@ def write_answer_json(code_snippets: str, directory: str, bug_id: int, filename:
         project: [
             {
                 "bugID": bug_id,
+                "used_features" : selected_features,
                 "start_line": fix_line["start_line"],
                 "file_name": fix_line["filename"],
                 "replace_code": code_snippets
@@ -299,7 +306,7 @@ def get_answer_from_chatgpt(prompt: str, llm_model: str):
 
     # ignore if token length exceeds window size
     except Exception:
-        return ""
+        return "token exceeds window size"
 
 
 if __name__ == "__main__":

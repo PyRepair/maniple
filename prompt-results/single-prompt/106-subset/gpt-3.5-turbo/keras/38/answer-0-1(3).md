@@ -1,1 +1,0 @@
-To fix the bug, we need to update the assertion in the `build` function to check that `len(input_shape) >= 2` instead of `len(input_shape) == 2`. This
