@@ -41,7 +41,7 @@ def main():
     }
     for project in bugs_list.keys():
         for bug_id in bugs_list[project]:
-            test_directory = os.path.join("..", "benchmarks", project + ":" + str(bug_id), "PyRepair",
+            test_directory = os.path.join("..", "benchmarks", project, str(bug_id), "PyRepair",
                                           "benchmark_wrangling", "BugsInPy")
             results_directory = os.path.join("..", "prompt-results", prompt_type, database, model, project, str(bug_id))
 
