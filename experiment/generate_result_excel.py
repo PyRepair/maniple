@@ -37,7 +37,8 @@ def main():
         "error_message": [],
         "test_code_blocks": [],
         "raised_issue_descriptions": [],
-        "correct": []
+        "correct": [],
+        "result_filename": []
     }
     for project in bugs_list.keys():
         for bug_id in bugs_list[project]:
@@ -62,6 +63,7 @@ def main():
                     data["test_code_blocks"].append(1 if "test_code_blocks" in used_features else 0)
                     data["raised_issue_descriptions"].append(1 if "raised_issue_descriptions" in used_features else 0)
                     data["correct"].append(correct)
+                    data["result_filename"].append(json_file)
 
     excel_path = os.path.join("..", "prompt-results", prompt_type, database, model, database + "_" + model + ".xlsx")
     write_spreadsheet(data, excel_path)
@@ -80,6 +82,10 @@ def get_test_result(test_directory: str) -> int:
     try:
         with open(os.path.join(test_directory, "output_file.json"), "r", encoding="utf-8") as f:
             result: Dict = json.load(f)
+
+            subprocess.run(["rm", "-r", "output_file.json"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           text=True, check=True, cwd=test_directory)
+
             return next(iter(result.values()))
     except Exception:
         return 2
