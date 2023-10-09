@@ -53,14 +53,15 @@ def main():
                 run_test(test_directory, json_path)
                 correct = get_test_result(test_directory)
 
-                used_features = json.load(open(json_path, "r", encoding="utf-8"))["used_features"]
+                with open(json_path, "r", encoding="utf-8") as result_json_file:
+                    used_features = json.load(result_json_file)[project][0]["used_features"]
 
-                data["Project"].append(project)
-                data["Bug_id"].append(bug_id)
-                data["error_message"].append(1 if "error_message" in used_features else 0)
-                data["test_code_blocks"].append(1 if "test_code_blocks" in used_features else 0)
-                data["raised_issue_descriptions"].append(1 if "raised_issue_descriptions" in used_features else 0)
-                data["correct"].append(correct)
+                    data["Project"].append(project)
+                    data["Bug_id"].append(bug_id)
+                    data["error_message"].append(1 if "error_message" in used_features else 0)
+                    data["test_code_blocks"].append(1 if "test_code_blocks" in used_features else 0)
+                    data["raised_issue_descriptions"].append(1 if "raised_issue_descriptions" in used_features else 0)
+                    data["correct"].append(correct)
 
     excel_path = os.path.join("..", "prompt-results", prompt_type, database, model, database + "_" + model + ".xlsx")
     write_spreadsheet(data, excel_path)
@@ -69,17 +70,19 @@ def main():
 def run_test(test_directory: str, json_path: str):
     try:
         command1 = ["python3.11", "run_custom_patch.py", json_path, "--output-dir", "."]
-        result1 = subprocess.run(command1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True,
-                                 cwd=test_directory)
-        print("Standard Output (Command 1):")
-        print(result1.stdout)
-    except Exception:
-        pass
+        subprocess.run(command1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True,
+                       cwd=test_directory)
+    except Exception as e:
+        print(e)
 
 
 def get_test_result(test_directory: str) -> int:
-    result: Dict = json.load(open(os.path.join(test_directory, "output_file.json"), "r", encoding="utf-8"))
-    return next(iter(result.values()))
+    try:
+        with open(os.path.join(test_directory, "output_file.json"), "r", encoding="utf-8") as f:
+            result: Dict = json.load(f)
+            return next(iter(result.values()))
+    except Exception:
+        return 2
 
 
 def write_spreadsheet(data: Dict, path: str):
