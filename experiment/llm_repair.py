@@ -10,8 +10,7 @@ import json
 
 sys.path.append('..')
 
-openai.api_key = "rg-B09kO5jDDdG0axfeuA5YP0LLTX8Fxi0rxNrgtzU6ZfiPRVNE"
-openai.api_base = "https://ai.redgatefoundry.com/v1"
+openai.api_key = "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"
 
 database = ""
 project = ""
@@ -291,7 +290,8 @@ def get_answer_from_chatgpt(prompt: str, llm_model: str):
 - Ensure that the replacement allows the program to pass a failed test without affecting other successful tests.
 - Make sure the fixed patch can be easily applied to the original project.
 - Provide a complete code snippet as your response, representing a fully functional function.
-- Your response should be in Markdown format.
+- There should be only one code snippet provided which is the fixed method or function.
+- Your response should be in Markdown format. The python markdown code snippet format is ```python ... ```.
 """
 
     # llm_model should be "gpt-4" or "gpt-3.5-turbo"
