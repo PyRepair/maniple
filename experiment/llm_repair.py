@@ -65,8 +65,9 @@ def traversal_bugs(bugs_data, write_directory: str, number_of_answers: int, llm_
 
         # only use available features
         exist_features = []
-        for feature in bugs_data["bugs"][bug_index]["features"]:
-            if bugs_data["bugs"][bug_index]["features"][feature] is not None:
+        features: Dict = bugs_data["bugs"][bug_index]["features"]
+        for feature in features.keys():
+            if features[feature] is not None and features[feature] != "":
                 exist_features.append(feature)
 
         # run with all features
