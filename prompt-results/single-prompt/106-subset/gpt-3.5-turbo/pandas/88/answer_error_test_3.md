@@ -1,0 +1,1 @@
+The bug in the code is caused by calling the `pivot_table` function recursively without passing the `values` argument when `aggfunc` is a list of multiple aggregation functions. This results in the returned `table` object being a `pandas.Series` instead of a `pandas

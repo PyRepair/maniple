@@ -1,6 +1,6 @@
-The bug in the given code causes extra empty lines to be added between decorators in the output. To fix this bug, the code needs to be modified to remove the extra empty lines when adding decorators.
+To fix the bug in the code, we need to update the `_maybe_empty_lines` function. The issue seems to be with the counting of newlines in the `before` variable. The `before` variable should be incremented by the count of newlines in `first_leaf.prefix` only if it is not already greater than `max_allowed`. 
 
-Here's the fixed code:
+Here's the updated code:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -11,8 +11,10 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         # Consume the first leaf's extra newlines.
         first_leaf = current_line.leaves[0]
         before = first_leaf.prefix.count("\n")
-        before = min(before, max_allowed)
-        first_leaf.prefix = ""
+        if before < max_allowed:
+            first_leaf.prefix = ""
+        else:
+            before = max_allowed
     else:
         before = 0
     depth = current_line.depth
@@ -30,11 +32,8 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
             # Don't insert empty lines between decorators.
             return 0, 0
 
-        # Updated code to remove extra empty lines when adding decorators
         newlines = 2
         if current_line.depth:
-            newlines -= 1
-        if self.previous_line and self.previous_line.is_decorator:
             newlines -= 1
         return newlines, 0
     if current_line.is_flow_control:
@@ -55,6 +54,6 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     return before, 0
 ```
 
-The fix removes the extra empty lines when adding decorators by checking if the previous line is also a decorator and reducing the number of newlines accordingly. This change should ensure that the test case `test_comment_in_decorator` passes without affecting other tests.
+This updated code checks if `before` is less than `max_allowed` before replacing the prefix of the first leaf. If `before` is already greater than or equal to `max_allowed`, it sets `before` to `max_allowed`.
 
-Note that the fix is isolated to the `_maybe_empty_lines` function and does not require changes to other parts of the code.
+This fixed code should resolve the bug and pass the failed test without affecting other successful tests.

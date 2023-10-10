@@ -1,0 +1,32 @@
+```python
+@Appender(IndexingMixin.at.__doc__)
+class _AtIndexer(_ScalarAccessIndexer):
+    _takeable = False
+
+    def _convert_key(self, key, is_setter: bool = False):
+        """
+        Require they keys to be the same type as the index. (so we don't
+        fallback)
+        """
+        # allow arbitrary setting
+        if is_setter:
+            return list(key)
+
+        for ax, i in zip(self.obj.axes, key):
+            if ax.is_integer():
+                if not isinstance(i, int):
+                    raise ValueError(
+                        "At based indexing on an integer index "
+                        "can only have integer indexers"
+                    )
+            else:
+                if isinstance(i, int) and not ax.holds_integer():
+                    raise ValueError(
+                        "At based indexing on an non-integer "
+                        "index can only have non-integer "
+                        "indexers"
+                    )
+        return key
+```
+Explanation: 
+In the `_convert_key` method, instead of using the `is_integer` function to check if `i` is an integer, we can use the `isinstance` function to check if it is of type `int`. This modification ensures that the code correctly raises a `ValueError` if the index type does not match the key type.

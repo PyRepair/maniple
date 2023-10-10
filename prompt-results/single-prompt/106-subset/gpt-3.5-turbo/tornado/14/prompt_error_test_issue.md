@@ -87,4 +87,4 @@ class TestIOLoopCurrent(unittest.TestCase):
 The raised issue description for this bug is:
 ioloop.py(line 252) is None or not None
 
-line 252£¬ IOLoop.current(instance=False) is None¡£why then raise "already exists"?
+line 252ï¼Œ IOLoop.current(instance=False) is Noneã€‚why then raise "already exists"?

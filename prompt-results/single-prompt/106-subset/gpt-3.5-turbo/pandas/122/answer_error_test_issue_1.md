@@ -1,6 +1,8 @@
-To fix the bug in the code, you can replace the `equals` method with the `equals` method from the `numpy` package. The `numpy` `equals` method compares two objects element-wise and returns a boolean array indicating whether each corresponding element is equal or not.
+The issue seems to be with the sorting of the `blocks` before comparing them in the `equals` method. Sorting them based on their dtype name and manager locations can cause incorrect comparison results when the blocks have the same data but different locations.
 
-Here's the fixed version of the code:
+To fix this issue, we can modify the `canonicalize` function to only consider the dtype name for sorting. This way, blocks with the same data will be considered equal, regardless of their locations.
+
+Here's the fixed code:
 
 ```python
 def equals(self, other):
@@ -14,18 +16,17 @@ def equals(self, other):
     if len(self.blocks) != len(other.blocks):
         return False
 
-    # canonicalize block order, using a tuple combining the type
-    # name and then mgr_locs because there might be unconsolidated
-    # blocks (say, Categorical) which can only be distinguished by
-    # the iteration order
+    # canonicalize block order, using the type name only
     def canonicalize(block):
-        return (block.dtype.name, block.mgr_locs.as_array.tolist())
+        return block.dtype.name
 
     self_blocks = sorted(self.blocks, key=canonicalize)
     other_blocks = sorted(other.blocks, key=canonicalize)
-    return np.all(
-        [block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)]
+    return all(
+        block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
     )
 ```
 
-This replacement utilizes the `numpy.all` function to check if all elements in the boolean array returned by the `equals` method are `True`. This ensures that all the corresponding blocks in `self_blocks` and `other_blocks` are equal to each other.
+This change ensures that blocks with the same data will be correctly considered equal, regardless of their locations.
+
+Please let me know if you have any questions or concerns.

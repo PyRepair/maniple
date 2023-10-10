@@ -1,14 +1,12 @@
-To fix the bug, we need to modify the `pivot` function to handle the case when `columns` is `None` and raise a `ValueError` with the appropriate error message.
-
-Here's the fixed version of the `pivot` function:
+To fix the bug, you need to modify the code snippet by adding an if statement to check if the `columns` parameter is None. If it is None, raise a `ValueError` with an appropriate error message. Here's the fixed code:
 
 ```python
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("pivot() missing 1 required argument: 'columns'")
-
+        raise ValueError("The 'columns' parameter is required in pivot.")
+        
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -30,4 +28,4 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
     return indexed.unstack(columns)
 ```
 
-With this fix, the `pivot` function will raise a `ValueError` with the message "pivot() missing 1 required argument: 'columns'" when `columns` is `None`. This will address the bug and make the test pass without affecting other successful tests.
+This code snippet adds an if statement to check if the `columns` parameter is None. If it is None, a `ValueError` is raised with the message "The 'columns' parameter is required in pivot." This ensures that the code raises the correct error message when `columns` is not provided.

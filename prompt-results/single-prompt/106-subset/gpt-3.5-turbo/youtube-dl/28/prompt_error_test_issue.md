@@ -50,7 +50,7 @@ The test source code is following:
         self.assertEqual(unescapeHTML('%20;'), '%20;')
         self.assertEqual(unescapeHTML('&#x2F;'), '/')
         self.assertEqual(unescapeHTML('&#47;'), '/')
-        self.assertEqual(unescapeHTML('&eacute;'), 'иж')
+        self.assertEqual(unescapeHTML('&eacute;'), '├й')
         self.assertEqual(unescapeHTML('&#2013266066;'), '&#2013266066;')
 
 

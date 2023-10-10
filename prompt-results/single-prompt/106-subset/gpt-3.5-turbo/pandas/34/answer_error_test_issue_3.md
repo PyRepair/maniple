@@ -1,4 +1,6 @@
-To fix the bug, you can modify the `_get_time_bins` function as follows:
+To fix the bug, we need to modify the `_get_time_bins` method. Specifically, we need to replace the `date_range` function with `pd.date_range` function and provide the `ambiguous` parameter with the value of "NaT" to handle ambiguous timestamp issues.
+
+Here is the fixed code:
 
 ```python
 def _get_time_bins(self, ax):
@@ -20,13 +22,13 @@ def _get_time_bins(self, ax):
     # because replace() will swallow the nanosecond part
     # thus last bin maybe slightly before the end if the end contains
     # nanosecond part and lead to `Values falls after last bin` error
-    binner = labels = date_range(
+    binner = labels = pd.date_range(
         freq=self.freq,
         start=first,
         end=last,
         tz=ax.tz,
         name=ax.name,
-        ambiguous="infer",
+        ambiguous="NaT",
         nonexistent="shift_forward",
     )
 
@@ -55,17 +57,7 @@ def _get_time_bins(self, ax):
     if len(bins) < len(labels):
         labels = labels[: len(bins)]
 
-    # Fix for AmbiguousTimeError
-    if ax.max().time() == time(0, 0, 0) and len(ax.unique()) == 1:
-        if self.closed == "right":
-            bins = bins[:-1]
-
     return binner, bins, labels
 ```
 
-Explanation:
-To fix the AmbiguousTimeError, we need to check if the maximum timestamp in the `ax` DatetimeIndex has a time of midnight (`00:00:00`) and if all the timestamps in the index are the same. If these conditions are met, we can assume that the `ax` object represents a clock-change day in Cuba.
-
-In this case, we need to modify the `bins` array to remove the last bin, which corresponds to the ambiguous timestamp at midnight. By excluding this bin, we ensure that the `groupby` operation does not raise an AmbiguousTimeError.
-
-This fix requires minimal changes to the original code, and it addressed the specific issue described in the test error.
+After applying this fix, the program should pass the failed test case without affecting other tests.

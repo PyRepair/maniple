@@ -1,6 +1,4 @@
-To fix the bug, we need to ensure that the file is properly closed after it is opened for reading in the `__init__` method.
-
-Here's the fixed code:
+Since the error message mentions an unclosed file, we need to ensure that the file is closed properly to avoid the ResourceWarning. To fix this, we can use the `with` statement to automatically handle closing the file. Here's the fixed code:
 
 ```python
 def __init__(self, path=None, debug=False):
@@ -10,10 +8,9 @@ def __init__(self, path=None, debug=False):
     self.debug = debug
     self.logger = logging.getLogger(__name__)
     if path:
-        try:
-            self.file = open(os.path.join(path, 'requests.seen'), 'a+')
+        with open(os.path.join(path, 'requests.seen'), 'a+') as file:
+            self.file = file
             self.fingerprints.update(x.rstrip() for x in self.file)
-        finally:
-            if self.file:
-                self.file.close()
 ```
+
+In this fixed code, we open the file in the `with` statement, assign it to the `self.file` attribute, and then update the fingerprints. The `with` statement automatically handles closing the file, even in the case of an exception.

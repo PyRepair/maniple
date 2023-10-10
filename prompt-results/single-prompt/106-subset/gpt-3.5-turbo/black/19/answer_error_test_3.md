@@ -1,6 +1,8 @@
-To fix the bug in the code, we need to modify the `_maybe_empty_lines` function. The bug is in the code that handles decorators, where it is not correctly counting the number of newlines to insert before and after decorators when there are comments present.
+The bug in the code is that the `before` variable is not correctly updated when assigning newlines to `first_leaf.prefix`. This causes the extra newlines in the decorator comment to not be counted correctly and leads to the test failure.
 
-Here is the fixed version of the function:
+To fix this bug, we need to update the assignment of `before` within the `if current_line.leaves:` block to correctly count the number of newlines in `first_leaf.prefix`. We can use the `str.count()` method to count the number of occurrences of the newline character `\n` in `first_leaf.prefix` and subtract it from `max_allowed`.
+
+Here's the fixed code:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -11,7 +13,7 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         # Consume the first leaf's extra newlines.
         first_leaf = current_line.leaves[0]
         before = first_leaf.prefix.count("\n")
-        before = min(before, max_allowed)
+        before = max_allowed - before
         first_leaf.prefix = ""
     else:
         before = 0
@@ -30,10 +32,9 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
             # Don't insert empty lines between decorators.
             return 0, 0
 
-        # Fix the bug in decorator handling
-        newlines = current_line.prefix.count("\n")
+        newlines = 2
         if current_line.depth:
-            newlines = min(newlines, 1)
+            newlines -= 1
         return newlines, 0
     if current_line.is_flow_control:
         return before, 1
@@ -53,9 +54,4 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     return before, 0
 ```
 
-Explanation of the fix:
-- The code now counts the number of newlines in the `current_line.prefix` instead of using a hardcoded number.
-- It checks if the `current_line.depth` is non-zero and applies the constraint of at most 1 newline.
-- The rest of the code remains the same.
-
-With this fix, the program should pass the failed test case without affecting other successful test cases.
+With this fix, the program should pass the failed test without affecting other successful tests.

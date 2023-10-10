@@ -1,6 +1,8 @@
-To fix the bug in the `equals` function, we need to replace the sorting of `self_blocks` and `other_blocks` with a comparison based on their lengths. The current sorting based on `canonicalize` function is causing the issue where identical blocks with different locations are incorrectly considered equal.
+To fix the bug in the `equals` method, we need to modify the `canonicalize` function so that it returns a hashable object. Currently, it returns a tuple, but the `mgr_locs` attribute of the `block` object is not hashable. 
 
-Here's the modified code snippet:
+One possible solution is to convert the `mgr_locs` numpy array to a tuple before creating the tuple of the block's dtype name and mgr_locs. This way, the `canonicalize` function will return a hashable object.
+
+Here is the fixed code:
 
 ```python
 def equals(self, other):
@@ -14,17 +16,15 @@ def equals(self, other):
     if len(self.blocks) != len(other.blocks):
         return False
 
-    self_blocks = self.blocks
-    other_blocks = other.blocks
-    
-    if len(self_blocks) != len(other_blocks):
-        return False
-    
+    # modified canonicalize function to return a hashable object
+    def canonicalize(block):
+        return (block.dtype.name, tuple(block.mgr_locs.as_array.tolist()))
+
+    self_blocks = sorted(self.blocks, key=canonicalize)
+    other_blocks = sorted(other.blocks, key=canonicalize)
     return all(
         block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
     )
 ```
 
-In this fixed code, we directly assign `self.blocks` and `other.blocks` to `self_blocks` and `other_blocks` respectively, without the sorting based on `canonicalize` function.
-
-This fix ensures that the `equals` function correctly handles identical blocks with different locations and passes the failed test without affecting other successful tests.
+With this modification, the `equals` method should now work correctly and pass the failed test without affecting other successful tests.

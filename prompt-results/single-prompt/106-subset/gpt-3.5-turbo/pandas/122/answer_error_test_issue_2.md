@@ -1,6 +1,6 @@
-The issue is occurring because the `equals` method is not correctly handling the case when identical blocks have different locations. One possible fix for this issue is to replace the `mgr_locs` attribute with a more stable attribute that can be used to canonicalize the blocks.
+The bug in the code is caused by using the `equals` method of the `block` object instead of the `equals` method of the `DataFrame` object. To fix the bug, we need to replace `block.equals(oblock)` with `block.equals(oblock.values)`.
 
-Here's the modified code snippet with the fix:
+Here is the fixed code:
 
 ```python
 def equals(self, other):
@@ -14,14 +14,20 @@ def equals(self, other):
     if len(self.blocks) != len(other.blocks):
         return False
 
+    # canonicalize block order, using a tuple combining the type
+    # name and then mgr_locs because there might be unconsolidated
+    # blocks (say, Categorical) which can only be distinguished by
+    # the iteration order
     def canonicalize(block):
-        return (block.values.dtype.name, hash(block.values.tobytes()))
+        return (block.dtype.name, block.mgr_locs.as_array.tolist())
 
     self_blocks = sorted(self.blocks, key=canonicalize)
     other_blocks = sorted(other.blocks, key=canonicalize)
     return all(
-        block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
+        block.equals(oblock.values) for block, oblock in zip(self_blocks, other_blocks)
     )
 ```
 
-Note that in the `canonicalize` function, the `mgr_locs` attribute has been replaced with `hash(block.values.tobytes())`. This ensures that identical blocks with different locations will have the same canonicalization, allowing the equality check to work correctly.
+This fix replaces `block.equals(oblock)` with `block.equals(oblock.values)` to compare the values of the `block` object with the `oblock` object.
+
+After applying this fix, the `equals` method should return the correct result and the failing test case should pass.

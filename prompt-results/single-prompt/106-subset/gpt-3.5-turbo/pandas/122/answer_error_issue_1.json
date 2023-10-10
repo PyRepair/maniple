@@ -1,0 +1,14 @@
+{
+    "pandas": [
+        {
+            "bugID": 122,
+            "used_features": [
+                "error_message",
+                "raised_issue_descriptions"
+            ],
+            "start_line": 1401,
+            "file_name": "pandas/core/internals/managers.py",
+            "replace_code": "def equals(self, other):\n    self_axes, other_axes = self.axes, other.axes\n    if len(self_axes) != len(other_axes):\n        return False\n    \n    if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):\n        return False\n    \n    self_copy = copy.deepcopy(self)\n    other_copy = copy.deepcopy(other)\n    \n    self_copy._consolidate_inplace()\n    other_copy._consolidate_inplace()\n    \n    if len(self_copy.blocks) != len(other_copy.blocks):\n        return False\n    \n    def canonicalize(block):\n        return (block.dtype.name, block.mgr_locs.as_array.tolist())\n    \n    self_blocks = sorted(self_copy.blocks, key=canonicalize)\n    other_blocks = sorted(other_copy.blocks, key=canonicalize)\n    \n    return all(\n        block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)\n    )"
+        }
+    ]
+}

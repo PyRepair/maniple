@@ -1,8 +1,6 @@
-The bug in the code is that the `at` method in the `_AtIndexer` class is raising a `ValueError` when indexing with an integer. This is incorrect behavior as the `at` method should be able to accept both integer and float indexers.
+To fix the bug, we need to modify the `_convert_key` method in the `_AtIndexer` class. Specifically, we need to check if the key is a float and if the corresponding axis is an integer index. If so, we should convert the key to an integer to match the index type.
 
-To fix this, we can modify the `_AtIndexer._convert_key` method to handle integer indexers when the axis is not an integer. We can use the `float` function to convert the integer indexers to float.
-
-Here's the fixed code:
+Here's the fixed code snippet:
 
 ```python
 @Appender(IndexingMixin.at.__doc__)
@@ -11,7 +9,8 @@ class _AtIndexer(_ScalarAccessIndexer):
 
     def _convert_key(self, key, is_setter: bool = False):
         """
-        Require the keys to be the same type as the index (so we don't fallback).
+        Require the keys to be the same type as the index. (so we don't
+        fallback)
         """
         # allow arbitrary setting
         if is_setter:
@@ -26,8 +25,20 @@ class _AtIndexer(_ScalarAccessIndexer):
                     )
             else:
                 if is_integer(i) and not ax.holds_integer():
-                    i = float(i)
-            return key
+                    raise ValueError(
+                        "At based indexing on a non-integer "
+                        "index can only have non-integer "
+                        "indexers"
+                    )
+
+        # Convert key to integer if it's a float and the corresponding axis is an integer index
+        converted_key = []
+        for ax, i in zip(self.obj.axes, key):
+            if isinstance(i, float) and ax.is_integer():
+                i = int(i)
+            converted_key.append(i)
+
+        return tuple(converted_key)
 ```
 
-With this fix, the program should pass the failed test without affecting other successful tests. The fixed patch can be easily applied to the original project.
+With this fix, the program should pass the failed test without affecting other successful tests.

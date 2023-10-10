@@ -1,6 +1,8 @@
-To fix the bug in the code, we need to modify the condition for raising the ValueError exception when `raw` parameter is not a boolean value.
+The bug in the code is related to the 'raw' parameter not being correctly handled in the `apply` function. The test case is failing with different series values when `raw=True` is passed to the `apply` function.
 
-Here is the fixed code snippet:
+To fix the bug, we need to modify the `apply` function to correctly handle the `raw` parameter and ensure that it operates as expected. The fix involves adding a condition to check if the `raw` parameter is True or False and handle it accordingly for the different engines ('cython' and 'numba').
+
+Here's the fixed code:
 
 ```python
 def apply(
@@ -20,15 +22,20 @@ def apply(
     kwargs.pop("floor", None)
     window = self._get_window()
     offset = calculate_center_offset(window) if self.center else 0
-    if not isinstance(raw, bool):  # Fixed condition for checking raw parameter
-        raise TypeError("raw parameter must be a boolean value")
+    if not is_bool(raw):
+        raise ValueError("raw parameter must be `True` or `False`")
 
     if engine == "cython":
         if engine_kwargs is not None:
             raise ValueError("cython engine does not accept engine_kwargs")
-        apply_func = self._generate_cython_apply_func(
-            args, kwargs, raw, offset, func
-        )
+        if raw:
+            apply_func = self._generate_cython_apply_func_raw(
+                args, kwargs, offset, func
+            )
+        else:
+            apply_func = self._generate_cython_apply_func(
+                args, kwargs, offset, func
+            )
     elif engine == "numba":
         if raw is False:
             raise ValueError("raw must be `True` when using the numba engine")
@@ -50,7 +57,6 @@ def apply(
         floor=0,
         name=func,
         use_numba_cache=engine == "numba",
-)
-```
+    )
 
-With this fix, the program should pass the failing test without affecting other successful tests. The fixed patch can be easily applied to the original project by replacing the faulty `if not is_bool(raw):` condition with the fixed condition `if not isinstance(raw, bool):`.
+```

@@ -1,0 +1,208 @@
+You need to fix a bug in a python code snippet.
+
+The buggy source code is following, and you should follow all specifications in comment if there exists comment:
+
+    def build(self, input_shape):
+        for cell in self.cells:
+            if isinstance(cell, Layer):
+                cell.build(input_shape)
+            if hasattr(cell.state_size, '__len__'):
+                output_dim = cell.state_size[0]
+            else:
+                output_dim = cell.state_size
+            input_shape = (input_shape[0], input_shape[1], output_dim)
+        self.built = True
+
+
+
+The test error on command line is following:
+
+=================================================== test session starts ===================================================
+platform darwin -- Python 3.7.9, pytest-5.4.3, py-1.8.1, pluggy-0.13.1 -- /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/venv/bin/python3.7
+cachedir: .pytest_cache
+rootdir: /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38, inifile: pytest.ini
+plugins: httpbin-1.0.0, timeout-2.1.0, cov-4.1.0, mock-3.11.1, flaky-3.6.1, forked-1.1.3, xdist-1.32.0
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+[gw0] darwin Python 3.7.9 cwd: /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38
+[gw1] darwin Python 3.7.9 cwd: /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38
+[gw0] Python 3.7.9 (v3.7.9:13c94747c7, Aug 15 2020, 01:31:08)  -- [Clang 6.0 (clang-600.0.57)]
+[gw1] Python 3.7.9 (v3.7.9:13c94747c7, Aug 15 2020, 01:31:08)  -- [Clang 6.0 (clang-600.0.57)]
+gw0 [1] / gw1 [1]
+scheduling tests via LoadScheduling
+
+tests/keras/layers/recurrent_test.py::test_minimal_rnn_cell_layer 
+[gw0] [100%] FAILED tests/keras/layers/recurrent_test.py::test_minimal_rnn_cell_layer 
+
+======================================================== FAILURES =========================================================
+_______________________________________________ test_minimal_rnn_cell_layer _______________________________________________
+[gw0] darwin -- Python 3.7.9 /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/venv/bin/python3.7
+
+    @keras_test
+    def test_minimal_rnn_cell_layer():
+    
+        class MinimalRNNCell(keras.layers.Layer):
+    
+            def __init__(self, units, **kwargs):
+                self.units = units
+                self.state_size = units
+                super(MinimalRNNCell, self).__init__(**kwargs)
+    
+            def build(self, input_shape):
+                # no time axis in the input shape passed to RNN cells
+                assert len(input_shape) == 2
+    
+                self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
+                                              initializer='uniform',
+                                              name='kernel')
+                self.recurrent_kernel = self.add_weight(
+                    shape=(self.units, self.units),
+                    initializer='uniform',
+                    name='recurrent_kernel')
+                self.built = True
+    
+            def call(self, inputs, states):
+                prev_output = states[0]
+                h = keras.backend.dot(inputs, self.kernel)
+                output = h + keras.backend.dot(prev_output, self.recurrent_kernel)
+                return output, [output]
+    
+            def get_config(self):
+                config = {'units': self.units}
+                base_config = super(MinimalRNNCell, self).get_config()
+                return dict(list(base_config.items()) + list(config.items()))
+    
+        # Test basic case.
+        x = keras.Input((None, 5))
+        cell = MinimalRNNCell(32)
+        layer = recurrent.RNN(cell)
+        y = layer(x)
+        model = keras.models.Model(x, y)
+        model.compile(optimizer='rmsprop', loss='mse')
+        model.train_on_batch(np.zeros((6, 5, 5)), np.zeros((6, 32)))
+    
+        # Test basic case serialization.
+        x_np = np.random.random((6, 5, 5))
+        y_np = model.predict(x_np)
+        weights = model.get_weights()
+        config = layer.get_config()
+        with keras.utils.CustomObjectScope({'MinimalRNNCell': MinimalRNNCell}):
+            layer = recurrent.RNN.from_config(config)
+        y = layer(x)
+        model = keras.models.Model(x, y)
+        model.set_weights(weights)
+        y_np_2 = model.predict(x_np)
+        assert_allclose(y_np, y_np_2, atol=1e-4)
+    
+        # Test stacking.
+        cells = [MinimalRNNCell(8),
+                 MinimalRNNCell(12),
+                 MinimalRNNCell(32)]
+        layer = recurrent.RNN(cells)
+>       y = layer(x)
+
+tests/keras/layers/recurrent_test.py:570: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+keras/layers/recurrent.py:488: in __call__
+    return super(RNN, self).__call__(inputs, **kwargs)
+keras/engine/topology.py:590: in __call__
+    self.build(input_shapes[0])
+keras/layers/recurrent.py:450: in build
+    self.cell.build(step_input_shape)
+keras/layers/recurrent.py:104: in build
+    cell.build(input_shape)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7fdc5c79d950>
+input_shape = (None, 5, 8)
+
+    def build(self, input_shape):
+        # no time axis in the input shape passed to RNN cells
+>       assert len(input_shape) == 2
+E       assert 3 == 2
+E         +3
+E         -2
+
+tests/keras/layers/recurrent_test.py:521: AssertionError
+-------------------------------------------------- Captured stderr call ---------------------------------------------------
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:504: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:3828: The name tf.random_uniform is deprecated. Please use tf.random.uniform instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/optimizers.py:744: The name tf.train.Optimizer is deprecated. Please use tf.compat.v1.train.Optimizer instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:973: The name tf.assign_add is deprecated. Please use tf.compat.v1.assign_add instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:960: The name tf.assign is deprecated. Please use tf.compat.v1.assign instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:2496: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:166: The name tf.get_default_session is deprecated. Please use tf.compat.v1.get_default_session instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:171: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+2023-09-29 17:04:04.802278: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+2023-09-29 17:04:04.814654: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x7fdc5bf5beb0 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2023-09-29 17:04:04.814695: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:180: The name tf.global_variables is deprecated. Please use tf.compat.v1.global_variables instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:189: The name tf.is_variable_initialized is deprecated. Please use tf.compat.v1.is_variable_initialized instead.
+
+WARNING:tensorflow:From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:196: The name tf.variables_initializer is deprecated. Please use tf.compat.v1.variables_initializer instead.
+
+---------------------------------------------------- Captured log call ----------------------------------------------------
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:504: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:3828: The name tf.random_uniform is deprecated. Please use tf.random.uniform instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/optimizers.py:744: The name tf.train.Optimizer is deprecated. Please use tf.compat.v1.train.Optimizer instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:973: The name tf.assign_add is deprecated. Please use tf.compat.v1.assign_add instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:960: The name tf.assign is deprecated. Please use tf.compat.v1.assign instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:2496: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:166: The name tf.get_default_session is deprecated. Please use tf.compat.v1.get_default_session instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:171: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:180: The name tf.global_variables is deprecated. Please use tf.compat.v1.global_variables instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:189: The name tf.is_variable_initialized is deprecated. Please use tf.compat.v1.is_variable_initialized instead.
+
+WARNING  tensorflow:module_wrapper.py:139 From /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/backend/tensorflow_backend.py:196: The name tf.variables_initializer is deprecated. Please use tf.compat.v1.variables_initializer instead.
+==================================================== warnings summary =====================================================
+venv/lib/python3.7/site-packages/tensorflow_core/python/pywrap_tensorflow_internal.py:15
+venv/lib/python3.7/site-packages/tensorflow_core/python/pywrap_tensorflow_internal.py:15
+  /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/venv/lib/python3.7/site-packages/tensorflow_core/python/pywrap_tensorflow_internal.py:15: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    import imp
+
+keras/callbacks.py:18
+keras/callbacks.py:18
+  /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/keras/callbacks.py:18: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3,and in 3.9 it will stop working
+    from collections import Iterable
+
+venv/lib/python3.7/site-packages/tensorflow_core/python/framework/tensor_util.py:521: 15 tests with warnings
+  /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/venv/lib/python3.7/site-packages/tensorflow_core/python/framework/tensor_util.py:521: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    tensor_proto.tensor_content = nparray.tostring()
+
+venv/lib/python3.7/site-packages/tensorflow_core/python/framework/indexed_slices.py:339
+  /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/venv/lib/python3.7/site-packages/tensorflow_core/python/framework/indexed_slices.py:339: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3,and in 3.9 it will stop working
+    if not isinstance(values, collections.Sequence):
+
+venv/lib/python3.7/site-packages/tensorflow_core/contrib/learn/python/learn/learn_io/generator_io.py:26
+  /Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/keras:38/venv/lib/python3.7/site-packages/tensorflow_core/contrib/learn/python/learn/learn_io/generator_io.py:26: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3,and in 3.9 it will stop working
+    from collections import Container
+
+-- Docs: https://docs.pytest.org/en/latest/warnings.html
+================================================ slowest 10 test durations ================================================
+0.46s call     tests/keras/layers/recurrent_test.py::test_minimal_rnn_cell_layer
+
+(0.00 durations hidden.  Use -vv to show these durations.)
+================================================= short test summary info =================================================
+FAILED tests/keras/layers/recurrent_test.py::test_minimal_rnn_cell_layer - assert 3 == 2
+============================================= 1 failed, 21 warnings in 7.23s ==============================================
+
+

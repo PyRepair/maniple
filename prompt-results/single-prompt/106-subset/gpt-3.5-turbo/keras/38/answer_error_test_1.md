@@ -1,1 +1,1 @@
-The bug in the code is that it is checking whether the length of `input_shape` is 2, which is incorrect. According to the comments, there is no time axis in the input shape passed
+To fix the bug, we need to ensure that the input shape has

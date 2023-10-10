@@ -1,8 +1,10 @@
-To fix the bug, you need to modify the `apply()` function in the given code. Here's the fixed code:
+The issue with the code is that the `raw` parameter is not being passed correctly to the `apply` function. In the provided code, the `raw` parameter is only being passed to the `apply` function when the `engine` is set to "numba". However, in the failing test, the `engine` is not set and the `raw` parameter is not being passed to the `apply` function.
+
+To fix this issue, we need to modify the code to pass the `raw` parameter to the `apply` function in all cases. We can do this by adding the `raw=raw` argument when calling the `apply_func` in the `return self._apply` statement.
+
+The fixed code snippet is as follows:
 
 ```python
-from typing import Optional, Dict, Tuple
-
 def apply(
     self,
     func,
@@ -42,16 +44,14 @@ def apply(
     else:
         raise ValueError("engine must be either 'numba' or 'cython'")
 
-    # Removed redundant center=False argument
     return self._apply(
         apply_func,
+        center=False,
         floor=0,
         name=func,
         use_numba_cache=engine == "numba",
+        raw=raw,  # Pass the raw parameter to the apply function
     )
 ```
 
-Explanation:
-The bug in the code is causing the `apply()` function to always pass `center=False` to the `_apply()` method. This is incorrect because it is hardcoding the value and not considering the actual value of `self.center`. To fix this issue, you need to remove the `center=False` argument from the `_apply()` method call. This will allow the `_apply()` method to use the correct value of `self.center` by default.
-
-The fixed code retains the existing functionality of the `apply()` method and only modifies the incorrect argument. This ensures that the code passes the failed test without affecting other successful tests. The updated code can be easily applied to the original project by replacing the existing `apply()` function with the fixed version.
+With this fix, the code should pass the failing test without affecting other successful tests. The fixed patch can be easily applied to the original project by replacing the `apply` method with the fixed code snippet.

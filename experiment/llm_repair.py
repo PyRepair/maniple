@@ -306,8 +306,8 @@ def get_answer_from_chatgpt(prompt: str, llm_model: str):
         return chat_completion.choices[0].message.content
 
     # ignore if token length exceeds window size
-    except Exception:
-        return "token exceeds window size"
+    except Exception as e:
+        return str(e)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
-To fix the bug, you can modify the `apply` method by adding a condition to check if the `engine` is "cython" and the `raw` parameter is `False`. If this condition is met, raise a `ValueError` with a message indicating that the `raw` parameter must be `True` when using the cython engine.
+Since raw=True no longer applies to the groupby().rolling() method in pandas 1.0.0, we need to modify the code to use the correct syntax. 
 
-Here's the modified code:
+In the original code, the apply function is called with a raw argument, which is no longer supported. To fix this, we need to modify the apply function to include additional keyword arguments for the groupby().rolling() method.
+
+Here is the modified code:
 
 ```python
 def apply(
@@ -26,14 +28,17 @@ def apply(
     if engine == "cython":
         if engine_kwargs is not None:
             raise ValueError("cython engine does not accept engine_kwargs")
-        if not raw:
-            raise ValueError("raw must be `True` when using the cython engine")
         apply_func = self._generate_cython_apply_func(
             args, kwargs, raw, offset, func
         )
     elif engine == "numba":
         if raw is False:
             raise ValueError("raw must be `True` when using the numba engine")
+        
+        # Add additional keyword argument to pass raw argument to the rolling method
+        def apply_func(x):
+            return func(x, raw=True)
+        
         if func in self._numba_func_cache:
             # Return an already compiled version of roll_apply if available
             apply_func = self._numba_func_cache[func]
@@ -55,4 +60,4 @@ def apply(
 )
 ```
 
-With this fix, the `apply` method will raise a `ValueError` if the `raw` parameter is `False` when using the cython engine. This will ensure that the test case `test_groupby_rolling` passes without affecting other successful tests.
+The modification involves adding an additional if statement for the "numba" engine, where we define a new apply_func that calls the original func with the raw=True argument. This allows the apply function to pass the raw argument to the rolling method.

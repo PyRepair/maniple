@@ -1,14 +1,8 @@
-Based on the error message, the `pivot` function is allowing `columns` to be `None` even though it should be a required argument. To fix this, we need to modify the function to ensure that `columns` is always provided.
-
-Here's the modified code:
-
-```python
-@Substitution("\ndata : DataFrame")
-@Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns: str, values=None) -> "DataFrame":
+#@Substitution("\ndata : DataFrame")
+#@Appender(_shared_docs["pivot"], indents=1)
+def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("The 'columns' argument is required.")
-    
+        raise TypeError("pivot() missing 1 required argument: 'columns'")
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -28,8 +22,3 @@ def pivot(data: "DataFrame", index=None, columns: str, values=None) -> "DataFram
         else:
             indexed = data._constructor_sliced(data[values].values, index=index)
     return indexed.unstack(columns)
-```
-
-With this modification, the `pivot` function will now raise a `ValueError` if the `columns` argument is `None`. This ensures that the function cannot be called without providing a value for `columns`, which aligns with the specification in the docstring.
-
-The fixed code can be easily applied to the original project without affecting other successful tests.

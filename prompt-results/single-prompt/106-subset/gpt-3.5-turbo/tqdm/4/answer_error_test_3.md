@@ -1,6 +1,3 @@
-The bug in the code snippet is caused by attempting to multiply `total` with `unit_scale` when `total` is `None` (line 108). To fix this bug, we need to handle the case where `total` is `None` before performing the multiplication.
+There is a bug in the `format_meter` method where the variable `total` is assigned `None` and then multiplied by `unit_scale` which is an integer. This raises a `TypeError` since `None` cannot be multiplied by an integer.
 
-Here is the fixed code snippet:
-```python
-@staticmethod
-def format_meter(n, total, elapsed, ncols=None, prefix='',
+To fix this bug,

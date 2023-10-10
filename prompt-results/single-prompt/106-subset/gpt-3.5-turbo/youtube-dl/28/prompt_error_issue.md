@@ -1,0 +1,89 @@
+You need to fix a bug in a python code snippet.
+
+The buggy source code is following, and you should follow all specifications in comment if there exists comment:
+
+def _htmlentity_transform(entity):
+    """Transforms an HTML entity to a character."""
+    # Known non-numeric HTML entity
+    if entity in compat_html_entities.name2codepoint:
+        return compat_chr(compat_html_entities.name2codepoint[entity])
+    mobj = re.match(r'#(x[0-9a-fA-F]+|[0-9]+)', entity)
+    if mobj is not None:
+        numstr = mobj.group(1)
+        if numstr.startswith('x'):
+            base = 16
+            numstr = '0%s' % numstr
+        else:
+            base = 10
+        return compat_chr(int(numstr, base))
+
+
+
+The test error on command line is following:
+
+======================================================================
+ERROR: test_unescape_html (test.test_utils.TestUtil)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/youtube-dl:28/test/test_utils.py", line 214, in test_unescape_html
+    self.assertEqual(unescapeHTML('&#2013266066;'), '&#2013266066;')
+  File "/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/youtube-dl:28/youtube_dl/utils.py", line 411, in unescapeHTML
+    r'&([^;]+);', lambda m: _htmlentity_transform(m.group(1)), s)
+  File "/Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/re.py", line 194, in sub
+    return _compile(pattern, flags).sub(repl, string, count)
+  File "/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/youtube-dl:28/youtube_dl/utils.py", line 411, in <lambda>
+    r'&([^;]+);', lambda m: _htmlentity_transform(m.group(1)), s)
+  File "/Users/jerry/Documents/GitHub/PyRepair/benchmarks/BugsInPy_Cloned_Repos/youtube-dl:28/youtube_dl/utils.py", line 399, in _htmlentity_transform
+    return compat_chr(int(numstr, base))
+ValueError: chr() arg not in range(0x110000)
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (errors=1)
+
+
+
+The raised issue description for this bug is:
+ValueError: unichr() arg not in range(0x110000) (wide Python build)
+
+Downloading this video fails because of text like "&#2013266066;" in the description.
+
+$ PYTHONPATH=`pwd`  ./bin/youtube-dl --verbose --list-formats 'https://www.youtube.com/watch?v=2nXFzmAtsRM'
+[debug] System config: []
+[debug] User config: []
+[debug] Command-line args: [u'--verbose', u'--list-formats', u'https://www.youtube.com/watch?v=2nXFzmAtsRM']
+[debug] Encodings: locale UTF-8, fs UTF-8, out UTF-8, pref UTF-8
+[debug] youtube-dl version 2015.11.15
+[debug] Git HEAD: bd1512d
+[debug] Python version 2.7.9 - Linux-3.19.0-33-generic-x86_64-with-Ubuntu-15.04-vivid
+[debug] exe versions: ffmpeg 2.5.8-0ubuntu0.15.04.1, ffprobe 2.5.8-0ubuntu0.15.04.1, rtmpdump 2.4
+[debug] Proxy map: {}
+[youtube] 2nXFzmAtsRM: Downloading webpage
+[youtube] 2nXFzmAtsRM: Downloading video info webpage
+Traceback (most recent call last):
+  File "./bin/youtube-dl", line 6, in <module>
+    youtube_dl.main()
+  File "/home/lukas/work/youtube-dl/youtube_dl/__init__.py", line 410, in main
+    _real_main(argv)
+  File "/home/lukas/work/youtube-dl/youtube_dl/__init__.py", line 400, in _real_main
+    retcode = ydl.download(all_urls)
+  File "/home/lukas/work/youtube-dl/youtube_dl/YoutubeDL.py", line 1666, in download
+    url, force_generic_extractor=self.params.get('force_generic_extractor', False))
+  File "/home/lukas/work/youtube-dl/youtube_dl/YoutubeDL.py", line 661, in extract_info
+    ie_result = ie.extract(url)
+  File "/home/lukas/work/youtube-dl/youtube_dl/extractor/common.py", line 290, in extract
+    return self._real_extract(url)
+  File "/home/lukas/work/youtube-dl/youtube_dl/extractor/youtube.py", line 1157, in _real_extract
+    video_description = clean_html(video_description)
+  File "/home/lukas/work/youtube-dl/youtube_dl/utils.py", line 275, in clean_html
+    html = unescapeHTML(html)
+  File "/home/lukas/work/youtube-dl/youtube_dl/utils.py", line 411, in unescapeHTML
+    r'&([^;]+);', lambda m: _htmlentity_transform(m.group(1)), s)
+  File "/usr/lib/python2.7/re.py", line 155, in sub
+    return _compile(pattern, flags).sub(repl, string, count)
+  File "/home/lukas/work/youtube-dl/youtube_dl/utils.py", line 411, in <lambda>
+    r'&([^;]+);', lambda m: _htmlentity_transform(m.group(1)), s)
+  File "/home/lukas/work/youtube-dl/youtube_dl/utils.py", line 399, in _htmlentity_transform
+    return compat_chr(int(numstr, base))
+ValueError: unichr() arg not in range(0x110000) (wide Python build)

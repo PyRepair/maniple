@@ -1,5 +1,3 @@
-The bug in the code is caused by trying to multiply `total` with `unit_scale`, but `total` is `None` when the condition `total and n > total` is satisfied. To fix the bug, we can perform a check to see if `total` is not `None` before multiplying it with `unit_scale`. Here's the fixed code:
+The issue seems to be with the line `total *= unit_scale` where `total` is None. In order to fix this, we can assign the value `total` to another variable and then multiply it with `unit_scale`. Here is the fixed code snippet:
 
 ```python
-@staticmethod
-def format_meter

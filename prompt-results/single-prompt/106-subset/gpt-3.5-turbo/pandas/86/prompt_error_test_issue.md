@@ -140,10 +140,10 @@ From docstring, index and values can be optional in df.pivot, but columns is not
 
 https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.pivot.html
 index : string or object, optional
-Column to use to make new frame¡¯s index. If None, uses existing index.
+Column to use to make new frameâ€™s index. If None, uses existing index.
 
 columns : string or object
-Column to use to make new frame¡¯s columns.
+Column to use to make new frameâ€™s columns.
 
 However, the error message is confusing now, should raise columns is not optional.
 
