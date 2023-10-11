@@ -7,6 +7,7 @@ import re
 import openai
 import sys
 import json
+import time
 
 sys.path.append('..')
 
@@ -88,6 +89,9 @@ def extract_code_snippets(answer: str) -> str:
     code_block_pattern = r'```(?:python)?(.*?)```'
     code_blocks = re.findall(code_block_pattern, answer, re.DOTALL)
 
+    if len(code_blocks) != 1:
+        return "not one code block"
+
     for code_block in code_blocks:
         code_snippets.append(code_block.strip())
 
@@ -148,10 +152,27 @@ def generate_single_prompt_answers(bug_info, selected_features: List[str], write
             print(f"json file {json_filepath} and markdown file {markdown_filepath} already exist")
             continue
 
-        # connect to chatgpt to get answer
-        answer = get_answer_from_chatgpt(prompt, llm_model)
+        max_counter = 5
+        code_snippet = ""
+        answer = ""
+        while max_counter > 0:
+            # connect to chatgpt to get answer
+            answer = get_answer_from_chatgpt(prompt, llm_model)
 
-        code_snippet = extract_code_snippets(answer)
+            # Token exceeds window size, break the loop, because we won't get any fix patch
+            if answer == "token exceeds window size":
+                break
+
+            code_snippet = extract_code_snippets(answer)
+
+            # If gpt return wrong pattern, just regenerate the answer, otherwise we got a fix patch, break the loop
+
+            # e.g. class as fix patch or one-line code explanation (multi code blocks)
+            if code_snippet != "" and code_snippet != "not one code block":
+                break
+
+            time.sleep(10)
+            max_counter -= 1
 
         function_snippet = remove_import_statement(code_snippet)
 
@@ -272,7 +293,7 @@ def write_code_snippet_json(code_snippets: str, selected_features: List[str], di
         project: [
             {
                 "bugID": bug_id,
-                "used_features" : selected_features,
+                "used_features": selected_features,
                 "start_line": fix_line["start_line"],
                 "file_name": fix_line["filename"],
                 "replace_code": code_snippets
@@ -295,19 +316,33 @@ def get_answer_from_chatgpt(prompt: str, llm_model: str):
 """
 
     # llm_model should be "gpt-4" or "gpt-3.5-turbo"
-    try:
-        chat_completion = openai.ChatCompletion.create(
-            model=llm_model, messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ]
-        )
+    max_counter = 5
+    while max_counter > 0:
+        try:
+            chat_completion = openai.ChatCompletion.create(
+                model=llm_model, messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ]
+            )
 
-        return chat_completion.choices[0].message.content
+            return chat_completion.choices[0].message.content
 
-    # ignore if token length exceeds window size
-    except Exception as e:
-        return str(e)
+        # sleep for 10 sec and try again
+        except openai.error.Timeout:
+            time.sleep(10)
+            max_counter -= 1
+
+        # Token exceeds window size, just return to mention that won't consider this bug at this moment
+        except openai.error.InvalidRequestError:
+            return "token exceeds window size"
+
+        except openai.error.RateLimitError:
+            time.sleep(10)
+            max_counter -= 1
+
+        except Exception as e:
+            return str(type(e)) + "\n" + str(e)
 
 
 if __name__ == "__main__":
