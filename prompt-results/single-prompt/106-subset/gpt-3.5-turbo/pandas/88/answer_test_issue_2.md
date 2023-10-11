@@ -1,27 +1,23 @@
-To fix the bug, we need to update the line where the error occurs. The line causing the error is:
+To fix the bug, we need to change the `if` condition in line 174. The current condition checks if `table.columns.nlevels > 1`, but it should check if `table.index.nlevels > 1` because we are pivoting columns, not rows.
+
+Here is the fixed code snippet:
 
 ```python
-if values_passed and not values_multi and not table.empty and (table.columns.nlevels > 1):
-```
-
-The error occurs because when `values_passed` is `False` and `values_multi` is `False`, `table` is a `Series` object instead of a `DataFrame`. To fix this, we can modify the condition to check if `table` is an instance of `ABCDataFrame` instead of checking if it's empty and has multiple levels. 
-
-Here's the fixed code snippet:
-
-```python
+# Note: We need to make sure `frame` is imported before `pivot`, otherwise
+# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-        data,
-        values=None,
-        index=None,
-        columns=None,
-        aggfunc="mean",
-        fill_value=None,
-        margins=False,
-        dropna=True,
-        margins_name="All",
-        observed=False,
+    data,
+    values=None,
+    index=None,
+    columns=None,
+    aggfunc="mean",
+    fill_value=None,
+    margins=False,
+    dropna=True,
+    margins_name="All",
+    observed=False,
 ) -> "DataFrame":
     index = _convert_by(index)
     columns = _convert_by(columns)
@@ -96,10 +92,10 @@ def pivot_table(
         # and then dropped, coercing to floats
         for v in values:
             if (
-                    v in data
-                    and is_integer_dtype(data[v])
-                    and v in agged
-                    and not is_integer_dtype(agged[v])
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
             ):
                 agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
@@ -153,8 +149,12 @@ def pivot_table(
         )
 
     # discard the top level
-    if values_passed and not values_multi and not table.empty and isinstance(table, ABCDataFrame) and (
-            table.columns.nlevels > 1):
+    if (
+        values_passed
+        and not values_multi
+        and not table.empty
+        and (table.index.nlevels > 1)
+    ):
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
@@ -166,7 +166,3 @@ def pivot_table(
 
     return table
 ```
-
-This fix checks if `table` is an instance of `ABCDataFrame` and if `values_passed` is `True` and `values_multi` is `False`, before discarding the top level of the table.
-
-This fixed code should pass the failing test case without affecting other successful tests.

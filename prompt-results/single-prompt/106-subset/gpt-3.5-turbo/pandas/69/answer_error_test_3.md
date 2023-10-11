@@ -1,31 +1,28 @@
+The issue in the code is that the `_convert_key` function raises a `ValueError` when the value of `is_setter` is `False` and the key contains a non-integer value for an index that requires non-integer indexers. To fix this issue, we need to replace the `is_integer` function with the `is_floating` function and update the error messages in the `ValueError` exceptions.
+
+Here's the fixed code:
+
 ```python
-@Appender(IndexingMixin.at.__doc__)
-class _AtIndexer(_ScalarAccessIndexer):
-    _takeable = False
+def _convert_key(self, key, is_setter: bool = False):
+    """
+    Require the keys to be the same type as the index (so we don't fallback).
+    """
+    # allow arbitrary setting
+    if is_setter:
+        return list(key)
 
-    def _convert_key(self, key, is_setter: bool = False):
-        """
-        Require they keys to be the same type as the index. (so we don't
-        fallback)
-        """
-        # allow arbitrary setting
-        if is_setter:
-            return list(key)
-
-        for ax, i in zip(self.obj.axes, key):
-            if ax.is_integer():
-                if not isinstance(i, int):  # Fix: Use isinstance() instead of is_integer()
-                    raise ValueError(
-                        "At based indexing on an integer index "
-                        "can only have integer indexers"
-                    )
-            else:
-                if isinstance(i, int) and not ax.holds_integer():  # Fix: Use isinstance() instead of is_integer()
-                    raise ValueError(
-                        "At based indexing on an non-integer "
-                        "index can only have non-integer "
-                        "indexers"
-                    )
-        return key
+    for ax, i in zip(self.obj.axes, key):
+        if ax.is_floating():
+            if not is_floating(i):
+                raise ValueError(
+                    "At based indexing on a floating index can only have floating indexers"
+                )
+        else:
+            if is_floating(i) and not ax.holds_floating():
+                raise ValueError(
+                    "At based indexing on a non-floating index can only have non-floating indexers"
+                )
+    return key
 ```
-The bug in the code is that it is using the `is_integer()` method instead of the `isinstance()` function to check for integer type. I have replaced the `is_integer()` calls with `isinstance()` calls in the `if` conditions. This should fix the bug and prevent the `ValueError` from being raised.
+
+With this fix, the code should pass the failed test without affecting other successful tests.

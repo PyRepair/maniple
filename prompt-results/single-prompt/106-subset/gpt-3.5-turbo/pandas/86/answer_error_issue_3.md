@@ -1,11 +1,14 @@
-To fix the bug in the pivot function, we need to modify the code where the columns parameter is checked. Instead of explicitly checking for None, we can use the `if columns` condition to raise an error if columns is not provided. This will ensure that a clearer error message is raised when columns is not specified.
+To fix the bug, we need to modify the code to raise a `TypeError` with a custom error message when the `columns` parameter is `None`. 
 
-Here's the fixed code:
-
+Here is the fixed code:
 ```python
-@Substitution("\ndata : DataFrame")
-@Appender(_shared_docs["pivot"], indents=1)
+from pandas.core.frame import DataFrame
+from pandas.core.indexes.base import is_list_like, MultiIndex
+
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+    if columns is None:
+        raise TypeError("columns is a required argument")
+
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -24,12 +27,7 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
             )
         else:
             indexed = data._constructor_sliced(data[values].values, index=index)
-    
-    # Fix: Check if columns is not provided
-    if not columns:
-        raise ValueError("pivot() missing required argument: 'columns'")
-    
     return indexed.unstack(columns)
 ```
 
-This fix ensures that a `ValueError` is raised with the correct error message when `columns` is not provided.
+With this fixed code, when `columns` is `None`, a `TypeError` will be raised with the message "columns is a required argument", instead of a `KeyError`.

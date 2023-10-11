@@ -8,7 +8,7 @@
             ],
             "start_line": 326,
             "file_name": "pandas/core/indexes/period.py",
-            "replace_code": "@cache_readonly\ndef _engine(self):\n    # To avoid a reference cycle, pass a weakref.proxy of self to _engine_type.\n    period = weakref.proxy(self)\n    return self._engine_type(period, len(self))"
+            "replace_code": "def cache_readonly(func):\n    attr_name = f'_{func.__name__}'\n\n    @property\n    def wrapper(self):\n        if getattr(self, attr_name, None) is None:\n            setattr(self, attr_name, func(self))\n        return getattr(self, attr_name)\n\n    return wrapper\n\n@cache_readonly\ndef _engine(self):\n    # To avoid a reference cycle, pass a weakref of self to _engine_type.\n    period = weakref.ref(self)\n    return self._engine_type(period, len(self))"
         }
     ]
 }

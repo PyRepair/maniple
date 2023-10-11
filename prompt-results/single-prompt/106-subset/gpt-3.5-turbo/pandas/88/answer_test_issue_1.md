@@ -1,8 +1,6 @@
-To fix the bug, we need to change the line `table.columns.nlevels > 1` to `len(table.columns) > 1` in the `pivot_table` function. This will ensure that the operation is performed correctly for both single-level and multi-level columns.
-
-Here is the fixed code:
-
 ```python
+# Note: We need to make sure `frame` is imported before `pivot`, otherwise
+# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
@@ -151,12 +149,13 @@ def pivot_table(
         values_passed
         and not values_multi
         and not table.empty
-        and (len(table.columns) > 1)
+        and (table.columns.nlevels > 1)
     ):
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
-        table = table.T
+        if not table.empty and isinstance(table, ABCDataFrame):
+            table = table.T
 
     # GH 15193 Make sure empty columns are removed if dropna=True
     if isinstance(table, ABCDataFrame) and dropna:

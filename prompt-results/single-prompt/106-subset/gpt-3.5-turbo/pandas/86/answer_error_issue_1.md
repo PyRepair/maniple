@@ -1,14 +1,12 @@
-To fix the bug, the method signature of the `pivot` function should be updated to make the `columns` parameter required. We can do this by removing the default value of `None` for the `columns` parameter.
-
-Here's the fixed code:
+To fix the bug, we need to modify the code to raise a `ValueError` instead of a `KeyError` when the `columns` parameter is `None` in the `pivot` function. We can modify the `pivot` function as follows:
 
 ```python
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns, values=None) -> "DataFrame":
+def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("columns must be specified in the pivot function")
-        
+        raise ValueError("columns parameter is required")
+
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -30,4 +28,4 @@ def pivot(data: "DataFrame", index=None, columns, values=None) -> "DataFrame":
     return indexed.unstack(columns)
 ```
 
-With this fix, when the `columns` parameter is not provided, a `ValueError` will be raised indicating that `columns` must be specified in the `pivot` function.
+With this modification, when the `columns` parameter is `None`, a `ValueError` will be raised with the message "columns parameter is required". This provides a more meaningful error message to the user indicating that the `columns` parameter cannot be `None` in the `pivot` function.

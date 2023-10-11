@@ -1,3 +1,1 @@
-The issue seems to be with the line `total *= unit_scale` where `total` is None. In order to fix this, we can assign the value `total` to another variable and then multiply it with `unit_scale`. Here is the fixed code snippet:
-
-```python
+The bug in the code is that the `total` variable can be `None` if the value of `total` is less than `n`. When applying the custom scale, multiplying `total` with `unit_scale` throws a `TypeError` because `None` cannot be multiplied

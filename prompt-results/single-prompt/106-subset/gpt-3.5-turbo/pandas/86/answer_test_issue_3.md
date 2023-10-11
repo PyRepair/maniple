@@ -1,17 +1,12 @@
-The bug in the code is that when `columns` is `None`, the function is not raising the correct error message. Instead, it should raise a `ValueError` with the message "columns is required".
+After analyzing the issue, it seems that the error message is not being raised correctly when `columns=None` is used in `df.pivot`. To fix this issue, we can modify the code to explicitly raise an error when `columns` is `None`. Here's the fixed code snippet:
 
-Here's the fixed code:
-
-```python
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.reshape.pivot import _shared_docs
-
+``` python
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
-    if columns is None:  # Fix: Raise ValueError when columns is None
-        raise ValueError("columns is required")
-        
+    if columns is None:
+        raise ValueError("The 'columns' parameter must be specified in df.pivot")
+    
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -33,6 +28,6 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
     return indexed.unstack(columns)
 ```
 
-Now, when `columns` is `None`, a `ValueError` with the message "columns is required" will be raised.
+Now, when `columns` is `None`, a `ValueError` will be raised with a descriptive error message indicating that `columns` must be specified.
 
-The fixed code snippet can be easily applied to the original project by replacing the original `pivot` function with the fixed one.
+This fix ensures that the error message is raised correctly and provides clear instructions to the user on how to address the issue.

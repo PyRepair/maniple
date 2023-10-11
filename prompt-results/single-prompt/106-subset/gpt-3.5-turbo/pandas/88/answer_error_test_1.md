@@ -1,5 +1,1 @@
-```python
-# Note: We need to make sure `frame` is imported before `pivot`, otherwise
-# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
-@Substitution("\ndata : DataFrame")
-@Appender(_shared_docs["pivot
+The issue in the code is that when `values` parameter is not passed, it assigns the column names of the DataFrame as the values to be aggregated. But the code assumes that `values` will always be a list of column names and tries to drop the keys from the `values`

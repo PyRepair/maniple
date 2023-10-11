@@ -1,9 +1,3 @@
-The issue in the given code is that it doesn't correctly handle the case when `cell.state_size` is a tuple. Currently, it assumes `cell.state_size` is an integer and assigns it directly to `output_dim`. 
-
-To fix this issue, we can modify the code to check if `cell.state_size` is a tuple and assign the first element of the tuple to `output_dim`. This will ensure that `output_dim` is always correct, whether `cell.state_size` is an integer or a tuple.
-
-Here's the fixed code snippet:
-
 ```python
 def build(self, input_shape):
     for cell in self.cells:
@@ -15,6 +9,17 @@ def build(self, input_shape):
             output_dim = cell.state_size
         input_shape = (input_shape[0], input_shape[1], output_dim)
     self.built = True
-```
 
-By making this change, the code will correctly assign the correct value to `output_dim` and update `input_shape` accordingly. This change will fix the bug in the code and allow the program to pass the failing test without affecting other successful tests.
+    # no time axis in the input shape passed to RNN cells
+    assert len(input_shape) == 2
+
+    self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
+                                  initializer='uniform',
+                                  name='kernel')
+    self.recurrent_kernel = self.add_weight(
+        shape=(self.units, self.units),
+        initializer='uniform',
+        name='recurrent_kernel')
+    self.built = True
+```
+The bug in the original code is that the assertion `assert len(input_shape) == 2` in the test source code is not being executed. The correction is to move this assertion statement after the `self.built = True` statement, ensuring that it is executed after the loop in the `build` method. By doing this, we can guarantee that the test is executed without affecting the rest of the code.

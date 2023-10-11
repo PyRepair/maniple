@@ -1,3 +1,12 @@
-There is a bug in the `format_meter` method where the variable `total` is assigned `None` and then multiplied by `unit_scale` which is an integer. This raises a `TypeError` since `None` cannot be multiplied by an integer.
+To fix the bug, you can replace the line `total *= unit_scale` with the following lines of code:
 
-To fix this bug,
+```
+if total is not None:
+    total *= unit_scale
+```
+
+Here's the fixed code snippet:
+
+```python
+@staticmethod
+def format_meter(n,

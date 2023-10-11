@@ -1,18 +1,7 @@
-Here is the fixed code:
+The issue in the code is that the `total` variable is set to `None` in the `sanity check` if condition is met. Later, the code tries to multiply `total` with `unit_scale` which is an integer. This results in a `TypeError` as `None` can't be multiplied with an integer.
+
+To fix this, we can modify the if condition to check if `total` is `None` and set it to `0` instead. This will ensure that the multiplication can be done without any errors. Here's the modified code:
 
 ```python
 @staticmethod
-def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
-                 unit='it', unit_scale=False, rate=None, bar_format=None,
-                 postfix=None, unit_divisor=1000, **extra_kwargs):
-    """
-    Return a string-based progress bar given some parameters
-    Parameters
-    ----------
-    n  : int
-        Number of finished iterations.
-    total  : int
-        The expected total number of iterations. If meaningless (), only
-        basic progress statistics are displayed (no ETA).
-    elapsed  : float
-        Number of seconds passed since start.
+def format_meter(n, total, elapsed, ncols

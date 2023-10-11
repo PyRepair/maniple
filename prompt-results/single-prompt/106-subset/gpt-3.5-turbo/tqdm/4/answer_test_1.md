@@ -1,34 +1,5 @@
-The bug in the code is that the `unit_scale` parameter is not being handled correctly. When `unit_scale` is True, the `total` and `n` variables should be scaled by the value of `unit_scale`. However, in the current code, the variables are being scaled even if `unit_scale` is not True or 1.
-
-To fix the bug, we need to modify the code to only scale the variables `n`, `total`, and `rate` if `unit_scale` is True or 1.
-
-Here's the fixed code:
-
 ```python
-from io import StringIO
-from contextlib import closing
-from tqdm import tqdm
-from functools import wraps
-
-
-def pretest():
-  pass
-
-
-def posttest():
-  pass
-
-
-def test_nototal():
-    """Test unknown total length"""
-    with closing(StringIO()) as our_file:
-        for i in tqdm((i for i in range(10)), file=our_file, unit_scale=10):
-            pass
-        assert "100it" in our_file.getvalue()
-
-
-
-
+@staticmethod
 def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
                  unit='it', unit_scale=False, rate=None, bar_format=None,
                  postfix=None, unit_divisor=1000, **extra_kwargs):
@@ -95,11 +66,12 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
         total = None
 
     # apply custom scale if necessary
-    if unit_scale and unit_scale is True:
-        total *= unit_divisor
-        n *= unit_divisor
+    if unit_scale and unit_scale not in (True, 1):
+        total *= unit_scale
+        n *= unit_scale
         if rate:
-            rate *= unit_divisor  # by default rate = 1 / self.avg_time
+            rate *= unit_scale  # by default rate = 1 / self.avg_time
+        unit_scale = False
     format_interval = tqdm.format_interval
     elapsed_str = format_interval(elapsed)
     # if unspecified, attempt to use rate = average speed
@@ -189,4 +161,20 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
         else:
             bar_length, frac_bar_length = divmod(int(frac * N_BARS * 8), 8)
             bar = _unich(0x2588) * bar_length
-            frac_bar = _unich(0x2590 - frac_bar
+            frac_bar = _unich(0x2590 - frac_bar_length) \
+                if frac_bar_length else ' '
+        # whitespace padding
+        if bar_length < N_BARS:
+            full_bar = bar + frac_bar + \
+                ' ' * max(N_BARS - bar_length - 1, 0)
+        else:
+            full_bar = bar + \
+                ' ' * max(N_BARS - bar_length, 0)
+        # Piece together the bar parts
+        return l_bar + full_bar + r_bar
+    # no total: no progressbar, ETA, just progress stats
+    else:
+        desc = prefix + ": " if prefix else ''
+        stats = '{0}{1} [{2}, {3}{4}]'.format(n_fmt, unit, elapsed_str, rate_fmt, postfix)
+        return desc + stats
+```

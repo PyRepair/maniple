@@ -1,9 +1,13 @@
-The issue in the given code is that the `build` method of the `MinimalRNNCell` class is checking whether the length of the `input_shape` is equal to 2. However, in the failing test, the length of `input_shape` is 3 which causes the assertion error.
-
-To fix this issue, we can modify the `build` method to check if the length of `input_shape` is greater than or equal to 2.
-
-Here's the fixed code:
-
 ```python
 def build(self, input_shape):
-    assert len(input_shape) >= 2
+    for cell in self.cells:
+        if isinstance(cell, Layer):
+            cell.build(input_shape)
+        if hasattr(cell, 'state_size') and isinstance(cell.state_size, tuple):
+            output_dim = cell.state_size[0]
+        else:
+            output_dim = cell.state_size
+        input_shape = (input_shape[0], input_shape[1], output_dim)
+    self.built = True
+```
+The bug in the original code is that it checks if `cell.state_size` has a `__len__` attribute

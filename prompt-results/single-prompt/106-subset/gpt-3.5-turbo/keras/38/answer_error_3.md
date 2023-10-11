@@ -1,9 +1,12 @@
-The bug in the code is that the assertion `assert len(input_shape) == 2` is failing because the `input_shape` has a length of 3 instead of 2. To fix this bug, we need to modify the `input_shape` inside the loop so that its length is always 2. One way to do this is by directly indexing the first two dimensions of `input_shape` and ignoring the third dimension.
-
-Here's the fixed code:
-
 ```python
 def build(self, input_shape):
     for cell in self.cells:
         if isinstance(cell, Layer):
-           
+            cell.build(input_shape)
+        if hasattr(cell.state_size, '__len__'):
+            output_dim = cell.state_size[0]
+        else:
+            output_dim = cell.state_size
+        input_shape = (input_shape[0], input_shape[1], output_dim)
+    self.built = True
+```

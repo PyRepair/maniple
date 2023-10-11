@@ -1,4 +1,9 @@
-To fix the bug, we need to replace the `compat_chr` function with a modified version that handles values greater than 0x10FFFF.
+To fix the bug in the `_htmlentity_transform` function, we need to handle the case when the input entity is an HTML entity number that is greater than `0x110000`. 
+
+Here is the fixed code:
+
+```python
+import re
 
 def _htmlentity_transform(entity):
     """Transforms an HTML entity to a character."""
@@ -13,8 +18,8 @@ def _htmlentity_transform(entity):
             numstr = '0%s' % numstr
         else:
             base = 10
-        num = int(numstr, base)
-        if num > 0x10FFFF:
-            return '?'
-        return unichr(num)
-    return '?'
+        try:
+            return compat_chr(int(numstr, base))
+        except ValueError:
+            return ''
+```

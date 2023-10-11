@@ -1,8 +1,10 @@
-The issue is caused by the incorrect checking of whether the table has multiple columns. The code is checking `table.columns.nlevels > 1`, which is incorrect for the case when `table.columns` is a `Series`. To fix this issue, we can modify this check to `table.columns.nlevels > 0`. This will correctly handle both single and multi-index cases.
+To fix the bug, you need to modify the `pivot_table` function to handle the case where `columns` is a tuple representing a multi-index. Currently, the code assumes that `columns` is either None or a single column name.
 
-Here is the fixed code snippet:
+Here's the modified `pivot_table` function:
 
 ```python
+# Note: We need to make sure `frame` is imported before `pivot`, otherwise
+# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
@@ -17,8 +19,13 @@ def pivot_table(
     margins_name="All",
     observed=False,
 ) -> "DataFrame":
-    index = _convert_by(index)
-    columns = _convert_by(columns)
+    def convert_to_tuple(x):
+        if isinstance(x, tuple):
+            return x
+        return (x,)
+
+    index = convert_to_tuple(index)
+    columns = convert_to_tuple(columns)
 
     if isinstance(aggfunc, list):
         pieces: List[DataFrame] = []
@@ -151,7 +158,7 @@ def pivot_table(
         values_passed
         and not values_multi
         and not table.empty
-        and (table.columns.nlevels > 0)
+        and (table.columns.nlevels > 1)
     ):
         table = table[values[0]]
 
@@ -165,4 +172,6 @@ def pivot_table(
     return table
 ```
 
-The fixed code snippet modifies the check `table.columns.nlevels > 1` to `table.columns.nlevels > 0` to correctly handle the case when `table.columns` is a `Series`. The rest of the code remains unchanged.
+This fix converts the `columns` and `index` to tuples internally. This ensures that the function can handle the case where `columns` is a tuple representing a multi-index. All other parts of the function remain unchanged.
+
+Please apply this fix and let me know if you encounter any issues.

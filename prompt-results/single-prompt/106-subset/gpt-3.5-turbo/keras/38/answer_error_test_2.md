@@ -1,1 +1,1 @@
-To fix the bug, you need to remove the assertion that checks the
+To fix the bug in the code, we need to replace the assertion

@@ -1,6 +1,4 @@
-The bug in the code is related to the calculation of the `total_fmt` variable when `unit_scale` is True. The `total_fmt` variable should be set to `None` if `total` is not provided.
-
-Here's the fixed code:
+To fix the bug in the code snippet, we need to update the `total` value to `None` when `n > total`. Here is the fixed code:
 
 ```python
 @staticmethod
@@ -97,7 +95,7 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
             if total else None
     else:
         n_fmt = str(n)
-        total_fmt = str(total) if total else None
+        total_fmt = str(total)
     try:
         postfix = ', ' + postfix if postfix else ''
     except TypeError:
@@ -179,4 +177,8 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
     # no total: no progressbar, ETA, just progress stats
     else:
         return ((prefix + ": ") if prefix else '') + \
-            '{0}{1} [{2}, {3}{4}]'.
+            '{0}{1} [{2}, {3}{4}]'.format(
+                n_fmt, unit, elapsed_str, rate_fmt, postfix)
+```
+
+The fixed code updates the

@@ -2,10 +2,6 @@ You need to fix a bug in a python code snippet.
 
 The buggy source code is following, and you should follow all specifications in comment if there exists comment:
 
-@Appender(IndexingMixin.at.__doc__)
-class _AtIndexer(_ScalarAccessIndexer):
-    _takeable = False
-
     def _convert_key(self, key, is_setter: bool = False):
         """
         Require they keys to be the same type as the index. (so we don't

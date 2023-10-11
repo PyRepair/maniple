@@ -1,1 +1,1 @@
-The issue in the code is that the assertion `assert len(input_shape
+To fix the bug in the `build` method, you need to

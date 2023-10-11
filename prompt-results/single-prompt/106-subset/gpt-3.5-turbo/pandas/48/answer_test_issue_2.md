@@ -1,6 +1,8 @@
-To fix the bug in the `_cython_agg_blocks` function, we need to replace the line `if isinstance(result, np.ndarray) and result.ndim == 1:` with `if isinstance(result, (np.ndarray, pd.Series)) and result.ndim == 1:`.
+The bug in the code is causing a TypeError when calling the `mean()` function on a `DataFrameGroupBy` object with `Int64` dtype. The bug occurs because the code tries to call `mean()` directly on the grouped blocks, which is not compatible with the `Int64` dtype.
 
-The updated code snippet is as follows:
+To fix the bug, we can modify the code to check for the `mean` function specifically and apply it column-wise using `apply()` instead. This way, we can ensure that the mean calculation is compatible with the `Int64` dtype.
+
+Here's the fixed code:
 
 ```python
 def _cython_agg_blocks(
@@ -51,7 +53,11 @@ def _cython_agg_blocks(
 
             s = get_groupby(obj, self.grouper)
             try:
-                result = s.aggregate(lambda x: alt(x, axis=self.axis))
+                if how == "mean":
+                    # Apply mean function column-wise using apply()
+                    result = s.apply(lambda x: alt(x, axis=self.axis))
+                else:
+                    result = s.aggregate(lambda x: alt(x, axis=self.axis))
             except TypeError:
                 # we may have an exception in trying to aggregate
                 # continue and exclude the block
@@ -71,7 +77,7 @@ def _cython_agg_blocks(
 
                 assert len(result._data.blocks) == 1
                 result = result._data.blocks[0].values
-                if isinstance(result, (np.ndarray, pd.Series)) and result.ndim == 1:
+                if isinstance(result, np.ndarray) and result.ndim == 1:
                     result = result.reshape(1, -1)
 
         assert not isinstance(result, DataFrame)
@@ -136,4 +142,6 @@ def _cython_agg_blocks(
     return agg_blocks, agg_items
 ```
 
-The fixed code snippet ensures that the program passes the failed test without affecting the other successful tests. It requires minimal changes to the source code and can be easily applied to the original project.
+The above code modifies the `try` block where the `alt` function is applied to the grouped object. We check if the function is `mean`, and if so, use `apply()` instead of `aggregate()`. This ensures that the mean calculation is performed column-wise and is compatible with the `Int64` dtype.
+
+Please note that this is a minimal change to the existing code to fix the bug and pass the failed test case.

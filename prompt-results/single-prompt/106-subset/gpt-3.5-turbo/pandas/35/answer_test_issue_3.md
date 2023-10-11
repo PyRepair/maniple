@@ -1,13 +1,22 @@
-The issue in the code is that the `_engine` method is using `weakref.ref` to create a weak reference to `self` and then passing it to `_engine_type`. However, the `weakref.ref` creates a weak reference object, not a reference to `self` itself. Therefore, `_engine_type` is receiving the weak reference object instead of `self`.
-
-To fix this issue, we need to modify the `_engine` method to directly pass `self` to `_engine_type` instead of using `weakref.ref`.
+To fix the bug, you can modify the `_engine` method to pass the weakref of `self` to `_engine_type` instead of `period`.
 
 Here's the fixed code:
 
 ```python
+from weakref import ref
+
+def cache_readonly(func):
+    def wrapper(self):
+        attr_name = f"_{func.__name__}"
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, func(self))
+        return getattr(self, attr_name)
+    return wrapper
+
 @cache_readonly
 def _engine(self):
-    return self._engine_type(self, len(self))
+    engine_type = ref(self._engine_type)
+    return engine_type()(ref(self), len(self))
 ```
 
-Now, when the `self` object is passed to `_engine_type`, it will correctly receive the reference to `self` instead of a weak reference object. This fix ensures that the `PeriodEngine` receives the `PeriodIndex` object as intended.
+With this fix, the code should now pass the failing test case without affecting other successful tests.

@@ -1,25 +1,18 @@
+Since the specific issue is related to a weak reference, we can fix it by using the `WeakValueDictionary` class from the `weakref` module. This class allows us to create a dictionary that holds weak references to objects, ensuring that the objects can be garbage collected when no longer needed.
+
+Here's the fixed code snippet:
+
 ```python
-from functools import wraps
-import weakref
+from weakref import WeakValueDictionary
 
-def cache_readonly(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if not hasattr(wrapper, "_cache"):
-            wrapper._cache = {}
-        key = (func, args, frozenset(kwargs.items()))
-        if key not in wrapper._cache:
-            result = func(*args, **kwargs)
-            wrapper._cache[key] = result
-        return wrapper._cache[key]
-    return wrapper
-
-@cache_readonly
 def _engine(self):
     # To avoid a reference cycle, pass a weakref of self to _engine_type.
-    period = weakref.ref(self)
-    return self._engine_type(period(), len(self))
+    period = WeakValueDictionary({0: self})
+    return self._engine_type(period, len(self))
 ```
 
-Explanation:
-The problem with the original code is that `weakref.ref(self)` is not being called correctly. The fix is to change `period = weakref.ref(self)` to `period = weakref.ref(self)()`. This ensures that the weak reference is called immediately to get the actual object instead of the weak reference object itself. By doing this, the `PeriodEngine` will no longer receive a `NoneType` object and the test should pass without any errors.
+In this code, we create a `WeakValueDictionary` object `period` and store the weak reference of `self` using a key of 0. Then, we pass `period` as an argument to `_engine_type`, ensuring that the weak reference is preserved.
+
+By using `WeakValueDictionary`, we ensure that the weak reference to `self` is maintained correctly, resolving the issue with the `NoneType` error.
+
+This fix can be easily applied to the original project by replacing the existing code with the above snippet in the relevant file.

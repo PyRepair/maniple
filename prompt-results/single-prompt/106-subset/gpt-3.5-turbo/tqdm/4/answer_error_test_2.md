@@ -1,1 +1,1 @@
-The issue in the code occurs when the `total` parameter is `None` and `unit_scale` is `True`. In this case, the code tries to multiply `total` with `unit_scale`, which results in a `TypeError` since `None` cannot be multiplied with
+The issue in the code is that the variable `total` is being multiplied by `unit_scale` which may be `None`. To fix this issue, we can initialize a new variable `new_total` which will be the result of multiplying `total` with `unit_scale` if

@@ -1,5 +1,6 @@
-#@Substitution("\ndata : DataFrame")
-#@Appender(_shared_docs["pivot"], indents=1)
+```python
+@Substitution("\ndata : DataFrame")
+@Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
@@ -22,3 +23,4 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
         else:
             indexed = data._constructor_sliced(data[values].values, index=index)
     return indexed.unstack(columns)
+```

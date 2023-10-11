@@ -8,7 +8,7 @@
             ],
             "start_line": 326,
             "file_name": "pandas/core/indexes/period.py",
-            "replace_code": "def cache_readonly(func):\n    # ... decorator implementation here ...\n\n@cache_readonly\ndef _engine(self):\n    # To avoid a reference cycle, pass a weakref.proxy of self to _engine_type.\n    period = weakref.proxy(self)\n    return self._engine_type(period, len(self))"
+            "replace_code": "def cache_readonly(func):\n    cache = {}\n\n    def wrapper(*args):\n        if args not in cache:\n            cache[args] = func(*args)\n        return cache[args]\n\n    return wrapper\n\nclass FixedClass:\n    @cache_readonly\n    def _engine(self):\n        # To avoid a reference cycle, pass a weakref of self to _engine_type.\n        period = weakref.ref(self)\n        return self._engine_type(period() if period else None, len(self))\n\ndef test_get_level_values_when_periods():\n\n\n    idx = MultiIndex.from_arrays(\n        [PeriodIndex([Period(\"2019Q1\"), Period(\"2019Q2\")], name=\"b\")]\n    )\n    idx2 = MultiIndex.from_arrays(\n        [idx._get_level_values(level) for level in range(idx.nlevels)]\n    )\n    assert all(x.is_monotonic for x in idx2.levels)\n\ntest_get_level_values_when_periods()"
         }
     ]
 }

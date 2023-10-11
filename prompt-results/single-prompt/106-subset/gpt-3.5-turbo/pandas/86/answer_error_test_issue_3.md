@@ -1,11 +1,11 @@
-To fix the bug, you need to modify the code snippet by adding an if statement to check if the `columns` parameter is None. If it is None, raise a `ValueError` with an appropriate error message. Here's the fixed code:
-
 ```python
+from typing import Optional, Union
+
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+def pivot(data: "DataFrame", index: Optional[Union[str, object]] = None, columns: Union[str, object] = None, values: Optional[str] = None) -> "DataFrame":
     if columns is None:
-        raise ValueError("The 'columns' parameter is required in pivot.")
+        raise ValueError("pivot() missing 1 required argument: 'columns'")
         
     if values is None:
         cols = [columns] if index is None else [index, columns]
@@ -28,4 +28,4 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
     return indexed.unstack(columns)
 ```
 
-This code snippet adds an if statement to check if the `columns` parameter is None. If it is None, a `ValueError` is raised with the message "The 'columns' parameter is required in pivot." This ensures that the code raises the correct error message when `columns` is not provided.
+The issue occurred because the `columns` parameter was not properly handled in the function. I have added a check at the beginning of the function to ensure that the `columns` parameter is not `None`. If it is `None`, a `ValueError` is raised with the appropriate error message.

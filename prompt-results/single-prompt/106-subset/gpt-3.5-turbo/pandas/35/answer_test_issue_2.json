@@ -8,7 +8,7 @@
             ],
             "start_line": 326,
             "file_name": "pandas/core/indexes/period.py",
-            "replace_code": "@property\ndef _engine(self):\n    return self._engine_type(self, len(self))"
+            "replace_code": "class MyClass:\n    @property\n    @lru_cache(maxsize=None)\n    def _engine(self):\n        # To avoid a reference cycle, pass a weakref of self to _engine_type.\n        period = weakref.ref(self)\n        return self._engine_type(period, len(self))\n\ndef test_get_level_values_when_periods():\n    # GH33131. See also discussion in GH32669.\n    # This test can probably be removed when PeriodIndex._engine is removed.\n\n\n    idx = MultiIndex.from_arrays(\n        [PeriodIndex([Period(\"2019Q1\"), Period(\"2019Q2\")], name=\"b\")]\n    )\n    idx2 = MultiIndex.from_arrays(\n        [idx._get_level_values(level) for level in range(idx.nlevels)]\n    )\n    assert all(x.is_monotonic for x in idx2.levels)"
         }
     ]
 }

@@ -8,7 +8,7 @@
             ],
             "start_line": 326,
             "file_name": "pandas/core/indexes/period.py",
-            "replace_code": "@cache_readonly\ndef _engine(self):\n    # To avoid a reference cycle, pass a weakref of self to _engine_type.\n    period = weakref.ref(self)\n    engine_type = self._engine_type\n    return engine_type(period(), len(self))"
+            "replace_code": "def cache_readonly(func):\n    def inner_func(self):\n        if not hasattr(self, \"_cache\"):\n            self._cache = {}\n        if func.__name__ not in self._cache:\n            self._cache[func.__name__] = func(self)\n        return self._cache[func.__name__]\n    return inner_func\n    \n@cache_readonly\ndef _engine(self):\n    # To avoid a reference cycle, pass a weakref of self to _engine_type.\n    period = weakref.ref(self)\n    return self._engine_type(period(), len(self))"
         }
     ]
 }

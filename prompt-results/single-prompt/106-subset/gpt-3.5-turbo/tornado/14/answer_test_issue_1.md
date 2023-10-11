@@ -1,16 +1,13 @@
-To fix the bug, we can replace the line 252 `raise RuntimeError("current IOLoop already exists")` with `return` keyword. This will prevent the RuntimeError from being raised when the current IOLoop already exists, and the program will continue execution as expected.
+To fix the bug in the given code, we can update the logic in the `initialize` method. The code can be simplified by removing the redundant checks and using the `make_current` parameter directly.
 
-Here's the updated code snippet:
+Here's the fixed code:
 
 ```python
-def initialize(self, make_current=None):
-    if make_current is None:
-        if IOLoop.current(instance=False) is None:
-            self.make_current()
-    elif make_current:
-        if IOLoop.current(instance=False) is None:
-            return
+def initialize(self, make_current=False):
+    if make_current and IOLoop.current(instance=False) is not None:
+        raise RuntimeError("current IOLoop already exists")
+    if make_current:
         self.make_current()
 ```
 
-The fix is minimal and only requires modifying a single line of code. The replacement allows the program to pass the failed test without affecting other successful tests, as desired.
+This fix ensures that if `make_current` is `True`, it first checks whether an instance of `IOLoop` already exists using `IOLoop.current(instance=False)`. If an instance exists, it raises a `RuntimeError`. Otherwise, it proceeds with making the current instance.

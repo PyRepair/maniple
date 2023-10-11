@@ -1,11 +1,8 @@
-The bug in the code is that when `mode` is not equal to 'torch' and `data_format` is not equal to 'channels_first', the code does not return the preprocessed array. To fix this bug, we need to properly indent the lines of code that calculate the `mean` and `std` values and add a return statement at the end of the function.
+The bug in the `_preprocess_numpy_input` function is that it does not handle the case when `mode` is equal to `'torch'`. So, we need to add the corresponding code for this mode.
 
 Here is the fixed code:
 
 ```python
-import numpy as np
-from numpy.testing import assert_allclose
-
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
     # Arguments
@@ -30,8 +27,8 @@ def _preprocess_numpy_input(x, data_format, mode):
         return x
     if mode == 'torch':
         x /= 255.
-        mean = [0.485, 0.456, 0.406]
-        std = [0.229, 0.224, 0.225]
+        mean = [0, 0, 0]
+        std = [1, 1, 1]
     else:
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
@@ -42,8 +39,8 @@ def _preprocess_numpy_input(x, data_format, mode):
         else:
             # 'RGB'->'BGR'
             x = x[..., ::-1]
-        mean = [103.939, 116.779, 123.68]
-        std = None
+            mean = [103.939, 116.779, 123.68]
+            std = None
     # Zero-center by mean pixel
     if data_format == 'channels_first':
         if x.ndim == 3:
@@ -71,35 +68,6 @@ def _preprocess_numpy_input(x, data_format, mode):
             x[..., 1] /= std[1]
             x[..., 2] /= std[2]
     return x
-
-def test_preprocess_input():
-    # Test image batch with float and int image input
-    x = np.random.uniform(0, 255, (2, 10, 10, 3))
-    xint = x.astype('int32')
-    assert utils.preprocess_input(x).shape == x.shape
-    assert utils.preprocess_input(xint).shape == xint.shape
-
-    out1 = utils.preprocess_input(x, 'channels_last')
-    out1int = utils.preprocess_input(xint, 'channels_last')
-    out2 = utils.preprocess_input(np.transpose(x, (0, 3, 1, 2)),
-                                  'channels_first')
-    out2int = utils.preprocess_input(np.transpose(xint, (0, 3, 1, 2)),
-                                     'channels_first')
-    assert_allclose(out1, out2.transpose(0, 2, 3, 1))
-    assert_allclose(out1int, out2int.transpose(0, 2, 3, 1))
-
-    # Test single image
-    x = np.random.uniform(0, 255, (10, 10, 3))
-    xint = x.astype('int32')
-    assert utils.preprocess_input(x).shape == x.shape
-    assert utils.preprocess_input(xint).shape == xint.shape
-
-    out1 = utils.preprocess_input(x, 'channels_last')
-    out1int = utils.preprocess_input(xint, 'channels_last')
-    out2 = utils.preprocess_input(np.transpose(x, (2, 0, 1)),
-                                  'channels_first')
-    out2int = utils.preprocess_input(np.transpose(xint, (2, 0, 1)),
-                                     'channels_first')
-    assert_allclose(out1, out2.transpose(1, 2, 0))
-    assert_allclose(out1int, out2int.transpose(1, 2, 0))
 ```
+
+This fixed code will handle the case when `mode` is equal to `'torch'` and scale the pixels between 0 and 1, as specified in the comments. The mean and std values are set to 0 and 1 respectively for the torch mode.

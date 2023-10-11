@@ -1,4 +1,6 @@
-The bug in the code is due to the usage of the `.mean()` method on a `DataFrameGroupBy` object that contains nullable integer columns. This results in a `TypeError`. To fix this bug, we can replace the `result = s.aggregate(lambda x: alt(x, axis=self.axis))` line with `result = s.agg(lambda x: alt(x, axis=self.axis))`.
+To fix the bug in the code, we need to modify the `_cython_agg_blocks` function. The issue is occurring when calling the `mean` function on `Int64` columns.
+
+We can fix this issue by converting the `Int64` columns to `float` before calling the aggregation function. This will ensure that the mean function works correctly.
 
 Here's the fixed code:
 
@@ -51,7 +53,7 @@ def _cython_agg_blocks(
 
             s = get_groupby(obj, self.grouper)
             try:
-                result = s.agg(lambda x: alt(x, axis=self.axis))
+                result = s.aggregate(lambda x: alt(x, axis=self.axis))
             except TypeError:
                 # we may have an exception in trying to aggregate
                 # continue and exclude the block
@@ -94,6 +96,9 @@ def _cython_agg_blocks(
                     # reshape to be valid for non-Extension Block
                     result = result.reshape(1, -1)
 
+            if isinstance(result, pd.Int64Dtype()):
+                result = result.astype(float) # Convert Int64 to float
+
             agg_block: Block = block.make_block(result)
 
         new_items.append(locs)
@@ -116,9 +121,11 @@ def _cython_agg_blocks(
     agg_items = data.items.take(np.sort(indexer))
 
     if deleted_items:
+
         # we need to adjust the indexer to account for the
         # items we have removed
         # really should be done in internals :<
+
         deleted = np.concatenate(deleted_items)
         ai = np.arange(len(data))
         mask = np.zeros(len(data))
@@ -134,4 +141,4 @@ def _cython_agg_blocks(
     return agg_blocks, agg_items
 ```
 
-This fix replaces the usage of `s.aggregate(lambda x: alt(x, axis=self.axis))` with `s.agg(lambda x: alt(x, axis=self.axis))`. This change ensures that the `TypeError` is avoided when calling `mean()` on a `DataFrameGroupBy` object that contains nullable integer columns.
+With this fix, the code should work correctly and the `test_apply_to_nullable_integer_returns_float` test should pass without raising any errors.
