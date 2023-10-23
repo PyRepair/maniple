@@ -1,6 +1,68 @@
 > Lesson: class definition of error method matters somethings. It works even without the presence of test function!
 
+The more interesting thing is that I just simplify the prompt to keep information only related to the line of error, say `path = self.s3_load_path()`. Even GPT-3.5 can give correct answer with 100% possibility
 
+> Lesson: GPT4 is more capable of observing non-trival noisy information, but GPT-3.5 can achieve better result by providing most relevant information. 
+
+> GPT3.5 can achieve same result even if we remove some information in prompt.
+
+> The hard thing is that we don't know what is the most relevant information.
+
+The simplifed prompt is:
+
+```text
+This function has a bug so that I cannot pass the test, can you tell me the corrected code?
+Note that your should ouput full resultant function code and your changes should be as minimal as possible.
+
+def run(self):
+    """
+    If the target table doesn't exist, self.create_table
+    will be called to attempt to create the table.
+    """
+    if not (self.table):
+        raise Exception("table need to be specified")
+
+    path = self.s3_load_path()
+    connection = self.output().connect()
+    if not self.does_table_exist(connection):
+        # try creating table
+        logger.info("Creating table %s", self.table)
+        connection.reset()
+        self.create_table(connection)
+    elif self.do_truncate_table():
+        logger.info("Truncating table %s", self.table)
+        self.truncate_table(connection)
+    logger.info("Inserting file: %s", path)
+    cursor = connection.cursor()
+    self.init_copy(connection)
+    self.copy(cursor, path)
+    self.output().touch(connection)
+    connection.commit()
+    # commit and clean up
+    connection.close()
+
+The error message is:
+
+    def run(self):
+        """
+        If the target table doesn't exist, self.create_table
+        will be called to attempt to create the table.
+        """
+        if not (self.table):
+            raise Exception("table need to be specified")
+    
+>       path = self.s3_load_path()
+E       TypeError: 'str' object is not callable
+
+The definition for class of current error method is:
+
+class S3CopyToTable(rdbms.CopyToTable):
+    @abc.abstractproperty
+    def s3_load_path(self):
+        ...
+```
+
+The verbose prompt also works in GPT-3.5 is:
 GPT-3.5 fixed this issue by following prompt:
 
 ```text
