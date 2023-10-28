@@ -1,3 +1,4 @@
+import argparse
 import os
 import subprocess
 import json
@@ -74,7 +75,11 @@ def clone_and_prepare_bug(project_name: str, bug_id: int):
 
 
 if __name__ == '__main__':
-    test_bugs_file = os.path.join(WORK_DIR, "..", "database", "subsets-list", "106-subset.json")
+    parser = argparse.ArgumentParser(description='Clone and prepare a bug from BugsInPy')
+    parser.add_argument('--buglist-path', type=str, help='Path to the bug list file', required=True)
+    
+    args = parser.parse_args()
+    test_bugs_file = args.buglist_path
 
     os.makedirs(BENCHMARK_PATH, exist_ok=True)
 
