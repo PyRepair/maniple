@@ -25,7 +25,7 @@ def prepare_local_PyRepair_repo():
         subprocess.run(["python3.11", "-m", "pip", "install", "-r", "requirements.txt", "--break-system-packages"],
                        check=True)
 
-        subprocess.run(["python3.11", "bgp.py", "update_bug_records"], check=True)
+        subprocess.run(["python3.11", "bgp.py", "setup"], check=True)
 
     os.chdir(WORK_DIR)
 
