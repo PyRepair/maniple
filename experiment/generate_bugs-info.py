@@ -4,17 +4,25 @@ import os
 from typing import Dict, List
 
 
-def get_value(content: str) -> str:
-    value = content.split("=")[1]
-    return value[1:-2]
+def parse_config_file(content: List[str]) -> str:
+    d = dict()
+    for line in content:
+        key, value = line.split("=")
+        value = value.strip()
+        if value.startswith('"') and value.endswith('"'):
+            value = value[1:-1]
+        d[key] = value
+    return d
 
 
 def extract_bugs_info(project_path: str, bug_id: int, project_link: str) -> Dict:
     with open(os.path.join(project_path, "bugs", str(bug_id), "bug.info")) as f:
         content = f.readlines()
-        buggy_commit = get_value(content[1])
-        fix_commit = get_value(content[2])
-        test_file = get_value(content[3])
+        config = parse_config_file(content)
+
+        buggy_commit = config["buggy_commit_id"]
+        fix_commit = config["fixed_commit_id"]
+        test_file = config["test_file"]
 
         bug_info = {
             "id": bug_id,
@@ -34,7 +42,8 @@ def write_bugs_info(write_path: str, bugs_info: Dict):
 def extract_project_github_link(project_path: str) -> str:
     with open(os.path.join(project_path, "project.info")) as f:
         lines = f.readlines()
-        return get_value(lines[0])
+        config = parse_config_file(lines)
+        return config["github_url"]
 
 
 def match_project_dir(project_path_list: List[str], project_name: str) -> str:
