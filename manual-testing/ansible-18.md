@@ -5,6 +5,7 @@ change2: line 402 - line 528
 Problem:
 1. The test function and error message can only provide one fix location
 2. Hard to generalize the fix. Usually provide `'your collection description'` instead of `f'your {galaxy_type} description'`. Ideally, I need to provide a better instruction. 
+3. It is hard to guess the author's intention of formatting the code.
 
 # Prompt 1
 
