@@ -1,8 +1,10 @@
+Failed to produce an acceptable fix, skip.
+
 In this bug, the test case does not reflect user's intend to add additional quote, so we have no idea what to fix next. 
 
-Prompt:
+# Prompt
 
-his 2 functions have bugs so that I cannot pass the test, can you tell me the corrected code?
+This 2 functions have bugs so that I cannot pass the test, can you tell me the corrected code?
 Note that your should ouput full resultant function code and your changes should be as minimal as possible.
 
 buggy code:
@@ -27,6 +29,14 @@ buggy code:
     for new_command_template in new_command_templates:
         yield shell.and_(*new_command_template).format(branch_name)
 ```
+
+instruction:
+
+* handle single quotes in git_branch_exists
+
+* Fix line length
+
+* Fix missing quotes from test
 
 the test functions are:
 
