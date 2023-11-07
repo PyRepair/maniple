@@ -1,3 +1,5 @@
+# prompt (124: constant fix, not inside a function)
+
 You need to fix a python buggy code snippets.
 
 The buggy source code is following, and you should follow all specifications in comment if there exists comment:
