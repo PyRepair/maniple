@@ -63,7 +63,14 @@ Example:
 python llm_repair.py -d "106-subset" -p tornado -t 0 -f 0 -m gpt-3.5-turbo -r 3
 ```
 
+# Structure of Directories
 
+`preliminary-study` contains data related to perfect prompts.
+
+`first-stratum` is from 106 dataset (simple bugs); results: https://docs.google.com/spreadsheets/d/100q3GdNcR0SfvsLZoskePINhFVXp8jx1bY5IbZzf6rs/edit?usp=sharing
+`second-stratum` is from the 395 dataset (complex bugs): 
+
+Files like `preliminary-study/first-stratum/black-10/f2-1-1.md' include individual facts.
 
 # Relevant docs
 
