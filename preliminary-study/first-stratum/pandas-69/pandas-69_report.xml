@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite errors="0" failures="2" hostname="boyudeMacBook-Pro.local" name="pytest" skipped="0" tests="2" time="0.404" timestamp="2023-11-15T22:52:03.857652"><testcase classname="pandas.tests.indexes.test_numeric.TestFloat64Index" name="test_lookups_datetimelike_values[vals0]" time="0.003"><failure message="ValueError: At based indexing on an non-integer index can only have non-integer indexers">self = &lt;pandas.tests.indexes.test_numeric.TestFloat64Index object at 0x11e535760&gt;
+vals = DatetimeIndex([&apos;2016-01-01&apos;, &apos;2016-01-02&apos;, &apos;2016-01-03&apos;], dtype=&apos;datetime64[ns]&apos;, freq=&apos;D&apos;)
+
+    @pytest.mark.parametrize(
+        &quot;vals&quot;,
+        [
+            pd.date_range(&quot;2016-01-01&quot;, periods=3),
+            pd.timedelta_range(&quot;1 Day&quot;, periods=3),
+        ],
+    )
+    def test_lookups_datetimelike_values(self, vals):
+        # If we have datetime64 or timedelta64 values, make sure they are
+        #  wrappped correctly  GH#31163
+        ser = pd.Series(vals, index=range(3, 6))
+        ser.index = ser.index.astype(&quot;float64&quot;)
+    
+        expected = vals[1]
+    
+        result = ser.index.get_value(ser, 4.0)
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.index.get_value(ser, 4)
+        assert isinstance(result, type(expected)) and result == expected
+    
+        result = ser[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser[4]
+        assert isinstance(result, type(expected)) and result == expected
+    
+        result = ser.loc[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.loc[4]
+        assert isinstance(result, type(expected)) and result == expected
+    
+        result = ser.at[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        # GH#31329 .at[4] should cast to 4.0, matching .loc behavior
+&gt;       result = ser.at[4]
+
+pandas/tests/indexes/test_numeric.py:429: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pandas/core/indexing.py:2088: in __getitem__
+    key = self._convert_key(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;pandas.core.indexing._AtIndexer object at 0x11e6785e0&gt;, key = (4,)
+is_setter = False
+
+    def _convert_key(self, key, is_setter: bool = False):
+        &quot;&quot;&quot;
+        Require they keys to be the same type as the index. (so we don&apos;t
+        fallback)
+        &quot;&quot;&quot;
+        # allow arbitrary setting
+        if is_setter:
+            return list(key)
+    
+        for ax, i in zip(self.obj.axes, key):
+            if ax.is_integer():
+                if not is_integer(i):
+                    raise ValueError(
+                        &quot;At based indexing on an integer index &quot;
+                        &quot;can only have integer indexers&quot;
+                    )
+            else:
+                if is_integer(i) and not ax.holds_integer():
+&gt;                   raise ValueError(
+                        &quot;At based indexing on an non-integer &quot;
+                        &quot;index can only have non-integer &quot;
+                        &quot;indexers&quot;
+                    )
+E                   ValueError: At based indexing on an non-integer index can only have non-integer indexers
+
+pandas/core/indexing.py:2128: ValueError</failure></testcase><testcase classname="pandas.tests.indexes.test_numeric.TestFloat64Index" name="test_lookups_datetimelike_values[vals1]" time="0.002"><failure message="ValueError: At based indexing on an non-integer index can only have non-integer indexers">self = &lt;pandas.tests.indexes.test_numeric.TestFloat64Index object at 0x11e594490&gt;
+vals = TimedeltaIndex([&apos;1 days&apos;, &apos;2 days&apos;, &apos;3 days&apos;], dtype=&apos;timedelta64[ns]&apos;, freq=&apos;D&apos;)
+
+    @pytest.mark.parametrize(
+        &quot;vals&quot;,
+        [
+            pd.date_range(&quot;2016-01-01&quot;, periods=3),
+            pd.timedelta_range(&quot;1 Day&quot;, periods=3),
+        ],
+    )
+    def test_lookups_datetimelike_values(self, vals):
+        # If we have datetime64 or timedelta64 values, make sure they are
+        #  wrappped correctly  GH#31163
+        ser = pd.Series(vals, index=range(3, 6))
+        ser.index = ser.index.astype(&quot;float64&quot;)
+    
+        expected = vals[1]
+    
+        result = ser.index.get_value(ser, 4.0)
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.index.get_value(ser, 4)
+        assert isinstance(result, type(expected)) and result == expected
+    
+        result = ser[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser[4]
+        assert isinstance(result, type(expected)) and result == expected
+    
+        result = ser.loc[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.loc[4]
+        assert isinstance(result, type(expected)) and result == expected
+    
+        result = ser.at[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        # GH#31329 .at[4] should cast to 4.0, matching .loc behavior
+&gt;       result = ser.at[4]
+
+pandas/tests/indexes/test_numeric.py:429: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pandas/core/indexing.py:2088: in __getitem__
+    key = self._convert_key(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;pandas.core.indexing._AtIndexer object at 0x11e7e64f0&gt;, key = (4,)
+is_setter = False
+
+    def _convert_key(self, key, is_setter: bool = False):
+        &quot;&quot;&quot;
+        Require they keys to be the same type as the index. (so we don&apos;t
+        fallback)
+        &quot;&quot;&quot;
+        # allow arbitrary setting
+        if is_setter:
+            return list(key)
+    
+        for ax, i in zip(self.obj.axes, key):
+            if ax.is_integer():
+                if not is_integer(i):
+                    raise ValueError(
+                        &quot;At based indexing on an integer index &quot;
+                        &quot;can only have integer indexers&quot;
+                    )
+            else:
+                if is_integer(i) and not ax.holds_integer():
+&gt;                   raise ValueError(
+                        &quot;At based indexing on an non-integer &quot;
+                        &quot;index can only have non-integer &quot;
+                        &quot;indexers&quot;
+                    )
+E                   ValueError: At based indexing on an non-integer index can only have non-integer indexers
+
+pandas/core/indexing.py:2128: ValueError</failure></testcase></testsuite></testsuites>
