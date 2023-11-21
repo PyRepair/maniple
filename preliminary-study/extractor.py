@@ -229,5 +229,5 @@ if __name__ == "__main__":
             parts = directory.split("-")
             bugids.append(f"{'-'.join(parts[:-1])}:{parts[-1]}")
 
-    for bugid in args.bugids:
+    for bugid in bugids:
         collect_facts(bugid, args.output_dir)
