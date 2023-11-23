@@ -65,16 +65,16 @@ class Facts:
 
     @staticmethod
     def _extract_function_parts(function_code) -> Tuple[Optional[str], Optional[str]]:
-        # Regex pattern for matching docstring and function code
-        # Handles both types of triple quotes, ignores triple-quoted strings that are not docstrings
-        pattern = r'(?s)(def\s+\w+\s*\(\s*.*?\)\s*:\s*)((?:""".*?"""|\'\'\'.*?\'\'\')\s*)?(.*)'
+        # Regex pattern to capture the leading indentation, function declaration, docstring (if any), and the function body
+        pattern = r'(?s)(^\s*)(def\s+\w+\s*\(\s*.*?\)\s*:\s*)((?:""".*?"""|\'\'\'.*?\'\'\')\s*)?(.*)'
 
         # Search for matches in the function code
         match = re.search(pattern, function_code)
         if match:
-            # Extracting the docstring and function body
-            docstring = match.group(2).strip() if match.group(2) else None
-            function_body = match.group(1) + match.group(3)
+            # Extracting the leading indentation, docstring, and function body
+            indentation = match.group(1)
+            docstring = match.group(3).strip() if match.group(3) else None
+            function_body = indentation + match.group(2) + match.group(4)
 
             return (docstring, function_body)
         else:
