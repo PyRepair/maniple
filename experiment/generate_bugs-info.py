@@ -11,6 +11,7 @@ def parse_config_file(content: List[str]) -> str:
         value = value.strip()
         if value.startswith('"') and value.endswith('"'):
             value = value[1:-1]
+        key = key.replace(' ', '')
         d[key] = value
     return d
 
@@ -48,7 +49,7 @@ def extract_project_github_link(project_path: str) -> str:
 
 def match_project_dir(project_path_list: List[str], project_name: str) -> str:
     for path in project_path_list:
-        if project_name in path.lower():
+        if project_name.lower() in path.lower():
             return path
 
 
