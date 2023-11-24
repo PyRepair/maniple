@@ -7,6 +7,9 @@ import re
 from typing import List, Tuple, Optional
 
 
+FLAG_OVERWRITE = False
+
+
 def print_in_red(text):
     RED = "\033[91m"
     RESET = "\033[0m"
@@ -65,16 +68,17 @@ class Facts:
 
     @staticmethod
     def _extract_function_parts(function_code) -> Tuple[Optional[str], Optional[str]]:
-        # Regex pattern to capture the leading indentation, function declaration, docstring (if any), and the function body
-        pattern = r'(?s)(^\s*)(def\s+\w+\s*\(\s*.*?\)\s*:\s*)((?:""".*?"""|\'\'\'.*?\'\'\')\s*)?(.*)'
+        # Updated regex pattern to capture decorators, leading indentation, function declaration, docstring (if any), and the function body
+        pattern = r'(?s)(^\s*)((?:@.*\s*)*)(def\s+\w+\s*\(\s*.*?\)\s*:\s*)((?:""".*?"""|\'\'\'.*?\'\'\')\s*)?(.*)'
 
         # Search for matches in the function code
         match = re.search(pattern, function_code)
         if match:
-            # Extracting the leading indentation, docstring, and function body
+            # Extracting the leading indentation, decorators, docstring, and function body
             indentation = match.group(1)
-            docstring = match.group(3).strip() if match.group(3) else None
-            function_body = indentation + match.group(2) + match.group(4)
+            decorators = match.group(2) if match.group(2) else ""
+            docstring = match.group(4).strip() if match.group(4) else None
+            function_body = indentation + decorators + match.group(3) + match.group(5)
 
             return (docstring, function_body)
         else:
@@ -135,29 +139,36 @@ class Facts:
 
 
 def collect_facts(bugid: str, dir_path: str):
-    if shutil.which("bgp") is None:
-        print_in_red(
-            """FATAL: bgp command not found. 
-                     Try to install it by following the instruction from 
-                     https://github.com/PyRepair/PyRepair/tree/master/pyr_benchmark_wrangling"""
-        )
-        exit(1)
-
-    subprocess.run(["bgp", "clone", "--bugids", bugid], check=True)
-    console_output = subprocess.run(
-        ["bgp", "extract_features", "--bugids", bugid], capture_output=True, check=True
-    )
-
     full_bugdir_path = os.path.join(dir_path, "-".join(bugid.split(":")))
     if not os.path.exists(full_bugdir_path):
         os.makedirs(full_bugdir_path)
 
-    decoded_string = console_output.stdout.decode("utf-8")
-    json_output = json.loads(decoded_string)
+    if FLAG_OVERWRITE:
+        if shutil.which("bgp") is None:
+            print_in_red(
+                """FATAL: bgp command not found. 
+                        Try to install it by following the instruction from 
+                        https://github.com/PyRepair/PyRepair/tree/master/pyr_benchmark_wrangling"""
+            )
+            exit(1)
 
-    # write bug-data.json file
-    with open(os.path.join(full_bugdir_path, "bug-data.json"), "w") as f:
-        json.dump(json_output, f, indent=4)
+        subprocess.run(["bgp", "clone", "--bugids", bugid], check=True)
+        console_output = subprocess.run(
+            ["bgp", "extract_features", "--bugids", bugid],
+            capture_output=True,
+            check=True,
+        )
+
+        decoded_string = console_output.stdout.decode("utf-8")
+        json_output = json.loads(decoded_string)
+
+        # write bug-data.json file
+        with open(os.path.join(full_bugdir_path, "bug-data.json"), "w") as f:
+            json.dump(json_output, f, indent=4)
+
+    else:
+        with open(os.path.join(full_bugdir_path, "bug-data.json"), "r") as f:
+            json_output = json.load(f)
 
     bug_record = json_output[bugid]
     facts = Facts(bug_record)
@@ -213,7 +224,11 @@ if __name__ == "__main__":
         help="specify a list of bugids to collect facts, like `pandas:30,scikit-learn:1`",
     )
     args_parser.add_argument("-o", "--output-dir", help="specify the output directory")
+    args_parser.add_argument("--overwrite", action="store_true")
     args = args_parser.parse_args()
+
+    if args.overwrite:
+        FLAG_OVERWRITE = True
 
     if args.output_dir is None:
         args_parser.print_help()
