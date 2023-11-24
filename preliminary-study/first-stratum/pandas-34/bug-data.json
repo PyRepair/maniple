@@ -1,0 +1,5081 @@
+{
+    "pandas:34": {
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/core/resample.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_get_time_bins",
+                    "function_code": "    def _get_time_bins(self, ax):\n        if not isinstance(ax, DatetimeIndex):\n            raise TypeError(\n                \"axis must be a DatetimeIndex, but got \"\n                f\"an instance of {type(ax).__name__}\"\n            )\n\n        if len(ax) == 0:\n            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n            return binner, [], labels\n\n        first, last = _get_timestamp_range_edges(\n            ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base\n        )\n        # GH #12037\n        # use first/last directly instead of call replace() on them\n        # because replace() will swallow the nanosecond part\n        # thus last bin maybe slightly before the end if the end contains\n        # nanosecond part and lead to `Values falls after last bin` error\n        binner = labels = date_range(\n            freq=self.freq,\n            start=first,\n            end=last,\n            tz=ax.tz,\n            name=ax.name,\n            ambiguous=\"infer\",\n            nonexistent=\"shift_forward\",\n        )\n\n        ax_values = ax.asi8\n        binner, bin_edges = self._adjust_bin_edges(binner, ax_values)\n\n        # general version, knowing nothing about relative frequencies\n        bins = lib.generate_bins_dt64(\n            ax_values, bin_edges, self.closed, hasnans=ax.hasnans\n        )\n\n        if self.closed == \"right\":\n            labels = binner\n            if self.label == \"right\":\n                labels = labels[1:]\n        elif self.label == \"right\":\n            labels = labels[1:]\n\n        if ax.hasnans:\n            binner = binner.insert(0, NaT)\n            labels = labels.insert(0, NaT)\n\n        # if we end up with more labels than bins\n        # adjust the labels\n        # GH4076\n        if len(bins) < len(labels):\n            labels = labels[: len(bins)]\n\n        return binner, bins, labels\n",
+                    "decorators": [],
+                    "start_line": 1406,
+                    "variables": {
+                        "isinstance": [
+                            1407
+                        ],
+                        "ax": [
+                            1440,
+                            1410,
+                            1413,
+                            1414,
+                            1418,
+                            1450,
+                            1429,
+                            1430,
+                            1435,
+                            1407
+                        ],
+                        "DatetimeIndex": [
+                            1414,
+                            1407
+                        ],
+                        "TypeError": [
+                            1408
+                        ],
+                        "__name__": [
+                            1410
+                        ],
+                        "type": [
+                            1410
+                        ],
+                        "len": [
+                            1457,
+                            1458,
+                            1413
+                        ],
+                        "binner": [
+                            1444,
+                            1414,
+                            1415,
+                            1451,
+                            1425,
+                            1460,
+                            1436
+                        ],
+                        "labels": [
+                            1444,
+                            1446,
+                            1414,
+                            1415,
+                            1448,
+                            1452,
+                            1425,
+                            1457,
+                            1458,
+                            1460
+                        ],
+                        "self.freq": [
+                            1418,
+                            1414,
+                            1426
+                        ],
+                        "self": [
+                            1440,
+                            1443,
+                            1445,
+                            1414,
+                            1447,
+                            1418,
+                            1426,
+                            1436
+                        ],
+                        "ax.name": [
+                            1430,
+                            1414
+                        ],
+                        "first": [
+                            1417,
+                            1427
+                        ],
+                        "last": [
+                            1417,
+                            1428
+                        ],
+                        "_get_timestamp_range_edges": [
+                            1417
+                        ],
+                        "ax.min": [
+                            1418
+                        ],
+                        "ax.max": [
+                            1418
+                        ],
+                        "self.closed": [
+                            1440,
+                            1418,
+                            1443
+                        ],
+                        "self.base": [
+                            1418
+                        ],
+                        "date_range": [
+                            1425
+                        ],
+                        "ax.tz": [
+                            1429
+                        ],
+                        "ax_values": [
+                            1440,
+                            1435,
+                            1436
+                        ],
+                        "ax.asi8": [
+                            1435
+                        ],
+                        "bin_edges": [
+                            1440,
+                            1436
+                        ],
+                        "self._adjust_bin_edges": [
+                            1436
+                        ],
+                        "bins": [
+                            1457,
+                            1458,
+                            1460,
+                            1439
+                        ],
+                        "lib.generate_bins_dt64": [
+                            1439
+                        ],
+                        "lib": [
+                            1439
+                        ],
+                        "ax.hasnans": [
+                            1440,
+                            1450
+                        ],
+                        "self.label": [
+                            1445,
+                            1447
+                        ],
+                        "binner.insert": [
+                            1451
+                        ],
+                        "NaT": [
+                            1451,
+                            1452
+                        ],
+                        "labels.insert": [
+                            1452
+                        ]
+                    },
+                    "filtered_variables": {
+                        "isinstance": [
+                            1407
+                        ],
+                        "ax": [
+                            1440,
+                            1410,
+                            1413,
+                            1414,
+                            1418,
+                            1450,
+                            1429,
+                            1430,
+                            1435,
+                            1407
+                        ],
+                        "DatetimeIndex": [
+                            1414,
+                            1407
+                        ],
+                        "TypeError": [
+                            1408
+                        ],
+                        "__name__": [
+                            1410
+                        ],
+                        "type": [
+                            1410
+                        ],
+                        "len": [
+                            1457,
+                            1458,
+                            1413
+                        ],
+                        "binner": [
+                            1444,
+                            1414,
+                            1415,
+                            1451,
+                            1425,
+                            1460,
+                            1436
+                        ],
+                        "labels": [
+                            1444,
+                            1446,
+                            1414,
+                            1415,
+                            1448,
+                            1452,
+                            1425,
+                            1457,
+                            1458,
+                            1460
+                        ],
+                        "self.freq": [
+                            1418,
+                            1414,
+                            1426
+                        ],
+                        "self": [
+                            1440,
+                            1443,
+                            1445,
+                            1414,
+                            1447,
+                            1418,
+                            1426,
+                            1436
+                        ],
+                        "ax.name": [
+                            1430,
+                            1414
+                        ],
+                        "first": [
+                            1417,
+                            1427
+                        ],
+                        "last": [
+                            1417,
+                            1428
+                        ],
+                        "_get_timestamp_range_edges": [
+                            1417
+                        ],
+                        "ax.min": [
+                            1418
+                        ],
+                        "ax.max": [
+                            1418
+                        ],
+                        "self.closed": [
+                            1440,
+                            1418,
+                            1443
+                        ],
+                        "self.base": [
+                            1418
+                        ],
+                        "date_range": [
+                            1425
+                        ],
+                        "ax.tz": [
+                            1429
+                        ],
+                        "ax_values": [
+                            1440,
+                            1435,
+                            1436
+                        ],
+                        "ax.asi8": [
+                            1435
+                        ],
+                        "bin_edges": [
+                            1440,
+                            1436
+                        ],
+                        "self._adjust_bin_edges": [
+                            1436
+                        ],
+                        "bins": [
+                            1457,
+                            1458,
+                            1460,
+                            1439
+                        ],
+                        "lib.generate_bins_dt64": [
+                            1439
+                        ],
+                        "lib": [
+                            1439
+                        ],
+                        "ax.hasnans": [
+                            1440,
+                            1450
+                        ],
+                        "self.label": [
+                            1445,
+                            1447
+                        ],
+                        "binner.insert": [
+                            1451
+                        ],
+                        "NaT": [
+                            1451,
+                            1452
+                        ],
+                        "labels.insert": [
+                            1452
+                        ]
+                    },
+                    "diff_line_number": 1424,
+                    "class_data": {
+                        "signature": "class TimeGrouper(Grouper)",
+                        "docstring": "Custom groupby class for time-interval grouping.\n\nParameters\n----------\nfreq : pandas date offset or offset alias for identifying bin edges\nclosed : closed end of interval; 'left' or 'right'\nlabel : interval boundary to use for labeling; 'left' or 'right'\nconvention : {'start', 'end', 'e', 's'}\n    If axis is PeriodIndex",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "__init__(self, freq='Min', closed=None, label=None, how='mean', axis=0, fill_method=None, limit=None, loffset=None, kind=None, convention=None, base=0, **kwargs)",
+                            "_get_resampler(self, obj, kind=None)",
+                            "_get_grouper(self, obj, validate: bool=True)",
+                            "_get_time_bins(self, ax)",
+                            "_adjust_bin_edges(self, binner, ax_values)",
+                            "_get_time_delta_bins(self, ax)",
+                            "_get_time_period_bins(self, ax)",
+                            "_get_period_bins(self, ax)"
+                        ],
+                        "constructor_variables": [
+                            "closed",
+                            "label",
+                            "how",
+                            "limit",
+                            "rule",
+                            "base",
+                            "loffset",
+                            "end_types",
+                            "convention",
+                            "freq",
+                            "fill_method",
+                            "kind"
+                        ],
+                        "class_level_variables": [
+                            "_attributes"
+                        ],
+                        "class_decorators": []
+                    }
+                }
+            ],
+            "inscope_functions": [
+                "get_resampler(obj, kind=None, **kwds)",
+                "get_resampler_for_grouping(groupby, rule, how=None, fill_method=None, limit=None, kind=None, **kwargs)",
+                "_take_new_index(obj, indexer, new_index, axis=0)",
+                "_get_timestamp_range_edges(first, last, offset, closed='left', base=0)",
+                "_get_period_range_edges(first, last, offset, closed='left', base=0)",
+                "_adjust_dates_anchored(first, last, offset, closed='right', base=0)",
+                "asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None)",
+                "_asfreq_compat(index, freq)",
+                "__init__(self, obj, groupby=None, axis=0, kind=None, **kwargs)",
+                "__str__(self) -> str",
+                "__getattr__(self, attr: str)",
+                "__iter__(self)",
+                "obj(self)",
+                "ax(self)",
+                "_typ(self) -> str",
+                "_from_selection(self) -> bool",
+                "_convert_obj(self, obj)",
+                "_get_binner_for_time(self)",
+                "_set_binner(self)",
+                "_get_binner(self)",
+                "_assure_grouper(self)",
+                "pipe(self, func, *args, **kwargs)",
+                "aggregate(self, func, *args, **kwargs)",
+                "transform(self, arg, *args, **kwargs)",
+                "_downsample(self, f)",
+                "_upsample(self, f, limit=None, fill_value=None)",
+                "_gotitem(self, key, ndim: int, subset=None)",
+                "_groupby_and_aggregate(self, how, grouper=None, *args, **kwargs)",
+                "_apply_loffset(self, result)",
+                "_get_resampler_for_grouping(self, groupby, **kwargs)",
+                "_wrap_result(self, result)",
+                "pad(self, limit=None)",
+                "nearest(self, limit=None)",
+                "backfill(self, limit=None)",
+                "fillna(self, method, limit=None)",
+                "interpolate(self, method='linear', axis=0, limit=None, inplace=False, limit_direction='forward', limit_area=None, downcast=None, **kwargs)",
+                "asfreq(self, fill_value=None)",
+                "std(self, ddof=1, *args, **kwargs)",
+                "var(self, ddof=1, *args, **kwargs)",
+                "size(self)",
+                "count(self)",
+                "quantile(self, q=0.5, **kwargs)",
+                "f(self, _method=method, min_count=0, *args, **kwargs)",
+                "g(self, _method=method, *args, **kwargs)",
+                "h(self, _method=method)",
+                "__init__(self, obj, *args, **kwargs)",
+                "_apply(self, f, grouper=None, *args, **kwargs)",
+                "_resampler_for_grouping(self)",
+                "_get_binner_for_time(self)",
+                "_downsample(self, how, **kwargs)",
+                "_adjust_binner_for_upsample(self, binner)",
+                "_upsample(self, method, limit=None, fill_value=None)",
+                "_wrap_result(self, result)",
+                "_constructor(self)",
+                "_resampler_for_grouping(self)",
+                "_get_binner_for_time(self)",
+                "_convert_obj(self, obj)",
+                "_downsample(self, how, **kwargs)",
+                "_upsample(self, method, limit=None, fill_value=None)",
+                "_constructor(self)",
+                "_resampler_for_grouping(self)",
+                "_get_binner_for_time(self)",
+                "_adjust_binner_for_upsample(self, binner)",
+                "_constructor(self)",
+                "__init__(self, freq='Min', closed=None, label=None, how='mean', axis=0, fill_method=None, limit=None, loffset=None, kind=None, convention=None, base=0, **kwargs)",
+                "_get_resampler(self, obj, kind=None)",
+                "_get_grouper(self, obj, validate: bool=True)",
+                "_get_time_bins(self, ax)",
+                "_adjust_bin_edges(self, binner, ax_values)",
+                "_get_time_delta_bins(self, ax)",
+                "_get_time_period_bins(self, ax)",
+                "_get_period_bins(self, ax)",
+                "func(x)"
+            ],
+            "variables_in_file": {
+                "_shared_docs_kwargs": [
+                    34,
+                    778
+                ],
+                "Dict": [
+                    34
+                ],
+                "str": [
+                    34,
+                    100,
+                    135,
+                    1351,
+                    365,
+                    368,
+                    371,
+                    980,
+                    89
+                ],
+                "dict": [
+                    34
+                ],
+                "_GroupBy": [
+                    37
+                ],
+                "ShallowMixin": [
+                    37
+                ],
+                "_attributes": [
+                    62,
+                    1295
+                ],
+                "self.groupby": [
+                    96,
+                    128,
+                    1123,
+                    132,
+                    104,
+                    968,
+                    74,
+                    1002,
+                    1003,
+                    978,
+                    1235,
+                    86,
+                    87,
+                    150,
+                    151,
+                    188,
+                    311,
+                    94
+                ],
+                "self": [
+                    512,
+                    1536,
+                    1028,
+                    1031,
+                    1546,
+                    1035,
+                    1037,
+                    1038,
+                    1549,
+                    1551,
+                    1552,
+                    1556,
+                    1046,
+                    1559,
+                    1563,
+                    1568,
+                    1068,
+                    1069,
+                    1071,
+                    1078,
+                    1079,
+                    1080,
+                    1081,
+                    1084,
+                    1092,
+                    1093,
+                    74,
+                    75,
+                    76,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    82,
+                    83,
+                    84,
+                    1100,
+                    86,
+                    87,
+                    94,
+                    95,
+                    96,
+                    1121,
+                    98,
+                    1123,
+                    101,
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    614,
+                    108,
+                    1128,
+                    1137,
+                    1140,
+                    1143,
+                    1144,
+                    123,
+                    128,
+                    132,
+                    1158,
+                    1161,
+                    1162,
+                    139,
+                    1164,
+                    1166,
+                    1167,
+                    150,
+                    151,
+                    1174,
+                    1175,
+                    1176,
+                    1177,
+                    1180,
+                    170,
+                    1201,
+                    178,
+                    179,
+                    1204,
+                    1205,
+                    1206,
+                    1207,
+                    186,
+                    1210,
+                    188,
+                    1214,
+                    1215,
+                    195,
+                    1235,
+                    776,
+                    280,
+                    281,
+                    793,
+                    285,
+                    287,
+                    311,
+                    825,
+                    314,
+                    317,
+                    1344,
+                    1345,
+                    1346,
+                    1348,
+                    1349,
+                    1353,
+                    842,
+                    331,
+                    332,
+                    1355,
+                    334,
+                    335,
+                    1356,
+                    1357,
+                    1358,
+                    859,
+                    348,
+                    349,
+                    351,
+                    863,
+                    353,
+                    864,
+                    867,
+                    868,
+                    1384,
+                    1386,
+                    876,
+                    877,
+                    878,
+                    879,
+                    880,
+                    1388,
+                    1390,
+                    1392,
+                    1402,
+                    383,
+                    384,
+                    1414,
+                    1418,
+                    399,
+                    912,
+                    1426,
+                    405,
+                    407,
+                    920,
+                    1436,
+                    414,
+                    1440,
+                    931,
+                    420,
+                    421,
+                    1101,
+                    1443,
+                    424,
+                    425,
+                    1445,
+                    1447,
+                    941,
+                    1465,
+                    1466,
+                    448,
+                    961,
+                    962,
+                    965,
+                    966,
+                    967,
+                    968,
+                    978,
+                    1490,
+                    1495,
+                    985,
+                    986,
+                    1498,
+                    1502,
+                    1503,
+                    1001,
+                    1002,
+                    1003,
+                    1514,
+                    1014,
+                    1015,
+                    1016,
+                    1017,
+                    1022
+                ],
+                "groupby": [
+                    414,
+                    965,
+                    74,
+                    955,
+                    1278,
+                    1279
+                ],
+                "self.keys": [
+                    75
+                ],
+                "self.sort": [
+                    76
+                ],
+                "self.axis": [
+                    353,
+                    1035,
+                    1388,
+                    77,
+                    1069,
+                    335,
+                    1390,
+                    1392,
+                    1215
+                ],
+                "axis": [
+                    1602,
+                    1363,
+                    796,
+                    77
+                ],
+                "self.kind": [
+                    1121,
+                    1346,
+                    1158,
+                    1001,
+                    1100,
+                    78,
+                    1201,
+                    1140,
+                    1143
+                ],
+                "kind": [
+                    1346,
+                    1388,
+                    1389,
+                    1262,
+                    78,
+                    1390,
+                    1278
+                ],
+                "self.squeeze": [
+                    79
+                ],
+                "self.group_keys": [
+                    80
+                ],
+                "self.as_index": [
+                    81
+                ],
+                "self.exclusions": [
+                    82
+                ],
+                "set": [
+                    82
+                ],
+                "self.binner": [
+                    178,
+                    83,
+                    179,
+                    1207,
+                    1080
+                ],
+                "self.grouper": [
+                    1028,
+                    1035,
+                    332,
+                    1166,
+                    179,
+                    84,
+                    1174,
+                    349
+                ],
+                "self.groupby._set_grouper": [
+                    87
+                ],
+                "self._convert_obj": [
+                    87
+                ],
+                "obj": [
+                    1035,
+                    1402,
+                    1784,
+                    1785,
+                    1689,
+                    1786,
+                    166,
+                    167,
+                    424,
+                    425,
+                    426,
+                    1206,
+                    1079,
+                    1085,
+                    957,
+                    1215,
+                    1088,
+                    1598,
+                    1599,
+                    1600,
+                    1601,
+                    1604,
+                    1605,
+                    87,
+                    351,
+                    353,
+                    356,
+                    1126,
+                    1384,
+                    1769,
+                    1388,
+                    1262,
+                    1390,
+                    1392,
+                    1776,
+                    1777,
+                    1779,
+                    1780,
+                    1782,
+                    1144,
+                    1017,
+                    1146,
+                    1021,
+                    1022,
+                    1023
+                ],
+                "attrs": [
+                    98,
+                    93
+                ],
+                "k": [
+                    96,
+                    94,
+                    95
+                ],
+                "getattr": [
+                    96,
+                    962,
+                    933,
+                    104,
+                    426,
+                    943,
+                    981,
+                    922,
+                    94
+                ],
+                "self._attributes": [
+                    961,
+                    103,
+                    95
+                ],
+                "__name__": [
+                    98,
+                    1410,
+                    1511,
+                    1486,
+                    1397,
+                    1533
+                ],
+                "type": [
+                    98,
+                    1410,
+                    1511,
+                    1486,
+                    879,
+                    1582,
+                    1397,
+                    1533,
+                    1503
+                ],
+                "join": [
+                    98
+                ],
+                "attr": [
+                    961,
+                    962,
+                    101,
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    108
+                ],
+                "self._internal_names_set": [
+                    101
+                ],
+                "object.__getattribute__": [
+                    108,
+                    102
+                ],
+                "object": [
+                    108,
+                    102
+                ],
+                "self.obj": [
+                    424,
+                    105,
+                    1206,
+                    334
+                ],
+                "self._set_binner": [
+                    195,
+                    331,
+                    1068,
+                    1204,
+                    1014,
+                    280,
+                    123,
+                    348
+                ],
+                "__iter__": [
+                    124
+                ],
+                "super": [
+                    1122,
+                    964,
+                    1126,
+                    1159,
+                    1096,
+                    124,
+                    1202,
+                    1363,
+                    220
+                ],
+                "self.groupby.obj": [
+                    128
+                ],
+                "property": [
+                    994,
+                    130,
+                    1252,
+                    134,
+                    1224,
+                    1230,
+                    143,
+                    1110,
+                    1116,
+                    126
+                ],
+                "self.groupby.ax": [
+                    132
+                ],
+                "isinstance": [
+                    139,
+                    399,
+                    400,
+                    1811,
+                    1689,
+                    420,
+                    423,
+                    1598,
+                    1601,
+                    1351,
+                    1483,
+                    1100,
+                    980,
+                    356,
+                    1508,
+                    1636,
+                    1637,
+                    1769,
+                    1387,
+                    1389,
+                    1391,
+                    1648,
+                    1530,
+                    1407
+                ],
+                "self._selected_obj": [
+                    867,
+                    868,
+                    139,
+                    878,
+                    879,
+                    880,
+                    1079,
+                    311,
+                    1017,
+                    351
+                ],
+                "ABCSeries": [
+                    139,
+                    420,
+                    1598,
+                    423
+                ],
+                "self.groupby.key": [
+                    151
+                ],
+                "self.groupby.level": [
+                    151
+                ],
+                "bool": [
+                    144,
+                    1400
+                ],
+                "obj._consolidate": [
+                    166
+                ],
+                "AbstractMethodError": [
+                    170,
+                    314,
+                    317
+                ],
+                "self._get_binner": [
+                    179
+                ],
+                "binner": [
+                    1414,
+                    1415,
+                    1546,
+                    1547,
+                    1425,
+                    1047,
+                    1049,
+                    1050,
+                    1436,
+                    1567,
+                    1444,
+                    1574,
+                    1451,
+                    1460,
+                    1590,
+                    1080,
+                    1081,
+                    186,
+                    1593,
+                    1468,
+                    189,
+                    1470,
+                    1472,
+                    1477,
+                    1479,
+                    1480,
+                    1490,
+                    1491,
+                    1494,
+                    1244,
+                    1505,
+                    1517,
+                    1518,
+                    1520,
+                    1527
+                ],
+                "bins": [
+                    1505,
+                    1583,
+                    1593,
+                    1457,
+                    1458,
+                    1460,
+                    1525,
+                    1499,
+                    1527,
+                    1588,
+                    1589,
+                    186,
+                    187,
+                    188,
+                    1439
+                ],
+                "binlabels": [
+                    186,
+                    187,
+                    188
+                ],
+                "self._get_binner_for_time": [
+                    186
+                ],
+                "len": [
+                    864,
+                    1028,
+                    1413,
+                    1574,
+                    1019,
+                    1545,
+                    1516,
+                    877,
+                    1806,
+                    401,
+                    1457,
+                    1458,
+                    1489,
+                    1779,
+                    187
+                ],
+                "bin_grouper": [
+                    188,
+                    189
+                ],
+                "BinGrouper": [
+                    188
+                ],
+                "self.groupby.indexer": [
+                    188
+                ],
+                "pipe": [
+                    220
+                ],
+                "func": [
+                    281,
+                    283,
+                    220,
+                    985
+                ],
+                "args": [
+                    930,
+                    358,
+                    360,
+                    841,
+                    363,
+                    919,
+                    381,
+                    983,
+                    311,
+                    281,
+                    858,
+                    220,
+                    285
+                ],
+                "kwargs": [
+                    1159,
+                    1035,
+                    1166,
+                    912,
+                    919,
+                    281,
+                    1277,
+                    285,
+                    414,
+                    802,
+                    930,
+                    311,
+                    954,
+                    955,
+                    962,
+                    841,
+                    1361,
+                    1363,
+                    981,
+                    983,
+                    858,
+                    220,
+                    358,
+                    360,
+                    363,
+                    1275,
+                    381
+                ],
+                "Substitution": [
+                    197,
+                    270
+                ],
+                "Appender": [
+                    218,
+                    778,
+                    277
+                ],
+                "_pipe_template": [
+                    218
+                ],
+                "_agg_see_also_doc": [
+                    222,
+                    271
+                ],
+                "dedent": [
+                    232,
+                    222
+                ],
+                "_agg_examples_doc": [
+                    232,
+                    272
+                ],
+                "result": [
+                    384,
+                    1035,
+                    1037,
+                    1038,
+                    400,
+                    401,
+                    405,
+                    408,
+                    281,
+                    282,
+                    793,
+                    794,
+                    285,
+                    287,
+                    288,
+                    420,
+                    421,
+                    423,
+                    425,
+                    426,
+                    428,
+                    1085,
+                    1086,
+                    1088,
+                    1092,
+                    1093,
+                    1096,
+                    1100,
+                    1101,
+                    1102,
+                    985,
+                    986,
+                    863,
+                    358,
+                    871,
+                    360,
+                    872,
+                    363,
+                    876,
+                    879,
+                    880,
+                    885,
+                    886,
+                    889,
+                    381,
+                    383
+                ],
+                "how": [
+                    1028,
+                    1159,
+                    1161,
+                    1035,
+                    1166,
+                    1168,
+                    1174,
+                    281,
+                    283,
+                    285,
+                    1355,
+                    356,
+                    358,
+                    360,
+                    363,
+                    1773,
+                    1774,
+                    1777,
+                    1015,
+                    381
+                ],
+                "self._aggregate": [
+                    281
+                ],
+                "grouper": [
+                    353,
+                    332,
+                    349,
+                    335,
+                    347,
+                    284,
+                    285
+                ],
+                "self._groupby_and_aggregate": [
+                    1174,
+                    285,
+                    1166
+                ],
+                "self._apply_loffset": [
+                    1092,
+                    383,
+                    1037,
+                    287
+                ],
+                "_shared_docs": [
+                    778,
+                    277
+                ],
+                "agg": [
+                    290
+                ],
+                "aggregate": [
+                    1035,
+                    290,
+                    291
+                ],
+                "apply": [
+                    291
+                ],
+                "transform": [
+                    311
+                ],
+                "self._selected_obj.groupby": [
+                    311
+                ],
+                "arg": [
+                    311
+                ],
+                "int": [
+                    319
+                ],
+                "subset": [
+                    333,
+                    334,
+                    335
+                ],
+                "grouped": [
+                    353,
+                    358,
+                    360,
+                    363,
+                    335,
+                    339,
+                    341,
+                    381
+                ],
+                "get_groupby": [
+                    353,
+                    335
+                ],
+                "key": [
+                    339
+                ],
+                "KeyError": [
+                    340
+                ],
+                "ABCDataFrame": [
+                    1601,
+                    356
+                ],
+                "callable": [
+                    356
+                ],
+                "grouped._aggregate_item_by_item": [
+                    358
+                ],
+                "grouped.aggregate": [
+                    360
+                ],
+                "DataError": [
+                    361
+                ],
+                "grouped.apply": [
+                    363,
+                    381
+                ],
+                "ValueError": [
+                    1608,
+                    1323,
+                    364,
+                    1325,
+                    1327,
+                    1072,
+                    1808
+                ],
+                "err": [
+                    368,
+                    371,
+                    365
+                ],
+                "self._wrap_result": [
+                    384,
+                    1093,
+                    1038,
+                    986,
+                    1214
+                ],
+                "needs_offset": [
+                    404,
+                    398
+                ],
+                "self.loffset": [
+                    1353,
+                    399,
+                    1137,
+                    405,
+                    407
+                ],
+                "DateOffset": [
+                    399
+                ],
+                "timedelta": [
+                    1469,
+                    399
+                ],
+                "np.timedelta64": [
+                    399
+                ],
+                "np": [
+                    1576,
+                    1589,
+                    1541,
+                    399
+                ],
+                "result.index": [
+                    871,
+                    425,
+                    1100,
+                    1101,
+                    400,
+                    401,
+                    880,
+                    405,
+                    886,
+                    1086
+                ],
+                "DatetimeIndex": [
+                    1508,
+                    1414,
+                    1387,
+                    400,
+                    1407
+                ],
+                "self._resampler_for_grouping": [
+                    414
+                ],
+                "self._selection": [
+                    420,
+                    421
+                ],
+                "result.name": [
+                    426,
+                    421
+                ],
+                "result.empty": [
+                    423
+                ],
+                "_asfreq_compat": [
+                    425,
+                    1782
+                ],
+                "obj.index": [
+                    425,
+                    1769,
+                    1777,
+                    1779,
+                    1782,
+                    1784,
+                    1785,
+                    1022
+                ],
+                "self.freq": [
+                    1536,
+                    1414,
+                    1418,
+                    1546,
+                    1164,
+                    1549,
+                    1167,
+                    1551,
+                    1552,
+                    1426,
+                    1559,
+                    1176,
+                    1563,
+                    1180,
+                    1568,
+                    425,
+                    1465,
+                    1210,
+                    1084,
+                    1101,
+                    1490,
+                    1495,
+                    1498,
+                    1503,
+                    1514,
+                    1022
+                ],
+                "self._upsample": [
+                    448,
+                    512,
+                    614,
+                    776,
+                    825,
+                    793
+                ],
+                "limit": [
+                    448,
+                    512,
+                    1089,
+                    614,
+                    776,
+                    1357,
+                    1202,
+                    1213,
+                    1084,
+                    797
+                ],
+                "ffill": [
+                    450
+                ],
+                "pad": [
+                    450
+                ],
+                "bfill": [
+                    616
+                ],
+                "backfill": [
+                    616
+                ],
+                "method": [
+                    776,
+                    916,
+                    918,
+                    922,
+                    923,
+                    795,
+                    927,
+                    929,
+                    933,
+                    934,
+                    938,
+                    940,
+                    943,
+                    944,
+                    1202,
+                    1213,
+                    1089,
+                    1770,
+                    1786
+                ],
+                "result.interpolate": [
+                    794
+                ],
+                "inplace": [
+                    798
+                ],
+                "limit_direction": [
+                    799
+                ],
+                "limit_area": [
+                    800
+                ],
+                "downcast": [
+                    801
+                ],
+                "fill_value": [
+                    1089,
+                    825,
+                    1202,
+                    1786
+                ],
+                "nv.validate_resampler_func": [
+                    930,
+                    841,
+                    858,
+                    919
+                ],
+                "nv": [
+                    930,
+                    841,
+                    858,
+                    919
+                ],
+                "self._downsample": [
+                    931,
+                    842,
+                    876,
+                    941,
+                    912,
+                    920,
+                    859,
+                    863
+                ],
+                "ddof": [
+                    842,
+                    859
+                ],
+                "self.ax": [
+                    864,
+                    1123,
+                    1002,
+                    1003,
+                    1162,
+                    877,
+                    1386,
+                    1235,
+                    1205,
+                    1078,
+                    1016
+                ],
+                "self._selected_obj.ndim": [
+                    867,
+                    878
+                ],
+                "name": [
+                    868,
+                    870,
+                    871
+                ],
+                "self._selected_obj.name": [
+                    880,
+                    868
+                ],
+                "Series": [
+                    871
+                ],
+                "doc": [
+                    874,
+                    861
+                ],
+                "GroupBy.size": [
+                    861
+                ],
+                "GroupBy": [
+                    874,
+                    933,
+                    861,
+                    922
+                ],
+                "DataFrame": [
+                    885
+                ],
+                "result.columns": [
+                    886
+                ],
+                "GroupBy.count": [
+                    874
+                ],
+                "q": [
+                    912
+                ],
+                "_method": [
+                    930,
+                    931,
+                    941,
+                    919,
+                    920
+                ],
+                "min_count": [
+                    920
+                ],
+                "f.__doc__": [
+                    922
+                ],
+                "f": [
+                    980,
+                    981,
+                    983,
+                    922,
+                    923
+                ],
+                "__doc__": [
+                    922,
+                    933,
+                    943
+                ],
+                "setattr": [
+                    944,
+                    962,
+                    923,
+                    934
+                ],
+                "Resampler": [
+                    993,
+                    934,
+                    944,
+                    1265,
+                    923
+                ],
+                "g.__doc__": [
+                    933
+                ],
+                "g": [
+                    933,
+                    934
+                ],
+                "h.__doc__": [
+                    943
+                ],
+                "h": [
+                    944,
+                    943
+                ],
+                "SeriesGroupBy": [
+                    943
+                ],
+                "GroupByMixin": [
+                    947
+                ],
+                "parent": [
+                    962,
+                    968,
+                    954,
+                    956,
+                    957
+                ],
+                "kwargs.pop": [
+                    954,
+                    955,
+                    1275
+                ],
+                "kwargs.get": [
+                    962
+                ],
+                "__init__": [
+                    1363,
+                    964
+                ],
+                "self._groupby": [
+                    985,
+                    965,
+                    966,
+                    967
+                ],
+                "self._groupby.mutated": [
+                    966
+                ],
+                "self._groupby.grouper.mutated": [
+                    967
+                ],
+                "self._groupby.grouper": [
+                    967
+                ],
+                "copy.copy": [
+                    968
+                ],
+                "copy": [
+                    968
+                ],
+                "parent.groupby": [
+                    968
+                ],
+                "x": [
+                    978,
+                    981,
+                    983
+                ],
+                "self._shallow_copy": [
+                    978
+                ],
+                "x.apply": [
+                    983
+                ],
+                "self._groupby.apply": [
+                    985
+                ],
+                "no_type_check": [
+                    970
+                ],
+                "_upsample": [
+                    1202,
+                    988
+                ],
+                "_apply": [
+                    988,
+                    989,
+                    990
+                ],
+                "_downsample": [
+                    989,
+                    1159
+                ],
+                "_groupby_and_aggregate": [
+                    990
+                ],
+                "DatetimeIndexResamplerGroupby": [
+                    996
+                ],
+                "self.groupby._get_time_period_bins": [
+                    1002
+                ],
+                "self.groupby._get_time_bins": [
+                    1003
+                ],
+                "self._get_cython_func": [
+                    1161,
+                    1015
+                ],
+                "ax": [
+                    1536,
+                    1026,
+                    1410,
+                    1028,
+                    1413,
+                    1414,
+                    1162,
+                    1418,
+                    1164,
+                    1546,
+                    1167,
+                    1551,
+                    1552,
+                    1429,
+                    1430,
+                    1176,
+                    1435,
+                    1180,
+                    1440,
+                    1568,
+                    1450,
+                    1205,
+                    1078,
+                    1210,
+                    1084,
+                    1483,
+                    1486,
+                    1489,
+                    1490,
+                    1493,
+                    1495,
+                    1499,
+                    1508,
+                    1511,
+                    1386,
+                    1387,
+                    1516,
+                    1389,
+                    1517,
+                    1391,
+                    1520,
+                    1523,
+                    1524,
+                    1397,
+                    1525,
+                    1016,
+                    1530,
+                    1019,
+                    1533,
+                    1407
+                ],
+                "obj.copy": [
+                    1776,
+                    1085,
+                    1780,
+                    1021
+                ],
+                "obj.index._set_freq": [
+                    1022
+                ],
+                "ax.freq": [
+                    1026,
+                    1164,
+                    1167,
+                    1176,
+                    1180
+                ],
+                "ax.inferred_freq": [
+                    1026,
+                    1084
+                ],
+                "self.grouper.binlabels": [
+                    1028
+                ],
+                "self.asfreq": [
+                    1175,
+                    1177,
+                    1031
+                ],
+                "obj.groupby": [
+                    1035
+                ],
+                "self.closed": [
+                    1344,
+                    1440,
+                    1443,
+                    1418,
+                    1046,
+                    1559,
+                    1466
+                ],
+                "AssertionError": [
+                    1070
+                ],
+                "self._from_selection": [
+                    1128,
+                    1071
+                ],
+                "res_index": [
+                    1089,
+                    1081,
+                    1086
+                ],
+                "self._adjust_binner_for_upsample": [
+                    1081
+                ],
+                "to_offset": [
+                    1352,
+                    1329,
+                    1084
+                ],
+                "obj.reindex": [
+                    1088,
+                    1786
+                ],
+                "_wrap_result": [
+                    1096
+                ],
+                "PeriodIndex": [
+                    1769,
+                    1546,
+                    1100,
+                    1517,
+                    1389,
+                    1811,
+                    1530
+                ],
+                "result.index.to_period": [
+                    1101
+                ],
+                "_GroupByMixin": [
+                    1105,
+                    1219,
+                    1247
+                ],
+                "DatetimeIndexResampler": [
+                    1388,
+                    1229,
+                    1105,
+                    1112,
+                    1115
+                ],
+                "PeriodIndexResamplerGroupby": [
+                    1118
+                ],
+                "_get_binner_for_time": [
+                    1122
+                ],
+                "self.groupby._get_period_bins": [
+                    1123
+                ],
+                "_convert_obj": [
+                    1126
+                ],
+                "msg": [
+                    1130,
+                    1135
+                ],
+                "NotImplementedError": [
+                    1603,
+                    1771,
+                    1135
+                ],
+                "obj.to_timestamp": [
+                    1144
+                ],
+                "self.convention": [
+                    1536,
+                    1348,
+                    1349,
+                    1551,
+                    1144,
+                    1210
+                ],
+                "is_subperiod": [
+                    1164
+                ],
+                "is_superperiod": [
+                    1465,
+                    1167
+                ],
+                "IncompatibleFrequency": [
+                    1179
+                ],
+                "new_index": [
+                    1600,
+                    1605,
+                    1815,
+                    1812,
+                    1814,
+                    1207,
+                    1213,
+                    1215
+                ],
+                "memb": [
+                    1536,
+                    1571,
+                    1540,
+                    1541,
+                    1542,
+                    1545,
+                    1582,
+                    1583,
+                    1210,
+                    1213
+                ],
+                "ax.asfreq": [
+                    1536,
+                    1210
+                ],
+                "indexer": [
+                    1599,
+                    1605,
+                    1213,
+                    1215
+                ],
+                "memb.get_indexer": [
+                    1213
+                ],
+                "_take_new_index": [
+                    1215
+                ],
+                "PeriodIndexResampler": [
+                    1226,
+                    1219,
+                    1390
+                ],
+                "TimedeltaIndexResamplerGroupby": [
+                    1232
+                ],
+                "self.groupby._get_time_delta_bins": [
+                    1235
+                ],
+                "TimedeltaIndexResampler": [
+                    1392,
+                    1254,
+                    1247
+                ],
+                "tg": [
+                    1278,
+                    1277,
+                    1261,
+                    1262
+                ],
+                "TimeGrouper": [
+                    1277,
+                    1261
+                ],
+                "kwds": [
+                    1261
+                ],
+                "tg._get_resampler": [
+                    1278,
+                    1262
+                ],
+                "get_resampler.__doc__": [
+                    1265
+                ],
+                "get_resampler": [
+                    1265
+                ],
+                "Resampler.__doc__": [
+                    1265
+                ],
+                "rule": [
+                    1333,
+                    1332,
+                    1277
+                ],
+                "resampler": [
+                    1278,
+                    1279
+                ],
+                "groupby.obj": [
+                    1278
+                ],
+                "resampler._get_resampler_for_grouping": [
+                    1279
+                ],
+                "Grouper": [
+                    1282,
+                    1295
+                ],
+                "Grouper._attributes": [
+                    1295
+                ],
+                "label": [
+                    1345,
+                    1322,
+                    1323,
+                    1336,
+                    1337,
+                    1341,
+                    1342
+                ],
+                "closed": [
+                    1344,
+                    1699,
+                    1731,
+                    1324,
+                    1325,
+                    1646,
+                    1334,
+                    1335,
+                    1657,
+                    1339,
+                    1340
+                ],
+                "convention": [
+                    1348,
+                    1326,
+                    1327
+                ],
+                "freq": [
+                    1514,
+                    1517,
+                    1520,
+                    1329,
+                    1522,
+                    1363,
+                    1332,
+                    1777,
+                    1782,
+                    1812,
+                    1784,
+                    1814
+                ],
+                "end_types": [
+                    1331,
+                    1333
+                ],
+                "freq.rule_code": [
+                    1332
+                ],
+                "rule.find": [
+                    1333
+                ],
+                "self.label": [
+                    1345,
+                    1445,
+                    1447
+                ],
+                "self.convention.lower": [
+                    1349
+                ],
+                "loffset": [
+                    1729,
+                    1351,
+                    1352,
+                    1353,
+                    1738,
+                    1740,
+                    1751,
+                    1753
+                ],
+                "self.how": [
+                    1355
+                ],
+                "self.fill_method": [
+                    1356
+                ],
+                "fill_method": [
+                    1356
+                ],
+                "self.limit": [
+                    1357
+                ],
+                "self.base": [
+                    1418,
+                    1358,
+                    1556,
+                    1559,
+                    1502,
+                    1503
+                ],
+                "base": [
+                    1646,
+                    1699,
+                    1725,
+                    1358
+                ],
+                "self._set_grouper": [
+                    1384
+                ],
+                "TimedeltaIndex": [
+                    1490,
+                    1483,
+                    1391
+                ],
+                "TypeError": [
+                    1408,
+                    1509,
+                    1484,
+                    1394,
+                    1690,
+                    1531
+                ],
+                "r": [
+                    1402,
+                    1403,
+                    1404
+                ],
+                "self._get_resampler": [
+                    1402
+                ],
+                "r._set_binner": [
+                    1403
+                ],
+                "r.binner": [
+                    1404
+                ],
+                "r.grouper": [
+                    1404
+                ],
+                "r.obj": [
+                    1404
+                ],
+                "labels": [
+                    1414,
+                    1415,
+                    1546,
+                    1547,
+                    1425,
+                    1567,
+                    1444,
+                    1446,
+                    1448,
+                    1452,
+                    1457,
+                    1458,
+                    1460,
+                    1591,
+                    1593,
+                    1490,
+                    1491,
+                    1494,
+                    1498,
+                    1503,
+                    1505,
+                    1517,
+                    1518,
+                    1520,
+                    1522,
+                    1527
+                ],
+                "ax.name": [
+                    1568,
+                    1414,
+                    1546,
+                    1517,
+                    1520,
+                    1490,
+                    1430,
+                    1495
+                ],
+                "first": [
+                    1664,
+                    1417,
+                    1427,
+                    1689,
+                    1693,
+                    1695,
+                    1698,
+                    1699,
+                    1702,
+                    1704,
+                    1717,
+                    1719,
+                    1721,
+                    1728,
+                    1734,
+                    1736,
+                    1746,
+                    1749,
+                    1641,
+                    1642,
+                    1645,
+                    1646,
+                    1649,
+                    1651,
+                    1654,
+                    1658,
+                    1660
+                ],
+                "last": [
+                    1664,
+                    1417,
+                    1428,
+                    1689,
+                    1694,
+                    1696,
+                    1698,
+                    1699,
+                    1703,
+                    1704,
+                    1718,
+                    1723,
+                    1729,
+                    1740,
+                    1743,
+                    1753,
+                    1755,
+                    1643,
+                    1645,
+                    1646,
+                    1650,
+                    1651,
+                    1655,
+                    1662
+                ],
+                "_get_timestamp_range_edges": [
+                    1417,
+                    1698
+                ],
+                "ax.min": [
+                    1418,
+                    1493,
+                    1551
+                ],
+                "ax.max": [
+                    1552,
+                    1418,
+                    1493
+                ],
+                "date_range": [
+                    1784,
+                    1425
+                ],
+                "ax.tz": [
+                    1429
+                ],
+                "ax_values": [
+                    1440,
+                    1435,
+                    1436,
+                    1475
+                ],
+                "ax.asi8": [
+                    1435
+                ],
+                "bin_edges": [
+                    1440,
+                    1472,
+                    1475,
+                    1476,
+                    1479,
+                    1480,
+                    1436,
+                    1468,
+                    1469,
+                    1470
+                ],
+                "self._adjust_bin_edges": [
+                    1436
+                ],
+                "lib.generate_bins_dt64": [
+                    1439
+                ],
+                "lib": [
+                    1439
+                ],
+                "ax.hasnans": [
+                    1440,
+                    1450
+                ],
+                "binner.insert": [
+                    1451,
+                    1590
+                ],
+                "NaT": [
+                    1451,
+                    1452,
+                    1590,
+                    1591
+                ],
+                "labels.insert": [
+                    1452,
+                    1591
+                ],
+                "binner.tz_localize": [
+                    1468
+                ],
+                "Nano": [
+                    1469
+                ],
+                "asi8": [
+                    1470
+                ],
+                "bin_edges.tz_localize": [
+                    1470
+                ],
+                "binner.tz": [
+                    1470
+                ],
+                "binner.asi8": [
+                    1472,
+                    1479
+                ],
+                "ax_values.max": [
+                    1475
+                ],
+                "start": [
+                    1568,
+                    1495,
+                    1551,
+                    1493,
+                    1559,
+                    1563,
+                    1565
+                ],
+                "end": [
+                    1568,
+                    1495,
+                    1552,
+                    1493,
+                    1558,
+                    1559
+                ],
+                "timedelta_range": [
+                    1494
+                ],
+                "end_stamps": [
+                    1522,
+                    1524,
+                    1525,
+                    1498,
+                    1499
+                ],
+                "ax.searchsorted": [
+                    1499,
+                    1525
+                ],
+                "period_range": [
+                    1520,
+                    1567
+                ],
+                "to_timestamp": [
+                    1522
+                ],
+                "asfreq": [
+                    1552,
+                    1522,
+                    1551
+                ],
+                "ax.tzinfo": [
+                    1523,
+                    1524
+                ],
+                "end_stamps.tz_localize": [
+                    1524
+                ],
+                "nat_count": [
+                    1539,
+                    1541,
+                    1585,
+                    1588,
+                    1589
+                ],
+                "memb.hasnans": [
+                    1540
+                ],
+                "np.sum": [
+                    1541
+                ],
+                "memb._isnan": [
+                    1541,
+                    1542
+                ],
+                "freq_mult": [
+                    1574,
+                    1576,
+                    1577,
+                    1549,
+                    1564
+                ],
+                "self.freq.n": [
+                    1549
+                ],
+                "bin_shift": [
+                    1553,
+                    1579,
+                    1564
+                ],
+                "p_start": [
+                    1563,
+                    1565,
+                    1558
+                ],
+                "_get_period_range_edges": [
+                    1558
+                ],
+                "start_offset": [
+                    1563,
+                    1564
+                ],
+                "Period": [
+                    1689,
+                    1563
+                ],
+                "start_offset.n": [
+                    1564
+                ],
+                "i8": [
+                    1576,
+                    1571,
+                    1575
+                ],
+                "memb.asi8": [
+                    1571
+                ],
+                "expected_bins_count": [
+                    1574,
+                    1575
+                ],
+                "i8_extend": [
+                    1576,
+                    1575
+                ],
+                "rng": [
+                    1576,
+                    1577,
+                    1579,
+                    1582
+                ],
+                "np.arange": [
+                    1576
+                ],
+                "prng": [
+                    1582,
+                    1583
+                ],
+                "memb._data": [
+                    1582
+                ],
+                "memb.dtype": [
+                    1582
+                ],
+                "memb.searchsorted": [
+                    1583
+                ],
+                "np.insert": [
+                    1589
+                ],
+                "new_values": [
+                    1600,
+                    1599
+                ],
+                "algos.take_1d": [
+                    1599
+                ],
+                "algos": [
+                    1599
+                ],
+                "obj._values": [
+                    1599
+                ],
+                "obj._constructor": [
+                    1600,
+                    1604
+                ],
+                "obj.name": [
+                    1600
+                ],
+                "obj._data.reindex_indexer": [
+                    1605
+                ],
+                "obj._data": [
+                    1605
+                ],
+                "offset": [
+                    1695,
+                    1696,
+                    1699,
+                    1702,
+                    1703,
+                    1725,
+                    1728,
+                    1729,
+                    1736,
+                    1740,
+                    1753,
+                    1755,
+                    1636,
+                    1637,
+                    1646,
+                    1648,
+                    1658,
+                    1660,
+                    1662
+                ],
+                "Tick": [
+                    1636
+                ],
+                "Day": [
+                    1648,
+                    1637
+                ],
+                "tz": [
+                    1641,
+                    1650,
+                    1649
+                ],
+                "first.tz": [
+                    1641
+                ],
+                "first.tz_localize": [
+                    1649,
+                    1642
+                ],
+                "last.tz_localize": [
+                    1650,
+                    1643
+                ],
+                "_adjust_dates_anchored": [
+                    1645
+                ],
+                "first.normalize": [
+                    1654,
+                    1719
+                ],
+                "last.normalize": [
+                    1655
+                ],
+                "Timestamp": [
+                    1660,
+                    1658,
+                    1756,
+                    1757,
+                    1662
+                ],
+                "offset.rollback": [
+                    1658
+                ],
+                "all": [
+                    1689
+                ],
+                "first.to_timestamp": [
+                    1693
+                ],
+                "last.to_timestamp": [
+                    1694
+                ],
+                "adjust_first": [
+                    1702,
+                    1695
+                ],
+                "offset.is_on_offset": [
+                    1696,
+                    1695
+                ],
+                "adjust_last": [
+                    1696,
+                    1703
+                ],
+                "to_period": [
+                    1702,
+                    1703
+                ],
+                "first_tzinfo": [
+                    1720,
+                    1717,
+                    1758,
+                    1759
+                ],
+                "first.tzinfo": [
+                    1717
+                ],
+                "last_tzinfo": [
+                    1760,
+                    1761,
+                    1722,
+                    1718
+                ],
+                "last.tzinfo": [
+                    1718
+                ],
+                "start_day_nanos": [
+                    1728,
+                    1729,
+                    1726,
+                    1719
+                ],
+                "value": [
+                    1719
+                ],
+                "first.tz_convert": [
+                    1721
+                ],
+                "last.tz_convert": [
+                    1723
+                ],
+                "base_nanos": [
+                    1725,
+                    1726
+                ],
+                "offset.n": [
+                    1725
+                ],
+                "offset.nanos": [
+                    1728,
+                    1729,
+                    1736,
+                    1740,
+                    1753,
+                    1755,
+                    1725
+                ],
+                "foffset": [
+                    1728,
+                    1732,
+                    1734,
+                    1745,
+                    1746
+                ],
+                "first.value": [
+                    1728,
+                    1734,
+                    1736,
+                    1746,
+                    1749
+                ],
+                "last.value": [
+                    1729,
+                    1740,
+                    1743,
+                    1753,
+                    1755
+                ],
+                "fresult": [
+                    1762,
+                    1734,
+                    1736,
+                    1746,
+                    1749,
+                    1756,
+                    1759
+                ],
+                "lresult": [
+                    1761,
+                    1762,
+                    1740,
+                    1743,
+                    1753,
+                    1755,
+                    1757
+                ],
+                "tz_convert": [
+                    1761,
+                    1759
+                ],
+                "fresult.tz_localize": [
+                    1759
+                ],
+                "lresult.tz_localize": [
+                    1761
+                ],
+                "new_obj": [
+                    1776,
+                    1777,
+                    1780,
+                    1782,
+                    1786,
+                    1788,
+                    1790
+                ],
+                "new_obj.index": [
+                    1777,
+                    1788,
+                    1782
+                ],
+                "obj.index.asfreq": [
+                    1777
+                ],
+                "dti": [
+                    1784,
+                    1785,
+                    1786
+                ],
+                "dti.name": [
+                    1785
+                ],
+                "obj.index.name": [
+                    1785
+                ],
+                "normalize": [
+                    1787
+                ],
+                "new_obj.index.normalize": [
+                    1788
+                ],
+                "index": [
+                    1811,
+                    1812,
+                    1806,
+                    1814
+                ],
+                "index.asfreq": [
+                    1812
+                ],
+                "Index": [
+                    1814
+                ],
+                "index.dtype": [
+                    1814
+                ],
+                "index.name": [
+                    1814
+                ]
+            },
+            "filtered_variables_in_file": {
+                "_shared_docs_kwargs": [
+                    34,
+                    778
+                ],
+                "Dict": [
+                    34
+                ],
+                "str": [
+                    34,
+                    100,
+                    135,
+                    1351,
+                    365,
+                    368,
+                    371,
+                    980,
+                    89
+                ],
+                "dict": [
+                    34
+                ],
+                "_GroupBy": [
+                    37
+                ],
+                "ShallowMixin": [
+                    37
+                ],
+                "_attributes": [
+                    62,
+                    1295
+                ],
+                "self.groupby": [
+                    96,
+                    128,
+                    1123,
+                    132,
+                    104,
+                    968,
+                    74,
+                    1002,
+                    1003,
+                    978,
+                    1235,
+                    86,
+                    87,
+                    150,
+                    151,
+                    188,
+                    311,
+                    94
+                ],
+                "self": [
+                    512,
+                    1536,
+                    1028,
+                    1031,
+                    1546,
+                    1035,
+                    1037,
+                    1038,
+                    1549,
+                    1551,
+                    1552,
+                    1556,
+                    1046,
+                    1559,
+                    1563,
+                    1568,
+                    1068,
+                    1069,
+                    1071,
+                    1078,
+                    1079,
+                    1080,
+                    1081,
+                    1084,
+                    1092,
+                    1093,
+                    74,
+                    75,
+                    76,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    82,
+                    83,
+                    84,
+                    1100,
+                    86,
+                    87,
+                    94,
+                    95,
+                    96,
+                    1121,
+                    98,
+                    1123,
+                    101,
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    614,
+                    108,
+                    1128,
+                    1137,
+                    1140,
+                    1143,
+                    1144,
+                    123,
+                    128,
+                    132,
+                    1158,
+                    1161,
+                    1162,
+                    139,
+                    1164,
+                    1166,
+                    1167,
+                    150,
+                    151,
+                    1174,
+                    1175,
+                    1176,
+                    1177,
+                    1180,
+                    170,
+                    1201,
+                    178,
+                    179,
+                    1204,
+                    1205,
+                    1206,
+                    1207,
+                    186,
+                    1210,
+                    188,
+                    1214,
+                    1215,
+                    195,
+                    1235,
+                    776,
+                    280,
+                    281,
+                    793,
+                    285,
+                    287,
+                    311,
+                    825,
+                    314,
+                    317,
+                    1344,
+                    1345,
+                    1346,
+                    1348,
+                    1349,
+                    1353,
+                    842,
+                    331,
+                    332,
+                    1355,
+                    334,
+                    335,
+                    1356,
+                    1357,
+                    1358,
+                    859,
+                    348,
+                    349,
+                    351,
+                    863,
+                    353,
+                    864,
+                    867,
+                    868,
+                    1384,
+                    1386,
+                    876,
+                    877,
+                    878,
+                    879,
+                    880,
+                    1388,
+                    1390,
+                    1392,
+                    1402,
+                    383,
+                    384,
+                    1414,
+                    1418,
+                    399,
+                    912,
+                    1426,
+                    405,
+                    407,
+                    920,
+                    1436,
+                    414,
+                    1440,
+                    931,
+                    420,
+                    421,
+                    1101,
+                    1443,
+                    424,
+                    425,
+                    1445,
+                    1447,
+                    941,
+                    1465,
+                    1466,
+                    448,
+                    961,
+                    962,
+                    965,
+                    966,
+                    967,
+                    968,
+                    978,
+                    1490,
+                    1495,
+                    985,
+                    986,
+                    1498,
+                    1502,
+                    1503,
+                    1001,
+                    1002,
+                    1003,
+                    1514,
+                    1014,
+                    1015,
+                    1016,
+                    1017,
+                    1022
+                ],
+                "groupby": [
+                    414,
+                    965,
+                    74,
+                    955,
+                    1278,
+                    1279
+                ],
+                "self.keys": [
+                    75
+                ],
+                "self.sort": [
+                    76
+                ],
+                "self.axis": [
+                    353,
+                    1035,
+                    1388,
+                    77,
+                    1069,
+                    335,
+                    1390,
+                    1392,
+                    1215
+                ],
+                "axis": [
+                    1602,
+                    1363,
+                    796,
+                    77
+                ],
+                "self.kind": [
+                    1121,
+                    1346,
+                    1158,
+                    1001,
+                    1100,
+                    78,
+                    1201,
+                    1140,
+                    1143
+                ],
+                "kind": [
+                    1346,
+                    1388,
+                    1389,
+                    1262,
+                    78,
+                    1390,
+                    1278
+                ],
+                "self.squeeze": [
+                    79
+                ],
+                "self.group_keys": [
+                    80
+                ],
+                "self.as_index": [
+                    81
+                ],
+                "self.exclusions": [
+                    82
+                ],
+                "set": [
+                    82
+                ],
+                "self.binner": [
+                    178,
+                    83,
+                    179,
+                    1207,
+                    1080
+                ],
+                "self.grouper": [
+                    1028,
+                    1035,
+                    332,
+                    1166,
+                    179,
+                    84,
+                    1174,
+                    349
+                ],
+                "self.groupby._set_grouper": [
+                    87
+                ],
+                "self._convert_obj": [
+                    87
+                ],
+                "obj": [
+                    1035,
+                    1402,
+                    1784,
+                    1785,
+                    1689,
+                    1786,
+                    166,
+                    167,
+                    424,
+                    425,
+                    426,
+                    1206,
+                    1079,
+                    1085,
+                    957,
+                    1215,
+                    1088,
+                    1598,
+                    1599,
+                    1600,
+                    1601,
+                    1604,
+                    1605,
+                    87,
+                    351,
+                    353,
+                    356,
+                    1126,
+                    1384,
+                    1769,
+                    1388,
+                    1262,
+                    1390,
+                    1392,
+                    1776,
+                    1777,
+                    1779,
+                    1780,
+                    1782,
+                    1144,
+                    1017,
+                    1146,
+                    1021,
+                    1022,
+                    1023
+                ],
+                "attrs": [
+                    98,
+                    93
+                ],
+                "k": [
+                    96,
+                    94,
+                    95
+                ],
+                "getattr": [
+                    96,
+                    962,
+                    933,
+                    104,
+                    426,
+                    943,
+                    981,
+                    922,
+                    94
+                ],
+                "self._attributes": [
+                    961,
+                    103,
+                    95
+                ],
+                "__name__": [
+                    98,
+                    1410,
+                    1511,
+                    1486,
+                    1397,
+                    1533
+                ],
+                "type": [
+                    98,
+                    1410,
+                    1511,
+                    1486,
+                    879,
+                    1582,
+                    1397,
+                    1533,
+                    1503
+                ],
+                "join": [
+                    98
+                ],
+                "attr": [
+                    961,
+                    962,
+                    101,
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    108
+                ],
+                "self._internal_names_set": [
+                    101
+                ],
+                "object.__getattribute__": [
+                    108,
+                    102
+                ],
+                "object": [
+                    108,
+                    102
+                ],
+                "self.obj": [
+                    424,
+                    105,
+                    1206,
+                    334
+                ],
+                "self._set_binner": [
+                    195,
+                    331,
+                    1068,
+                    1204,
+                    1014,
+                    280,
+                    123,
+                    348
+                ],
+                "__iter__": [
+                    124
+                ],
+                "super": [
+                    1122,
+                    964,
+                    1126,
+                    1159,
+                    1096,
+                    124,
+                    1202,
+                    1363,
+                    220
+                ],
+                "self.groupby.obj": [
+                    128
+                ],
+                "property": [
+                    994,
+                    130,
+                    1252,
+                    134,
+                    1224,
+                    1230,
+                    143,
+                    1110,
+                    1116,
+                    126
+                ],
+                "self.groupby.ax": [
+                    132
+                ],
+                "isinstance": [
+                    139,
+                    399,
+                    400,
+                    1811,
+                    1689,
+                    420,
+                    423,
+                    1598,
+                    1601,
+                    1351,
+                    1483,
+                    1100,
+                    980,
+                    356,
+                    1508,
+                    1636,
+                    1637,
+                    1769,
+                    1387,
+                    1389,
+                    1391,
+                    1648,
+                    1530,
+                    1407
+                ],
+                "self._selected_obj": [
+                    867,
+                    868,
+                    139,
+                    878,
+                    879,
+                    880,
+                    1079,
+                    311,
+                    1017,
+                    351
+                ],
+                "ABCSeries": [
+                    139,
+                    420,
+                    1598,
+                    423
+                ],
+                "self.groupby.key": [
+                    151
+                ],
+                "self.groupby.level": [
+                    151
+                ],
+                "bool": [
+                    144,
+                    1400
+                ],
+                "obj._consolidate": [
+                    166
+                ],
+                "AbstractMethodError": [
+                    170,
+                    314,
+                    317
+                ],
+                "self._get_binner": [
+                    179
+                ],
+                "binner": [
+                    1414,
+                    1415,
+                    1546,
+                    1547,
+                    1425,
+                    1047,
+                    1049,
+                    1050,
+                    1436,
+                    1567,
+                    1444,
+                    1574,
+                    1451,
+                    1460,
+                    1590,
+                    1080,
+                    1081,
+                    186,
+                    1593,
+                    1468,
+                    189,
+                    1470,
+                    1472,
+                    1477,
+                    1479,
+                    1480,
+                    1490,
+                    1491,
+                    1494,
+                    1244,
+                    1505,
+                    1517,
+                    1518,
+                    1520,
+                    1527
+                ],
+                "bins": [
+                    1505,
+                    1583,
+                    1593,
+                    1457,
+                    1458,
+                    1460,
+                    1525,
+                    1499,
+                    1527,
+                    1588,
+                    1589,
+                    186,
+                    187,
+                    188,
+                    1439
+                ],
+                "binlabels": [
+                    186,
+                    187,
+                    188
+                ],
+                "self._get_binner_for_time": [
+                    186
+                ],
+                "len": [
+                    864,
+                    1028,
+                    1413,
+                    1574,
+                    1019,
+                    1545,
+                    1516,
+                    877,
+                    1806,
+                    401,
+                    1457,
+                    1458,
+                    1489,
+                    1779,
+                    187
+                ],
+                "bin_grouper": [
+                    188,
+                    189
+                ],
+                "BinGrouper": [
+                    188
+                ],
+                "self.groupby.indexer": [
+                    188
+                ],
+                "pipe": [
+                    220
+                ],
+                "func": [
+                    281,
+                    283,
+                    220,
+                    985
+                ],
+                "args": [
+                    930,
+                    358,
+                    360,
+                    841,
+                    363,
+                    919,
+                    381,
+                    983,
+                    311,
+                    281,
+                    858,
+                    220,
+                    285
+                ],
+                "kwargs": [
+                    1159,
+                    1035,
+                    1166,
+                    912,
+                    919,
+                    281,
+                    1277,
+                    285,
+                    414,
+                    802,
+                    930,
+                    311,
+                    954,
+                    955,
+                    962,
+                    841,
+                    1361,
+                    1363,
+                    981,
+                    983,
+                    858,
+                    220,
+                    358,
+                    360,
+                    363,
+                    1275,
+                    381
+                ],
+                "Substitution": [
+                    197,
+                    270
+                ],
+                "Appender": [
+                    218,
+                    778,
+                    277
+                ],
+                "_pipe_template": [
+                    218
+                ],
+                "_agg_see_also_doc": [
+                    222,
+                    271
+                ],
+                "dedent": [
+                    232,
+                    222
+                ],
+                "_agg_examples_doc": [
+                    232,
+                    272
+                ],
+                "result": [
+                    384,
+                    1035,
+                    1037,
+                    1038,
+                    400,
+                    401,
+                    405,
+                    408,
+                    281,
+                    282,
+                    793,
+                    794,
+                    285,
+                    287,
+                    288,
+                    420,
+                    421,
+                    423,
+                    425,
+                    426,
+                    428,
+                    1085,
+                    1086,
+                    1088,
+                    1092,
+                    1093,
+                    1096,
+                    1100,
+                    1101,
+                    1102,
+                    985,
+                    986,
+                    863,
+                    358,
+                    871,
+                    360,
+                    872,
+                    363,
+                    876,
+                    879,
+                    880,
+                    885,
+                    886,
+                    889,
+                    381,
+                    383
+                ],
+                "how": [
+                    1028,
+                    1159,
+                    1161,
+                    1035,
+                    1166,
+                    1168,
+                    1174,
+                    281,
+                    283,
+                    285,
+                    1355,
+                    356,
+                    358,
+                    360,
+                    363,
+                    1773,
+                    1774,
+                    1777,
+                    1015,
+                    381
+                ],
+                "self._aggregate": [
+                    281
+                ],
+                "grouper": [
+                    353,
+                    332,
+                    349,
+                    335,
+                    347,
+                    284,
+                    285
+                ],
+                "self._groupby_and_aggregate": [
+                    1174,
+                    285,
+                    1166
+                ],
+                "self._apply_loffset": [
+                    1092,
+                    383,
+                    1037,
+                    287
+                ],
+                "_shared_docs": [
+                    778,
+                    277
+                ],
+                "agg": [
+                    290
+                ],
+                "aggregate": [
+                    1035,
+                    290,
+                    291
+                ],
+                "apply": [
+                    291
+                ],
+                "transform": [
+                    311
+                ],
+                "self._selected_obj.groupby": [
+                    311
+                ],
+                "arg": [
+                    311
+                ],
+                "int": [
+                    319
+                ],
+                "subset": [
+                    333,
+                    334,
+                    335
+                ],
+                "grouped": [
+                    353,
+                    358,
+                    360,
+                    363,
+                    335,
+                    339,
+                    341,
+                    381
+                ],
+                "get_groupby": [
+                    353,
+                    335
+                ],
+                "key": [
+                    339
+                ],
+                "KeyError": [
+                    340
+                ],
+                "ABCDataFrame": [
+                    1601,
+                    356
+                ],
+                "callable": [
+                    356
+                ],
+                "grouped._aggregate_item_by_item": [
+                    358
+                ],
+                "grouped.aggregate": [
+                    360
+                ],
+                "DataError": [
+                    361
+                ],
+                "grouped.apply": [
+                    363,
+                    381
+                ],
+                "ValueError": [
+                    1608,
+                    1323,
+                    364,
+                    1325,
+                    1327,
+                    1072,
+                    1808
+                ],
+                "err": [
+                    368,
+                    371,
+                    365
+                ],
+                "self._wrap_result": [
+                    384,
+                    1093,
+                    1038,
+                    986,
+                    1214
+                ],
+                "needs_offset": [
+                    404,
+                    398
+                ],
+                "self.loffset": [
+                    1353,
+                    399,
+                    1137,
+                    405,
+                    407
+                ],
+                "DateOffset": [
+                    399
+                ],
+                "timedelta": [
+                    1469,
+                    399
+                ],
+                "np.timedelta64": [
+                    399
+                ],
+                "np": [
+                    1576,
+                    1589,
+                    1541,
+                    399
+                ],
+                "result.index": [
+                    871,
+                    425,
+                    1100,
+                    1101,
+                    400,
+                    401,
+                    880,
+                    405,
+                    886,
+                    1086
+                ],
+                "DatetimeIndex": [
+                    1508,
+                    1414,
+                    1387,
+                    400,
+                    1407
+                ],
+                "self._resampler_for_grouping": [
+                    414
+                ],
+                "self._selection": [
+                    420,
+                    421
+                ],
+                "result.name": [
+                    426,
+                    421
+                ],
+                "result.empty": [
+                    423
+                ],
+                "_asfreq_compat": [
+                    425,
+                    1782
+                ],
+                "obj.index": [
+                    425,
+                    1769,
+                    1777,
+                    1779,
+                    1782,
+                    1784,
+                    1785,
+                    1022
+                ],
+                "self.freq": [
+                    1536,
+                    1414,
+                    1418,
+                    1546,
+                    1164,
+                    1549,
+                    1167,
+                    1551,
+                    1552,
+                    1426,
+                    1559,
+                    1176,
+                    1563,
+                    1180,
+                    1568,
+                    425,
+                    1465,
+                    1210,
+                    1084,
+                    1101,
+                    1490,
+                    1495,
+                    1498,
+                    1503,
+                    1514,
+                    1022
+                ],
+                "self._upsample": [
+                    448,
+                    512,
+                    614,
+                    776,
+                    825,
+                    793
+                ],
+                "limit": [
+                    448,
+                    512,
+                    1089,
+                    614,
+                    776,
+                    1357,
+                    1202,
+                    1213,
+                    1084,
+                    797
+                ],
+                "ffill": [
+                    450
+                ],
+                "pad": [
+                    450
+                ],
+                "bfill": [
+                    616
+                ],
+                "backfill": [
+                    616
+                ],
+                "method": [
+                    776,
+                    916,
+                    918,
+                    922,
+                    923,
+                    795,
+                    927,
+                    929,
+                    933,
+                    934,
+                    938,
+                    940,
+                    943,
+                    944,
+                    1202,
+                    1213,
+                    1089,
+                    1770,
+                    1786
+                ],
+                "result.interpolate": [
+                    794
+                ],
+                "inplace": [
+                    798
+                ],
+                "limit_direction": [
+                    799
+                ],
+                "limit_area": [
+                    800
+                ],
+                "downcast": [
+                    801
+                ],
+                "fill_value": [
+                    1089,
+                    825,
+                    1202,
+                    1786
+                ],
+                "nv.validate_resampler_func": [
+                    930,
+                    841,
+                    858,
+                    919
+                ],
+                "nv": [
+                    930,
+                    841,
+                    858,
+                    919
+                ],
+                "self._downsample": [
+                    931,
+                    842,
+                    876,
+                    941,
+                    912,
+                    920,
+                    859,
+                    863
+                ],
+                "ddof": [
+                    842,
+                    859
+                ],
+                "self.ax": [
+                    864,
+                    1123,
+                    1002,
+                    1003,
+                    1162,
+                    877,
+                    1386,
+                    1235,
+                    1205,
+                    1078,
+                    1016
+                ],
+                "self._selected_obj.ndim": [
+                    867,
+                    878
+                ],
+                "name": [
+                    868,
+                    870,
+                    871
+                ],
+                "self._selected_obj.name": [
+                    880,
+                    868
+                ],
+                "Series": [
+                    871
+                ],
+                "doc": [
+                    874,
+                    861
+                ],
+                "GroupBy.size": [
+                    861
+                ],
+                "GroupBy": [
+                    874,
+                    933,
+                    861,
+                    922
+                ],
+                "DataFrame": [
+                    885
+                ],
+                "result.columns": [
+                    886
+                ],
+                "GroupBy.count": [
+                    874
+                ],
+                "q": [
+                    912
+                ],
+                "_method": [
+                    930,
+                    931,
+                    941,
+                    919,
+                    920
+                ],
+                "min_count": [
+                    920
+                ],
+                "f.__doc__": [
+                    922
+                ],
+                "f": [
+                    980,
+                    981,
+                    983,
+                    922,
+                    923
+                ],
+                "__doc__": [
+                    922,
+                    933,
+                    943
+                ],
+                "setattr": [
+                    944,
+                    962,
+                    923,
+                    934
+                ],
+                "Resampler": [
+                    993,
+                    934,
+                    944,
+                    1265,
+                    923
+                ],
+                "g.__doc__": [
+                    933
+                ],
+                "g": [
+                    933,
+                    934
+                ],
+                "h.__doc__": [
+                    943
+                ],
+                "h": [
+                    944,
+                    943
+                ],
+                "SeriesGroupBy": [
+                    943
+                ],
+                "GroupByMixin": [
+                    947
+                ],
+                "parent": [
+                    962,
+                    968,
+                    954,
+                    956,
+                    957
+                ],
+                "kwargs.pop": [
+                    954,
+                    955,
+                    1275
+                ],
+                "kwargs.get": [
+                    962
+                ],
+                "__init__": [
+                    1363,
+                    964
+                ],
+                "self._groupby": [
+                    985,
+                    965,
+                    966,
+                    967
+                ],
+                "self._groupby.mutated": [
+                    966
+                ],
+                "self._groupby.grouper.mutated": [
+                    967
+                ],
+                "self._groupby.grouper": [
+                    967
+                ],
+                "copy.copy": [
+                    968
+                ],
+                "copy": [
+                    968
+                ],
+                "parent.groupby": [
+                    968
+                ],
+                "x": [
+                    978,
+                    981,
+                    983
+                ],
+                "self._shallow_copy": [
+                    978
+                ],
+                "x.apply": [
+                    983
+                ],
+                "self._groupby.apply": [
+                    985
+                ],
+                "no_type_check": [
+                    970
+                ],
+                "_upsample": [
+                    1202,
+                    988
+                ],
+                "_apply": [
+                    988,
+                    989,
+                    990
+                ],
+                "_downsample": [
+                    989,
+                    1159
+                ],
+                "_groupby_and_aggregate": [
+                    990
+                ],
+                "DatetimeIndexResamplerGroupby": [
+                    996
+                ],
+                "self.groupby._get_time_period_bins": [
+                    1002
+                ],
+                "self.groupby._get_time_bins": [
+                    1003
+                ],
+                "self._get_cython_func": [
+                    1161,
+                    1015
+                ],
+                "ax": [
+                    1536,
+                    1026,
+                    1410,
+                    1028,
+                    1413,
+                    1414,
+                    1162,
+                    1418,
+                    1164,
+                    1546,
+                    1167,
+                    1551,
+                    1552,
+                    1429,
+                    1430,
+                    1176,
+                    1435,
+                    1180,
+                    1440,
+                    1568,
+                    1450,
+                    1205,
+                    1078,
+                    1210,
+                    1084,
+                    1483,
+                    1486,
+                    1489,
+                    1490,
+                    1493,
+                    1495,
+                    1499,
+                    1508,
+                    1511,
+                    1386,
+                    1387,
+                    1516,
+                    1389,
+                    1517,
+                    1391,
+                    1520,
+                    1523,
+                    1524,
+                    1397,
+                    1525,
+                    1016,
+                    1530,
+                    1019,
+                    1533,
+                    1407
+                ],
+                "obj.copy": [
+                    1776,
+                    1085,
+                    1780,
+                    1021
+                ],
+                "obj.index._set_freq": [
+                    1022
+                ],
+                "ax.freq": [
+                    1026,
+                    1164,
+                    1167,
+                    1176,
+                    1180
+                ],
+                "ax.inferred_freq": [
+                    1026,
+                    1084
+                ],
+                "self.grouper.binlabels": [
+                    1028
+                ],
+                "self.asfreq": [
+                    1175,
+                    1177,
+                    1031
+                ],
+                "obj.groupby": [
+                    1035
+                ],
+                "self.closed": [
+                    1344,
+                    1440,
+                    1443,
+                    1418,
+                    1046,
+                    1559,
+                    1466
+                ],
+                "AssertionError": [
+                    1070
+                ],
+                "self._from_selection": [
+                    1128,
+                    1071
+                ],
+                "res_index": [
+                    1089,
+                    1081,
+                    1086
+                ],
+                "self._adjust_binner_for_upsample": [
+                    1081
+                ],
+                "to_offset": [
+                    1352,
+                    1329,
+                    1084
+                ],
+                "obj.reindex": [
+                    1088,
+                    1786
+                ],
+                "_wrap_result": [
+                    1096
+                ],
+                "PeriodIndex": [
+                    1769,
+                    1546,
+                    1100,
+                    1517,
+                    1389,
+                    1811,
+                    1530
+                ],
+                "result.index.to_period": [
+                    1101
+                ],
+                "_GroupByMixin": [
+                    1105,
+                    1219,
+                    1247
+                ],
+                "DatetimeIndexResampler": [
+                    1388,
+                    1229,
+                    1105,
+                    1112,
+                    1115
+                ],
+                "PeriodIndexResamplerGroupby": [
+                    1118
+                ],
+                "_get_binner_for_time": [
+                    1122
+                ],
+                "self.groupby._get_period_bins": [
+                    1123
+                ],
+                "_convert_obj": [
+                    1126
+                ],
+                "msg": [
+                    1130,
+                    1135
+                ],
+                "NotImplementedError": [
+                    1603,
+                    1771,
+                    1135
+                ],
+                "obj.to_timestamp": [
+                    1144
+                ],
+                "self.convention": [
+                    1536,
+                    1348,
+                    1349,
+                    1551,
+                    1144,
+                    1210
+                ],
+                "is_subperiod": [
+                    1164
+                ],
+                "is_superperiod": [
+                    1465,
+                    1167
+                ],
+                "IncompatibleFrequency": [
+                    1179
+                ],
+                "new_index": [
+                    1600,
+                    1605,
+                    1815,
+                    1812,
+                    1814,
+                    1207,
+                    1213,
+                    1215
+                ],
+                "memb": [
+                    1536,
+                    1571,
+                    1540,
+                    1541,
+                    1542,
+                    1545,
+                    1582,
+                    1583,
+                    1210,
+                    1213
+                ],
+                "ax.asfreq": [
+                    1536,
+                    1210
+                ],
+                "indexer": [
+                    1599,
+                    1605,
+                    1213,
+                    1215
+                ],
+                "memb.get_indexer": [
+                    1213
+                ],
+                "_take_new_index": [
+                    1215
+                ],
+                "PeriodIndexResampler": [
+                    1226,
+                    1219,
+                    1390
+                ],
+                "TimedeltaIndexResamplerGroupby": [
+                    1232
+                ],
+                "self.groupby._get_time_delta_bins": [
+                    1235
+                ],
+                "TimedeltaIndexResampler": [
+                    1392,
+                    1254,
+                    1247
+                ],
+                "tg": [
+                    1278,
+                    1277,
+                    1261,
+                    1262
+                ],
+                "TimeGrouper": [
+                    1277,
+                    1261
+                ],
+                "kwds": [
+                    1261
+                ],
+                "tg._get_resampler": [
+                    1278,
+                    1262
+                ],
+                "get_resampler.__doc__": [
+                    1265
+                ],
+                "get_resampler": [
+                    1265
+                ],
+                "Resampler.__doc__": [
+                    1265
+                ],
+                "rule": [
+                    1333,
+                    1332,
+                    1277
+                ],
+                "resampler": [
+                    1278,
+                    1279
+                ],
+                "groupby.obj": [
+                    1278
+                ],
+                "resampler._get_resampler_for_grouping": [
+                    1279
+                ],
+                "Grouper": [
+                    1282,
+                    1295
+                ],
+                "Grouper._attributes": [
+                    1295
+                ],
+                "label": [
+                    1345,
+                    1322,
+                    1323,
+                    1336,
+                    1337,
+                    1341,
+                    1342
+                ],
+                "closed": [
+                    1344,
+                    1699,
+                    1731,
+                    1324,
+                    1325,
+                    1646,
+                    1334,
+                    1335,
+                    1657,
+                    1339,
+                    1340
+                ],
+                "convention": [
+                    1348,
+                    1326,
+                    1327
+                ],
+                "freq": [
+                    1514,
+                    1517,
+                    1520,
+                    1329,
+                    1522,
+                    1363,
+                    1332,
+                    1777,
+                    1782,
+                    1812,
+                    1784,
+                    1814
+                ],
+                "end_types": [
+                    1331,
+                    1333
+                ],
+                "freq.rule_code": [
+                    1332
+                ],
+                "rule.find": [
+                    1333
+                ],
+                "self.label": [
+                    1345,
+                    1445,
+                    1447
+                ],
+                "self.convention.lower": [
+                    1349
+                ],
+                "loffset": [
+                    1729,
+                    1351,
+                    1352,
+                    1353,
+                    1738,
+                    1740,
+                    1751,
+                    1753
+                ],
+                "self.how": [
+                    1355
+                ],
+                "self.fill_method": [
+                    1356
+                ],
+                "fill_method": [
+                    1356
+                ],
+                "self.limit": [
+                    1357
+                ],
+                "self.base": [
+                    1418,
+                    1358,
+                    1556,
+                    1559,
+                    1502,
+                    1503
+                ],
+                "base": [
+                    1646,
+                    1699,
+                    1725,
+                    1358
+                ],
+                "self._set_grouper": [
+                    1384
+                ],
+                "TimedeltaIndex": [
+                    1490,
+                    1483,
+                    1391
+                ],
+                "TypeError": [
+                    1408,
+                    1509,
+                    1484,
+                    1394,
+                    1690,
+                    1531
+                ],
+                "r": [
+                    1402,
+                    1403,
+                    1404
+                ],
+                "self._get_resampler": [
+                    1402
+                ],
+                "r._set_binner": [
+                    1403
+                ],
+                "r.binner": [
+                    1404
+                ],
+                "r.grouper": [
+                    1404
+                ],
+                "r.obj": [
+                    1404
+                ],
+                "labels": [
+                    1414,
+                    1415,
+                    1546,
+                    1547,
+                    1425,
+                    1567,
+                    1444,
+                    1446,
+                    1448,
+                    1452,
+                    1457,
+                    1458,
+                    1460,
+                    1591,
+                    1593,
+                    1490,
+                    1491,
+                    1494,
+                    1498,
+                    1503,
+                    1505,
+                    1517,
+                    1518,
+                    1520,
+                    1522,
+                    1527
+                ],
+                "ax.name": [
+                    1568,
+                    1414,
+                    1546,
+                    1517,
+                    1520,
+                    1490,
+                    1430,
+                    1495
+                ],
+                "first": [
+                    1664,
+                    1417,
+                    1427,
+                    1689,
+                    1693,
+                    1695,
+                    1698,
+                    1699,
+                    1702,
+                    1704,
+                    1717,
+                    1719,
+                    1721,
+                    1728,
+                    1734,
+                    1736,
+                    1746,
+                    1749,
+                    1641,
+                    1642,
+                    1645,
+                    1646,
+                    1649,
+                    1651,
+                    1654,
+                    1658,
+                    1660
+                ],
+                "last": [
+                    1664,
+                    1417,
+                    1428,
+                    1689,
+                    1694,
+                    1696,
+                    1698,
+                    1699,
+                    1703,
+                    1704,
+                    1718,
+                    1723,
+                    1729,
+                    1740,
+                    1743,
+                    1753,
+                    1755,
+                    1643,
+                    1645,
+                    1646,
+                    1650,
+                    1651,
+                    1655,
+                    1662
+                ],
+                "_get_timestamp_range_edges": [
+                    1417,
+                    1698
+                ],
+                "ax.min": [
+                    1418,
+                    1493,
+                    1551
+                ],
+                "ax.max": [
+                    1552,
+                    1418,
+                    1493
+                ],
+                "date_range": [
+                    1784,
+                    1425
+                ],
+                "ax.tz": [
+                    1429
+                ],
+                "ax_values": [
+                    1440,
+                    1435,
+                    1436,
+                    1475
+                ],
+                "ax.asi8": [
+                    1435
+                ],
+                "bin_edges": [
+                    1440,
+                    1472,
+                    1475,
+                    1476,
+                    1479,
+                    1480,
+                    1436,
+                    1468,
+                    1469,
+                    1470
+                ],
+                "self._adjust_bin_edges": [
+                    1436
+                ],
+                "lib.generate_bins_dt64": [
+                    1439
+                ],
+                "lib": [
+                    1439
+                ],
+                "ax.hasnans": [
+                    1440,
+                    1450
+                ],
+                "binner.insert": [
+                    1451,
+                    1590
+                ],
+                "NaT": [
+                    1451,
+                    1452,
+                    1590,
+                    1591
+                ],
+                "labels.insert": [
+                    1452,
+                    1591
+                ],
+                "binner.tz_localize": [
+                    1468
+                ],
+                "Nano": [
+                    1469
+                ],
+                "asi8": [
+                    1470
+                ],
+                "bin_edges.tz_localize": [
+                    1470
+                ],
+                "binner.tz": [
+                    1470
+                ],
+                "binner.asi8": [
+                    1472,
+                    1479
+                ],
+                "ax_values.max": [
+                    1475
+                ],
+                "start": [
+                    1568,
+                    1495,
+                    1551,
+                    1493,
+                    1559,
+                    1563,
+                    1565
+                ],
+                "end": [
+                    1568,
+                    1495,
+                    1552,
+                    1493,
+                    1558,
+                    1559
+                ],
+                "timedelta_range": [
+                    1494
+                ],
+                "end_stamps": [
+                    1522,
+                    1524,
+                    1525,
+                    1498,
+                    1499
+                ],
+                "ax.searchsorted": [
+                    1499,
+                    1525
+                ],
+                "period_range": [
+                    1520,
+                    1567
+                ],
+                "to_timestamp": [
+                    1522
+                ],
+                "asfreq": [
+                    1552,
+                    1522,
+                    1551
+                ],
+                "ax.tzinfo": [
+                    1523,
+                    1524
+                ],
+                "end_stamps.tz_localize": [
+                    1524
+                ],
+                "nat_count": [
+                    1539,
+                    1541,
+                    1585,
+                    1588,
+                    1589
+                ],
+                "memb.hasnans": [
+                    1540
+                ],
+                "np.sum": [
+                    1541
+                ],
+                "memb._isnan": [
+                    1541,
+                    1542
+                ],
+                "freq_mult": [
+                    1574,
+                    1576,
+                    1577,
+                    1549,
+                    1564
+                ],
+                "self.freq.n": [
+                    1549
+                ],
+                "bin_shift": [
+                    1553,
+                    1579,
+                    1564
+                ],
+                "p_start": [
+                    1563,
+                    1565,
+                    1558
+                ],
+                "_get_period_range_edges": [
+                    1558
+                ],
+                "start_offset": [
+                    1563,
+                    1564
+                ],
+                "Period": [
+                    1689,
+                    1563
+                ],
+                "start_offset.n": [
+                    1564
+                ],
+                "i8": [
+                    1576,
+                    1571,
+                    1575
+                ],
+                "memb.asi8": [
+                    1571
+                ],
+                "expected_bins_count": [
+                    1574,
+                    1575
+                ],
+                "i8_extend": [
+                    1576,
+                    1575
+                ],
+                "rng": [
+                    1576,
+                    1577,
+                    1579,
+                    1582
+                ],
+                "np.arange": [
+                    1576
+                ],
+                "prng": [
+                    1582,
+                    1583
+                ],
+                "memb._data": [
+                    1582
+                ],
+                "memb.dtype": [
+                    1582
+                ],
+                "memb.searchsorted": [
+                    1583
+                ],
+                "np.insert": [
+                    1589
+                ],
+                "new_values": [
+                    1600,
+                    1599
+                ],
+                "algos.take_1d": [
+                    1599
+                ],
+                "algos": [
+                    1599
+                ],
+                "obj._values": [
+                    1599
+                ],
+                "obj._constructor": [
+                    1600,
+                    1604
+                ],
+                "obj.name": [
+                    1600
+                ],
+                "obj._data.reindex_indexer": [
+                    1605
+                ],
+                "obj._data": [
+                    1605
+                ],
+                "offset": [
+                    1695,
+                    1696,
+                    1699,
+                    1702,
+                    1703,
+                    1725,
+                    1728,
+                    1729,
+                    1736,
+                    1740,
+                    1753,
+                    1755,
+                    1636,
+                    1637,
+                    1646,
+                    1648,
+                    1658,
+                    1660,
+                    1662
+                ],
+                "Tick": [
+                    1636
+                ],
+                "Day": [
+                    1648,
+                    1637
+                ],
+                "tz": [
+                    1641,
+                    1650,
+                    1649
+                ],
+                "first.tz": [
+                    1641
+                ],
+                "first.tz_localize": [
+                    1649,
+                    1642
+                ],
+                "last.tz_localize": [
+                    1650,
+                    1643
+                ],
+                "_adjust_dates_anchored": [
+                    1645
+                ],
+                "first.normalize": [
+                    1654,
+                    1719
+                ],
+                "last.normalize": [
+                    1655
+                ],
+                "Timestamp": [
+                    1660,
+                    1658,
+                    1756,
+                    1757,
+                    1662
+                ],
+                "offset.rollback": [
+                    1658
+                ],
+                "all": [
+                    1689
+                ],
+                "first.to_timestamp": [
+                    1693
+                ],
+                "last.to_timestamp": [
+                    1694
+                ],
+                "adjust_first": [
+                    1702,
+                    1695
+                ],
+                "offset.is_on_offset": [
+                    1696,
+                    1695
+                ],
+                "adjust_last": [
+                    1696,
+                    1703
+                ],
+                "to_period": [
+                    1702,
+                    1703
+                ],
+                "first_tzinfo": [
+                    1720,
+                    1717,
+                    1758,
+                    1759
+                ],
+                "first.tzinfo": [
+                    1717
+                ],
+                "last_tzinfo": [
+                    1760,
+                    1761,
+                    1722,
+                    1718
+                ],
+                "last.tzinfo": [
+                    1718
+                ],
+                "start_day_nanos": [
+                    1728,
+                    1729,
+                    1726,
+                    1719
+                ],
+                "value": [
+                    1719
+                ],
+                "first.tz_convert": [
+                    1721
+                ],
+                "last.tz_convert": [
+                    1723
+                ],
+                "base_nanos": [
+                    1725,
+                    1726
+                ],
+                "offset.n": [
+                    1725
+                ],
+                "offset.nanos": [
+                    1728,
+                    1729,
+                    1736,
+                    1740,
+                    1753,
+                    1755,
+                    1725
+                ],
+                "foffset": [
+                    1728,
+                    1732,
+                    1734,
+                    1745,
+                    1746
+                ],
+                "first.value": [
+                    1728,
+                    1734,
+                    1736,
+                    1746,
+                    1749
+                ],
+                "last.value": [
+                    1729,
+                    1740,
+                    1743,
+                    1753,
+                    1755
+                ],
+                "fresult": [
+                    1762,
+                    1734,
+                    1736,
+                    1746,
+                    1749,
+                    1756,
+                    1759
+                ],
+                "lresult": [
+                    1761,
+                    1762,
+                    1740,
+                    1743,
+                    1753,
+                    1755,
+                    1757
+                ],
+                "tz_convert": [
+                    1761,
+                    1759
+                ],
+                "fresult.tz_localize": [
+                    1759
+                ],
+                "lresult.tz_localize": [
+                    1761
+                ],
+                "new_obj": [
+                    1776,
+                    1777,
+                    1780,
+                    1782,
+                    1786,
+                    1788,
+                    1790
+                ],
+                "new_obj.index": [
+                    1777,
+                    1788,
+                    1782
+                ],
+                "obj.index.asfreq": [
+                    1777
+                ],
+                "dti": [
+                    1784,
+                    1785,
+                    1786
+                ],
+                "dti.name": [
+                    1785
+                ],
+                "obj.index.name": [
+                    1785
+                ],
+                "normalize": [
+                    1787
+                ],
+                "new_obj.index.normalize": [
+                    1788
+                ],
+                "index": [
+                    1811,
+                    1812,
+                    1806,
+                    1814
+                ],
+                "index.asfreq": [
+                    1812
+                ],
+                "Index": [
+                    1814
+                ],
+                "index.dtype": [
+                    1814
+                ],
+                "index.name": [
+                    1814
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/tests/resample/test_datetime_index.py",
+                "test_function": "test_downsample_dst_at_midnight",
+                "test_function_code": "def test_downsample_dst_at_midnight():\n    # GH 25758\n    start = datetime(2018, 11, 3, 12)\n    end = datetime(2018, 11, 5, 12)\n    index = pd.date_range(start, end, freq=\"1H\")\n    index = index.tz_localize(\"UTC\").tz_convert(\"America/Havana\")\n    data = list(range(len(index)))\n    dataframe = pd.DataFrame(data, index=index)\n    result = dataframe.groupby(pd.Grouper(freq=\"1D\")).mean()\n    expected = DataFrame(\n        [7.5, 28.0, 44.5],\n        index=date_range(\"2018-11-03\", periods=3).tz_localize(\n            \"America/Havana\", ambiguous=True\n        ),\n    )\n    tm.assert_frame_equal(result, expected)",
+                "test_error": "pytz.exceptions.AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times",
+                "full_test_error": "def test_downsample_dst_at_midnight():\n        # GH 25758\n        start = datetime(2018, 11, 3, 12)\n        end = datetime(2018, 11, 5, 12)\n        index = pd.date_range(start, end, freq=\"1H\")\n        index = index.tz_localize(\"UTC\").tz_convert(\"America/Havana\")\n        data = list(range(len(index)))\n        dataframe = pd.DataFrame(data, index=index)\n>       result = dataframe.groupby(pd.Grouper(freq=\"1D\")).mean()\n\npandas/tests/resample/test_datetime_index.py:1451: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/frame.py:5828: in groupby\n    return DataFrameGroupBy(\npandas/core/groupby/groupby.py:401: in __init__\n    grouper, exclusions, obj = get_grouper(\npandas/core/groupby/grouper.py:508: in get_grouper\n    binner, grouper, obj = key._get_grouper(obj, validate=False)\npandas/core/resample.py:1403: in _get_grouper\n    r._set_binner()\npandas/core/resample.py:179: in _set_binner\n    self.binner, self.grouper = self._get_binner()\npandas/core/resample.py:186: in _get_binner\n    binner, bins, binlabels = self._get_binner_for_time()\npandas/core/resample.py:1003: in _get_binner_for_time\n    return self.groupby._get_time_bins(self.ax)\npandas/core/resample.py:1425: in _get_time_bins\n    binner = labels = date_range(\npandas/core/indexes/datetimes.py:966: in date_range\n    dtarr = DatetimeArray._generate_range(\npandas/core/arrays/datetimes.py:411: in _generate_range\n    arr = conversion.tz_localize_to_utc(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise pytz.AmbiguousTimeError(\nE   pytz.exceptions.AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times\n\npandas/_libs/tslibs/tzconversion.pyx:177: AmbiguousTimeError",
+                "traceback": "pandas/core/frame.py:5828: in groupby\n    return DataFrameGroupBy(\npandas/core/groupby/groupby.py:401: in __init__\n    grouper, exclusions, obj = get_grouper(\npandas/core/groupby/grouper.py:508: in get_grouper\n    binner, grouper, obj = key._get_grouper(obj, validate=False)\npandas/core/resample.py:1403: in _get_grouper\n    r._set_binner()\npandas/core/resample.py:179: in _set_binner\n    self.binner, self.grouper = self._get_binner()\npandas/core/resample.py:186: in _get_binner\n    binner, bins, binlabels = self._get_binner_for_time()\npandas/core/resample.py:1003: in _get_binner_for_time\n    return self.groupby._get_time_bins(self.ax)\npandas/core/resample.py:1425: in _get_time_bins\n    binner = labels = date_range(\npandas/core/indexes/datetimes.py:966: in date_range\n    dtarr = DatetimeArray._generate_range(\npandas/core/arrays/datetimes.py:411: in _generate_range\n    arr = conversion.tz_localize_to_utc(",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise pytz.AmbiguousTimeError(\nE   pytz.exceptions.AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times\n\npandas/_libs/tslibs/tzconversion.pyx:177: AmbiguousTimeError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}
