@@ -4,8 +4,9 @@
             "buggy_functions": [
                 {
                     "function_name": "_cython_agg_blocks",
-                    "function_code": "    def _cython_agg_blocks(\n        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n    ) -> \"Tuple[List[Block], Index]\":\n        # TODO: the actual managing of mgr_locs is a PITA\n        # here, it should happen via BlockManager.combine\n\n        data: BlockManager = self._get_data_to_aggregate()\n\n        if numeric_only:\n            data = data.get_numeric_data(copy=False)\n\n        agg_blocks: List[Block] = []\n        new_items: List[np.ndarray] = []\n        deleted_items: List[np.ndarray] = []\n        # Some object-dtype blocks might be split into List[Block[T], Block[U]]\n        split_items: List[np.ndarray] = []\n        split_frames: List[DataFrame] = []\n\n        no_result = object()\n        for block in data.blocks:\n            # Avoid inheriting result from earlier in the loop\n            result = no_result\n            locs = block.mgr_locs.as_array\n            try:\n                result, _ = self.grouper.aggregate(\n                    block.values, how, axis=1, min_count=min_count\n                )\n            except NotImplementedError:\n                # generally if we have numeric_only=False\n                # and non-applicable functions\n                # try to python agg\n\n                if alt is None:\n                    # we cannot perform the operation\n                    # in an alternate way, exclude the block\n                    assert how == \"ohlc\"\n                    deleted_items.append(locs)\n                    continue\n\n                # call our grouper again with only this block\n                obj = self.obj[data.items[locs]]\n                if obj.shape[1] == 1:\n                    # Avoid call to self.values that can occur in DataFrame\n                    #  reductions; see GH#28949\n                    obj = obj.iloc[:, 0]\n\n                s = get_groupby(obj, self.grouper)\n                try:\n                    result = s.aggregate(lambda x: alt(x, axis=self.axis))\n                except TypeError:\n                    # we may have an exception in trying to aggregate\n                    # continue and exclude the block\n                    deleted_items.append(locs)\n                    continue\n                else:\n                    result = cast(DataFrame, result)\n                    # unwrap DataFrame to get array\n                    if len(result._data.blocks) != 1:\n                        # We've split an object block! Everything we've assumed\n                        # about a single block input returning a single block output\n                        # is a lie. To keep the code-path for the typical non-split case\n                        # clean, we choose to clean up this mess later on.\n                        split_items.append(locs)\n                        split_frames.append(result)\n                        continue\n\n                    assert len(result._data.blocks) == 1\n                    result = result._data.blocks[0].values\n                    if isinstance(result, np.ndarray) and result.ndim == 1:\n                        result = result.reshape(1, -1)\n\n            assert not isinstance(result, DataFrame)\n\n            if result is not no_result:\n                # see if we can cast the block back to the original dtype\n                result = maybe_downcast_numeric(result, block.dtype)\n\n                if block.is_extension and isinstance(result, np.ndarray):\n                    # e.g. block.values was an IntegerArray\n                    # (1, N) case can occur if block.values was Categorical\n                    #  and result is ndarray[object]\n                    assert result.ndim == 1 or result.shape[0] == 1\n                    try:\n                        # Cast back if feasible\n                        result = type(block.values)._from_sequence(\n                            result.ravel(), dtype=block.values.dtype\n                        )\n                    except ValueError:\n                        # reshape to be valid for non-Extension Block\n                        result = result.reshape(1, -1)\n\n                agg_block: Block = block.make_block(result)\n\n            new_items.append(locs)\n            agg_blocks.append(agg_block)\n\n        if not (agg_blocks or split_frames):\n            raise DataError(\"No numeric types to aggregate\")\n\n        if split_items:\n            # Clean up the mess left over from split blocks.\n            for locs, result in zip(split_items, split_frames):\n                assert len(locs) == result.shape[1]\n                for i, loc in enumerate(locs):\n                    new_items.append(np.array([loc], dtype=locs.dtype))\n                    agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])\n\n        # reset the locs in the blocks to correspond to our\n        # current ordering\n        indexer = np.concatenate(new_items)\n        agg_items = data.items.take(np.sort(indexer))\n\n        if deleted_items:\n\n            # we need to adjust the indexer to account for the\n            # items we have removed\n            # really should be done in internals :<\n\n            deleted = np.concatenate(deleted_items)\n            ai = np.arange(len(data))\n            mask = np.zeros(len(data))\n            mask[deleted] = 1\n            indexer = (ai - mask.cumsum())[indexer]\n\n        offset = 0\n        for blk in agg_blocks:\n            loc = len(blk.mgr_locs)\n            blk.mgr_locs = indexer[offset : (offset + loc)]\n            offset += loc\n\n        return agg_blocks, agg_items\n",
+                    "function_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    # TODO: the actual managing of mgr_locs is a PITA\n    # here, it should happen via BlockManager.combine\n\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    new_items: List[np.ndarray] = []\n    deleted_items: List[np.ndarray] = []\n    # Some object-dtype blocks might be split into List[Block[T], Block[U]]\n    split_items: List[np.ndarray] = []\n    split_frames: List[DataFrame] = []\n\n    no_result = object()\n    for block in data.blocks:\n        # Avoid inheriting result from earlier in the loop\n        result = no_result\n        locs = block.mgr_locs.as_array\n        try:\n            result, _ = self.grouper.aggregate(\n                block.values, how, axis=1, min_count=min_count\n            )\n        except NotImplementedError:\n            # generally if we have numeric_only=False\n            # and non-applicable functions\n            # try to python agg\n\n            if alt is None:\n                # we cannot perform the operation\n                # in an alternate way, exclude the block\n                assert how == \"ohlc\"\n                deleted_items.append(locs)\n                continue\n\n            # call our grouper again with only this block\n            obj = self.obj[data.items[locs]]\n            if obj.shape[1] == 1:\n                # Avoid call to self.values that can occur in DataFrame\n                #  reductions; see GH#28949\n                obj = obj.iloc[:, 0]\n\n            s = get_groupby(obj, self.grouper)\n            try:\n                result = s.aggregate(lambda x: alt(x, axis=self.axis))\n            except TypeError:\n                # we may have an exception in trying to aggregate\n                # continue and exclude the block\n                deleted_items.append(locs)\n                continue\n            else:\n                result = cast(DataFrame, result)\n                # unwrap DataFrame to get array\n                if len(result._data.blocks) != 1:\n                    # We've split an object block! Everything we've assumed\n                    # about a single block input returning a single block output\n                    # is a lie. To keep the code-path for the typical non-split case\n                    # clean, we choose to clean up this mess later on.\n                    split_items.append(locs)\n                    split_frames.append(result)\n                    continue\n\n                assert len(result._data.blocks) == 1\n                result = result._data.blocks[0].values\n                if isinstance(result, np.ndarray) and result.ndim == 1:\n                    result = result.reshape(1, -1)\n\n        assert not isinstance(result, DataFrame)\n\n        if result is not no_result:\n            # see if we can cast the block back to the original dtype\n            result = maybe_downcast_numeric(result, block.dtype)\n\n            if block.is_extension and isinstance(result, np.ndarray):\n                # e.g. block.values was an IntegerArray\n                # (1, N) case can occur if block.values was Categorical\n                #  and result is ndarray[object]\n                assert result.ndim == 1 or result.shape[0] == 1\n                try:\n                    # Cast back if feasible\n                    result = type(block.values)._from_sequence(\n                        result.ravel(), dtype=block.values.dtype\n                    )\n                except ValueError:\n                    # reshape to be valid for non-Extension Block\n                    result = result.reshape(1, -1)\n\n            agg_block: Block = block.make_block(result)\n\n        new_items.append(locs)\n        agg_blocks.append(agg_block)\n\n    if not (agg_blocks or split_frames):\n        raise DataError(\"No numeric types to aggregate\")\n\n    if split_items:\n        # Clean up the mess left over from split blocks.\n        for locs, result in zip(split_items, split_frames):\n            assert len(locs) == result.shape[1]\n            for i, loc in enumerate(locs):\n                new_items.append(np.array([loc], dtype=locs.dtype))\n                agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])\n\n    # reset the locs in the blocks to correspond to our\n    # current ordering\n    indexer = np.concatenate(new_items)\n    agg_items = data.items.take(np.sort(indexer))\n\n    if deleted_items:\n\n        # we need to adjust the indexer to account for the\n        # items we have removed\n        # really should be done in internals :<\n\n        deleted = np.concatenate(deleted_items)\n        ai = np.arange(len(data))\n        mask = np.zeros(len(data))\n        mask[deleted] = 1\n        indexer = (ai - mask.cumsum())[indexer]\n\n    offset = 0\n    for blk in agg_blocks:\n        loc = len(blk.mgr_locs)\n        blk.mgr_locs = indexer[offset : (offset + loc)]\n        offset += loc\n\n    return agg_blocks, agg_items\n",
                     "decorators": [],
+                    "docstring": null,
                     "start_line": 999,
                     "variables": {
                         "str": [
@@ -427,15 +428,6 @@
                         ]
                     },
                     "filtered_variables": {
-                        "str": [
-                            1000
-                        ],
-                        "bool": [
-                            1000
-                        ],
-                        "int": [
-                            1000
-                        ],
                         "data": [
                             1005,
                             1039,
@@ -538,9 +530,6 @@
                             1017,
                             1020
                         ],
-                        "object": [
-                            1017
-                        ],
                         "block": [
                             1024,
                             1090,
@@ -618,9 +607,6 @@
                         "min_count": [
                             1024
                         ],
-                        "NotImplementedError": [
-                            1026
-                        ],
                         "alt": [
                             1047,
                             1031
@@ -664,19 +650,8 @@
                         "self.axis": [
                             1047
                         ],
-                        "TypeError": [
-                            1048
-                        ],
                         "cast": [
                             1054
-                        ],
-                        "len": [
-                            1056,
-                            1125,
-                            1065,
-                            1101,
-                            1118,
-                            1119
                         ],
                         "result._data.blocks": [
                             1056,
@@ -696,11 +671,6 @@
                         ],
                         "values": [
                             1066
-                        ],
-                        "isinstance": [
-                            1067,
-                            1076,
-                            1070
                         ],
                         "result.ndim": [
                             1080,
@@ -726,17 +696,11 @@
                         "_from_sequence": [
                             1083
                         ],
-                        "type": [
-                            1083
-                        ],
                         "result.ravel": [
                             1084
                         ],
                         "block.values.dtype": [
                             1084
-                        ],
-                        "ValueError": [
-                            1086
                         ],
                         "agg_block": [
                             1090,
@@ -756,9 +720,6 @@
                         "DataError": [
                             1096
                         ],
-                        "zip": [
-                            1100
-                        ],
                         "i": [
                             1104,
                             1102
@@ -769,9 +730,6 @@
                             1127,
                             1102,
                             1103
-                        ],
-                        "enumerate": [
-                            1102
                         ],
                         "np.array": [
                             1103
@@ -4560,24 +4518,6 @@
                     1138,
                     85
                 ],
-                "str": [
-                    992,
-                    1442,
-                    1155,
-                    520,
-                    1000,
-                    1417,
-                    1166,
-                    561,
-                    1138,
-                    115,
-                    467,
-                    85,
-                    1467,
-                    249,
-                    953,
-                    92
-                ],
                 "Callable": [
                     85,
                     1479
@@ -4835,19 +4775,6 @@
                     109,
                     110
                 ],
-                "getattr": [
-                    480,
-                    262,
-                    808,
-                    109,
-                    1425,
-                    562,
-                    1433,
-                    250,
-                    475,
-                    1468,
-                    1470
-                ],
                 "klass": [
                     498,
                     487,
@@ -4870,18 +4797,11 @@
                 "prop.__name__": [
                     111
                 ],
-                "property": [
-                    112,
-                    158
-                ],
                 "FrozenSet": [
                     115
                 ],
                 "whitelist": [
                     137
-                ],
-                "hasattr": [
-                    138
                 ],
                 "cls": [
                     144,
@@ -4890,9 +4810,6 @@
                 ],
                 "generate_property": [
                     143
-                ],
-                "setattr": [
-                    144
                 ],
                 "pinner": [
                     148
@@ -5028,10 +4945,6 @@
                     231
                 ],
                 "apply": [
-                    227
-                ],
-                "super": [
-                    1601,
                     227
                 ],
                 "func": [
@@ -5183,9 +5096,6 @@
                     634,
                     221
                 ],
-                "format": [
-                    222
-                ],
                 "_apply_docs": [
                     222,
                     223
@@ -5227,69 +5137,11 @@
                     241,
                     247
                 ],
-                "list": [
-                    299,
-                    301,
-                    302,
-                    1294,
-                    243,
-                    917
-                ],
                 "col": [
                     1512,
                     1834,
                     244,
                     1510
-                ],
-                "TypeError": [
-                    576,
-                    1513,
-                    575,
-                    1583,
-                    1520,
-                    247,
-                    1048,
-                    1372,
-                    927
-                ],
-                "isinstance": [
-                    1283,
-                    1417,
-                    1299,
-                    917,
-                    1301,
-                    282,
-                    1435,
-                    415,
-                    291,
-                    1319,
-                    296,
-                    1067,
-                    301,
-                    302,
-                    430,
-                    1070,
-                    561,
-                    1838,
-                    1203,
-                    1076,
-                    440,
-                    1592,
-                    442,
-                    1467,
-                    1344,
-                    326,
-                    456,
-                    1232,
-                    467,
-                    981,
-                    1495,
-                    1248,
-                    1249,
-                    1380,
-                    494,
-                    249,
-                    252
                 ],
                 "abc.Iterable": [
                     252
@@ -5379,21 +5231,6 @@
                     265,
                     939,
                     268
-                ],
-                "ValueError": [
-                    1376,
-                    1374,
-                    457,
-                    269,
-                    1165,
-                    1422,
-                    952,
-                    472,
-                    1086,
-                    575
-                ],
-                "KeyError": [
-                    269
                 ],
                 "result": [
                     514,
@@ -5558,9 +5395,6 @@
                     958,
                     1215
                 ],
-                "sorted": [
-                    274
-                ],
                 "self.grouper.names": [
                     1188,
                     425,
@@ -5573,14 +5407,6 @@
                     275,
                     1238
                 ],
-                "object": [
-                    1568,
-                    491,
-                    276,
-                    1366,
-                    1239,
-                    1017
-                ],
                 "self.as_index": [
                     962,
                     1860,
@@ -5589,14 +5415,6 @@
                     1625,
                     1690,
                     1727
-                ],
-                "print": [
-                    280
-                ],
-                "dict": [
-                    282,
-                    291,
-                    430
                 ],
                 "concat": [
                     1312,
@@ -5647,12 +5465,6 @@
                 "arg.items": [
                     300
                 ],
-                "any": [
-                    1334,
-                    1344,
-                    301,
-                    326
-                ],
                 "x": [
                     1344,
                     801,
@@ -5669,22 +5481,6 @@
                     568,
                     636,
                     1470
-                ],
-                "tuple": [
-                    1592,
-                    301,
-                    302
-                ],
-                "next": [
-                    305,
-                    1193
-                ],
-                "zip": [
-                    1100,
-                    305,
-                    1654,
-                    1782,
-                    312
                 ],
                 "f": [
                     309,
@@ -5988,37 +5784,6 @@
                     1685,
                     1718
                 ],
-                "len": [
-                    1293,
-                    917,
-                    411,
-                    1056,
-                    1185,
-                    419,
-                    1065,
-                    1206,
-                    1592,
-                    1211,
-                    964,
-                    1861,
-                    712,
-                    1101,
-                    1118,
-                    1119,
-                    737,
-                    1889,
-                    1252,
-                    741,
-                    614,
-                    358,
-                    1125,
-                    1388,
-                    1519,
-                    1393,
-                    627,
-                    628,
-                    1523
-                ],
                 "result.columns": [
                     1889,
                     1318,
@@ -6237,11 +6002,6 @@
                 "_transform_template": [
                     1411,
                     463
-                ],
-                "type": [
-                    1584,
-                    1083,
-                    487
                 ],
                 "object.__setattr__": [
                     1568,
@@ -6477,13 +6237,6 @@
                 "notna": [
                     569,
                     1579
-                ],
-                "bool": [
-                    992,
-                    581,
-                    1000,
-                    567,
-                    1786
                 ],
                 "indices": [
                     578,
@@ -6798,9 +6551,6 @@
                     689,
                     690
                 ],
-                "slice": [
-                    689
-                ],
                 "np.diff": [
                     712,
                     692
@@ -7044,9 +6794,6 @@
                 "normalize_keyword_aggregation": [
                     914
                 ],
-                "set": [
-                    917
-                ],
                 "how": [
                     1024,
                     931,
@@ -7110,14 +6857,6 @@
                 "obj.items": [
                     1848,
                     985
-                ],
-                "int": [
-                    992,
-                    1155,
-                    1603,
-                    1000,
-                    1138,
-                    1846
                 ],
                 "agg_blocks": [
                     994,
@@ -7272,9 +7011,6 @@
                     1083,
                     1084
                 ],
-                "NotImplementedError": [
-                    1026
-                ],
                 "deleted_items.append": [
                     1051,
                     1035
@@ -7385,12 +7121,6 @@
                     1103,
                     1782
                 ],
-                "enumerate": [
-                    1456,
-                    1510,
-                    1745,
-                    1102
-                ],
                 "np.array": [
                     1103
                 ],
@@ -7441,11 +7171,6 @@
                     1777,
                     1125,
                     1126
-                ],
-                "AssertionError": [
-                    1635,
-                    1133,
-                    1486
                 ],
                 "axis": [
                     1139,
@@ -7538,9 +7263,6 @@
                 ],
                 "com.not_none": [
                     1193
-                ],
-                "StopIteration": [
-                    1194
                 ],
                 "v": [
                     1283,
@@ -7858,9 +7580,6 @@
                     1485,
                     1495
                 ],
-                "Exception": [
-                    1488
-                ],
                 "res_fast.columns.equals": [
                     1498
                 ],
@@ -7887,9 +7606,6 @@
                 "res.squeeze": [
                     1573
                 ],
-                "AttributeError": [
-                    1574
-                ],
                 "is_bool": [
                     1578
                 ],
@@ -7899,17 +7615,11 @@
                 "indices.append": [
                     1580
                 ],
-                "__name__": [
-                    1584
-                ],
                 "warnings.warn": [
                     1595
                 ],
                 "warnings": [
                     1595
-                ],
-                "FutureWarning": [
-                    1598
                 ],
                 "__getitem__": [
                     1601
@@ -7949,12 +7659,6 @@
                 "izip": [
                     1665,
                     1654
-                ],
-                "map": [
-                    1655
-                ],
-                "reversed": [
-                    1656
                 ],
                 "self.grouper.get_group_levels": [
                     1659
@@ -8090,9 +7794,6 @@
                 "obj_cols": [
                     1894,
                     1887
-                ],
-                "range": [
-                    1889
                 ],
                 "is_object_dtype": [
                     1890

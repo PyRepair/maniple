@@ -4,8 +4,9 @@
             "buggy_functions": [
                 {
                     "function_name": "run",
-                    "function_code": "    def run(self):\n        \"\"\"\n        If the target table doesn't exist, self.create_table\n        will be called to attempt to create the table.\n        \"\"\"\n        if not (self.table):\n            raise Exception(\"table need to be specified\")\n\n        path = self.s3_load_path()\n        connection = self.output().connect()\n        if not self.does_table_exist(connection):\n            # try creating table\n            logger.info(\"Creating table %s\", self.table)\n            connection.reset()\n            self.create_table(connection)\n        elif self.do_truncate_table():\n            logger.info(\"Truncating table %s\", self.table)\n            self.truncate_table(connection)\n\n        logger.info(\"Inserting file: %s\", path)\n        cursor = connection.cursor()\n        self.init_copy(connection)\n        self.copy(cursor, path)\n        self.output().touch(connection)\n        connection.commit()\n\n        # commit and clean up\n        connection.close()\n",
+                    "function_code": "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not (self.table):\n        raise Exception(\"table need to be specified\")\n\n    path = self.s3_load_path()\n    connection = self.output().connect()\n    if not self.does_table_exist(connection):\n        # try creating table\n        logger.info(\"Creating table %s\", self.table)\n        connection.reset()\n        self.create_table(connection)\n    elif self.do_truncate_table():\n        logger.info(\"Truncating table %s\", self.table)\n        self.truncate_table(connection)\n\n    logger.info(\"Inserting file: %s\", path)\n    cursor = connection.cursor()\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.output().touch(connection)\n    connection.commit()\n\n    # commit and clean up\n    connection.close()\n",
                     "decorators": [],
+                    "docstring": "If the target table doesn't exist, self.create_table\nwill be called to attempt to create the table.",
                     "start_line": 158,
                     "variables": {
                         "self.table": [
@@ -124,9 +125,6 @@
                             179,
                             180,
                             181
-                        ],
-                        "Exception": [
-                            164
                         ],
                         "path": [
                             177,
@@ -782,9 +780,6 @@
                 "logging": [
                     28
                 ],
-                "ImportError": [
-                    34
-                ],
                 "logger.warning": [
                     35
                 ],
@@ -977,17 +972,10 @@
                     228,
                     125
                 ],
-                "len": [
-                    138,
-                    143
-                ],
                 "self.columns": [
                     138,
                     148,
                     143
-                ],
-                "NotImplementedError": [
-                    140
                 ],
                 "coldefs": [
                     145,
@@ -996,15 +984,8 @@
                 "join": [
                     145
                 ],
-                "format": [
-                    146,
-                    150
-                ],
                 "name": [
                     147,
-                    148
-                ],
-                "type": [
                     148
                 ],
                 "self.table_attributes": [
@@ -1012,9 +993,6 @@
                 ],
                 "execute": [
                     156
-                ],
-                "Exception": [
-                    164
                 ],
                 "path": [
                     177,
@@ -1134,9 +1112,6 @@
                 "cursor.fetchone": [
                     225
                 ],
-                "bool": [
-                    226
-                ],
                 "S3CopyToTable": [
                     231
                 ],
@@ -1207,9 +1182,6 @@
                     322,
                     326,
                     327
-                ],
-                "open": [
-                    322
                 ],
                 "dump": [
                     323,
@@ -1282,7 +1254,7 @@
                 "test_function": "test_s3_copy_to_table",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_with(database=task.database,\n                                                host=task.host,\n                                                update_id='DummyS3CopyToTable()',\n                                                user=task.user,\n                                                table=task.table,\n                                                password=task.password)\n\n        # Check if the `S3CopyToTable.s3_load_path` class attribute was\n        # successfully referenced in the `S3CopyToTable.run` method, which is\n        # in-turn passed to `S3CopyToTable.copy` and other functions in `run`\n        # (see issue #995).\n        mock_copy.assert_called_with(mock_cursor, task.s3_load_path)\n\n        # Check the SQL query in `S3CopyToTable.does_table_exist`.\n        mock_cursor.execute.assert_called_with(\"select 1 as table_exists \"\n                                               \"from pg_table_def \"\n                                               \"where tablename = %s limit 1\",\n                                               (task.table,))\n\n        return",
                 "test_error": "TypeError: 'str' object is not callable",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4442542528'>\nmock_copy = <MagicMock name='copy' id='4442657984'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n>       task.run()\n\ntest/contrib/redshift_test.py:55: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTable()\n\n    def run(self):\n        \"\"\"\n        If the target table doesn't exist, self.create_table\n        will be called to attempt to create the table.\n        \"\"\"\n        if not (self.table):\n            raise Exception(\"table need to be specified\")\n    \n>       path = self.s3_load_path()\nE       TypeError: 'str' object is not callable\n\nluigi/contrib/redshift.py:166: TypeError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4462506384'>\nmock_copy = <MagicMock name='copy' id='4462613408'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n>       task.run()\n\ntest/contrib/redshift_test.py:55: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTable()\n\n    def run(self):\n        \"\"\"\n        If the target table doesn't exist, self.create_table\n        will be called to attempt to create the table.\n        \"\"\"\n        if not (self.table):\n            raise Exception(\"table need to be specified\")\n    \n>       path = self.s3_load_path()\nE       TypeError: 'str' object is not callable\n\nluigi/contrib/redshift.py:166: TypeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [

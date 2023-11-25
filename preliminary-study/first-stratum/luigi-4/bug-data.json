@@ -4,8 +4,9 @@
             "buggy_functions": [
                 {
                     "function_name": "copy",
-                    "function_code": "    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n\n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n        if len(self.columns) > 0:\n            colnames = \",\".join([x[0] for x in self.columns])\n            colnames = '({})'.format(colnames)\n\n        cursor.execute(\"\"\"\n         COPY {table} {colnames} from '{source}'\n         CREDENTIALS '{creds}'\n         {options}\n         ;\"\"\".format(\n            table=self.table,\n            colnames=colnames,\n            source=f,\n            creds=self._credentials(),\n            options=self.copy_options)\n        )\n",
+                    "function_code": "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    logger.info(\"Inserting file: %s\", f)\n    colnames = ''\n    if len(self.columns) > 0:\n        colnames = \",\".join([x[0] for x in self.columns])\n        colnames = '({})'.format(colnames)\n\n    cursor.execute(\"\"\"\n     COPY {table} {colnames} from '{source}'\n     CREDENTIALS '{creds}'\n     {options}\n     ;\"\"\".format(\n        table=self.table,\n        colnames=colnames,\n        source=f,\n        creds=self._credentials(),\n        options=self.copy_options)\n    )\n",
                     "decorators": [],
+                    "docstring": "Defines copying from s3 into redshift.\n\nIf both key-based and role-based credentials are provided, role-based will be used.",
                     "start_line": 348,
                     "variables": {
                         "logger.info": [
@@ -81,9 +82,6 @@
                             357,
                             358
                         ],
-                        "len": [
-                            356
-                        ],
                         "self.columns": [
                             356,
                             357
@@ -100,10 +98,6 @@
                         ],
                         "x": [
                             357
-                        ],
-                        "format": [
-                            360,
-                            358
                         ],
                         "cursor.execute": [
                             360
@@ -1047,30 +1041,8 @@
                 "logging": [
                     29
                 ],
-                "ImportError": [
-                    35
-                ],
                 "logger.warning": [
                     36
-                ],
-                "property": [
-                    674,
-                    69,
-                    200,
-                    681,
-                    76,
-                    47,
-                    240,
-                    209,
-                    688,
-                    83,
-                    182,
-                    55,
-                    568,
-                    247,
-                    220,
-                    62,
-                    191
                 ],
                 "self._get_configuration_attribute": [
                     67,
@@ -1235,18 +1207,6 @@
                     106,
                     109
                 ],
-                "format": [
-                    289,
-                    707,
-                    293,
-                    358,
-                    360,
-                    107,
-                    112,
-                    306,
-                    115,
-                    311
-                ],
                 "self.aws_access_key_id": [
                     113,
                     111
@@ -1257,10 +1217,6 @@
                 ],
                 "self.aws_session_token": [
                     115
-                ],
-                "NotImplementedError": [
-                    283,
-                    118
                 ],
                 "postgres.PostgresTarget": [
                     126
@@ -1329,10 +1285,6 @@
                     235,
                     421,
                     263
-                ],
-                "Exception": [
-                    330,
-                    236
                 ],
                 "query": [
                     258,
@@ -1452,12 +1404,6 @@
                     405,
                     607
                 ],
-                "len": [
-                    302,
-                    281,
-                    356,
-                    286
-                ],
                 "self.columns": [
                     291,
                     356,
@@ -1484,11 +1430,6 @@
                     291,
                     309
                 ],
-                "type": [
-                    291,
-                    308,
-                    309
-                ],
                 "self.table_type": [
                     296,
                     314
@@ -1503,9 +1444,6 @@
                 ],
                 "encoding": [
                     309
-                ],
-                "ValueError": [
-                    321
                 ],
                 "path": [
                     338,
@@ -1632,9 +1570,6 @@
                     731,
                     589
                 ],
-                "tuple": [
-                    401
-                ],
                 "self.table.split": [
                     401
                 ],
@@ -1644,9 +1579,6 @@
                 ],
                 "cursor.fetchone": [
                     402
-                ],
-                "bool": [
-                    403
                 ],
                 "self.does_table_exist": [
                     411
@@ -1741,9 +1673,6 @@
                 "target": [
                     530,
                     531,
-                    526
-                ],
-                "open": [
                     526
                 ],
                 "dump": [
@@ -1856,9 +1785,9 @@
                 "test_function": "test_s3_copy_with_nonetype_columns",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_once_with(\n            database=task.database,\n            host=task.host,\n            update_id=task.task_id,\n            user=task.user,\n            table=task.table,\n            password=task.password,\n        )\n\n        # To get the proper intendation in the multiline `COPY` statement the\n        # SQL string was copied from redshift.py.\n        mock_cursor.execute.assert_called_with(\"\"\"\n         COPY {table} {colnames} from '{source}'\n         CREDENTIALS '{creds}'\n         {options}\n         ;\"\"\".format(\n            table='dummy_table',\n            colnames='',\n            source='s3://bucket/key',\n            creds='aws_access_key_id=key;aws_secret_access_key=secret',\n            options='')\n        )",
                 "test_error": "TypeError: object of type 'NoneType' has no len()",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4504133344'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4504712384'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4384615920'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4385178720'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "traceback": "luigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4504712384'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4385178720'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "test_function_decorators": [
                     "mock.patch('luigi.contrib.redshift.RedshiftTarget')"
                 ]

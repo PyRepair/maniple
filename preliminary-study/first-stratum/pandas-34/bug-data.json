@@ -4,8 +4,9 @@
             "buggy_functions": [
                 {
                     "function_name": "_get_time_bins",
-                    "function_code": "    def _get_time_bins(self, ax):\n        if not isinstance(ax, DatetimeIndex):\n            raise TypeError(\n                \"axis must be a DatetimeIndex, but got \"\n                f\"an instance of {type(ax).__name__}\"\n            )\n\n        if len(ax) == 0:\n            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n            return binner, [], labels\n\n        first, last = _get_timestamp_range_edges(\n            ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base\n        )\n        # GH #12037\n        # use first/last directly instead of call replace() on them\n        # because replace() will swallow the nanosecond part\n        # thus last bin maybe slightly before the end if the end contains\n        # nanosecond part and lead to `Values falls after last bin` error\n        binner = labels = date_range(\n            freq=self.freq,\n            start=first,\n            end=last,\n            tz=ax.tz,\n            name=ax.name,\n            ambiguous=\"infer\",\n            nonexistent=\"shift_forward\",\n        )\n\n        ax_values = ax.asi8\n        binner, bin_edges = self._adjust_bin_edges(binner, ax_values)\n\n        # general version, knowing nothing about relative frequencies\n        bins = lib.generate_bins_dt64(\n            ax_values, bin_edges, self.closed, hasnans=ax.hasnans\n        )\n\n        if self.closed == \"right\":\n            labels = binner\n            if self.label == \"right\":\n                labels = labels[1:]\n        elif self.label == \"right\":\n            labels = labels[1:]\n\n        if ax.hasnans:\n            binner = binner.insert(0, NaT)\n            labels = labels.insert(0, NaT)\n\n        # if we end up with more labels than bins\n        # adjust the labels\n        # GH4076\n        if len(bins) < len(labels):\n            labels = labels[: len(bins)]\n\n        return binner, bins, labels\n",
+                    "function_code": "def _get_time_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(\n            \"axis must be a DatetimeIndex, but got \"\n            f\"an instance of {type(ax).__name__}\"\n        )\n\n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return binner, [], labels\n\n    first, last = _get_timestamp_range_edges(\n        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base\n    )\n    # GH #12037\n    # use first/last directly instead of call replace() on them\n    # because replace() will swallow the nanosecond part\n    # thus last bin maybe slightly before the end if the end contains\n    # nanosecond part and lead to `Values falls after last bin` error\n    binner = labels = date_range(\n        freq=self.freq,\n        start=first,\n        end=last,\n        tz=ax.tz,\n        name=ax.name,\n        ambiguous=\"infer\",\n        nonexistent=\"shift_forward\",\n    )\n\n    ax_values = ax.asi8\n    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)\n\n    # general version, knowing nothing about relative frequencies\n    bins = lib.generate_bins_dt64(\n        ax_values, bin_edges, self.closed, hasnans=ax.hasnans\n    )\n\n    if self.closed == \"right\":\n        labels = binner\n        if self.label == \"right\":\n            labels = labels[1:]\n    elif self.label == \"right\":\n        labels = labels[1:]\n\n    if ax.hasnans:\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n\n    # if we end up with more labels than bins\n    # adjust the labels\n    # GH4076\n    if len(bins) < len(labels):\n        labels = labels[: len(bins)]\n\n    return binner, bins, labels\n",
                     "decorators": [],
+                    "docstring": null,
                     "start_line": 1406,
                     "variables": {
                         "isinstance": [
@@ -159,9 +160,6 @@
                         ]
                     },
                     "filtered_variables": {
-                        "isinstance": [
-                            1407
-                        ],
                         "ax": [
                             1440,
                             1410,
@@ -177,20 +175,6 @@
                         "DatetimeIndex": [
                             1414,
                             1407
-                        ],
-                        "TypeError": [
-                            1408
-                        ],
-                        "__name__": [
-                            1410
-                        ],
-                        "type": [
-                            1410
-                        ],
-                        "len": [
-                            1457,
-                            1458,
-                            1413
                         ],
                         "binner": [
                             1444,
@@ -325,18 +309,18 @@
                             "_get_period_bins(self, ax)"
                         ],
                         "constructor_variables": [
-                            "closed",
-                            "label",
-                            "how",
-                            "limit",
-                            "rule",
                             "base",
-                            "loffset",
-                            "end_types",
                             "convention",
+                            "limit",
+                            "closed",
+                            "rule",
+                            "kind",
+                            "loffset",
                             "freq",
                             "fill_method",
-                            "kind"
+                            "label",
+                            "how",
+                            "end_types"
                         ],
                         "class_level_variables": [
                             "_attributes"
@@ -2750,20 +2734,6 @@
                 "Dict": [
                     34
                 ],
-                "str": [
-                    34,
-                    100,
-                    135,
-                    1351,
-                    365,
-                    368,
-                    371,
-                    980,
-                    89
-                ],
-                "dict": [
-                    34
-                ],
                 "_GroupBy": [
                     37
                 ],
@@ -3044,9 +3014,6 @@
                 "self.exclusions": [
                     82
                 ],
-                "set": [
-                    82
-                ],
                 "self.binner": [
                     178,
                     83,
@@ -3126,40 +3093,10 @@
                     94,
                     95
                 ],
-                "getattr": [
-                    96,
-                    962,
-                    933,
-                    104,
-                    426,
-                    943,
-                    981,
-                    922,
-                    94
-                ],
                 "self._attributes": [
                     961,
                     103,
                     95
-                ],
-                "__name__": [
-                    98,
-                    1410,
-                    1511,
-                    1486,
-                    1397,
-                    1533
-                ],
-                "type": [
-                    98,
-                    1410,
-                    1511,
-                    1486,
-                    879,
-                    1582,
-                    1397,
-                    1533,
-                    1503
                 ],
                 "join": [
                     98
@@ -3182,10 +3119,6 @@
                     108,
                     102
                 ],
-                "object": [
-                    108,
-                    102
-                ],
                 "self.obj": [
                     424,
                     105,
@@ -3205,60 +3138,11 @@
                 "__iter__": [
                     124
                 ],
-                "super": [
-                    1122,
-                    964,
-                    1126,
-                    1159,
-                    1096,
-                    124,
-                    1202,
-                    1363,
-                    220
-                ],
                 "self.groupby.obj": [
                     128
                 ],
-                "property": [
-                    994,
-                    130,
-                    1252,
-                    134,
-                    1224,
-                    1230,
-                    143,
-                    1110,
-                    1116,
-                    126
-                ],
                 "self.groupby.ax": [
                     132
-                ],
-                "isinstance": [
-                    139,
-                    399,
-                    400,
-                    1811,
-                    1689,
-                    420,
-                    423,
-                    1598,
-                    1601,
-                    1351,
-                    1483,
-                    1100,
-                    980,
-                    356,
-                    1508,
-                    1636,
-                    1637,
-                    1769,
-                    1387,
-                    1389,
-                    1391,
-                    1648,
-                    1530,
-                    1407
                 ],
                 "self._selected_obj": [
                     867,
@@ -3283,10 +3167,6 @@
                 ],
                 "self.groupby.level": [
                     151
-                ],
-                "bool": [
-                    144,
-                    1400
                 ],
                 "obj._consolidate": [
                     166
@@ -3360,23 +3240,6 @@
                 ],
                 "self._get_binner_for_time": [
                     186
-                ],
-                "len": [
-                    864,
-                    1028,
-                    1413,
-                    1574,
-                    1019,
-                    1545,
-                    1516,
-                    877,
-                    1806,
-                    401,
-                    1457,
-                    1458,
-                    1489,
-                    1779,
-                    187
                 ],
                 "bin_grouper": [
                     188,
@@ -3582,9 +3445,6 @@
                 "arg": [
                     311
                 ],
-                "int": [
-                    319
-                ],
                 "subset": [
                     333,
                     334,
@@ -3607,14 +3467,8 @@
                 "key": [
                     339
                 ],
-                "KeyError": [
-                    340
-                ],
                 "ABCDataFrame": [
                     1601,
-                    356
-                ],
-                "callable": [
                     356
                 ],
                 "grouped._aggregate_item_by_item": [
@@ -3629,15 +3483,6 @@
                 "grouped.apply": [
                     363,
                     381
-                ],
-                "ValueError": [
-                    1608,
-                    1323,
-                    364,
-                    1325,
-                    1327,
-                    1072,
-                    1808
                 ],
                 "err": [
                     368,
@@ -3927,17 +3772,6 @@
                     922,
                     923
                 ],
-                "__doc__": [
-                    922,
-                    933,
-                    943
-                ],
-                "setattr": [
-                    944,
-                    962,
-                    923,
-                    934
-                ],
                 "Resampler": [
                     993,
                     934,
@@ -4146,9 +3980,6 @@
                     1559,
                     1466
                 ],
-                "AssertionError": [
-                    1070
-                ],
                 "self._from_selection": [
                     1128,
                     1071
@@ -4211,11 +4042,6 @@
                 ],
                 "msg": [
                     1130,
-                    1135
-                ],
-                "NotImplementedError": [
-                    1603,
-                    1771,
                     1135
                 ],
                 "obj.to_timestamp": [
@@ -4443,14 +4269,6 @@
                     1490,
                     1483,
                     1391
-                ],
-                "TypeError": [
-                    1408,
-                    1509,
-                    1484,
-                    1394,
-                    1690,
-                    1531
                 ],
                 "r": [
                     1402,
@@ -4887,9 +4705,6 @@
                 ],
                 "offset.rollback": [
                     1658
-                ],
-                "all": [
-                    1689
                 ],
                 "first.to_timestamp": [
                     1693

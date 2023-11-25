@@ -4,10 +4,11 @@
             "buggy_functions": [
                 {
                     "function_name": "format_meter",
-                    "function_code": "    @staticmethod\n    def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,\n                     unit='it', unit_scale=False, rate=None, bar_format=None,\n                     postfix=None, unit_divisor=1000, **extra_kwargs):\n        \"\"\"\n        Return a string-based progress bar given some parameters\n\n        Parameters\n        ----------\n        n  : int\n            Number of finished iterations.\n        total  : int\n            The expected total number of iterations. If meaningless (), only\n            basic progress statistics are displayed (no ETA).\n        elapsed  : float\n            Number of seconds passed since start.\n        ncols  : int, optional\n            The width of the entire output message. If specified,\n            dynamically resizes the progress meter to stay within this bound\n            [default: None]. The fallback meter width is 10 for the progress\n            bar + no limit for the iterations counter and statistics. If 0,\n            will not print any meter (only stats).\n        prefix  : str, optional\n            Prefix message (included in total width) [default: ''].\n            Use as {desc} in bar_format string.\n        ascii  : bool, optional\n            If not set, use unicode (smooth blocks) to fill the meter\n            [default: False]. The fallback is to use ASCII characters\n            (1-9 #).\n        unit  : str, optional\n            The iteration unit [default: 'it'].\n        unit_scale  : bool or int or float, optional\n            If 1 or True, the number of iterations will be printed with an\n            appropriate SI metric prefix (k = 10^3, M = 10^6, etc.)\n            [default: False]. If any other non-zero number, will scale\n            `total` and `n`.\n        rate  : float, optional\n            Manual override for iteration rate.\n            If [default: None], uses n/elapsed.\n        bar_format  : str, optional\n            Specify a custom bar string formatting. May impact performance.\n            [default: '{l_bar}{bar}{r_bar}'], where\n            l_bar='{desc}: {percentage:3.0f}%|' and\n            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '\n              '{rate_fmt}{postfix}]'\n            Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,\n              percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,\n              rate_inv, rate_inv_fmt, elapsed, elapsed_s,\n              remaining, remaining_s, desc, postfix, unit.\n            Note that a trailing \": \" is automatically removed after {desc}\n            if the latter is empty.\n        postfix  : *, optional\n            Similar to `prefix`, but placed at the end\n            (e.g. for additional stats).\n            Note: postfix is usually a string (not a dict) for this method,\n            and will if possible be set to postfix = ', ' + postfix.\n            However other types are supported (#382).\n        unit_divisor  : float, optional\n            [default: 1000], ignored unless `unit_scale` is True.\n\n        Returns\n        -------\n        out  : Formatted meter and stats, ready to display.\n        \"\"\"\n\n        # sanity check: total\n        if total and n > total:\n            total = None\n\n        # apply custom scale if necessary\n        if unit_scale and unit_scale not in (True, 1):\n            total *= unit_scale\n            n *= unit_scale\n            if rate:\n                rate *= unit_scale  # by default rate = 1 / self.avg_time\n            unit_scale = False\n\n        format_interval = tqdm.format_interval\n        elapsed_str = format_interval(elapsed)\n\n        # if unspecified, attempt to use rate = average speed\n        # (we allow manual override since predicting time is an arcane art)\n        if rate is None and elapsed:\n            rate = n / elapsed\n        inv_rate = 1 / rate if rate else None\n        format_sizeof = tqdm.format_sizeof\n        rate_noinv_fmt = ((format_sizeof(rate) if unit_scale else\n                           '{0:5.2f}'.format(rate))\n                          if rate else '?') + unit + '/s'\n        rate_inv_fmt = ((format_sizeof(inv_rate) if unit_scale else\n                         '{0:5.2f}'.format(inv_rate))\n                        if inv_rate else '?') + 's/' + unit\n        rate_fmt = rate_inv_fmt if inv_rate and inv_rate > 1 else rate_noinv_fmt\n\n        if unit_scale:\n            n_fmt = format_sizeof(n, divisor=unit_divisor)\n            total_fmt = format_sizeof(total, divisor=unit_divisor) \\\n                if total else None\n        else:\n            n_fmt = str(n)\n            total_fmt = str(total)\n\n        try:\n            postfix = ', ' + postfix if postfix else ''\n        except TypeError:\n            pass\n\n        # total is known: we can predict some stats\n        if total:\n            # fractional and percentage progress\n            frac = n / total\n            percentage = frac * 100\n\n            remaining = (total - n) / rate if rate else 0\n            remaining_str = format_interval(remaining) if rate else '?'\n\n            # format the stats displayed to the left and right sides of the bar\n            if prefix:\n                # old prefix setup work around\n                bool_prefix_colon_already = (prefix[-2:] == \": \")\n                l_bar = prefix if bool_prefix_colon_already else prefix + \": \"\n            else:\n                l_bar = ''\n            l_bar += '{0:3.0f}%|'.format(percentage)\n            r_bar = '| {0}/{1} [{2}<{3}, {4}{5}]'.format(\n                n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt, postfix)\n\n            if ncols == 0:\n                return l_bar[:-1] + r_bar[1:]\n\n            if bar_format:\n                # Custom bar formatting\n                # Populate a dict with all available progress indicators\n                format_dict = dict(\n                    n=n, n_fmt=n_fmt, total=total, total_fmt=total_fmt,\n                    percentage=percentage,\n                    rate=inv_rate if inv_rate and inv_rate > 1 else rate,\n                    rate_fmt=rate_fmt, rate_noinv=rate,\n                    rate_noinv_fmt=rate_noinv_fmt, rate_inv=inv_rate,\n                    rate_inv_fmt=rate_inv_fmt,\n                    elapsed=elapsed_str, elapsed_s=elapsed,\n                    remaining=remaining_str, remaining_s=remaining,\n                    l_bar=l_bar, r_bar=r_bar,\n                    desc=prefix or '', postfix=postfix, unit=unit,\n                    # bar=full_bar,  # replaced by procedure below\n                    **extra_kwargs)\n\n                # auto-remove colon for empty `desc`\n                if not prefix:\n                    bar_format = bar_format.replace(\"{desc}: \", '')\n\n                # Interpolate supplied bar format with the dict\n                if '{bar}' in bar_format:\n                    # Format left/right sides of the bar, and format the bar\n                    # later in the remaining space (avoid breaking display)\n                    l_bar_user, r_bar_user = bar_format.split('{bar}')\n                    l_bar = l_bar_user.format(**format_dict)\n                    r_bar = r_bar_user.format(**format_dict)\n                else:\n                    # Else no progress bar, we can just format and return\n                    return bar_format.format(**format_dict)\n\n            # Formatting progress bar space available for bar's display\n            if ncols:\n                N_BARS = max(1, ncols - len(RE_ANSI.sub('', l_bar + r_bar)))\n            else:\n                N_BARS = 10\n\n            # format bar depending on availability of unicode/ascii chars\n            if ascii:\n                bar_length, frac_bar_length = divmod(\n                    int(frac * N_BARS * 10), 10)\n\n                bar = '#' * bar_length\n                frac_bar = chr(48 + frac_bar_length) if frac_bar_length \\\n                    else ' '\n\n            else:\n                bar_length, frac_bar_length = divmod(int(frac * N_BARS * 8), 8)\n\n                bar = _unich(0x2588) * bar_length\n                frac_bar = _unich(0x2590 - frac_bar_length) \\\n                    if frac_bar_length else ' '\n\n            # whitespace padding\n            if bar_length < N_BARS:\n                full_bar = bar + frac_bar + \\\n                    ' ' * max(N_BARS - bar_length - 1, 0)\n            else:\n                full_bar = bar + \\\n                    ' ' * max(N_BARS - bar_length, 0)\n\n            # Piece together the bar parts\n            return l_bar + full_bar + r_bar\n\n        # no total: no progressbar, ETA, just progress stats\n        else:\n            return ((prefix + \": \") if prefix else '') + \\\n                '{0}{1} [{2}, {3}{4}]'.format(\n                    n_fmt, unit, elapsed_str, rate_fmt, postfix)\n",
+                    "function_code": "@staticmethod\ndef format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,\n                 unit='it', unit_scale=False, rate=None, bar_format=None,\n                 postfix=None, unit_divisor=1000, **extra_kwargs):\n    \"\"\"\n    Return a string-based progress bar given some parameters\n\n    Parameters\n    ----------\n    n  : int\n        Number of finished iterations.\n    total  : int\n        The expected total number of iterations. If meaningless (), only\n        basic progress statistics are displayed (no ETA).\n    elapsed  : float\n        Number of seconds passed since start.\n    ncols  : int, optional\n        The width of the entire output message. If specified,\n        dynamically resizes the progress meter to stay within this bound\n        [default: None]. The fallback meter width is 10 for the progress\n        bar + no limit for the iterations counter and statistics. If 0,\n        will not print any meter (only stats).\n    prefix  : str, optional\n        Prefix message (included in total width) [default: ''].\n        Use as {desc} in bar_format string.\n    ascii  : bool, optional\n        If not set, use unicode (smooth blocks) to fill the meter\n        [default: False]. The fallback is to use ASCII characters\n        (1-9 #).\n    unit  : str, optional\n        The iteration unit [default: 'it'].\n    unit_scale  : bool or int or float, optional\n        If 1 or True, the number of iterations will be printed with an\n        appropriate SI metric prefix (k = 10^3, M = 10^6, etc.)\n        [default: False]. If any other non-zero number, will scale\n        `total` and `n`.\n    rate  : float, optional\n        Manual override for iteration rate.\n        If [default: None], uses n/elapsed.\n    bar_format  : str, optional\n        Specify a custom bar string formatting. May impact performance.\n        [default: '{l_bar}{bar}{r_bar}'], where\n        l_bar='{desc}: {percentage:3.0f}%|' and\n        r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '\n          '{rate_fmt}{postfix}]'\n        Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,\n          percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,\n          rate_inv, rate_inv_fmt, elapsed, elapsed_s,\n          remaining, remaining_s, desc, postfix, unit.\n        Note that a trailing \": \" is automatically removed after {desc}\n        if the latter is empty.\n    postfix  : *, optional\n        Similar to `prefix`, but placed at the end\n        (e.g. for additional stats).\n        Note: postfix is usually a string (not a dict) for this method,\n        and will if possible be set to postfix = ', ' + postfix.\n        However other types are supported (#382).\n    unit_divisor  : float, optional\n        [default: 1000], ignored unless `unit_scale` is True.\n\n    Returns\n    -------\n    out  : Formatted meter and stats, ready to display.\n    \"\"\"\n\n    # sanity check: total\n    if total and n > total:\n        total = None\n\n    # apply custom scale if necessary\n    if unit_scale and unit_scale not in (True, 1):\n        total *= unit_scale\n        n *= unit_scale\n        if rate:\n            rate *= unit_scale  # by default rate = 1 / self.avg_time\n        unit_scale = False\n\n    format_interval = tqdm.format_interval\n    elapsed_str = format_interval(elapsed)\n\n    # if unspecified, attempt to use rate = average speed\n    # (we allow manual override since predicting time is an arcane art)\n    if rate is None and elapsed:\n        rate = n / elapsed\n    inv_rate = 1 / rate if rate else None\n    format_sizeof = tqdm.format_sizeof\n    rate_noinv_fmt = ((format_sizeof(rate) if unit_scale else\n                       '{0:5.2f}'.format(rate))\n                      if rate else '?') + unit + '/s'\n    rate_inv_fmt = ((format_sizeof(inv_rate) if unit_scale else\n                     '{0:5.2f}'.format(inv_rate))\n                    if inv_rate else '?') + 's/' + unit\n    rate_fmt = rate_inv_fmt if inv_rate and inv_rate > 1 else rate_noinv_fmt\n\n    if unit_scale:\n        n_fmt = format_sizeof(n, divisor=unit_divisor)\n        total_fmt = format_sizeof(total, divisor=unit_divisor) \\\n            if total else None\n    else:\n        n_fmt = str(n)\n        total_fmt = str(total)\n\n    try:\n        postfix = ', ' + postfix if postfix else ''\n    except TypeError:\n        pass\n\n    # total is known: we can predict some stats\n    if total:\n        # fractional and percentage progress\n        frac = n / total\n        percentage = frac * 100\n\n        remaining = (total - n) / rate if rate else 0\n        remaining_str = format_interval(remaining) if rate else '?'\n\n        # format the stats displayed to the left and right sides of the bar\n        if prefix:\n            # old prefix setup work around\n            bool_prefix_colon_already = (prefix[-2:] == \": \")\n            l_bar = prefix if bool_prefix_colon_already else prefix + \": \"\n        else:\n            l_bar = ''\n        l_bar += '{0:3.0f}%|'.format(percentage)\n        r_bar = '| {0}/{1} [{2}<{3}, {4}{5}]'.format(\n            n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt, postfix)\n\n        if ncols == 0:\n            return l_bar[:-1] + r_bar[1:]\n\n        if bar_format:\n            # Custom bar formatting\n            # Populate a dict with all available progress indicators\n            format_dict = dict(\n                n=n, n_fmt=n_fmt, total=total, total_fmt=total_fmt,\n                percentage=percentage,\n                rate=inv_rate if inv_rate and inv_rate > 1 else rate,\n                rate_fmt=rate_fmt, rate_noinv=rate,\n                rate_noinv_fmt=rate_noinv_fmt, rate_inv=inv_rate,\n                rate_inv_fmt=rate_inv_fmt,\n                elapsed=elapsed_str, elapsed_s=elapsed,\n                remaining=remaining_str, remaining_s=remaining,\n                l_bar=l_bar, r_bar=r_bar,\n                desc=prefix or '', postfix=postfix, unit=unit,\n                # bar=full_bar,  # replaced by procedure below\n                **extra_kwargs)\n\n            # auto-remove colon for empty `desc`\n            if not prefix:\n                bar_format = bar_format.replace(\"{desc}: \", '')\n\n            # Interpolate supplied bar format with the dict\n            if '{bar}' in bar_format:\n                # Format left/right sides of the bar, and format the bar\n                # later in the remaining space (avoid breaking display)\n                l_bar_user, r_bar_user = bar_format.split('{bar}')\n                l_bar = l_bar_user.format(**format_dict)\n                r_bar = r_bar_user.format(**format_dict)\n            else:\n                # Else no progress bar, we can just format and return\n                return bar_format.format(**format_dict)\n\n        # Formatting progress bar space available for bar's display\n        if ncols:\n            N_BARS = max(1, ncols - len(RE_ANSI.sub('', l_bar + r_bar)))\n        else:\n            N_BARS = 10\n\n        # format bar depending on availability of unicode/ascii chars\n        if ascii:\n            bar_length, frac_bar_length = divmod(\n                int(frac * N_BARS * 10), 10)\n\n            bar = '#' * bar_length\n            frac_bar = chr(48 + frac_bar_length) if frac_bar_length \\\n                else ' '\n\n        else:\n            bar_length, frac_bar_length = divmod(int(frac * N_BARS * 8), 8)\n\n            bar = _unich(0x2588) * bar_length\n            frac_bar = _unich(0x2590 - frac_bar_length) \\\n                if frac_bar_length else ' '\n\n        # whitespace padding\n        if bar_length < N_BARS:\n            full_bar = bar + frac_bar + \\\n                ' ' * max(N_BARS - bar_length - 1, 0)\n        else:\n            full_bar = bar + \\\n                ' ' * max(N_BARS - bar_length, 0)\n\n        # Piece together the bar parts\n        return l_bar + full_bar + r_bar\n\n    # no total: no progressbar, ETA, just progress stats\n    else:\n        return ((prefix + \": \") if prefix else '') + \\\n            '{0}{1} [{2}, {3}{4}]'.format(\n                n_fmt, unit, elapsed_str, rate_fmt, postfix)\n",
                     "decorators": [
                         "staticmethod"
                     ],
+                    "docstring": "Return a string-based progress bar given some parameters\n\nParameters\n----------\nn  : int\n    Number of finished iterations.\ntotal  : int\n    The expected total number of iterations. If meaningless (), only\n    basic progress statistics are displayed (no ETA).\nelapsed  : float\n    Number of seconds passed since start.\nncols  : int, optional\n    The width of the entire output message. If specified,\n    dynamically resizes the progress meter to stay within this bound\n    [default: None]. The fallback meter width is 10 for the progress\n    bar + no limit for the iterations counter and statistics. If 0,\n    will not print any meter (only stats).\nprefix  : str, optional\n    Prefix message (included in total width) [default: ''].\n    Use as {desc} in bar_format string.\nascii  : bool, optional\n    If not set, use unicode (smooth blocks) to fill the meter\n    [default: False]. The fallback is to use ASCII characters\n    (1-9 #).\nunit  : str, optional\n    The iteration unit [default: 'it'].\nunit_scale  : bool or int or float, optional\n    If 1 or True, the number of iterations will be printed with an\n    appropriate SI metric prefix (k = 10^3, M = 10^6, etc.)\n    [default: False]. If any other non-zero number, will scale\n    `total` and `n`.\nrate  : float, optional\n    Manual override for iteration rate.\n    If [default: None], uses n/elapsed.\nbar_format  : str, optional\n    Specify a custom bar string formatting. May impact performance.\n    [default: '{l_bar}{bar}{r_bar}'], where\n    l_bar='{desc}: {percentage:3.0f}%|' and\n    r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '\n      '{rate_fmt}{postfix}]'\n    Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,\n      percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,\n      rate_inv, rate_inv_fmt, elapsed, elapsed_s,\n      remaining, remaining_s, desc, postfix, unit.\n    Note that a trailing \": \" is automatically removed after {desc}\n    if the latter is empty.\npostfix  : *, optional\n    Similar to `prefix`, but placed at the end\n    (e.g. for additional stats).\n    Note: postfix is usually a string (not a dict) for this method,\n    and will if possible be set to postfix = ', ' + postfix.\n    However other types are supported (#382).\nunit_divisor  : float, optional\n    [default: 1000], ignored unless `unit_scale` is True.\n\nReturns\n-------\nout  : Formatted meter and stats, ready to display.",
                     "start_line": 252,
                     "variables": {
                         "total": [
@@ -428,13 +429,6 @@
                             338,
                             390
                         ],
-                        "format": [
-                            450,
-                            339,
-                            342,
-                            375,
-                            376
-                        ],
                         "unit": [
                             395,
                             340,
@@ -469,18 +463,11 @@
                             386,
                             348
                         ],
-                        "str": [
-                            352,
-                            351
-                        ],
                         "postfix": [
                             377,
                             355,
                             395,
                             451
-                        ],
-                        "TypeError": [
-                            356
                         ],
                         "frac": [
                             362,
@@ -551,9 +538,6 @@
                             409,
                             412
                         ],
-                        "dict": [
-                            385
-                        ],
                         "extra_kwargs": [
                             397
                         ],
@@ -589,22 +573,11 @@
                             439,
                             442
                         ],
-                        "max": [
-                            416,
-                            442,
-                            439
-                        ],
-                        "len": [
-                            416
-                        ],
                         "RE_ANSI.sub": [
                             416
                         ],
                         "RE_ANSI": [
                             416
-                        ],
-                        "ascii": [
-                            421
                         ],
                         "bar_length": [
                             422,
@@ -622,14 +595,6 @@
                             433,
                             434
                         ],
-                        "divmod": [
-                            430,
-                            422
-                        ],
-                        "int": [
-                            430,
-                            423
-                        ],
                         "bar": [
                             432,
                             425,
@@ -641,9 +606,6 @@
                             426,
                             438
                         ],
-                        "chr": [
-                            426
-                        ],
                         "_unich": [
                             432,
                             433
@@ -652,9 +614,6 @@
                             441,
                             445,
                             438
-                        ],
-                        "staticmethod": [
-                            252
                         ]
                     },
                     "diff_line_number": 323,
@@ -706,36 +665,36 @@
                             "wrapper(*args, **kwargs)"
                         ],
                         "constructor_variables": [
-                            "maxinterval",
-                            "disable",
-                            "iterable",
-                            "n",
-                            "mininterval",
-                            "desc",
-                            "ascii",
-                            "ncols",
-                            "smoothing",
                             "fp",
-                            "total",
-                            "gui",
-                            "_time",
-                            "bar_format",
-                            "sp",
-                            "miniters",
-                            "_dynamic_ncols",
-                            "unit_divisor",
-                            "start_t",
-                            "leave",
-                            "unit",
                             "pos",
-                            "dynamic_ncols",
-                            "avg_time",
-                            "unit_scale",
-                            "dynamic_miniters",
-                            "postfix",
-                            "file",
+                            "_dynamic_ncols",
+                            "leave",
+                            "total",
+                            "disable",
                             "last_print_t",
-                            "last_print_n"
+                            "postfix",
+                            "dynamic_miniters",
+                            "iterable",
+                            "bar_format",
+                            "n",
+                            "file",
+                            "ncols",
+                            "start_t",
+                            "sp",
+                            "smoothing",
+                            "unit",
+                            "last_print_n",
+                            "_time",
+                            "ascii",
+                            "unit_scale",
+                            "gui",
+                            "maxinterval",
+                            "avg_time",
+                            "mininterval",
+                            "miniters",
+                            "desc",
+                            "unit_divisor",
+                            "dynamic_ncols"
                         ],
                         "class_level_variables": [
                             "monitor_interval",
@@ -2731,19 +2690,6 @@
                 "__all__": [
                     30
                 ],
-                "TypeError": [
-                    356,
-                    817,
-                    36,
-                    908
-                ],
-                "KeyError": [
-                    40,
-                    491
-                ],
-                "Warning": [
-                    44
-                ],
                 "fp_write": [
                     1159,
                     50,
@@ -2934,26 +2880,12 @@
                 "rstrip": [
                     52
                 ],
-                "str": [
-                    352,
-                    1161,
-                    842,
-                    207,
-                    1233,
-                    52,
-                    469,
-                    1245,
-                    351
-                ],
                 "msg": [
                     1297,
                     52,
                     54
                 ],
                 "__init__": [
-                    54
-                ],
-                "super": [
                     54
                 ],
                 "TqdmWarning": [
@@ -2967,19 +2899,6 @@
                 ],
                 "k": [
                     54
-                ],
-                "FutureWarning": [
-                    57
-                ],
-                "DeprecationWarning": [
-                    62
-                ],
-                "RuntimeWarning": [
-                    67
-                ],
-                "object": [
-                    72,
-                    455
                 ],
                 "self.create_mp_lock": [
                     84
@@ -3023,9 +2942,6 @@
                     506,
                     510
                 ],
-                "type": [
-                    86
-                ],
                 "self.locks": [
                     90,
                     94,
@@ -3064,47 +2980,11 @@
                 "self.release": [
                     101
                 ],
-                "hasattr": [
-                    998,
-                    936,
-                    105,
-                    457,
-                    811,
-                    937,
-                    956,
-                    1101,
-                    559,
-                    115,
-                    499,
-                    540,
-                    1151,
-                    479
-                ],
                 "mp.RLock": [
                     107
                 ],
                 "mp": [
                     107
-                ],
-                "ImportError": [
-                    609,
-                    603,
-                    108
-                ],
-                "OSError": [
-                    118,
-                    110
-                ],
-                "classmethod": [
-                    512,
-                    482,
-                    103,
-                    551,
-                    523,
-                    556,
-                    113,
-                    563,
-                    475
                 ],
                 "th.RLock": [
                     117
@@ -3139,19 +3019,6 @@
                     343,
                     159
                 ],
-                "abs": [
-                    160,
-                    161,
-                    162,
-                    970,
-                    1293,
-                    1263,
-                    1266,
-                    499,
-                    1171,
-                    1147,
-                    478
-                ],
                 "num": [
                     160,
                     161,
@@ -3162,21 +3029,6 @@
                     166,
                     167
                 ],
-                "format": [
-                    450,
-                    163,
-                    164,
-                    165,
-                    167,
-                    206,
-                    339,
-                    1085,
-                    342,
-                    375,
-                    376,
-                    187,
-                    189
-                ],
                 "suffix": [
                     163,
                     164,
@@ -3185,14 +3037,6 @@
                 ],
                 "divisor": [
                     166
-                ],
-                "staticmethod": [
-                    229,
-                    169,
-                    139,
-                    210,
-                    252,
-                    191
                 ],
                 "mins": [
                     184,
@@ -3208,17 +3052,6 @@
                     1245,
                     187,
                     189
-                ],
-                "divmod": [
-                    184,
-                    185,
-                    430,
-                    422
-                ],
-                "int": [
-                    184,
-                    430,
-                    423
                 ],
                 "t": [
                     676,
@@ -3270,16 +3103,6 @@
                     1015,
                     1022
                 ],
-                "len": [
-                    480,
-                    416,
-                    937,
-                    653,
-                    208,
-                    816,
-                    246,
-                    634
-                ],
                 "mu": [
                     227
                 ],
@@ -3319,19 +3142,6 @@
                     241,
                     237
                 ],
-                "getattr": [
-                    673,
-                    840,
-                    938,
-                    970,
-                    1002,
-                    237,
-                    1105,
-                    1171,
-                    660,
-                    629,
-                    536
-                ],
                 "fp.write": [
                     240,
                     520,
@@ -3351,15 +3161,6 @@
                 "len_s": [
                     248,
                     246,
-                    247
-                ],
-                "max": [
-                    416,
-                    1130,
-                    1171,
-                    1046,
-                    439,
-                    442,
                     247
                 ],
                 "print_status": [
@@ -3594,10 +3395,6 @@
                     409,
                     412
                 ],
-                "dict": [
-                    385,
-                    953
-                ],
                 "extra_kwargs": [
                     397
                 ],
@@ -3639,13 +3436,6 @@
                 "RE_ANSI": [
                     416
                 ],
-                "ascii": [
-                    421,
-                    872,
-                    873,
-                    875,
-                    893
-                ],
                 "bar_length": [
                     422,
                     425,
@@ -3672,9 +3462,6 @@
                     433,
                     426,
                     438
-                ],
-                "chr": [
-                    426
                 ],
                 "_unich": [
                     432,
@@ -3735,9 +3522,6 @@
                 "TMonitor": [
                     466
                 ],
-                "Exception": [
-                    467
-                ],
                 "warn": [
                     468
                 ],
@@ -3749,10 +3533,6 @@
                     470
                 ],
                 "positions": [
-                    480,
-                    478
-                ],
-                "set": [
                     480,
                     478
                 ],
@@ -3775,13 +3555,7 @@
                     478,
                     479
                 ],
-                "min": [
-                    480
-                ],
                 "difference": [
-                    480
-                ],
-                "range": [
                     480
                 ],
                 "cls._lock": [
@@ -3802,10 +3576,6 @@
                 ],
                 "cls.monitor.exit": [
                     505
-                ],
-                "AttributeError": [
-                    817,
-                    507
                 ],
                 "sys.stdout": [
                     530,
@@ -3850,9 +3620,6 @@
                 "inst.fp": [
                     540,
                     541
-                ],
-                "all": [
-                    540
                 ],
                 "sys.stderr": [
                     840,
@@ -3916,12 +3683,6 @@
                 "df.size": [
                     632,
                     644
-                ],
-                "isinstance": [
-                    1232,
-                    633,
-                    636,
-                    1229
                 ],
                 "Series": [
                     633,
@@ -4098,9 +3859,6 @@
                     979,
                     984,
                     824
-                ],
-                "float": [
-                    819
                 ],
                 "self.iterable": [
                     935,
@@ -4450,18 +4208,11 @@
                     1058,
                     948
                 ],
-                "property": [
-                    968,
-                    950
-                ],
                 "self.format_meter": [
                     966
                 ],
                 "self.format_dict": [
                     966
-                ],
-                "id": [
-                    973
                 ],
                 "obj": [
                     984,
@@ -4541,10 +4292,6 @@
                     1098,
                     1019
                 ],
-                "ValueError": [
-                    1160,
-                    1085
-                ],
                 "pos": [
                     1292,
                     1293,
@@ -4598,9 +4345,6 @@
                     1233,
                     1236,
                     1237
-                ],
-                "sorted": [
-                    1224
                 ],
                 "kwargs.keys": [
                     1224

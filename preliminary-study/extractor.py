@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import json
 import re
-from typing import List, Tuple, Optional
+from typing import List
 
 
 FLAG_OVERWRITE = False
@@ -16,6 +16,11 @@ def print_in_red(text):
     print(f"{RED}{text}{RESET}")
 
 
+class NotSupportedError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
 class Facts:
     """
     This class will parse the output from `bgp extract_features` tool and
@@ -24,11 +29,21 @@ class Facts:
 
     FACT_MAP = {
         "1.1.1": "buggy function code",
-        "1.1.3": "buggy function docstring",
-        "1.3.4": "buggy file name",
+        "1.1.2": "buggy function docstring",
+        "1.1.3": "invoked function signature",
+        "1.2.1": "buggy class signature",
+        "1.2.2": "buggy class docstring",
+        "1.2.3": "relevant buggy class method signature",
+        "1.3.1": "relavent function signature",
+        "1.3.2": "buggy file name",
+        "1.4.1": "runtime variable type",
+        "1.4.2": "runtime variable value",
         "2.1.1": "test function code",
         "2.1.2": "test file name",
-        "2.2": "stacktrace and error message",
+        "2.2.1": "error message",
+        "2.2.2": "stacktrace",
+        "3.1.1": "issue title",
+        "3.1.2": "issue description",
     }
 
     def __init__(self, bug_record: dict) -> None:
@@ -53,6 +68,11 @@ class Facts:
         }
         ```
         """
+        if len(bug_record) > 2:
+            raise NotSupportedError(
+                "multiple buggy files are not supported at the moment"
+            )
+
         for filename, file_info in bug_record.items():
             if filename == "test_data":
                 for test_data in file_info:
@@ -61,42 +81,47 @@ class Facts:
                 self._resolve_file_info(filename, file_info)
 
     def _resolve_file_info(self, filename, file_info):
-        self.facts["1.3.4"] = filename
+        self.facts["1.3.2"] = filename
 
         for buggy_function_info in file_info["buggy_functions"]:
             self._resolve_buggy_function(buggy_function_info)
 
-    @staticmethod
-    def _extract_function_parts(function_code) -> Tuple[Optional[str], Optional[str]]:
-        # Updated regex pattern to capture decorators, leading indentation, function declaration, docstring (if any), and the function body
-        pattern = r'(?s)(^\s*)((?:@.*\s*)*)(def\s+\w+\s*\(\s*.*?\)\s*:\s*)((?:""".*?"""|\'\'\'.*?\'\'\')\s*)?(.*)'
-
-        # Search for matches in the function code
-        match = re.search(pattern, function_code)
-        if match:
-            # Extracting the leading indentation, decorators, docstring, and function body
-            indentation = match.group(1)
-            decorators = match.group(2) if match.group(2) else ""
-            docstring = match.group(4).strip() if match.group(4) else None
-            function_body = indentation + decorators + match.group(3) + match.group(5)
-
-            return (docstring, function_body)
-        else:
-            return (None, None)
-
     def _resolve_buggy_function(self, buggy_function_info):
-        function_code = buggy_function_info["function_code"]
-        buggy_function_docstring, buggy_function = Facts._extract_function_parts(
-            function_code
-        )
+        buggy_function = buggy_function_info["function_code"]
+        buggy_function_docstring = buggy_function_info["docstring"]
 
         if buggy_function is not None:
-            self.facts["1.1.1"] = buggy_function
+            self.facts["1.1.1"] = Facts.remove_docstring_from_source(buggy_function)
         else:
             print_in_red("FATAL: the buggy function does not exist")
 
         if buggy_function_docstring is not None:
-            self.facts["1.1.3"] = buggy_function_docstring
+            self.facts["1.1.2"] = buggy_function_docstring
+
+        if buggy_function_info["class_data"] is not None:
+            self._resolve_class_info(buggy_function_info["class_data"])
+
+    def _resolve_class_info(self, buggy_class_info):
+        class_signature = buggy_class_info["signature"]
+        class_decorators = buggy_class_info["class_decorators"]
+
+        if class_decorators is not None and len(class_decorators) > 0:
+            for decorator in class_decorators[::-1]:
+                class_signature = "@" + decorator + "\n" + class_signature
+
+        self.facts["1.2.1"] = class_signature
+
+        class_docstring = buggy_class_info["docstring"]
+        if class_docstring is not None:
+            self.facts["1.2.2"] = class_docstring
+
+    @staticmethod
+    def remove_docstring_from_source(function_source):
+        # Regex to match docstrings: Triple quotes (either """ or ''')
+        # followed by any characters (non-greedy) and then triple quotes again
+        # The re.DOTALL flag allows the dot (.) to match newlines as well
+        pattern = r"\"\"\".*?\"\"\"|\'\'\'.*?\'\'\'"
+        return re.sub(pattern, "", function_source, flags=re.DOTALL)
 
     @staticmethod
     def _split_error_message(error_message) -> List[dict]:
@@ -127,15 +152,51 @@ class Facts:
         return chunks
 
     def _resolve_test_data(self, test_data):
-        test_file_name = test_data["test_path"]
-        self.facts["2.1.2"] = test_file_name
-
         test_function_code = test_data["test_function_code"]
-        self.facts["2.1.1"] = test_function_code
+        if self.facts.get("2.1.1") is None:
+            self.facts["2.1.1"] = [test_function_code]
+        else:
+            self.facts["2.1.1"].append(test_function_code)
+
+        test_file_name = test_data["test_path"]
+        if self.facts.get("2.1.2") is None:
+            self.facts["2.1.2"] = [test_file_name]
+        else:
+            self.facts["2.1.2"].append(test_file_name)
+
+        if self.facts.get("2.2.1") is None:
+            self.facts["2.2.1"] = []
+        if self.facts.get("2.2.2") is None:
+            self.facts["2.2.2"] = []
 
         full_test_error = test_data["full_test_error"]
         error_stacktrace_chunks = Facts._split_error_message(full_test_error)
-        self.facts["2.2"] = error_stacktrace_chunks
+
+        full_stacktrace = []
+        full_error_message = []
+
+        is_error_message = None
+        for chunk in error_stacktrace_chunks:
+            if chunk["label"] == "stacktrace":
+                if is_error_message is not None and not is_error_message:
+                    raise NotSupportedError("2 error message follow together")
+                is_error_message = False
+                full_stacktrace.append(chunk["content"])
+            elif chunk["label"] == "error_message":
+                if is_error_message is not None and is_error_message:
+                    raise NotSupportedError("2 stack traces follow together")
+                is_error_message = True
+                full_error_message.append(chunk["content"])
+
+        if self.facts.get("2.2.1") is None:
+            self.facts["2.2.1"] = []
+        else:
+            self.facts["2.2.1"].append(full_error_message)
+
+        if self.facts.get("2.2.2") is None:
+            self.facts["2.2.2"] = []
+        else:
+            self.facts["2.2.2"].append(full_stacktrace)
 
 
 def collect_facts(bugid: str, dir_path: str):
@@ -183,37 +244,32 @@ def write_markdown_files(facts: Facts, output_dir: str):
         json.dump(facts.facts, f, indent=4)
 
     for fact_key, fact_content in facts.facts.items():
-        if fact_key == "2.2":
-            error_message_chunks = "\n".join(
-                [
-                    content["content"]
-                    for content in fact_content
-                    if content["label"] == "error_message"
-                ]
-            )
-            with open(os.path.join(output_dir, "f2-2-1.md"), "w") as f:
-                name = "error message"
-                f.write(f"# {name}\n\n```text\n{error_message_chunks}\n```")
+        if isinstance(fact_content, list):
 
-            stacktrace_chunks = "\n".join(
-                [
-                    content["content"]
-                    for content in fact_content
-                    if content["label"] == "stacktrace"
-                ]
-            )
-            with open(os.path.join(output_dir, "f2-2-2.md"), "w") as f:
-                name = "stacktrace"
-                f.write(f"# {name}\n\n```text\n{stacktrace_chunks}\n```")
-        else:
-            filename = "f" + fact_key.replace(".", "-") + ".md"
-            with open(os.path.join(output_dir, filename), "w") as f:
-                fact_name = Facts.FACT_MAP[fact_key]
-                if "code" in fact_name:
-                    fact_content = "```python\n" + fact_content + "\n```"
-                else:
-                    fact_content = "```text\n" + fact_content + "\n```"
-                f.write(f"""# {Facts.FACT_MAP[fact_key]}\n\n{fact_content}""")
+            def flatten_and_join(arr):
+                # Function to recursively flatten the array
+                def flatten(array):
+                    for element in array:
+                        if isinstance(element, list):
+                            # If the element is a list, extend the result with the flattened list
+                            yield from flatten(element)
+                        else:
+                            # Otherwise, just yield the element
+                            yield element
+
+                # Flatten the array and join with newlines
+                return "\n".join(map(str, flatten(arr)))
+
+            fact_content = flatten_and_join(fact_content)
+
+        filename = "f" + fact_key.replace(".", "-") + ".md"
+        with open(os.path.join(output_dir, filename), "w") as f:
+            fact_name = Facts.FACT_MAP[fact_key]
+            if "code" in fact_name:
+                fact_content = "```python\n" + fact_content + "\n```"
+            else:
+                fact_content = "```text\n" + fact_content + "\n```"
+            f.write(f"""# {Facts.FACT_MAP[fact_key]}\n\n{fact_content}""")
 
 
 if __name__ == "__main__":
@@ -245,4 +301,8 @@ if __name__ == "__main__":
             bugids.append(f"{'-'.join(parts[:-1])}:{parts[-1]}")
 
     for bugid in bugids:
-        collect_facts(bugid, args.output_dir)
+        try:
+            collect_facts(bugid, args.output_dir)
+        except NotSupportedError as e:
+            print_in_red(f"ERROR: {e}")
+            print_in_red(f"Skip {bugid}")
