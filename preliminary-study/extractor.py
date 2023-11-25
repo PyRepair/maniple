@@ -235,14 +235,33 @@ def collect_facts(bugid: str, dir_path: str):
     facts = Facts(bug_record)
     facts.load_from_json_object(bug_record)
 
+    def extract_code_blocks(md_content):
+        # Regular expression pattern to match code blocks
+        # The pattern looks for triple backticks, optionally followed by an identifier (like python, js, etc.)
+        # and then any content until the closing triple backticks, across multiple lines
+        pattern = r"```[a-zA-Z]*\n(.*?)```"
+
+        # Find all matches in the Markdown content
+        matches = re.findall(pattern, md_content, flags=re.DOTALL)
+
+        return matches
+
     write_markdown_files(facts, full_bugdir_path)
+
+    if os.path.exists(os.path.join(full_bugdir_path, "f3-1-1.md")):
+        with open(os.path.join(full_bugdir_path, "f3-1-1.md"), "r") as f:
+            facts.facts["3.1.1"] = extract_code_blocks(f.read())
+
+    if os.path.exists(os.path.join(full_bugdir_path, "f3-1-2.md")):
+        with open(os.path.join(full_bugdir_path, "f3-1-2.md"), "r") as f:
+            facts.facts["3.1.2"] = extract_code_blocks(f.read())
+
+    # write facts.json file
+    with open(os.path.join(full_bugdir_path, "facts.json"), "w") as f:
+        json.dump(facts.facts, f, indent=4)
 
 
 def write_markdown_files(facts: Facts, output_dir: str):
-    # write facts.json file
-    with open(os.path.join(output_dir, "facts.json"), "w") as f:
-        json.dump(facts.facts, f, indent=4)
-
     for fact_key, fact_content in facts.facts.items():
         if isinstance(fact_content, list):
 

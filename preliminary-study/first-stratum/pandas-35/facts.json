@@ -19,5 +19,11 @@
             "def test_get_level_values_when_periods():\n        # GH33131. See also discussion in GH32669.\n        # This test can probably be removed when PeriodIndex._engine is removed.\n        from pandas import Period, PeriodIndex\n    \n        idx = MultiIndex.from_arrays(\n            [PeriodIndex([Period(\"2019Q1\"), Period(\"2019Q2\")], name=\"b\")]\n        )\n        idx2 = MultiIndex.from_arrays(\n            [idx._get_level_values(level) for level in range(idx.nlevels)]\n        )\n>       assert all(x.is_monotonic for x in idx2.levels)\n\npandas/tests/indexes/multi/test_get_level_values.py:105: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/tests/indexes/multi/test_get_level_values.py:105: in <genexpr>\n    assert all(x.is_monotonic for x in idx2.levels)\npandas/core/indexes/base.py:1548: in is_monotonic\n    return self.is_monotonic_increasing\npandas/core/indexes/base.py:1565: in is_monotonic_increasing\n    return self._engine.is_monotonic_increasing\npandas/_libs/index.pyx:172: in pandas._libs.index.IndexEngine.is_monotonic_increasing.__get__\n    self._do_monotonic_check()\npandas/_libs/index.pyx:187: in pandas._libs.index.IndexEngine._do_monotonic_check\n    values = self._get_index_values()\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   return super(PeriodEngine, self).vgetter().view(\"i8\")",
             "\npandas/_libs/index.pyx:499: AttributeError"
         ]
+    ],
+    "3.1.1": [
+        "BUG: Copying PeriodIndex levels on MultiIndex loses weakrefs\n"
+    ],
+    "3.1.2": [
+        "As per comment by @jacobaustin123:\nimport pandas as pd\nidx = pd.MultiIndex.from_arrays([pd.PeriodIndex([pd.Period(\"2019Q1\"), pd.Period(\"2019Q2\")], name='b')])\nidx2 = pd.MultiIndex.from_arrays([idx._get_level_values(level) for level in range(idx.nlevels)])\nall(x.is_monotonic for x in idx2.levels) # raises an error\n\nProblem description\nThe weakly referenced PeriodIndex er dropped before intended, so the PeriodEngine gets a None instead of the PeriodIndex.\n\nExpected Output\nThe above should return True.\n"
     ]
 }
