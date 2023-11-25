@@ -34,8 +34,11 @@ class Facts:
         "1.2.1": "buggy class signature",
         "1.2.2": "buggy class docstring",
         "1.2.3": "relevant buggy class method signature",
+        "1.2.4": "invoked method signature",
         "1.3.1": "relavent function signature",
         "1.3.2": "buggy file name",
+        "1.3.3": "relevant variables",
+        "1.3.4": "invoked function signature",
         "1.4.1": "runtime variable type",
         "1.4.2": "runtime variable value",
         "2.1.1": "test function code",
@@ -48,6 +51,7 @@ class Facts:
 
     def __init__(self, bug_record: dict) -> None:
         self.facts = dict()
+        self._variables_in_methods = []
 
     def load_from_json_object(self, bug_record: dict) -> None:
         """
@@ -83,8 +87,43 @@ class Facts:
     def _resolve_file_info(self, filename, file_info):
         self.facts["1.3.2"] = filename
 
+        if len(file_info["buggy_functions"]) > 1:
+            raise NotSupportedError(
+                "multiple buggy functions are not supported at the moment"
+            )
         for buggy_function_info in file_info["buggy_functions"]:
             self._resolve_buggy_function(buggy_function_info)
+
+        called_in_scope_functions = []
+        for fn in file_info["inscope_functions"]:
+            if self._is_this_func_called(fn):
+                called_in_scope_functions.append(fn)
+
+        self.facts["1.3.4"] = called_in_scope_functions
+
+    def _is_this_func_called(self, sig):
+        for v in self._variables_in_methods:
+            var = v.split(".")[-1]
+            if Facts._extract_function_name(sig) == var:
+                return True
+        return False
+    
+    @staticmethod
+    def _extract_function_name(signature):
+        """
+        Extracts and returns the function name from a given function signature string.
+
+        Args:
+        signature (str): A string representing the function signature.
+
+        Returns:
+        str: The name of the function.
+        """
+        # Split the signature string at the first opening parenthesis
+        parts = signature.split('(')
+        # The first part is the function name
+        # Stripping to remove any leading or trailing spaces
+        return parts[0].strip()
 
     def _resolve_buggy_function(self, buggy_function_info):
         buggy_function = buggy_function_info["function_code"]
@@ -97,6 +136,8 @@ class Facts:
 
         if buggy_function_docstring is not None:
             self.facts["1.1.2"] = buggy_function_docstring
+
+        self._variables_in_methods = buggy_function_info["filtered_variables"]
 
         if buggy_function_info["class_data"] is not None:
             self._resolve_class_info(buggy_function_info["class_data"])
@@ -114,6 +155,13 @@ class Facts:
         class_docstring = buggy_class_info["docstring"]
         if class_docstring is not None:
             self.facts["1.2.2"] = class_docstring
+
+        used_methods = []
+        for method in buggy_class_info["functions"]:
+            if self._is_this_func_called(method):
+                used_methods.append(method)
+
+        self.facts["1.2.4"] = used_methods
 
     @staticmethod
     def remove_docstring_from_source(function_source):
@@ -259,6 +307,17 @@ def collect_facts(bugid: str, dir_path: str):
     # write facts.json file
     with open(os.path.join(full_bugdir_path, "facts.json"), "w") as f:
         json.dump(facts.facts, f, indent=4)
+
+    print(f"bugid: {bugid}")
+    if facts.facts.get("1.2.4") is None:
+        print(f"method ref num: 0")
+    else:
+        print(f"method ref num: {len(facts.facts['1.2.4'])}")
+
+    if facts.facts.get("1.3.4") is None:
+        print(f"in_scope_functions ref num: 0")
+    else:
+        print(f"in_scope_functions ref num: {len(facts.facts['1.3.4'])}")
 
 
 def write_markdown_files(facts: Facts, output_dir: str):
