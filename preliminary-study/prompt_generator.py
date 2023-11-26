@@ -59,32 +59,41 @@ class PromptGenerator:
     def generate_test_related_section(self):
         for test_index in range(len(self.facts["2.1.1"])):
             if self.bitvector["2.1.1"] == 1:
-                self.prompt = self.prompt + self.template["2.1.1"]
+                self.prompt = self.prompt + self.template["2.1.1"] + "```python\n"
 
             if self.bitvector["2.1.2"] == 1:
-                self.prompt = self.prompt + self.template["2.1.2"]
-                self.prompt = self.prompt + "# " + self.facts["2.1.2"][test_index] + "\n"
+                self.prompt = self.prompt + self.template["2.1.2"] + self.facts["2.1.2"][test_index]
+                self.add_newline_between_sections()
 
-            self.prompt = self.prompt + self.facts["2.1.1"][test_index] + "\n"
+            self.prompt = self.prompt + self.facts["2.1.1"][test_index] + "\n```"
+            self.add_newline_between_sections()
 
             error_messages = self.facts["2.2.1"][test_index]
             stack_traces = self.facts["2.2.2"][test_index]
 
-            for error_index in range(len(error_messages)):
-                self.prompt = self.prompt + "\n"
-                if self.bitvector["2.2.1"] == 1 and self.bitvector["2.2.2"] == 1:
-                    self.prompt = self.prompt + self.template["2.2.1"]
+            if self.bitvector["2.2.1"] == 1 and self.bitvector["2.2.2"] == 1:
+                self.prompt = self.prompt + self.template["2.2.1"] + "```text\n"
+                for error_index in range(len(stack_traces)):
                     self.prompt = self.prompt + stack_traces[error_index] + "\n"
-                    self.prompt = self.prompt + error_messages[error_index] + "\n"
+                    if error_index < len(error_messages):
+                        self.prompt = self.prompt + error_messages[error_index] + "\n"
 
-                else:
-                    if self.bitvector["2.2.2"] == 1:
-                        self.prompt = self.prompt + self.template["2.2.2"]
+                self.prompt = self.prompt + "\n```"
+
+            else:
+                if self.bitvector["2.2.2"] == 1:
+                    self.prompt = self.prompt + self.template["2.2.2"] + "```text\n"
+                    for error_index in range(len(stack_traces)):
                         self.prompt = self.prompt + stack_traces[error_index] + "\n"
 
-                    if self.bitvector["2.2.1"] == 1:
-                        self.prompt = self.prompt + self.template["2.2.1"]
+                    self.prompt = self.prompt + "\n```"
+
+                if self.bitvector["2.2.1"] == 1:
+                    self.prompt = self.prompt + self.template["2.2.1"] + "```text\n"
+                    for error_index in range(len(error_messages)):
                         self.prompt = self.prompt + error_messages[error_index] + "\n"
+
+                    self.prompt = self.prompt + "\n```"
 
             self.prompt = self.prompt + "\n"
 
@@ -96,8 +105,8 @@ class PromptGenerator:
         omitted_code = "# ... omitted code ...\n\n"
 
         if "1.3.2" in self.facts and self.bitvector["1.3.2"] == 1:
-            self.prompt = self.prompt + self.template["1.3.2"]
-            self.prompt = self.prompt + "# " + self.facts["1.3.2"] + "\n\n"
+            self.prompt = self.prompt + self.template["1.3.2"] + self.facts["1.3.2"]
+            self.add_newline_between_sections()
 
         if "1.3.4" in self.facts and self.facts["1.3.4"] != [] and self.bitvector["1.3.4"] == 1:
             functions: list[str] = self.facts["1.3.4"]
@@ -118,7 +127,9 @@ class PromptGenerator:
                 self.prompt = self.prompt + indent + self.template["1.2.4"]
                 self.prompt = self.prompt + indent + "def " + functions[function_index] + ":\n" + indent + "\t" + omitted_code
 
-        self.add_newline_between_sections()
+        if indent != "":
+            self.add_newline_between_sections()
+
         self.prompt = self.prompt + indent + "# this is the buggy function you need to fix\n"
 
         source_code: str = self.facts["1.1.1"]
