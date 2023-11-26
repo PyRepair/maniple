@@ -98,8 +98,8 @@ class Facts:
         for fn in file_info["inscope_functions"]:
             if self._is_this_func_called(fn):
                 called_in_scope_functions.append(fn)
-
-        self.facts["1.3.4"] = called_in_scope_functions
+        if len(called_in_scope_functions) > 0:
+            self.facts["1.3.4"] = called_in_scope_functions
 
     def _is_this_func_called(self, sig):
         for v in self._variables_in_methods:
@@ -160,8 +160,8 @@ class Facts:
         for method in buggy_class_info["functions"]:
             if self._is_this_func_called(method):
                 used_methods.append(method)
-
-        self.facts["1.2.4"] = used_methods
+        if len(used_methods) > 0:
+            self.facts["1.2.4"] = used_methods
 
     @staticmethod
     def remove_docstring_from_source(function_source):
@@ -311,11 +311,15 @@ def collect_facts(bugid: str, dir_path: str):
     print(f"bugid: {bugid}")
     if facts.facts.get("1.2.4") is None:
         print(f"method ref num: 0")
+        if os.path.exists(os.path.join(full_bugdir_path, "f1-2-4.md")):
+            os.remove(os.path.join(full_bugdir_path, "f1-2-4.md"))
     else:
         print(f"method ref num: {len(facts.facts['1.2.4'])}")
 
     if facts.facts.get("1.3.4") is None:
         print(f"in_scope_functions ref num: 0")
+        if os.path.exists(os.path.join(full_bugdir_path, "f1-3-4.md")):
+            os.remove(os.path.join(full_bugdir_path, "f1-3-4.md"))
     else:
         print(f"in_scope_functions ref num: {len(facts.facts['1.3.4'])}")
 
