@@ -47,12 +47,13 @@ class PromptGenerator:
 
         for issue_index in range(len(issue_titles)):
             if self.bitvector["3.1.1"] == 1:
-                self.prompt = self.prompt + self.template["3.1.1"]
-                self.prompt = self.prompt + issue_titles[issue_index] + "\n"
+                self.prompt = self.prompt + self.template["3.1.1"] + "```text\n"
+                self.prompt = self.prompt + issue_titles[issue_index] + "```"
+                self.add_newline_between_sections()
 
             if self.bitvector["3.1.2"] == 1:
-                self.prompt = self.prompt + self.template["3.1.2"]
-                self.prompt = self.prompt + issue_descriptions[issue_index] + "\n"
+                self.prompt = self.prompt + self.template["3.1.2"] + "```text\n"
+                self.prompt = self.prompt + issue_descriptions[issue_index] + "```\n"
 
             self.prompt = self.prompt + "\n"
 
@@ -61,12 +62,12 @@ class PromptGenerator:
             if self.bitvector["2.1.1"] == 1:
                 self.prompt = self.prompt + self.template["2.1.1"] + "```python\n"
 
-            if self.bitvector["2.1.2"] == 1:
-                self.prompt = self.prompt + self.template["2.1.2"] + self.facts["2.1.2"][test_index]
-                self.add_newline_between_sections()
+                if self.bitvector["2.1.2"] == 1:
+                    self.prompt = self.prompt + self.template["2.1.2"] + self.facts["2.1.2"][test_index]
+                    self.add_newline_between_sections()
 
-            self.prompt = self.prompt + self.facts["2.1.1"][test_index] + "\n```"
-            self.add_newline_between_sections()
+                self.prompt = self.prompt + self.facts["2.1.1"][test_index] + "\n```"
+                self.add_newline_between_sections()
 
             error_messages = self.facts["2.2.1"][test_index]
             stack_traces = self.facts["2.2.2"][test_index]
@@ -112,20 +113,20 @@ class PromptGenerator:
             functions: list[str] = self.facts["1.3.4"]
             for function_index in range(len(functions)):
                 self.prompt = self.prompt + self.template["1.3.4"]
-                self.prompt = self.prompt + "def " + functions[function_index] + ":\n\t" + omitted_code
+                self.prompt = self.prompt + "def " + functions[function_index] + ":\n    " + omitted_code
 
         if "1.2.1" in self.facts and self.bitvector["1.2.1"] == 1:
-            indent = "\t"
+            indent = "    "
             self.prompt = self.prompt + self.template["1.2.1"]
             self.prompt = self.prompt + self.facts["1.2.1"] + ":\n"
             self.prompt = self.prompt + indent + omitted_code
 
         if "1.2.4" in self.facts and self.facts["1.2.4"] != [] and self.bitvector["1.2.4"] == 1:
-            indent = "\t"
+            indent = "    "
             functions: list[str] = self.facts["1.2.4"]
             for function_index in range(len(functions)):
                 self.prompt = self.prompt + indent + self.template["1.2.4"]
-                self.prompt = self.prompt + indent + "def " + functions[function_index] + ":\n" + indent + "\t" + omitted_code
+                self.prompt = self.prompt + indent + "def " + functions[function_index] + ":\n" + indent + indent + omitted_code
 
         if indent != "":
             self.add_newline_between_sections()
