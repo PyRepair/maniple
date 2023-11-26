@@ -107,7 +107,7 @@ class Facts:
             if Facts._extract_function_name(sig) == var:
                 return True
         return False
-    
+
     @staticmethod
     def _extract_function_name(signature):
         """
@@ -120,7 +120,7 @@ class Facts:
         str: The name of the function.
         """
         # Split the signature string at the first opening parenthesis
-        parts = signature.split('(')
+        parts = signature.split("(")
         # The first part is the function name
         # Stripping to remove any leading or trailing spaces
         return parts[0].strip()
@@ -311,15 +311,11 @@ def collect_facts(bugid: str, dir_path: str):
     print(f"bugid: {bugid}")
     if facts.facts.get("1.2.4") is None:
         print(f"method ref num: 0")
-        if os.path.exists(os.path.join(full_bugdir_path, "f1-2-4.md")):
-            os.remove(os.path.join(full_bugdir_path, "f1-2-4.md"))
     else:
         print(f"method ref num: {len(facts.facts['1.2.4'])}")
 
     if facts.facts.get("1.3.4") is None:
         print(f"in_scope_functions ref num: 0")
-        if os.path.exists(os.path.join(full_bugdir_path, "f1-3-4.md")):
-            os.remove(os.path.join(full_bugdir_path, "f1-3-4.md"))
     else:
         print(f"in_scope_functions ref num: {len(facts.facts['1.3.4'])}")
 
