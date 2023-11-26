@@ -1,11 +1,16 @@
 import glob
 import json
 import os.path
+import time
+
+import openai
+from openai import OpenAI
 
 from extractor import Facts
 
 
 fact_map = Facts.FACT_MAP
+client = OpenAI(api_key="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")
 
 
 class PromptGenerator:
@@ -152,6 +157,34 @@ class PromptGenerator:
         with open(os.path.join(self.output_dir, prompt_file_name), "w") as output_file:
             output_file.write(self.prompt)
 
+    def get_response_from_gpt(self, repeat_count: int, gpt_model: str):
+        for count in range(repeat_count):
+            response_file_name = ""
+            for value in self.bitvector.values():
+                response_file_name = response_file_name + str(value)
+            response_file_name += "response(" + str(count) + ").md"
+
+            if os.path.exists(os.path.join(self.output_dir, response_file_name)):
+                print(f"{response_file_name} already exists in directory {self.output_dir}")
+
+            else:
+                time.sleep(3)
+                with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
+                    try:
+                        chat_completion = client.chat.completions.create(
+                            model=gpt_model,
+                            messages=[
+                                {"role": "user", "content": self.prompt}
+                            ]
+                        )
+
+                        response = chat_completion.choices[0].message.content
+                        output_file.write(response)
+                        print(f"write response to file {response_file_name} in directory {self.output_dir}")
+                    except Exception as e:
+                        output_file.write(str(e))
+                        print(f"write response error to file {response_file_name} in directory {self.output_dir}")
+
 
 if __name__ == "__main__":
     first_stratum_path = os.listdir("first-stratum")
@@ -172,3 +205,4 @@ if __name__ == "__main__":
 
             prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join("first-stratum", bug_dir))
             prompt_generator.generate_prompt()
+            prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
