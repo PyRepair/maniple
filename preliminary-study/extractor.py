@@ -5,12 +5,61 @@ import subprocess
 import json
 import re
 from typing import List
+import ast
+import inspect
 
 
 FLAG_OVERWRITE = False
 
 
 IGNORED_BUGS = ["spacy:2"]
+
+
+def extract_function_with_imports(
+    src: str, func_name: str
+) -> str:
+    # Parsing the source code into an AST
+    tree = ast.parse(src)
+
+    # Find the function node and import statements
+    function_node = None
+    import_statements = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == func_name:
+            function_node = node
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            import_statements.append(node)
+
+    if not function_node:
+        return "Function not found"
+
+    # Get the source code of the function's signature
+    start_line = function_node.lineno - 1
+    end_line = (
+        function_node.body[0].lineno - 2
+    )  # The line before the function body starts
+    function_signature = "\n".join(src.splitlines()[start_line : end_line + 1])
+
+    # Get the function body
+    function_body = "\n".join(
+        src.splitlines()[function_node.body[0].lineno - 1 : function_node.end_lineno]
+    )
+
+    # Extract import statements as source code
+    imports_code = "\n".join(
+        ast.get_source_segment(src, node) for node in import_statements
+    )
+
+    # Combine the function signature, imports, and function body
+    modified_function = (
+        function_signature
+        + "\n    "
+        + "\n    ".join(imports_code.split("\n"))
+        + "\n\n"
+        + function_body
+    )
+
+    return modified_function
 
 
 def print_in_red(text):
