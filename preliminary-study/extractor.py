@@ -10,6 +10,9 @@ from typing import List
 FLAG_OVERWRITE = False
 
 
+IGNORED_BUGS = ["spacy:2"]
+
+
 def print_in_red(text):
     RED = "\033[91m"
     RESET = "\033[0m"
@@ -248,11 +251,17 @@ class Facts:
 
 
 def collect_facts(bugid: str, dir_path: str):
+    if bugid in IGNORED_BUGS:
+        print_in_red(f"WARNING: {bugid} is ignored")
+        return
+
     full_bugdir_path = os.path.join(dir_path, "-".join(bugid.split(":")))
     if not os.path.exists(full_bugdir_path):
         os.makedirs(full_bugdir_path)
 
-    if FLAG_OVERWRITE:
+    bug_json_file = os.path.join(full_bugdir_path, "bug-data.json")
+
+    if FLAG_OVERWRITE or not os.path.exists(bug_json_file):
         if shutil.which("bgp") is None:
             print_in_red(
                 """FATAL: bgp command not found. 
@@ -272,11 +281,11 @@ def collect_facts(bugid: str, dir_path: str):
         json_output = json.loads(decoded_string)
 
         # write bug-data.json file
-        with open(os.path.join(full_bugdir_path, "bug-data.json"), "w") as f:
+        with open(bug_json_file, "w") as f:
             json.dump(json_output, f, indent=4)
 
     else:
-        with open(os.path.join(full_bugdir_path, "bug-data.json"), "r") as f:
+        with open(bug_json_file, "r") as f:
             json_output = json.load(f)
 
     bug_record = json_output[bugid]
