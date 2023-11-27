@@ -15,9 +15,7 @@ FLAG_OVERWRITE = False
 IGNORED_BUGS = ["spacy:2"]
 
 
-def extract_function_with_imports(
-    src: str, func_name: str
-) -> str:
+def extract_function_with_imports(src: str, func_name: str) -> str:
     # Parsing the source code into an AST
     tree = ast.parse(src)
 
@@ -41,22 +39,35 @@ def extract_function_with_imports(
     function_signature = "\n".join(src.splitlines()[start_line : end_line + 1])
 
     # Get the function body
-    function_body = "\n".join(
-        src.splitlines()[function_node.body[0].lineno - 1 : function_node.end_lineno]
+    function_body_lines = src.splitlines()[
+        function_node.body[0].lineno - 1 : function_node.end_lineno
+    ]
+
+    # Determine the minimum indentation in the function body
+    min_indent = min(
+        (
+            len(line) - len(line.lstrip())
+            for line in function_body_lines
+            if line.strip()
+        ),
+        default=0,
     )
 
-    # Extract import statements as source code
+    indent_spaces = " " * 4
+
+    # Adjust the indentation for the function body
+    function_body = "\n".join(
+        indent_spaces + line[min_indent:] for line in function_body_lines
+    )
+
+    # Extract import statements as source code with appropriate indentation
     imports_code = "\n".join(
-        ast.get_source_segment(src, node) for node in import_statements
+        indent_spaces + ast.get_source_segment(src, node) for node in import_statements
     )
 
     # Combine the function signature, imports, and function body
     modified_function = (
-        function_signature
-        + "\n    "
-        + "\n    ".join(imports_code.split("\n"))
-        + "\n\n"
-        + function_body
+        function_signature.lstrip() + "\n" + imports_code + "\n" + function_body
     )
 
     return modified_function
