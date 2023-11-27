@@ -1,0 +1,5497 @@
+{
+    "ansible:6": {
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/ansible/lib/ansible/galaxy/collection.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_meets_requirements",
+                    "function_code": "def _meets_requirements(self, version, requirements, parent):\n    \"\"\"\n    Supports version identifiers can be '==', '!=', '>', '>=', '<', '<=', '*'. Each requirement is delimited by ','\n    \"\"\"\n    op_map = {\n        '!=': operator.ne,\n        '==': operator.eq,\n        '=': operator.eq,\n        '>=': operator.ge,\n        '>': operator.gt,\n        '<=': operator.le,\n        '<': operator.lt,\n    }\n\n    for req in list(requirements.split(',')):\n        op_pos = 2 if len(req) > 1 and req[1] == '=' else 1\n        op = op_map.get(req[:op_pos])\n\n        requirement = req[op_pos:]\n        if not op:\n            requirement = req\n            op = operator.eq\n\n            # In the case we are checking a new requirement on a base requirement (parent != None) we can't accept\n            # version as '*' (unknown version) unless the requirement is also '*'.\n            if parent and version == '*' and requirement != '*':\n                break\n            elif requirement == '*' or version == '*':\n                continue\n\n        if not op(LooseVersion(version), LooseVersion(requirement)):\n            break\n    else:\n        return True\n\n    # The loop was broken early, it does not meet all the requirements\n    return False\n",
+                    "decorators": [],
+                    "docstring": "Supports version identifiers can be '==', '!=', '>', '>=', '<', '<=', '*'. Each requirement is delimited by ','",
+                    "start_line": 199,
+                    "variables": {
+                        "op_map": [
+                            203,
+                            215
+                        ],
+                        "operator.ne": [
+                            204
+                        ],
+                        "operator": [
+                            204,
+                            205,
+                            206,
+                            207,
+                            208,
+                            209,
+                            210,
+                            220
+                        ],
+                        "operator.eq": [
+                            220,
+                            205,
+                            206
+                        ],
+                        "operator.ge": [
+                            207
+                        ],
+                        "operator.gt": [
+                            208
+                        ],
+                        "operator.le": [
+                            209
+                        ],
+                        "operator.lt": [
+                            210
+                        ],
+                        "req": [
+                            213,
+                            214,
+                            215,
+                            217,
+                            219
+                        ],
+                        "list": [
+                            213
+                        ],
+                        "requirements.split": [
+                            213
+                        ],
+                        "requirements": [
+                            213
+                        ],
+                        "op_pos": [
+                            217,
+                            214,
+                            215
+                        ],
+                        "len": [
+                            214
+                        ],
+                        "op": [
+                            218,
+                            220,
+                            229,
+                            215
+                        ],
+                        "op_map.get": [
+                            215
+                        ],
+                        "requirement": [
+                            224,
+                            226,
+                            229,
+                            217,
+                            219
+                        ],
+                        "parent": [
+                            224
+                        ],
+                        "version": [
+                            224,
+                            226,
+                            229
+                        ],
+                        "LooseVersion": [
+                            229
+                        ]
+                    },
+                    "filtered_variables": {
+                        "op_map": [
+                            203,
+                            215
+                        ],
+                        "operator.ne": [
+                            204
+                        ],
+                        "operator": [
+                            204,
+                            205,
+                            206,
+                            207,
+                            208,
+                            209,
+                            210,
+                            220
+                        ],
+                        "operator.eq": [
+                            220,
+                            205,
+                            206
+                        ],
+                        "operator.ge": [
+                            207
+                        ],
+                        "operator.gt": [
+                            208
+                        ],
+                        "operator.le": [
+                            209
+                        ],
+                        "operator.lt": [
+                            210
+                        ],
+                        "req": [
+                            213,
+                            214,
+                            215,
+                            217,
+                            219
+                        ],
+                        "requirements.split": [
+                            213
+                        ],
+                        "requirements": [
+                            213
+                        ],
+                        "op_pos": [
+                            217,
+                            214,
+                            215
+                        ],
+                        "op": [
+                            218,
+                            220,
+                            229,
+                            215
+                        ],
+                        "op_map.get": [
+                            215
+                        ],
+                        "requirement": [
+                            224,
+                            226,
+                            229,
+                            217,
+                            219
+                        ],
+                        "parent": [
+                            224
+                        ],
+                        "version": [
+                            224,
+                            226,
+                            229
+                        ],
+                        "LooseVersion": [
+                            229
+                        ]
+                    },
+                    "diff_line_number": 222,
+                    "class_data": {
+                        "signature": "class CollectionRequirement()",
+                        "docstring": null,
+                        "constructor_docstring": "Represents a collection requirement, the versions that are available to be installed as well as any\ndependencies the collection has.\n\n:param namespace: The collection namespace.\n:param name: The collection name.\n:param b_path: Byte str of the path to the collection tarball if it has already been downloaded.\n:param api: The GalaxyAPI to use if the collection is from Galaxy.\n:param versions: A list of versions of the collection that are available.\n:param requirement: The version requirement string used to verify the list of versions fit the requirements.\n:param force: Whether the force flag applied to the collection.\n:param parent: The name of the parent the collection is a dependency of.\n:param metadata: The galaxy.api.CollectionVersionMetadata that has already been retrieved from the Galaxy\n    server.\n:param files: The files that exist inside the collection. This is based on the FILES.json file inside the\n    collection artifact.\n:param skip: Whether to skip installing the collection. Should be set if the collection is already installed\n    and force is not set.",
+                        "functions": [
+                            "__init__(self, namespace, name, b_path, api, versions, requirement, force, parent=None, metadata=None, files=None, skip=False)",
+                            "__str__(self)",
+                            "__unicode__(self)",
+                            "metadata(self)",
+                            "latest_version(self)",
+                            "dependencies(self)",
+                            "add_requirement(self, parent, requirement)",
+                            "install(self, path, b_temp_path)",
+                            "set_latest_version(self)",
+                            "_get_metadata(self)",
+                            "_meets_requirements(self, version, requirements, parent)",
+                            "from_tar(b_path, force, parent=None)",
+                            "from_path(b_path, force, parent=None)",
+                            "from_name(collection, apis, requirement, force, parent=None)"
+                        ],
+                        "constructor_variables": [
+                            "skip",
+                            "_files",
+                            "namespace",
+                            "_metadata",
+                            "versions",
+                            "api",
+                            "required_by",
+                            "force",
+                            "b_path",
+                            "name"
+                        ],
+                        "class_level_variables": [
+                            "_FILE_MAPPING"
+                        ],
+                        "class_decorators": []
+                    }
+                },
+                {
+                    "function_name": "from_path",
+                    "function_code": "@staticmethod\ndef from_path(b_path, force, parent=None):\n    info = {}\n    for b_file_name, property_name in CollectionRequirement._FILE_MAPPING:\n        b_file_path = os.path.join(b_path, b_file_name)\n        if not os.path.exists(b_file_path):\n            continue\n\n        with open(b_file_path, 'rb') as file_obj:\n            try:\n                info[property_name] = json.loads(to_text(file_obj.read(), errors='surrogate_or_strict'))\n            except ValueError:\n                raise AnsibleError(\"Collection file at '%s' does not contain a valid json string.\"\n                                   % to_native(b_file_path))\n\n    if 'manifest_file' in info:\n        manifest = info['manifest_file']['collection_info']\n        namespace = manifest['namespace']\n        name = manifest['name']\n        version = manifest['version']\n        dependencies = manifest['dependencies']\n    else:\n        display.warning(\"Collection at '%s' does not have a MANIFEST.json file, cannot detect version.\"\n                        % to_text(b_path))\n        parent_dir, name = os.path.split(to_text(b_path, errors='surrogate_or_strict'))\n        namespace = os.path.split(parent_dir)[1]\n\n        version = '*'\n        dependencies = {}\n\n    meta = CollectionVersionMetadata(namespace, name, version, None, None, dependencies)\n\n    files = info.get('files_file', {}).get('files', {})\n\n    return CollectionRequirement(namespace, name, b_path, None, [version], version, force, parent=parent,\n                                 metadata=meta, files=files, skip=True)\n",
+                    "decorators": [
+                        "staticmethod"
+                    ],
+                    "docstring": null,
+                    "start_line": 270,
+                    "variables": {
+                        "info": [
+                            302,
+                            272,
+                            280,
+                            285,
+                            286
+                        ],
+                        "b_file_name": [
+                            273,
+                            274
+                        ],
+                        "property_name": [
+                            280,
+                            273
+                        ],
+                        "CollectionRequirement._FILE_MAPPING": [
+                            273
+                        ],
+                        "CollectionRequirement": [
+                            304,
+                            273
+                        ],
+                        "b_file_path": [
+                            283,
+                            274,
+                            275,
+                            278
+                        ],
+                        "os.path.join": [
+                            274
+                        ],
+                        "os.path": [
+                            274,
+                            275,
+                            294,
+                            295
+                        ],
+                        "os": [
+                            274,
+                            275,
+                            294,
+                            295
+                        ],
+                        "b_path": [
+                            304,
+                            274,
+                            293,
+                            294
+                        ],
+                        "os.path.exists": [
+                            275
+                        ],
+                        "open": [
+                            278
+                        ],
+                        "file_obj": [
+                            280,
+                            278
+                        ],
+                        "json.loads": [
+                            280
+                        ],
+                        "json": [
+                            280
+                        ],
+                        "to_text": [
+                            280,
+                            293,
+                            294
+                        ],
+                        "file_obj.read": [
+                            280
+                        ],
+                        "ValueError": [
+                            281
+                        ],
+                        "AnsibleError": [
+                            282
+                        ],
+                        "to_native": [
+                            283
+                        ],
+                        "manifest": [
+                            288,
+                            289,
+                            290,
+                            286,
+                            287
+                        ],
+                        "namespace": [
+                            304,
+                            300,
+                            295,
+                            287
+                        ],
+                        "name": [
+                            288,
+                            304,
+                            300,
+                            294
+                        ],
+                        "version": [
+                            304,
+                            289,
+                            300,
+                            297
+                        ],
+                        "dependencies": [
+                            290,
+                            298,
+                            300
+                        ],
+                        "display.warning": [
+                            292
+                        ],
+                        "display": [
+                            292
+                        ],
+                        "parent_dir": [
+                            294,
+                            295
+                        ],
+                        "os.path.split": [
+                            294,
+                            295
+                        ],
+                        "meta": [
+                            305,
+                            300
+                        ],
+                        "CollectionVersionMetadata": [
+                            300
+                        ],
+                        "files": [
+                            305,
+                            302
+                        ],
+                        "get": [
+                            302
+                        ],
+                        "info.get": [
+                            302
+                        ],
+                        "force": [
+                            304
+                        ],
+                        "parent": [
+                            304
+                        ],
+                        "staticmethod": [
+                            270
+                        ]
+                    },
+                    "filtered_variables": {
+                        "info": [
+                            302,
+                            272,
+                            280,
+                            285,
+                            286
+                        ],
+                        "b_file_name": [
+                            273,
+                            274
+                        ],
+                        "property_name": [
+                            280,
+                            273
+                        ],
+                        "CollectionRequirement._FILE_MAPPING": [
+                            273
+                        ],
+                        "CollectionRequirement": [
+                            304,
+                            273
+                        ],
+                        "b_file_path": [
+                            283,
+                            274,
+                            275,
+                            278
+                        ],
+                        "os.path.join": [
+                            274
+                        ],
+                        "os.path": [
+                            274,
+                            275,
+                            294,
+                            295
+                        ],
+                        "os": [
+                            274,
+                            275,
+                            294,
+                            295
+                        ],
+                        "b_path": [
+                            304,
+                            274,
+                            293,
+                            294
+                        ],
+                        "os.path.exists": [
+                            275
+                        ],
+                        "file_obj": [
+                            280,
+                            278
+                        ],
+                        "json.loads": [
+                            280
+                        ],
+                        "json": [
+                            280
+                        ],
+                        "to_text": [
+                            280,
+                            293,
+                            294
+                        ],
+                        "file_obj.read": [
+                            280
+                        ],
+                        "AnsibleError": [
+                            282
+                        ],
+                        "to_native": [
+                            283
+                        ],
+                        "manifest": [
+                            288,
+                            289,
+                            290,
+                            286,
+                            287
+                        ],
+                        "namespace": [
+                            304,
+                            300,
+                            295,
+                            287
+                        ],
+                        "name": [
+                            288,
+                            304,
+                            300,
+                            294
+                        ],
+                        "version": [
+                            304,
+                            289,
+                            300,
+                            297
+                        ],
+                        "dependencies": [
+                            290,
+                            298,
+                            300
+                        ],
+                        "display.warning": [
+                            292
+                        ],
+                        "display": [
+                            292
+                        ],
+                        "parent_dir": [
+                            294,
+                            295
+                        ],
+                        "os.path.split": [
+                            294,
+                            295
+                        ],
+                        "meta": [
+                            305,
+                            300
+                        ],
+                        "CollectionVersionMetadata": [
+                            300
+                        ],
+                        "files": [
+                            305,
+                            302
+                        ],
+                        "get": [
+                            302
+                        ],
+                        "info.get": [
+                            302
+                        ],
+                        "force": [
+                            304
+                        ],
+                        "parent": [
+                            304
+                        ]
+                    },
+                    "diff_line_number": 289,
+                    "class_data": {
+                        "signature": "class CollectionRequirement()",
+                        "docstring": null,
+                        "constructor_docstring": "Represents a collection requirement, the versions that are available to be installed as well as any\ndependencies the collection has.\n\n:param namespace: The collection namespace.\n:param name: The collection name.\n:param b_path: Byte str of the path to the collection tarball if it has already been downloaded.\n:param api: The GalaxyAPI to use if the collection is from Galaxy.\n:param versions: A list of versions of the collection that are available.\n:param requirement: The version requirement string used to verify the list of versions fit the requirements.\n:param force: Whether the force flag applied to the collection.\n:param parent: The name of the parent the collection is a dependency of.\n:param metadata: The galaxy.api.CollectionVersionMetadata that has already been retrieved from the Galaxy\n    server.\n:param files: The files that exist inside the collection. This is based on the FILES.json file inside the\n    collection artifact.\n:param skip: Whether to skip installing the collection. Should be set if the collection is already installed\n    and force is not set.",
+                        "functions": [
+                            "__init__(self, namespace, name, b_path, api, versions, requirement, force, parent=None, metadata=None, files=None, skip=False)",
+                            "__str__(self)",
+                            "__unicode__(self)",
+                            "metadata(self)",
+                            "latest_version(self)",
+                            "dependencies(self)",
+                            "add_requirement(self, parent, requirement)",
+                            "install(self, path, b_temp_path)",
+                            "set_latest_version(self)",
+                            "_get_metadata(self)",
+                            "_meets_requirements(self, version, requirements, parent)",
+                            "from_tar(b_path, force, parent=None)",
+                            "from_path(b_path, force, parent=None)",
+                            "from_name(collection, apis, requirement, force, parent=None)"
+                        ],
+                        "constructor_variables": [
+                            "skip",
+                            "_files",
+                            "namespace",
+                            "_metadata",
+                            "versions",
+                            "api",
+                            "required_by",
+                            "force",
+                            "b_path",
+                            "name"
+                        ],
+                        "class_level_variables": [
+                            "_FILE_MAPPING"
+                        ],
+                        "class_decorators": []
+                    }
+                },
+                {
+                    "function_name": "_get_collection_info",
+                    "function_code": "def _get_collection_info(dep_map, existing_collections, collection, requirement, source, b_temp_path, apis,\n                         validate_certs, force, parent=None):\n    dep_msg = \"\"\n    if parent:\n        dep_msg = \" - as dependency of %s\" % parent\n    display.vvv(\"Processing requirement collection '%s'%s\" % (to_text(collection), dep_msg))\n\n    b_tar_path = None\n    if os.path.isfile(to_bytes(collection, errors='surrogate_or_strict')):\n        display.vvvv(\"Collection requirement '%s' is a tar artifact\" % to_text(collection))\n        b_tar_path = to_bytes(collection, errors='surrogate_or_strict')\n    elif urlparse(collection).scheme.lower() in ['http', 'https']:\n        display.vvvv(\"Collection requirement '%s' is a URL to a tar artifact\" % collection)\n        try:\n            b_tar_path = _download_file(collection, b_temp_path, None, validate_certs)\n        except urllib_error.URLError as err:\n            raise AnsibleError(\"Failed to download collection tar from '%s': %s\"\n                               % (to_native(collection), to_native(err)))\n\n    if b_tar_path:\n        req = CollectionRequirement.from_tar(b_tar_path, force, parent=parent)\n\n        collection_name = to_text(req)\n        if collection_name in dep_map:\n            collection_info = dep_map[collection_name]\n            collection_info.add_requirement(None, req.latest_version)\n        else:\n            collection_info = req\n    else:\n        validate_collection_name(collection)\n\n        display.vvvv(\"Collection requirement '%s' is the name of a collection\" % collection)\n        if collection in dep_map:\n            collection_info = dep_map[collection]\n            collection_info.add_requirement(parent, requirement)\n        else:\n            apis = [source] if source else apis\n            collection_info = CollectionRequirement.from_name(collection, apis, requirement, force, parent=parent)\n\n    existing = [c for c in existing_collections if to_text(c) == to_text(collection_info)]\n    if existing and not collection_info.force:\n        # Test that the installed collection fits the requirement\n        existing[0].add_requirement(to_text(collection_info), requirement)\n        collection_info = existing[0]\n\n    dep_map[to_text(collection_info)] = collection_info\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 838,
+                    "variables": {
+                        "dep_msg": [
+                            840,
+                            842,
+                            843
+                        ],
+                        "parent": [
+                            872,
+                            841,
+                            842,
+                            875,
+                            858
+                        ],
+                        "display.vvv": [
+                            843
+                        ],
+                        "display": [
+                            850,
+                            843,
+                            869,
+                            847
+                        ],
+                        "to_text": [
+                            843,
+                            877,
+                            847,
+                            880,
+                            883,
+                            860
+                        ],
+                        "collection": [
+                            867,
+                            869,
+                            870,
+                            871,
+                            843,
+                            875,
+                            846,
+                            847,
+                            848,
+                            849,
+                            850,
+                            852,
+                            855
+                        ],
+                        "b_tar_path": [
+                            845,
+                            848,
+                            852,
+                            857,
+                            858
+                        ],
+                        "os.path.isfile": [
+                            846
+                        ],
+                        "os.path": [
+                            846
+                        ],
+                        "os": [
+                            846
+                        ],
+                        "to_bytes": [
+                            848,
+                            846
+                        ],
+                        "display.vvvv": [
+                            850,
+                            869,
+                            847
+                        ],
+                        "scheme.lower": [
+                            849
+                        ],
+                        "scheme": [
+                            849
+                        ],
+                        "urlparse": [
+                            849
+                        ],
+                        "_download_file": [
+                            852
+                        ],
+                        "b_temp_path": [
+                            852
+                        ],
+                        "validate_certs": [
+                            852
+                        ],
+                        "urllib_error.URLError": [
+                            853
+                        ],
+                        "urllib_error": [
+                            853
+                        ],
+                        "AnsibleError": [
+                            854
+                        ],
+                        "to_native": [
+                            855
+                        ],
+                        "err": [
+                            855
+                        ],
+                        "req": [
+                            865,
+                            858,
+                            860,
+                            863
+                        ],
+                        "CollectionRequirement.from_tar": [
+                            858
+                        ],
+                        "CollectionRequirement": [
+                            858,
+                            875
+                        ],
+                        "force": [
+                            858,
+                            875
+                        ],
+                        "collection_name": [
+                            860,
+                            861,
+                            862
+                        ],
+                        "dep_map": [
+                            870,
+                            871,
+                            883,
+                            861,
+                            862
+                        ],
+                        "collection_info": [
+                            865,
+                            871,
+                            872,
+                            875,
+                            877,
+                            878,
+                            880,
+                            881,
+                            883,
+                            862,
+                            863
+                        ],
+                        "collection_info.add_requirement": [
+                            872,
+                            863
+                        ],
+                        "req.latest_version": [
+                            863
+                        ],
+                        "validate_collection_name": [
+                            867
+                        ],
+                        "requirement": [
+                            872,
+                            875,
+                            880
+                        ],
+                        "apis": [
+                            874,
+                            875
+                        ],
+                        "source": [
+                            874
+                        ],
+                        "CollectionRequirement.from_name": [
+                            875
+                        ],
+                        "existing": [
+                            880,
+                            881,
+                            877,
+                            878
+                        ],
+                        "c": [
+                            877
+                        ],
+                        "existing_collections": [
+                            877
+                        ],
+                        "collection_info.force": [
+                            878
+                        ],
+                        "add_requirement": [
+                            880
+                        ]
+                    },
+                    "filtered_variables": {
+                        "dep_msg": [
+                            840,
+                            842,
+                            843
+                        ],
+                        "parent": [
+                            872,
+                            841,
+                            842,
+                            875,
+                            858
+                        ],
+                        "display.vvv": [
+                            843
+                        ],
+                        "display": [
+                            850,
+                            843,
+                            869,
+                            847
+                        ],
+                        "to_text": [
+                            843,
+                            877,
+                            847,
+                            880,
+                            883,
+                            860
+                        ],
+                        "collection": [
+                            867,
+                            869,
+                            870,
+                            871,
+                            843,
+                            875,
+                            846,
+                            847,
+                            848,
+                            849,
+                            850,
+                            852,
+                            855
+                        ],
+                        "b_tar_path": [
+                            845,
+                            848,
+                            852,
+                            857,
+                            858
+                        ],
+                        "os.path.isfile": [
+                            846
+                        ],
+                        "os.path": [
+                            846
+                        ],
+                        "os": [
+                            846
+                        ],
+                        "to_bytes": [
+                            848,
+                            846
+                        ],
+                        "display.vvvv": [
+                            850,
+                            869,
+                            847
+                        ],
+                        "scheme.lower": [
+                            849
+                        ],
+                        "scheme": [
+                            849
+                        ],
+                        "urlparse": [
+                            849
+                        ],
+                        "_download_file": [
+                            852
+                        ],
+                        "b_temp_path": [
+                            852
+                        ],
+                        "validate_certs": [
+                            852
+                        ],
+                        "urllib_error.URLError": [
+                            853
+                        ],
+                        "urllib_error": [
+                            853
+                        ],
+                        "AnsibleError": [
+                            854
+                        ],
+                        "to_native": [
+                            855
+                        ],
+                        "err": [
+                            855
+                        ],
+                        "req": [
+                            865,
+                            858,
+                            860,
+                            863
+                        ],
+                        "CollectionRequirement.from_tar": [
+                            858
+                        ],
+                        "CollectionRequirement": [
+                            858,
+                            875
+                        ],
+                        "force": [
+                            858,
+                            875
+                        ],
+                        "collection_name": [
+                            860,
+                            861,
+                            862
+                        ],
+                        "dep_map": [
+                            870,
+                            871,
+                            883,
+                            861,
+                            862
+                        ],
+                        "collection_info": [
+                            865,
+                            871,
+                            872,
+                            875,
+                            877,
+                            878,
+                            880,
+                            881,
+                            883,
+                            862,
+                            863
+                        ],
+                        "collection_info.add_requirement": [
+                            872,
+                            863
+                        ],
+                        "req.latest_version": [
+                            863
+                        ],
+                        "validate_collection_name": [
+                            867
+                        ],
+                        "requirement": [
+                            872,
+                            875,
+                            880
+                        ],
+                        "apis": [
+                            874,
+                            875
+                        ],
+                        "source": [
+                            874
+                        ],
+                        "CollectionRequirement.from_name": [
+                            875
+                        ],
+                        "existing": [
+                            880,
+                            881,
+                            877,
+                            878
+                        ],
+                        "c": [
+                            877
+                        ],
+                        "existing_collections": [
+                            877
+                        ],
+                        "collection_info.force": [
+                            878
+                        ],
+                        "add_requirement": [
+                            880
+                        ]
+                    },
+                    "diff_line_number": 880,
+                    "class_data": null
+                }
+            ],
+            "inscope_functions": [
+                "build_collection(collection_path, output_path, force)",
+                "publish_collection(collection_path, api, wait, timeout)",
+                "install_collections(collections, output_path, apis, validate_certs, ignore_errors, no_deps, force, force_deps)",
+                "validate_collection_name(name)",
+                "validate_collection_path(collection_path)",
+                "_tempdir()",
+                "_tarfile_extract(tar, member)",
+                "_display_progress()",
+                "_get_galaxy_yml(b_galaxy_yml_path)",
+                "_build_files_manifest(b_collection_path, namespace, name, ignore_patterns)",
+                "_build_manifest(namespace, name, version, authors, readme, tags, description, license_ids, license_file, dependencies, repository, documentation, homepage, issues, **kwargs)",
+                "_build_collection_tar(b_collection_path, b_tar_path, collection_manifest, file_manifest)",
+                "find_existing_collections(path)",
+                "_build_dependency_map(collections, existing_collections, b_temp_path, apis, validate_certs, force, force_deps, no_deps)",
+                "_get_collection_info(dep_map, existing_collections, collection, requirement, source, b_temp_path, apis, validate_certs, force, parent=None)",
+                "_download_file(url, b_path, expected_hash, validate_certs, headers=None)",
+                "_extract_tar_file(tar, filename, b_dest, b_temp_path, expected_hash=None)",
+                "__init__(self, namespace, name, b_path, api, versions, requirement, force, parent=None, metadata=None, files=None, skip=False)",
+                "__str__(self)",
+                "__unicode__(self)",
+                "metadata(self)",
+                "latest_version(self)",
+                "dependencies(self)",
+                "add_requirement(self, parent, requirement)",
+                "install(self, path, b_temp_path)",
+                "set_latest_version(self)",
+                "_get_metadata(self)",
+                "_meets_requirements(self, version, requirements, parent)",
+                "from_tar(b_path, force, parent=None)",
+                "from_path(b_path, force, parent=None)",
+                "from_name(collection, apis, requirement, force, parent=None)",
+                "progress(display_queue, actual_display)",
+                "_walk(b_path, b_top_level_dir)",
+                "__init__(self, display_queue)",
+                "__getattr__(self, attr)",
+                "call_display(*args, **kwargs)",
+                "reset_stat(tarinfo)"
+            ],
+            "variables_in_file": {
+                "__metaclass__": [
+                    5
+                ],
+                "type": [
+                    5
+                ],
+                "ImportError": [
+                    27
+                ],
+                "urlparse": [
+                    849,
+                    42
+                ],
+                "six.moves.urllib.parse.urlparse": [
+                    42
+                ],
+                "six.moves.urllib.parse": [
+                    42
+                ],
+                "six.moves.urllib": [
+                    42,
+                    43
+                ],
+                "six.moves": [
+                    42,
+                    43
+                ],
+                "six": [
+                    42,
+                    43
+                ],
+                "urllib_error": [
+                    43,
+                    853
+                ],
+                "six.moves.urllib.error": [
+                    43
+                ],
+                "display": [
+                    773,
+                    909,
+                    789,
+                    150,
+                    407,
+                    410,
+                    667,
+                    156,
+                    541,
+                    413,
+                    544,
+                    674,
+                    292,
+                    46,
+                    558,
+                    687,
+                    434,
+                    439,
+                    446,
+                    331,
+                    843,
+                    847,
+                    336,
+                    850,
+                    597,
+                    869,
+                    895
+                ],
+                "Display": [
+                    46
+                ],
+                "MANIFEST_FORMAT": [
+                    642,
+                    651,
+                    654,
+                    48,
+                    728,
+                    730
+                ],
+                "_FILE_MAPPING": [
+                    53
+                ],
+                "self.namespace": [
+                    197,
+                    76,
+                    154,
+                    91,
+                    94
+                ],
+                "self": [
+                    129,
+                    132,
+                    134,
+                    136,
+                    137,
+                    140,
+                    146,
+                    531,
+                    149,
+                    150,
+                    535,
+                    154,
+                    156,
+                    158,
+                    159,
+                    160,
+                    162,
+                    164,
+                    171,
+                    191,
+                    192,
+                    195,
+                    197,
+                    76,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    82,
+                    83,
+                    85,
+                    86,
+                    88,
+                    91,
+                    94,
+                    98,
+                    99,
+                    104,
+                    110,
+                    111,
+                    112,
+                    115,
+                    116,
+                    119,
+                    120,
+                    122,
+                    124,
+                    126
+                ],
+                "namespace": [
+                    324,
+                    319,
+                    262,
+                    295,
+                    708,
+                    265,
+                    267,
+                    76,
+                    300,
+                    304,
+                    309,
+                    341,
+                    632,
+                    287
+                ],
+                "self.name": [
+                    197,
+                    77,
+                    154,
+                    91,
+                    94
+                ],
+                "name": [
+                    263,
+                    265,
+                    267,
+                    288,
+                    801,
+                    802,
+                    294,
+                    300,
+                    304,
+                    309,
+                    319,
+                    324,
+                    709,
+                    459,
+                    77,
+                    461,
+                    466,
+                    341,
+                    746,
+                    748,
+                    632,
+                    893
+                ],
+                "self.b_path": [
+                    164,
+                    134,
+                    171,
+                    78,
+                    158
+                ],
+                "b_path": [
+                    267,
+                    779,
+                    781,
+                    780,
+                    274,
+                    658,
+                    659,
+                    660,
+                    665,
+                    293,
+                    294,
+                    304,
+                    78,
+                    239,
+                    240,
+                    243,
+                    250,
+                    893,
+                    895
+                ],
+                "self.api": [
+                    162,
+                    164,
+                    197,
+                    134,
+                    79
+                ],
+                "api": [
+                    324,
+                    391,
+                    415,
+                    332,
+                    79,
+                    336,
+                    341,
+                    407,
+                    312,
+                    409,
+                    411,
+                    319
+                ],
+                "self.versions": [
+                    104,
+                    140,
+                    80,
+                    112,
+                    146,
+                    120,
+                    191
+                ],
+                "set": [
+                    805,
+                    808,
+                    589,
+                    80,
+                    564,
+                    565,
+                    566,
+                    567,
+                    120,
+                    829,
+                    191
+                ],
+                "versions": [
+                    322,
+                    328,
+                    140,
+                    143,
+                    80,
+                    341
+                ],
+                "self.force": [
+                    81
+                ],
+                "force": [
+                    803,
+                    267,
+                    875,
+                    304,
+                    81,
+                    341,
+                    437,
+                    375,
+                    858
+                ],
+                "self.skip": [
+                    82,
+                    149,
+                    122
+                ],
+                "skip": [
+                    82
+                ],
+                "self.required_by": [
+                    137,
+                    83,
+                    119
+                ],
+                "self._metadata": [
+                    160,
+                    99,
+                    195,
+                    197,
+                    110,
+                    111,
+                    116,
+                    85,
+                    159
+                ],
+                "metadata": [
+                    85
+                ],
+                "self._files": [
+                    86
+                ],
+                "files": [
+                    260,
+                    268,
+                    174,
+                    302,
+                    305,
+                    179,
+                    86
+                ],
+                "self.add_requirement": [
+                    88
+                ],
+                "parent": [
+                    128,
+                    132,
+                    267,
+                    811,
+                    812,
+                    304,
+                    819,
+                    821,
+                    841,
+                    842,
+                    341,
+                    88,
+                    858,
+                    224,
+                    872,
+                    875,
+                    119,
+                    120,
+                    123
+                ],
+                "requirement": [
+                    129,
+                    132,
+                    314,
+                    315,
+                    316,
+                    317,
+                    319,
+                    339,
+                    341,
+                    88,
+                    217,
+                    219,
+                    224,
+                    226,
+                    229,
+                    872,
+                    875,
+                    880,
+                    119,
+                    120,
+                    126
+                ],
+                "to_native": [
+                    897,
+                    921,
+                    359,
+                    91,
+                    587,
+                    939,
+                    855,
+                    240,
+                    593,
+                    245,
+                    374,
+                    759,
+                    917,
+                    377,
+                    250,
+                    283
+                ],
+                "self._get_metadata": [
+                    192,
+                    98,
+                    115
+                ],
+                "property": [
+                    96,
+                    108,
+                    101
+                ],
+                "max": [
+                    104
+                ],
+                "v": [
+                    104,
+                    328,
+                    120
+                ],
+                "LooseVersion": [
+                    104,
+                    140,
+                    229
+                ],
+                "ValueError": [
+                    105,
+                    281,
+                    255
+                ],
+                "self._metadata.dependencies": [
+                    116,
+                    111
+                ],
+                "len": [
+                    832,
+                    806,
+                    749,
+                    112,
+                    596,
+                    660,
+                    214,
+                    121
+                ],
+                "self.required_by.append": [
+                    119
+                ],
+                "new_versions": [
+                    120,
+                    121,
+                    146
+                ],
+                "self._meets_requirements": [
+                    120
+                ],
+                "force_flag": [
+                    123,
+                    126
+                ],
+                "version": [
+                    224,
+                    289,
+                    226,
+                    801,
+                    802,
+                    229,
+                    710,
+                    264,
+                    265,
+                    297,
+                    267,
+                    300,
+                    304,
+                    124,
+                    126
+                ],
+                "self.latest_version": [
+                    156,
+                    124,
+                    197,
+                    191
+                ],
+                "msg": [
+                    129,
+                    131,
+                    143,
+                    125,
+                    127
+                ],
+                "to_text": [
+                    129,
+                    132,
+                    773,
+                    134,
+                    136,
+                    789,
+                    150,
+                    662,
+                    280,
+                    790,
+                    667,
+                    156,
+                    675,
+                    293,
+                    294,
+                    805,
+                    174,
+                    687,
+                    447,
+                    843,
+                    847,
+                    598,
+                    860,
+                    877,
+                    880,
+                    883,
+                    890,
+                    126,
+                    254,
+                    895
+                ],
+                "AnsibleError": [
+                    256,
+                    141,
+                    911,
+                    405,
+                    921,
+                    282,
+                    938,
+                    444,
+                    586,
+                    463,
+                    592,
+                    339,
+                    854,
+                    359,
+                    240,
+                    373,
+                    376,
+                    249,
+                    127
+                ],
+                "collection_source": [
+                    134,
+                    143
+                ],
+                "self.api.api_server": [
+                    134
+                ],
+                "req_by": [
+                    143,
+                    135
+                ],
+                "join": [
+                    593,
+                    140,
+                    598,
+                    135
+                ],
+                "p": [
+                    136,
+                    137,
+                    634
+                ],
+                "r": [
+                    136,
+                    137
+                ],
+                "sorted": [
+                    593,
+                    140
+                ],
+                "display.display": [
+                    439,
+                    773,
+                    434,
+                    150,
+                    407,
+                    410,
+                    156,
+                    413
+                ],
+                "collection_path": [
+                    356,
+                    391,
+                    476,
+                    154,
+                    155,
+                    156,
+                    477,
+                    479
+                ],
+                "os.path.join": [
+                    357,
+                    742,
+                    781,
+                    366,
+                    941,
+                    274,
+                    659,
+                    786,
+                    661,
+                    760,
+                    154,
+                    188,
+                    477
+                ],
+                "os.path": [
+                    768,
+                    781,
+                    782,
+                    274,
+                    275,
+                    659,
+                    661,
+                    786,
+                    787,
+                    664,
+                    154,
+                    670,
+                    671,
+                    294,
+                    167,
+                    295,
+                    941,
+                    942,
+                    943,
+                    188,
+                    846,
+                    476,
+                    477,
+                    357,
+                    358,
+                    742,
+                    366,
+                    371,
+                    372,
+                    760,
+                    890
+                ],
+                "os": [
+                    768,
+                    780,
+                    781,
+                    782,
+                    785,
+                    274,
+                    275,
+                    658,
+                    659,
+                    661,
+                    786,
+                    664,
+                    787,
+                    154,
+                    670,
+                    671,
+                    294,
+                    167,
+                    295,
+                    169,
+                    941,
+                    942,
+                    943,
+                    946,
+                    188,
+                    846,
+                    476,
+                    477,
+                    357,
+                    358,
+                    742,
+                    366,
+                    371,
+                    372,
+                    760,
+                    890
+                ],
+                "path": [
+                    154,
+                    779
+                ],
+                "b_collection_path": [
+                    356,
+                    357,
+                    167,
+                    168,
+                    169,
+                    362,
+                    176,
+                    177,
+                    786,
+                    379,
+                    787,
+                    788,
+                    790,
+                    760,
+                    185,
+                    698,
+                    155,
+                    188
+                ],
+                "to_bytes": [
+                    737,
+                    739,
+                    356,
+                    484,
+                    891,
+                    892,
+                    779,
+                    941,
+                    846,
+                    760,
+                    848,
+                    370,
+                    948,
+                    632,
+                    634,
+                    155,
+                    188
+                ],
+                "download_url": [
+                    162,
+                    164,
+                    159
+                ],
+                "self._metadata.download_url": [
+                    159
+                ],
+                "artifact_hash": [
+                    160,
+                    164
+                ],
+                "self._metadata.artifact_sha256": [
+                    160
+                ],
+                "headers": [
+                    161,
+                    162,
+                    897,
+                    165
+                ],
+                "self.api._add_auth_token": [
+                    162
+                ],
+                "_download_file": [
+                    164,
+                    852
+                ],
+                "b_temp_path": [
+                    802,
+                    164,
+                    484,
+                    485,
+                    486,
+                    741,
+                    742,
+                    176,
+                    177,
+                    433,
+                    818,
+                    436,
+                    852,
+                    185,
+                    443,
+                    924
+                ],
+                "self.api.validate_certs": [
+                    164
+                ],
+                "os.path.exists": [
+                    358,
+                    167,
+                    943,
+                    371,
+                    275
+                ],
+                "shutil.rmtree": [
+                    168,
+                    486
+                ],
+                "shutil": [
+                    168,
+                    770,
+                    948,
+                    486
+                ],
+                "os.makedirs": [
+                    169,
+                    946,
+                    188
+                ],
+                "tarfile.open": [
+                    744,
+                    171,
+                    243
+                ],
+                "tarfile": [
+                    744,
+                    171,
+                    748,
+                    239,
+                    243
+                ],
+                "collection_tar": [
+                    171,
+                    172,
+                    173,
+                    176,
+                    177,
+                    243,
+                    247,
+                    185,
+                    252
+                ],
+                "files_member_obj": [
+                    172,
+                    173
+                ],
+                "collection_tar.getmember": [
+                    172,
+                    247
+                ],
+                "_tarfile_extract": [
+                    252,
+                    173,
+                    927
+                ],
+                "files_obj": [
+                    173,
+                    174
+                ],
+                "json.loads": [
+                    280,
+                    174,
+                    254
+                ],
+                "json": [
+                    737,
+                    739,
+                    174,
+                    280,
+                    254
+                ],
+                "files_obj.read": [
+                    174
+                ],
+                "_extract_tar_file": [
+                    176,
+                    177,
+                    185
+                ],
+                "file_info": [
+                    754,
+                    179,
+                    180,
+                    755,
+                    759,
+                    184,
+                    186
+                ],
+                "file_name": [
+                    185,
+                    188,
+                    180,
+                    181
+                ],
+                "self.api.get_collection_version_metadata": [
+                    197
+                ],
+                "op_map": [
+                    203,
+                    215
+                ],
+                "operator.ne": [
+                    204
+                ],
+                "operator": [
+                    204,
+                    205,
+                    206,
+                    207,
+                    208,
+                    209,
+                    210,
+                    220
+                ],
+                "operator.eq": [
+                    220,
+                    205,
+                    206
+                ],
+                "operator.ge": [
+                    207
+                ],
+                "operator.gt": [
+                    208
+                ],
+                "operator.le": [
+                    209
+                ],
+                "operator.lt": [
+                    210
+                ],
+                "req": [
+                    865,
+                    791,
+                    788,
+                    213,
+                    214,
+                    215,
+                    341,
+                    217,
+                    789,
+                    219,
+                    860,
+                    858,
+                    343,
+                    863
+                ],
+                "list": [
+                    610,
+                    580,
+                    213
+                ],
+                "requirements.split": [
+                    213
+                ],
+                "requirements": [
+                    213
+                ],
+                "op_pos": [
+                    217,
+                    214,
+                    215
+                ],
+                "op": [
+                    218,
+                    220,
+                    229,
+                    215
+                ],
+                "op_map.get": [
+                    215
+                ],
+                "tarfile.is_tarfile": [
+                    239
+                ],
+                "info": [
+                    577,
+                    578,
+                    259,
+                    260,
+                    302,
+                    272,
+                    242,
+                    280,
+                    569,
+                    570,
+                    571,
+                    285,
+                    254,
+                    286
+                ],
+                "b_member_name": [
+                    244,
+                    245
+                ],
+                "property_name": [
+                    280,
+                    273,
+                    244,
+                    254
+                ],
+                "CollectionRequirement._FILE_MAPPING": [
+                    273,
+                    244
+                ],
+                "CollectionRequirement": [
+                    267,
+                    875,
+                    304,
+                    273,
+                    244,
+                    341,
+                    788,
+                    858
+                ],
+                "n_member_name": [
+                    257,
+                    250,
+                    245,
+                    247
+                ],
+                "member": [
+                    491,
+                    919,
+                    247,
+                    252,
+                    927
+                ],
+                "KeyError": [
+                    248,
+                    920
+                ],
+                "member_obj": [
+                    252,
+                    254
+                ],
+                "member_obj.read": [
+                    254
+                ],
+                "meta": [
+                    259,
+                    262,
+                    263,
+                    264,
+                    265,
+                    268,
+                    300,
+                    305
+                ],
+                "CollectionVersionMetadata": [
+                    265,
+                    300
+                ],
+                "staticmethod": [
+                    307,
+                    237,
+                    270
+                ],
+                "b_file_name": [
+                    273,
+                    274,
+                    891,
+                    893
+                ],
+                "b_file_path": [
+                    900,
+                    913,
+                    274,
+                    275,
+                    278,
+                    283,
+                    893
+                ],
+                "open": [
+                    900,
+                    278,
+                    583
+                ],
+                "file_obj": [
+                    280,
+                    278
+                ],
+                "file_obj.read": [
+                    280
+                ],
+                "manifest": [
+                    288,
+                    289,
+                    290,
+                    706,
+                    644,
+                    682,
+                    696,
+                    700,
+                    733,
+                    286,
+                    287
+                ],
+                "dependencies": [
+                    832,
+                    290,
+                    298,
+                    300,
+                    717
+                ],
+                "display.warning": [
+                    674,
+                    292,
+                    597,
+                    446
+                ],
+                "parent_dir": [
+                    294,
+                    295
+                ],
+                "os.path.split": [
+                    476,
+                    942,
+                    294,
+                    295
+                ],
+                "get": [
+                    302
+                ],
+                "info.get": [
+                    577,
+                    570,
+                    302
+                ],
+                "collection.split": [
+                    309
+                ],
+                "collection": [
+                    309,
+                    441,
+                    443,
+                    830,
+                    831,
+                    832,
+                    833,
+                    447,
+                    459,
+                    332,
+                    460,
+                    843,
+                    846,
+                    336,
+                    847,
+                    848,
+                    339,
+                    849,
+                    850,
+                    852,
+                    855,
+                    867,
+                    869,
+                    870,
+                    871,
+                    875
+                ],
+                "galaxy_meta": [
+                    321,
+                    310,
+                    342
+                ],
+                "apis": [
+                    802,
+                    874,
+                    875,
+                    818,
+                    436,
+                    312
+                ],
+                "requirement.startswith": [
+                    314,
+                    315,
+                    316
+                ],
+                "requirement.lstrip": [
+                    317
+                ],
+                "resp": [
+                    321,
+                    322,
+                    897,
+                    324,
+                    901,
+                    328,
+                    905,
+                    319
+                ],
+                "api.get_collection_version_metadata": [
+                    319
+                ],
+                "resp.version": [
+                    322
+                ],
+                "api.get_collection_versions": [
+                    324
+                ],
+                "StrictVersion.version_re.match": [
+                    328
+                ],
+                "StrictVersion.version_re": [
+                    328
+                ],
+                "StrictVersion": [
+                    328
+                ],
+                "GalaxyError": [
+                    329
+                ],
+                "err.http_code": [
+                    330
+                ],
+                "err": [
+                    330,
+                    587,
+                    855,
+                    447
+                ],
+                "display.vvv": [
+                    331,
+                    843,
+                    687,
+                    336,
+                    789,
+                    667,
+                    895
+                ],
+                "api.name": [
+                    332,
+                    336,
+                    407,
+                    411,
+                    415
+                ],
+                "api.api_server": [
+                    332,
+                    336,
+                    407,
+                    411,
+                    415
+                ],
+                "b_galaxy_path": [
+                    361,
+                    357,
+                    358,
+                    359
+                ],
+                "collection_meta": [
+                    361,
+                    362,
+                    363,
+                    364,
+                    366,
+                    367,
+                    368
+                ],
+                "_get_galaxy_yml": [
+                    361
+                ],
+                "file_manifest": [
+                    754,
+                    737,
+                    362,
+                    379
+                ],
+                "_build_files_manifest": [
+                    362
+                ],
+                "collection_manifest": [
+                    738,
+                    771,
+                    739,
+                    772,
+                    364,
+                    379
+                ],
+                "_build_manifest": [
+                    364
+                ],
+                "collection_output": [
+                    377,
+                    370,
+                    374,
+                    366
+                ],
+                "output_path": [
+                    443,
+                    366,
+                    431
+                ],
+                "b_collection_output": [
+                    379,
+                    370,
+                    371,
+                    372
+                ],
+                "os.path.isdir": [
+                    664,
+                    787,
+                    372
+                ],
+                "_build_collection_tar": [
+                    379
+                ],
+                "import_uri": [
+                    399,
+                    415,
+                    405,
+                    391
+                ],
+                "api.publish_collection": [
+                    391
+                ],
+                "wait": [
+                    393
+                ],
+                "task_id": [
+                    401,
+                    409,
+                    404,
+                    398
+                ],
+                "path_segment": [
+                    400,
+                    401,
+                    399
+                ],
+                "reversed": [
+                    399
+                ],
+                "import_uri.split": [
+                    399
+                ],
+                "_display_progress": [
+                    408,
+                    435,
+                    440
+                ],
+                "api.wait_import_task": [
+                    409
+                ],
+                "timeout": [
+                    409
+                ],
+                "existing_collections": [
+                    802,
+                    877,
+                    431,
+                    817,
+                    436
+                ],
+                "find_existing_collections": [
+                    431
+                ],
+                "_tempdir": [
+                    433,
+                    741
+                ],
+                "dependency_map": [
+                    832,
+                    802,
+                    835,
+                    805,
+                    806,
+                    808,
+                    812,
+                    817,
+                    436,
+                    441,
+                    829,
+                    798,
+                    831
+                ],
+                "_build_dependency_map": [
+                    436
+                ],
+                "collections": [
+                    801,
+                    777,
+                    436,
+                    791,
+                    793
+                ],
+                "validate_certs": [
+                    897,
+                    803,
+                    818,
+                    852,
+                    437
+                ],
+                "force_deps": [
+                    818,
+                    803,
+                    437
+                ],
+                "no_deps": [
+                    832,
+                    437,
+                    807
+                ],
+                "dependency_map.values": [
+                    441,
+                    805
+                ],
+                "collection.install": [
+                    443
+                ],
+                "ignore_errors": [
+                    445
+                ],
+                "dummy": [
+                    459
+                ],
+                "name.partition": [
+                    459
+                ],
+                "AnsibleCollectionRef.is_valid_collection_name": [
+                    460
+                ],
+                "AnsibleCollectionRef": [
+                    460
+                ],
+                "tempfile.mkdtemp": [
+                    484
+                ],
+                "tempfile": [
+                    924,
+                    484,
+                    893
+                ],
+                "C.DEFAULT_LOCAL_TMP": [
+                    484
+                ],
+                "C": [
+                    498,
+                    484
+                ],
+                "contextmanager": [
+                    496,
+                    489,
+                    482
+                ],
+                "tar_obj": [
+                    928,
+                    933,
+                    491,
+                    492,
+                    493,
+                    927
+                ],
+                "tar.extractfile": [
+                    491
+                ],
+                "tar": [
+                    491,
+                    939,
+                    919,
+                    921,
+                    927
+                ],
+                "tar_obj.close": [
+                    493
+                ],
+                "config_display": [
+                    498,
+                    499
+                ],
+                "C.GALAXY_DISPLAY_PROGRESS": [
+                    498
+                ],
+                "display_wheel": [
+                    499,
+                    501
+                ],
+                "sys.stdout.isatty": [
+                    499
+                ],
+                "sys.stdout": [
+                    499
+                ],
+                "sys": [
+                    499
+                ],
+                "actual_display.debug": [
+                    506,
+                    525
+                ],
+                "actual_display": [
+                    521,
+                    506,
+                    525,
+                    511
+                ],
+                "t": [
+                    545,
+                    546,
+                    547,
+                    552,
+                    553,
+                    524,
+                    507
+                ],
+                "threading.current_thread": [
+                    507
+                ],
+                "threading": [
+                    545,
+                    507
+                ],
+                "c": [
+                    877,
+                    805,
+                    510,
+                    511
+                ],
+                "actual_display.display": [
+                    511
+                ],
+                "time.sleep": [
+                    512
+                ],
+                "time": [
+                    512,
+                    750
+                ],
+                "method": [
+                    521,
+                    517
+                ],
+                "args": [
+                    522,
+                    517,
+                    535
+                ],
+                "kwargs": [
+                    522,
+                    517,
+                    535
+                ],
+                "display_queue.get": [
+                    517
+                ],
+                "display_queue": [
+                    544,
+                    545,
+                    517,
+                    531,
+                    543
+                ],
+                "queue.Empty": [
+                    518
+                ],
+                "queue": [
+                    518,
+                    543
+                ],
+                "func": [
+                    521,
+                    522
+                ],
+                "getattr": [
+                    521,
+                    524
+                ],
+                "object": [
+                    528
+                ],
+                "self.display_queue": [
+                    531,
+                    535
+                ],
+                "self.display_queue.put": [
+                    535
+                ],
+                "attr": [
+                    535
+                ],
+                "call_display": [
+                    537
+                ],
+                "old_display": [
+                    545,
+                    541,
+                    558
+                ],
+                "queue.Queue": [
+                    543
+                ],
+                "DisplayThread": [
+                    544
+                ],
+                "threading.Thread": [
+                    545
+                ],
+                "progress": [
+                    545
+                ],
+                "t.daemon": [
+                    546
+                ],
+                "t.start": [
+                    547
+                ],
+                "t.finish": [
+                    552
+                ],
+                "t.join": [
+                    553
+                ],
+                "Exception": [
+                    554
+                ],
+                "meta_info": [
+                    569,
+                    562
+                ],
+                "get_collections_galaxy_meta_info": [
+                    562
+                ],
+                "mandatory_keys": [
+                    571,
+                    564,
+                    590,
+                    580
+                ],
+                "string_keys": [
+                    601,
+                    580,
+                    565,
+                    574
+                ],
+                "list_keys": [
+                    580,
+                    605,
+                    566,
+                    575
+                ],
+                "dict_keys": [
+                    576,
+                    580,
+                    613,
+                    567
+                ],
+                "mandatory_keys.add": [
+                    571
+                ],
+                "key_list_type": [
+                    578,
+                    573
+                ],
+                "key_list_type.add": [
+                    578
+                ],
+                "all_keys": [
+                    595,
+                    580
+                ],
+                "frozenset": [
+                    635,
+                    580
+                ],
+                "b_galaxy_yml_path": [
+                    593,
+                    587,
+                    598,
+                    583
+                ],
+                "g_yaml": [
+                    584,
+                    583
+                ],
+                "galaxy_yml": [
+                    609,
+                    611,
+                    614,
+                    615,
+                    584,
+                    618,
+                    619,
+                    589,
+                    621,
+                    602,
+                    603,
+                    606
+                ],
+                "yaml.safe_load": [
+                    584
+                ],
+                "yaml": [
+                    584
+                ],
+                "YAMLError": [
+                    585
+                ],
+                "set_keys": [
+                    595,
+                    589,
+                    590
+                ],
+                "galaxy_yml.keys": [
+                    589
+                ],
+                "missing_keys": [
+                    593,
+                    590,
+                    591
+                ],
+                "mandatory_keys.difference": [
+                    590
+                ],
+                "extra_keys": [
+                    595,
+                    596,
+                    598
+                ],
+                "set_keys.difference": [
+                    595
+                ],
+                "optional_string": [
+                    601,
+                    602,
+                    603
+                ],
+                "optional_list": [
+                    609,
+                    611,
+                    605,
+                    606
+                ],
+                "list_val": [
+                    608,
+                    610,
+                    611,
+                    606
+                ],
+                "galaxy_yml.get": [
+                    606
+                ],
+                "isinstance": [
+                    610
+                ],
+                "optional_dict": [
+                    613,
+                    614,
+                    615
+                ],
+                "b_ignore_patterns": [
+                    634,
+                    627,
+                    686,
+                    666
+                ],
+                "format": [
+                    632
+                ],
+                "ignore_patterns": [
+                    634
+                ],
+                "b_ignore_dirs": [
+                    665,
+                    635
+                ],
+                "entry_template": [
+                    690,
+                    637,
+                    678
+                ],
+                "b_item": [
+                    665,
+                    658,
+                    659,
+                    661
+                ],
+                "os.listdir": [
+                    785,
+                    658,
+                    780
+                ],
+                "b_abs_path": [
+                    675,
+                    684,
+                    687,
+                    659,
+                    694,
+                    664,
+                    667,
+                    670,
+                    671
+                ],
+                "b_rel_base_dir": [
+                    660,
+                    661
+                ],
+                "b_top_level_dir": [
+                    673,
+                    684,
+                    660
+                ],
+                "b_rel_path": [
+                    666,
+                    686,
+                    661,
+                    662
+                ],
+                "rel_path": [
+                    691,
+                    662,
+                    679
+                ],
+                "any": [
+                    665,
+                    666,
+                    686
+                ],
+                "fnmatch.fnmatch": [
+                    666,
+                    686
+                ],
+                "fnmatch": [
+                    666,
+                    686
+                ],
+                "b_pattern": [
+                    666,
+                    686
+                ],
+                "os.path.islink": [
+                    670
+                ],
+                "b_link_target": [
+                    673,
+                    671
+                ],
+                "os.path.realpath": [
+                    768,
+                    671
+                ],
+                "b_link_target.startswith": [
+                    673
+                ],
+                "manifest_entry": [
+                    678,
+                    679,
+                    680,
+                    682,
+                    690,
+                    691,
+                    692,
+                    693,
+                    694,
+                    696
+                ],
+                "entry_template.copy": [
+                    690,
+                    678
+                ],
+                "append": [
+                    696,
+                    682
+                ],
+                "_walk": [
+                    698,
+                    684
+                ],
+                "secure_hash": [
+                    694
+                ],
+                "sha256": [
+                    888,
+                    738,
+                    926,
+                    694
+                ],
+                "authors": [
+                    711
+                ],
+                "readme": [
+                    712
+                ],
+                "tags": [
+                    713
+                ],
+                "description": [
+                    714
+                ],
+                "license_ids": [
+                    715
+                ],
+                "license_file": [
+                    716
+                ],
+                "repository": [
+                    718
+                ],
+                "documentation": [
+                    719
+                ],
+                "homepage": [
+                    720
+                ],
+                "issues": [
+                    721
+                ],
+                "files_manifest_json": [
+                    737,
+                    738,
+                    746
+                ],
+                "json.dumps": [
+                    737,
+                    739
+                ],
+                "secure_hash_s": [
+                    738
+                ],
+                "collection_manifest_json": [
+                    746,
+                    739
+                ],
+                "b_tar_filepath": [
+                    744,
+                    770,
+                    742
+                ],
+                "os.path.basename": [
+                    742
+                ],
+                "b_tar_path": [
+                    770,
+                    773,
+                    742,
+                    845,
+                    848,
+                    852,
+                    857,
+                    858
+                ],
+                "tar_file": [
+                    744,
+                    752,
+                    768
+                ],
+                "b": [
+                    746,
+                    747,
+                    749
+                ],
+                "b_io": [
+                    752,
+                    747
+                ],
+                "BytesIO": [
+                    747
+                ],
+                "tar_info": [
+                    748,
+                    749,
+                    750,
+                    751,
+                    752
+                ],
+                "tarfile.TarInfo": [
+                    748
+                ],
+                "tar_info.size": [
+                    749
+                ],
+                "tar_info.mtime": [
+                    750
+                ],
+                "time.time": [
+                    750
+                ],
+                "tar_info.mode": [
+                    751
+                ],
+                "tar_file.addfile": [
+                    752
+                ],
+                "filename": [
+                    768,
+                    941,
+                    917,
+                    759,
+                    760
+                ],
+                "b_src_path": [
+                    760,
+                    768
+                ],
+                "tarinfo.mode": [
+                    763
+                ],
+                "tarinfo": [
+                    763,
+                    764,
+                    765,
+                    766
+                ],
+                "tarinfo.isdir": [
+                    763
+                ],
+                "tarinfo.uid": [
+                    764
+                ],
+                "tarinfo.gid": [
+                    764
+                ],
+                "tarinfo.uname": [
+                    765
+                ],
+                "tarinfo.gname": [
+                    765
+                ],
+                "tar_file.add": [
+                    768
+                ],
+                "reset_stat": [
+                    768
+                ],
+                "shutil.copy": [
+                    770
+                ],
+                "collection_name": [
+                    771,
+                    773,
+                    860,
+                    861,
+                    862
+                ],
+                "b_namespace": [
+                    780,
+                    781
+                ],
+                "b_namespace_path": [
+                    785,
+                    786,
+                    781,
+                    782
+                ],
+                "os.path.isfile": [
+                    846,
+                    782
+                ],
+                "b_collection": [
+                    785,
+                    786
+                ],
+                "CollectionRequirement.from_path": [
+                    788
+                ],
+                "req.latest_version": [
+                    789,
+                    863
+                ],
+                "collections.append": [
+                    791
+                ],
+                "source": [
+                    801,
+                    802,
+                    874
+                ],
+                "_get_collection_info": [
+                    817,
+                    802
+                ],
+                "checked_parents": [
+                    833,
+                    805,
+                    806,
+                    808,
+                    821,
+                    829
+                ],
+                "c.skip": [
+                    805
+                ],
+                "parents_to_check": [
+                    808,
+                    811
+                ],
+                "difference": [
+                    808,
+                    829
+                ],
+                "dependency_map.keys": [
+                    808,
+                    829
+                ],
+                "deps_exhausted": [
+                    824,
+                    810,
+                    815
+                ],
+                "parent_info": [
+                    816,
+                    818,
+                    812,
+                    814
+                ],
+                "parent_info.dependencies": [
+                    816,
+                    814
+                ],
+                "dep_name": [
+                    816,
+                    817
+                ],
+                "dep_requirement": [
+                    816,
+                    817
+                ],
+                "parent_info.dependencies.items": [
+                    816
+                ],
+                "parent_info.api": [
+                    818
+                ],
+                "checked_parents.add": [
+                    833,
+                    821
+                ],
+                "deps_not_checked": [
+                    829,
+                    830
+                ],
+                "set_latest_version": [
+                    831
+                ],
+                "dep_msg": [
+                    840,
+                    842,
+                    843
+                ],
+                "display.vvvv": [
+                    850,
+                    869,
+                    909,
+                    847
+                ],
+                "scheme.lower": [
+                    849
+                ],
+                "scheme": [
+                    849
+                ],
+                "urllib_error.URLError": [
+                    853
+                ],
+                "CollectionRequirement.from_tar": [
+                    858
+                ],
+                "dep_map": [
+                    870,
+                    871,
+                    883,
+                    861,
+                    862
+                ],
+                "collection_info": [
+                    865,
+                    871,
+                    872,
+                    875,
+                    877,
+                    878,
+                    880,
+                    881,
+                    883,
+                    862,
+                    863
+                ],
+                "collection_info.add_requirement": [
+                    872,
+                    863
+                ],
+                "validate_collection_name": [
+                    867
+                ],
+                "CollectionRequirement.from_name": [
+                    875
+                ],
+                "existing": [
+                    880,
+                    881,
+                    877,
+                    878
+                ],
+                "collection_info.force": [
+                    878
+                ],
+                "add_requirement": [
+                    880
+                ],
+                "bufsize": [
+                    928,
+                    901,
+                    933,
+                    905,
+                    887,
+                    925
+                ],
+                "digest": [
+                    888,
+                    908,
+                    903
+                ],
+                "urlsplit": [
+                    890,
+                    891,
+                    892
+                ],
+                "os.path.splitext": [
+                    890
+                ],
+                "url.rsplit": [
+                    890
+                ],
+                "url": [
+                    897,
+                    890,
+                    895
+                ],
+                "b_file_ext": [
+                    892,
+                    893
+                ],
+                "tempfile.NamedTemporaryFile": [
+                    924,
+                    893
+                ],
+                "open_url": [
+                    897
+                ],
+                "user_agent": [
+                    898
+                ],
+                "download_file": [
+                    904,
+                    900
+                ],
+                "data": [
+                    928,
+                    929,
+                    930,
+                    932,
+                    901,
+                    902,
+                    903,
+                    904,
+                    905,
+                    933
+                ],
+                "resp.read": [
+                    905,
+                    901
+                ],
+                "digest.update": [
+                    903
+                ],
+                "download_file.write": [
+                    904
+                ],
+                "expected_hash": [
+                    937,
+                    907,
+                    909,
+                    910
+                ],
+                "actual_hash": [
+                    935,
+                    937,
+                    908,
+                    909,
+                    910
+                ],
+                "digest.hexdigest": [
+                    908
+                ],
+                "n_filename": [
+                    922,
+                    939,
+                    917,
+                    919
+                ],
+                "tar.getmember": [
+                    919
+                ],
+                "tar.name": [
+                    921,
+                    939
+                ],
+                "tmpfile_obj": [
+                    948,
+                    930,
+                    931,
+                    924
+                ],
+                "sha256_digest": [
+                    932,
+                    926,
+                    935
+                ],
+                "tar_obj.read": [
+                    928,
+                    933
+                ],
+                "tmpfile_obj.write": [
+                    930
+                ],
+                "tmpfile_obj.flush": [
+                    931
+                ],
+                "sha256_digest.update": [
+                    932
+                ],
+                "sha256_digest.hexdigest": [
+                    935
+                ],
+                "b_dest_filepath": [
+                    948,
+                    941,
+                    942
+                ],
+                "b_dest": [
+                    941
+                ],
+                "b_parent_dir": [
+                    946,
+                    942,
+                    943
+                ],
+                "shutil.move": [
+                    948
+                ],
+                "tmpfile_obj.name": [
+                    948
+                ]
+            },
+            "filtered_variables_in_file": {
+                "__metaclass__": [
+                    5
+                ],
+                "urlparse": [
+                    849,
+                    42
+                ],
+                "six.moves.urllib.parse.urlparse": [
+                    42
+                ],
+                "six.moves.urllib.parse": [
+                    42
+                ],
+                "six.moves.urllib": [
+                    42,
+                    43
+                ],
+                "six.moves": [
+                    42,
+                    43
+                ],
+                "six": [
+                    42,
+                    43
+                ],
+                "urllib_error": [
+                    43,
+                    853
+                ],
+                "six.moves.urllib.error": [
+                    43
+                ],
+                "display": [
+                    773,
+                    909,
+                    789,
+                    150,
+                    407,
+                    410,
+                    667,
+                    156,
+                    541,
+                    413,
+                    544,
+                    674,
+                    292,
+                    46,
+                    558,
+                    687,
+                    434,
+                    439,
+                    446,
+                    331,
+                    843,
+                    847,
+                    336,
+                    850,
+                    597,
+                    869,
+                    895
+                ],
+                "Display": [
+                    46
+                ],
+                "MANIFEST_FORMAT": [
+                    642,
+                    651,
+                    654,
+                    48,
+                    728,
+                    730
+                ],
+                "_FILE_MAPPING": [
+                    53
+                ],
+                "self.namespace": [
+                    197,
+                    76,
+                    154,
+                    91,
+                    94
+                ],
+                "self": [
+                    129,
+                    132,
+                    134,
+                    136,
+                    137,
+                    140,
+                    146,
+                    531,
+                    149,
+                    150,
+                    535,
+                    154,
+                    156,
+                    158,
+                    159,
+                    160,
+                    162,
+                    164,
+                    171,
+                    191,
+                    192,
+                    195,
+                    197,
+                    76,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    82,
+                    83,
+                    85,
+                    86,
+                    88,
+                    91,
+                    94,
+                    98,
+                    99,
+                    104,
+                    110,
+                    111,
+                    112,
+                    115,
+                    116,
+                    119,
+                    120,
+                    122,
+                    124,
+                    126
+                ],
+                "namespace": [
+                    324,
+                    319,
+                    262,
+                    295,
+                    708,
+                    265,
+                    267,
+                    76,
+                    300,
+                    304,
+                    309,
+                    341,
+                    632,
+                    287
+                ],
+                "self.name": [
+                    197,
+                    77,
+                    154,
+                    91,
+                    94
+                ],
+                "name": [
+                    263,
+                    265,
+                    267,
+                    288,
+                    801,
+                    802,
+                    294,
+                    300,
+                    304,
+                    309,
+                    319,
+                    324,
+                    709,
+                    459,
+                    77,
+                    461,
+                    466,
+                    341,
+                    746,
+                    748,
+                    632,
+                    893
+                ],
+                "self.b_path": [
+                    164,
+                    134,
+                    171,
+                    78,
+                    158
+                ],
+                "b_path": [
+                    267,
+                    779,
+                    781,
+                    780,
+                    274,
+                    658,
+                    659,
+                    660,
+                    665,
+                    293,
+                    294,
+                    304,
+                    78,
+                    239,
+                    240,
+                    243,
+                    250,
+                    893,
+                    895
+                ],
+                "self.api": [
+                    162,
+                    164,
+                    197,
+                    134,
+                    79
+                ],
+                "api": [
+                    324,
+                    391,
+                    415,
+                    332,
+                    79,
+                    336,
+                    341,
+                    407,
+                    312,
+                    409,
+                    411,
+                    319
+                ],
+                "self.versions": [
+                    104,
+                    140,
+                    80,
+                    112,
+                    146,
+                    120,
+                    191
+                ],
+                "versions": [
+                    322,
+                    328,
+                    140,
+                    143,
+                    80,
+                    341
+                ],
+                "self.force": [
+                    81
+                ],
+                "force": [
+                    803,
+                    267,
+                    875,
+                    304,
+                    81,
+                    341,
+                    437,
+                    375,
+                    858
+                ],
+                "self.skip": [
+                    82,
+                    149,
+                    122
+                ],
+                "skip": [
+                    82
+                ],
+                "self.required_by": [
+                    137,
+                    83,
+                    119
+                ],
+                "self._metadata": [
+                    160,
+                    99,
+                    195,
+                    197,
+                    110,
+                    111,
+                    116,
+                    85,
+                    159
+                ],
+                "metadata": [
+                    85
+                ],
+                "self._files": [
+                    86
+                ],
+                "files": [
+                    260,
+                    268,
+                    174,
+                    302,
+                    305,
+                    179,
+                    86
+                ],
+                "self.add_requirement": [
+                    88
+                ],
+                "parent": [
+                    128,
+                    132,
+                    267,
+                    811,
+                    812,
+                    304,
+                    819,
+                    821,
+                    841,
+                    842,
+                    341,
+                    88,
+                    858,
+                    224,
+                    872,
+                    875,
+                    119,
+                    120,
+                    123
+                ],
+                "requirement": [
+                    129,
+                    132,
+                    314,
+                    315,
+                    316,
+                    317,
+                    319,
+                    339,
+                    341,
+                    88,
+                    217,
+                    219,
+                    224,
+                    226,
+                    229,
+                    872,
+                    875,
+                    880,
+                    119,
+                    120,
+                    126
+                ],
+                "to_native": [
+                    897,
+                    921,
+                    359,
+                    91,
+                    587,
+                    939,
+                    855,
+                    240,
+                    593,
+                    245,
+                    374,
+                    759,
+                    917,
+                    377,
+                    250,
+                    283
+                ],
+                "self._get_metadata": [
+                    192,
+                    98,
+                    115
+                ],
+                "v": [
+                    104,
+                    328,
+                    120
+                ],
+                "LooseVersion": [
+                    104,
+                    140,
+                    229
+                ],
+                "self._metadata.dependencies": [
+                    116,
+                    111
+                ],
+                "self.required_by.append": [
+                    119
+                ],
+                "new_versions": [
+                    120,
+                    121,
+                    146
+                ],
+                "self._meets_requirements": [
+                    120
+                ],
+                "force_flag": [
+                    123,
+                    126
+                ],
+                "version": [
+                    224,
+                    289,
+                    226,
+                    801,
+                    802,
+                    229,
+                    710,
+                    264,
+                    265,
+                    297,
+                    267,
+                    300,
+                    304,
+                    124,
+                    126
+                ],
+                "self.latest_version": [
+                    156,
+                    124,
+                    197,
+                    191
+                ],
+                "msg": [
+                    129,
+                    131,
+                    143,
+                    125,
+                    127
+                ],
+                "to_text": [
+                    129,
+                    132,
+                    773,
+                    134,
+                    136,
+                    789,
+                    150,
+                    662,
+                    280,
+                    790,
+                    667,
+                    156,
+                    675,
+                    293,
+                    294,
+                    805,
+                    174,
+                    687,
+                    447,
+                    843,
+                    847,
+                    598,
+                    860,
+                    877,
+                    880,
+                    883,
+                    890,
+                    126,
+                    254,
+                    895
+                ],
+                "AnsibleError": [
+                    256,
+                    141,
+                    911,
+                    405,
+                    921,
+                    282,
+                    938,
+                    444,
+                    586,
+                    463,
+                    592,
+                    339,
+                    854,
+                    359,
+                    240,
+                    373,
+                    376,
+                    249,
+                    127
+                ],
+                "collection_source": [
+                    134,
+                    143
+                ],
+                "self.api.api_server": [
+                    134
+                ],
+                "req_by": [
+                    143,
+                    135
+                ],
+                "join": [
+                    593,
+                    140,
+                    598,
+                    135
+                ],
+                "p": [
+                    136,
+                    137,
+                    634
+                ],
+                "r": [
+                    136,
+                    137
+                ],
+                "display.display": [
+                    439,
+                    773,
+                    434,
+                    150,
+                    407,
+                    410,
+                    156,
+                    413
+                ],
+                "collection_path": [
+                    356,
+                    391,
+                    476,
+                    154,
+                    155,
+                    156,
+                    477,
+                    479
+                ],
+                "os.path.join": [
+                    357,
+                    742,
+                    781,
+                    366,
+                    941,
+                    274,
+                    659,
+                    786,
+                    661,
+                    760,
+                    154,
+                    188,
+                    477
+                ],
+                "os.path": [
+                    768,
+                    781,
+                    782,
+                    274,
+                    275,
+                    659,
+                    661,
+                    786,
+                    787,
+                    664,
+                    154,
+                    670,
+                    671,
+                    294,
+                    167,
+                    295,
+                    941,
+                    942,
+                    943,
+                    188,
+                    846,
+                    476,
+                    477,
+                    357,
+                    358,
+                    742,
+                    366,
+                    371,
+                    372,
+                    760,
+                    890
+                ],
+                "os": [
+                    768,
+                    780,
+                    781,
+                    782,
+                    785,
+                    274,
+                    275,
+                    658,
+                    659,
+                    661,
+                    786,
+                    664,
+                    787,
+                    154,
+                    670,
+                    671,
+                    294,
+                    167,
+                    295,
+                    169,
+                    941,
+                    942,
+                    943,
+                    946,
+                    188,
+                    846,
+                    476,
+                    477,
+                    357,
+                    358,
+                    742,
+                    366,
+                    371,
+                    372,
+                    760,
+                    890
+                ],
+                "path": [
+                    154,
+                    779
+                ],
+                "b_collection_path": [
+                    356,
+                    357,
+                    167,
+                    168,
+                    169,
+                    362,
+                    176,
+                    177,
+                    786,
+                    379,
+                    787,
+                    788,
+                    790,
+                    760,
+                    185,
+                    698,
+                    155,
+                    188
+                ],
+                "to_bytes": [
+                    737,
+                    739,
+                    356,
+                    484,
+                    891,
+                    892,
+                    779,
+                    941,
+                    846,
+                    760,
+                    848,
+                    370,
+                    948,
+                    632,
+                    634,
+                    155,
+                    188
+                ],
+                "download_url": [
+                    162,
+                    164,
+                    159
+                ],
+                "self._metadata.download_url": [
+                    159
+                ],
+                "artifact_hash": [
+                    160,
+                    164
+                ],
+                "self._metadata.artifact_sha256": [
+                    160
+                ],
+                "headers": [
+                    161,
+                    162,
+                    897,
+                    165
+                ],
+                "self.api._add_auth_token": [
+                    162
+                ],
+                "_download_file": [
+                    164,
+                    852
+                ],
+                "b_temp_path": [
+                    802,
+                    164,
+                    484,
+                    485,
+                    486,
+                    741,
+                    742,
+                    176,
+                    177,
+                    433,
+                    818,
+                    436,
+                    852,
+                    185,
+                    443,
+                    924
+                ],
+                "self.api.validate_certs": [
+                    164
+                ],
+                "os.path.exists": [
+                    358,
+                    167,
+                    943,
+                    371,
+                    275
+                ],
+                "shutil.rmtree": [
+                    168,
+                    486
+                ],
+                "shutil": [
+                    168,
+                    770,
+                    948,
+                    486
+                ],
+                "os.makedirs": [
+                    169,
+                    946,
+                    188
+                ],
+                "tarfile.open": [
+                    744,
+                    171,
+                    243
+                ],
+                "tarfile": [
+                    744,
+                    171,
+                    748,
+                    239,
+                    243
+                ],
+                "collection_tar": [
+                    171,
+                    172,
+                    173,
+                    176,
+                    177,
+                    243,
+                    247,
+                    185,
+                    252
+                ],
+                "files_member_obj": [
+                    172,
+                    173
+                ],
+                "collection_tar.getmember": [
+                    172,
+                    247
+                ],
+                "_tarfile_extract": [
+                    252,
+                    173,
+                    927
+                ],
+                "files_obj": [
+                    173,
+                    174
+                ],
+                "json.loads": [
+                    280,
+                    174,
+                    254
+                ],
+                "json": [
+                    737,
+                    739,
+                    174,
+                    280,
+                    254
+                ],
+                "files_obj.read": [
+                    174
+                ],
+                "_extract_tar_file": [
+                    176,
+                    177,
+                    185
+                ],
+                "file_info": [
+                    754,
+                    179,
+                    180,
+                    755,
+                    759,
+                    184,
+                    186
+                ],
+                "file_name": [
+                    185,
+                    188,
+                    180,
+                    181
+                ],
+                "self.api.get_collection_version_metadata": [
+                    197
+                ],
+                "op_map": [
+                    203,
+                    215
+                ],
+                "operator.ne": [
+                    204
+                ],
+                "operator": [
+                    204,
+                    205,
+                    206,
+                    207,
+                    208,
+                    209,
+                    210,
+                    220
+                ],
+                "operator.eq": [
+                    220,
+                    205,
+                    206
+                ],
+                "operator.ge": [
+                    207
+                ],
+                "operator.gt": [
+                    208
+                ],
+                "operator.le": [
+                    209
+                ],
+                "operator.lt": [
+                    210
+                ],
+                "req": [
+                    865,
+                    791,
+                    788,
+                    213,
+                    214,
+                    215,
+                    341,
+                    217,
+                    789,
+                    219,
+                    860,
+                    858,
+                    343,
+                    863
+                ],
+                "requirements.split": [
+                    213
+                ],
+                "requirements": [
+                    213
+                ],
+                "op_pos": [
+                    217,
+                    214,
+                    215
+                ],
+                "op": [
+                    218,
+                    220,
+                    229,
+                    215
+                ],
+                "op_map.get": [
+                    215
+                ],
+                "tarfile.is_tarfile": [
+                    239
+                ],
+                "info": [
+                    577,
+                    578,
+                    259,
+                    260,
+                    302,
+                    272,
+                    242,
+                    280,
+                    569,
+                    570,
+                    571,
+                    285,
+                    254,
+                    286
+                ],
+                "b_member_name": [
+                    244,
+                    245
+                ],
+                "property_name": [
+                    280,
+                    273,
+                    244,
+                    254
+                ],
+                "CollectionRequirement._FILE_MAPPING": [
+                    273,
+                    244
+                ],
+                "CollectionRequirement": [
+                    267,
+                    875,
+                    304,
+                    273,
+                    244,
+                    341,
+                    788,
+                    858
+                ],
+                "n_member_name": [
+                    257,
+                    250,
+                    245,
+                    247
+                ],
+                "member": [
+                    491,
+                    919,
+                    247,
+                    252,
+                    927
+                ],
+                "member_obj": [
+                    252,
+                    254
+                ],
+                "member_obj.read": [
+                    254
+                ],
+                "meta": [
+                    259,
+                    262,
+                    263,
+                    264,
+                    265,
+                    268,
+                    300,
+                    305
+                ],
+                "CollectionVersionMetadata": [
+                    265,
+                    300
+                ],
+                "b_file_name": [
+                    273,
+                    274,
+                    891,
+                    893
+                ],
+                "b_file_path": [
+                    900,
+                    913,
+                    274,
+                    275,
+                    278,
+                    283,
+                    893
+                ],
+                "file_obj": [
+                    280,
+                    278
+                ],
+                "file_obj.read": [
+                    280
+                ],
+                "manifest": [
+                    288,
+                    289,
+                    290,
+                    706,
+                    644,
+                    682,
+                    696,
+                    700,
+                    733,
+                    286,
+                    287
+                ],
+                "dependencies": [
+                    832,
+                    290,
+                    298,
+                    300,
+                    717
+                ],
+                "display.warning": [
+                    674,
+                    292,
+                    597,
+                    446
+                ],
+                "parent_dir": [
+                    294,
+                    295
+                ],
+                "os.path.split": [
+                    476,
+                    942,
+                    294,
+                    295
+                ],
+                "get": [
+                    302
+                ],
+                "info.get": [
+                    577,
+                    570,
+                    302
+                ],
+                "collection.split": [
+                    309
+                ],
+                "collection": [
+                    309,
+                    441,
+                    443,
+                    830,
+                    831,
+                    832,
+                    833,
+                    447,
+                    459,
+                    332,
+                    460,
+                    843,
+                    846,
+                    336,
+                    847,
+                    848,
+                    339,
+                    849,
+                    850,
+                    852,
+                    855,
+                    867,
+                    869,
+                    870,
+                    871,
+                    875
+                ],
+                "galaxy_meta": [
+                    321,
+                    310,
+                    342
+                ],
+                "apis": [
+                    802,
+                    874,
+                    875,
+                    818,
+                    436,
+                    312
+                ],
+                "requirement.startswith": [
+                    314,
+                    315,
+                    316
+                ],
+                "requirement.lstrip": [
+                    317
+                ],
+                "resp": [
+                    321,
+                    322,
+                    897,
+                    324,
+                    901,
+                    328,
+                    905,
+                    319
+                ],
+                "api.get_collection_version_metadata": [
+                    319
+                ],
+                "resp.version": [
+                    322
+                ],
+                "api.get_collection_versions": [
+                    324
+                ],
+                "StrictVersion.version_re.match": [
+                    328
+                ],
+                "StrictVersion.version_re": [
+                    328
+                ],
+                "StrictVersion": [
+                    328
+                ],
+                "GalaxyError": [
+                    329
+                ],
+                "err.http_code": [
+                    330
+                ],
+                "err": [
+                    330,
+                    587,
+                    855,
+                    447
+                ],
+                "display.vvv": [
+                    331,
+                    843,
+                    687,
+                    336,
+                    789,
+                    667,
+                    895
+                ],
+                "api.name": [
+                    332,
+                    336,
+                    407,
+                    411,
+                    415
+                ],
+                "api.api_server": [
+                    332,
+                    336,
+                    407,
+                    411,
+                    415
+                ],
+                "b_galaxy_path": [
+                    361,
+                    357,
+                    358,
+                    359
+                ],
+                "collection_meta": [
+                    361,
+                    362,
+                    363,
+                    364,
+                    366,
+                    367,
+                    368
+                ],
+                "_get_galaxy_yml": [
+                    361
+                ],
+                "file_manifest": [
+                    754,
+                    737,
+                    362,
+                    379
+                ],
+                "_build_files_manifest": [
+                    362
+                ],
+                "collection_manifest": [
+                    738,
+                    771,
+                    739,
+                    772,
+                    364,
+                    379
+                ],
+                "_build_manifest": [
+                    364
+                ],
+                "collection_output": [
+                    377,
+                    370,
+                    374,
+                    366
+                ],
+                "output_path": [
+                    443,
+                    366,
+                    431
+                ],
+                "b_collection_output": [
+                    379,
+                    370,
+                    371,
+                    372
+                ],
+                "os.path.isdir": [
+                    664,
+                    787,
+                    372
+                ],
+                "_build_collection_tar": [
+                    379
+                ],
+                "import_uri": [
+                    399,
+                    415,
+                    405,
+                    391
+                ],
+                "api.publish_collection": [
+                    391
+                ],
+                "wait": [
+                    393
+                ],
+                "task_id": [
+                    401,
+                    409,
+                    404,
+                    398
+                ],
+                "path_segment": [
+                    400,
+                    401,
+                    399
+                ],
+                "import_uri.split": [
+                    399
+                ],
+                "_display_progress": [
+                    408,
+                    435,
+                    440
+                ],
+                "api.wait_import_task": [
+                    409
+                ],
+                "timeout": [
+                    409
+                ],
+                "existing_collections": [
+                    802,
+                    877,
+                    431,
+                    817,
+                    436
+                ],
+                "find_existing_collections": [
+                    431
+                ],
+                "_tempdir": [
+                    433,
+                    741
+                ],
+                "dependency_map": [
+                    832,
+                    802,
+                    835,
+                    805,
+                    806,
+                    808,
+                    812,
+                    817,
+                    436,
+                    441,
+                    829,
+                    798,
+                    831
+                ],
+                "_build_dependency_map": [
+                    436
+                ],
+                "collections": [
+                    801,
+                    777,
+                    436,
+                    791,
+                    793
+                ],
+                "validate_certs": [
+                    897,
+                    803,
+                    818,
+                    852,
+                    437
+                ],
+                "force_deps": [
+                    818,
+                    803,
+                    437
+                ],
+                "no_deps": [
+                    832,
+                    437,
+                    807
+                ],
+                "dependency_map.values": [
+                    441,
+                    805
+                ],
+                "collection.install": [
+                    443
+                ],
+                "ignore_errors": [
+                    445
+                ],
+                "dummy": [
+                    459
+                ],
+                "name.partition": [
+                    459
+                ],
+                "AnsibleCollectionRef.is_valid_collection_name": [
+                    460
+                ],
+                "AnsibleCollectionRef": [
+                    460
+                ],
+                "tempfile.mkdtemp": [
+                    484
+                ],
+                "tempfile": [
+                    924,
+                    484,
+                    893
+                ],
+                "C.DEFAULT_LOCAL_TMP": [
+                    484
+                ],
+                "C": [
+                    498,
+                    484
+                ],
+                "contextmanager": [
+                    496,
+                    489,
+                    482
+                ],
+                "tar_obj": [
+                    928,
+                    933,
+                    491,
+                    492,
+                    493,
+                    927
+                ],
+                "tar.extractfile": [
+                    491
+                ],
+                "tar": [
+                    491,
+                    939,
+                    919,
+                    921,
+                    927
+                ],
+                "tar_obj.close": [
+                    493
+                ],
+                "config_display": [
+                    498,
+                    499
+                ],
+                "C.GALAXY_DISPLAY_PROGRESS": [
+                    498
+                ],
+                "display_wheel": [
+                    499,
+                    501
+                ],
+                "sys.stdout.isatty": [
+                    499
+                ],
+                "sys.stdout": [
+                    499
+                ],
+                "sys": [
+                    499
+                ],
+                "actual_display.debug": [
+                    506,
+                    525
+                ],
+                "actual_display": [
+                    521,
+                    506,
+                    525,
+                    511
+                ],
+                "t": [
+                    545,
+                    546,
+                    547,
+                    552,
+                    553,
+                    524,
+                    507
+                ],
+                "threading.current_thread": [
+                    507
+                ],
+                "threading": [
+                    545,
+                    507
+                ],
+                "c": [
+                    877,
+                    805,
+                    510,
+                    511
+                ],
+                "actual_display.display": [
+                    511
+                ],
+                "time.sleep": [
+                    512
+                ],
+                "time": [
+                    512,
+                    750
+                ],
+                "method": [
+                    521,
+                    517
+                ],
+                "args": [
+                    522,
+                    517,
+                    535
+                ],
+                "kwargs": [
+                    522,
+                    517,
+                    535
+                ],
+                "display_queue.get": [
+                    517
+                ],
+                "display_queue": [
+                    544,
+                    545,
+                    517,
+                    531,
+                    543
+                ],
+                "queue.Empty": [
+                    518
+                ],
+                "queue": [
+                    518,
+                    543
+                ],
+                "func": [
+                    521,
+                    522
+                ],
+                "self.display_queue": [
+                    531,
+                    535
+                ],
+                "self.display_queue.put": [
+                    535
+                ],
+                "attr": [
+                    535
+                ],
+                "call_display": [
+                    537
+                ],
+                "old_display": [
+                    545,
+                    541,
+                    558
+                ],
+                "queue.Queue": [
+                    543
+                ],
+                "DisplayThread": [
+                    544
+                ],
+                "threading.Thread": [
+                    545
+                ],
+                "progress": [
+                    545
+                ],
+                "t.daemon": [
+                    546
+                ],
+                "t.start": [
+                    547
+                ],
+                "t.finish": [
+                    552
+                ],
+                "t.join": [
+                    553
+                ],
+                "meta_info": [
+                    569,
+                    562
+                ],
+                "get_collections_galaxy_meta_info": [
+                    562
+                ],
+                "mandatory_keys": [
+                    571,
+                    564,
+                    590,
+                    580
+                ],
+                "string_keys": [
+                    601,
+                    580,
+                    565,
+                    574
+                ],
+                "list_keys": [
+                    580,
+                    605,
+                    566,
+                    575
+                ],
+                "dict_keys": [
+                    576,
+                    580,
+                    613,
+                    567
+                ],
+                "mandatory_keys.add": [
+                    571
+                ],
+                "key_list_type": [
+                    578,
+                    573
+                ],
+                "key_list_type.add": [
+                    578
+                ],
+                "all_keys": [
+                    595,
+                    580
+                ],
+                "b_galaxy_yml_path": [
+                    593,
+                    587,
+                    598,
+                    583
+                ],
+                "g_yaml": [
+                    584,
+                    583
+                ],
+                "galaxy_yml": [
+                    609,
+                    611,
+                    614,
+                    615,
+                    584,
+                    618,
+                    619,
+                    589,
+                    621,
+                    602,
+                    603,
+                    606
+                ],
+                "yaml.safe_load": [
+                    584
+                ],
+                "yaml": [
+                    584
+                ],
+                "YAMLError": [
+                    585
+                ],
+                "set_keys": [
+                    595,
+                    589,
+                    590
+                ],
+                "galaxy_yml.keys": [
+                    589
+                ],
+                "missing_keys": [
+                    593,
+                    590,
+                    591
+                ],
+                "mandatory_keys.difference": [
+                    590
+                ],
+                "extra_keys": [
+                    595,
+                    596,
+                    598
+                ],
+                "set_keys.difference": [
+                    595
+                ],
+                "optional_string": [
+                    601,
+                    602,
+                    603
+                ],
+                "optional_list": [
+                    609,
+                    611,
+                    605,
+                    606
+                ],
+                "list_val": [
+                    608,
+                    610,
+                    611,
+                    606
+                ],
+                "galaxy_yml.get": [
+                    606
+                ],
+                "optional_dict": [
+                    613,
+                    614,
+                    615
+                ],
+                "b_ignore_patterns": [
+                    634,
+                    627,
+                    686,
+                    666
+                ],
+                "ignore_patterns": [
+                    634
+                ],
+                "b_ignore_dirs": [
+                    665,
+                    635
+                ],
+                "entry_template": [
+                    690,
+                    637,
+                    678
+                ],
+                "b_item": [
+                    665,
+                    658,
+                    659,
+                    661
+                ],
+                "os.listdir": [
+                    785,
+                    658,
+                    780
+                ],
+                "b_abs_path": [
+                    675,
+                    684,
+                    687,
+                    659,
+                    694,
+                    664,
+                    667,
+                    670,
+                    671
+                ],
+                "b_rel_base_dir": [
+                    660,
+                    661
+                ],
+                "b_top_level_dir": [
+                    673,
+                    684,
+                    660
+                ],
+                "b_rel_path": [
+                    666,
+                    686,
+                    661,
+                    662
+                ],
+                "rel_path": [
+                    691,
+                    662,
+                    679
+                ],
+                "fnmatch.fnmatch": [
+                    666,
+                    686
+                ],
+                "fnmatch": [
+                    666,
+                    686
+                ],
+                "b_pattern": [
+                    666,
+                    686
+                ],
+                "os.path.islink": [
+                    670
+                ],
+                "b_link_target": [
+                    673,
+                    671
+                ],
+                "os.path.realpath": [
+                    768,
+                    671
+                ],
+                "b_link_target.startswith": [
+                    673
+                ],
+                "manifest_entry": [
+                    678,
+                    679,
+                    680,
+                    682,
+                    690,
+                    691,
+                    692,
+                    693,
+                    694,
+                    696
+                ],
+                "entry_template.copy": [
+                    690,
+                    678
+                ],
+                "append": [
+                    696,
+                    682
+                ],
+                "_walk": [
+                    698,
+                    684
+                ],
+                "secure_hash": [
+                    694
+                ],
+                "sha256": [
+                    888,
+                    738,
+                    926,
+                    694
+                ],
+                "authors": [
+                    711
+                ],
+                "readme": [
+                    712
+                ],
+                "tags": [
+                    713
+                ],
+                "description": [
+                    714
+                ],
+                "license_ids": [
+                    715
+                ],
+                "license_file": [
+                    716
+                ],
+                "repository": [
+                    718
+                ],
+                "documentation": [
+                    719
+                ],
+                "homepage": [
+                    720
+                ],
+                "issues": [
+                    721
+                ],
+                "files_manifest_json": [
+                    737,
+                    738,
+                    746
+                ],
+                "json.dumps": [
+                    737,
+                    739
+                ],
+                "secure_hash_s": [
+                    738
+                ],
+                "collection_manifest_json": [
+                    746,
+                    739
+                ],
+                "b_tar_filepath": [
+                    744,
+                    770,
+                    742
+                ],
+                "os.path.basename": [
+                    742
+                ],
+                "b_tar_path": [
+                    770,
+                    773,
+                    742,
+                    845,
+                    848,
+                    852,
+                    857,
+                    858
+                ],
+                "tar_file": [
+                    744,
+                    752,
+                    768
+                ],
+                "b": [
+                    746,
+                    747,
+                    749
+                ],
+                "b_io": [
+                    752,
+                    747
+                ],
+                "BytesIO": [
+                    747
+                ],
+                "tar_info": [
+                    748,
+                    749,
+                    750,
+                    751,
+                    752
+                ],
+                "tarfile.TarInfo": [
+                    748
+                ],
+                "tar_info.size": [
+                    749
+                ],
+                "tar_info.mtime": [
+                    750
+                ],
+                "time.time": [
+                    750
+                ],
+                "tar_info.mode": [
+                    751
+                ],
+                "tar_file.addfile": [
+                    752
+                ],
+                "filename": [
+                    768,
+                    941,
+                    917,
+                    759,
+                    760
+                ],
+                "b_src_path": [
+                    760,
+                    768
+                ],
+                "tarinfo.mode": [
+                    763
+                ],
+                "tarinfo": [
+                    763,
+                    764,
+                    765,
+                    766
+                ],
+                "tarinfo.isdir": [
+                    763
+                ],
+                "tarinfo.uid": [
+                    764
+                ],
+                "tarinfo.gid": [
+                    764
+                ],
+                "tarinfo.uname": [
+                    765
+                ],
+                "tarinfo.gname": [
+                    765
+                ],
+                "tar_file.add": [
+                    768
+                ],
+                "reset_stat": [
+                    768
+                ],
+                "shutil.copy": [
+                    770
+                ],
+                "collection_name": [
+                    771,
+                    773,
+                    860,
+                    861,
+                    862
+                ],
+                "b_namespace": [
+                    780,
+                    781
+                ],
+                "b_namespace_path": [
+                    785,
+                    786,
+                    781,
+                    782
+                ],
+                "os.path.isfile": [
+                    846,
+                    782
+                ],
+                "b_collection": [
+                    785,
+                    786
+                ],
+                "CollectionRequirement.from_path": [
+                    788
+                ],
+                "req.latest_version": [
+                    789,
+                    863
+                ],
+                "collections.append": [
+                    791
+                ],
+                "source": [
+                    801,
+                    802,
+                    874
+                ],
+                "_get_collection_info": [
+                    817,
+                    802
+                ],
+                "checked_parents": [
+                    833,
+                    805,
+                    806,
+                    808,
+                    821,
+                    829
+                ],
+                "c.skip": [
+                    805
+                ],
+                "parents_to_check": [
+                    808,
+                    811
+                ],
+                "difference": [
+                    808,
+                    829
+                ],
+                "dependency_map.keys": [
+                    808,
+                    829
+                ],
+                "deps_exhausted": [
+                    824,
+                    810,
+                    815
+                ],
+                "parent_info": [
+                    816,
+                    818,
+                    812,
+                    814
+                ],
+                "parent_info.dependencies": [
+                    816,
+                    814
+                ],
+                "dep_name": [
+                    816,
+                    817
+                ],
+                "dep_requirement": [
+                    816,
+                    817
+                ],
+                "parent_info.dependencies.items": [
+                    816
+                ],
+                "parent_info.api": [
+                    818
+                ],
+                "checked_parents.add": [
+                    833,
+                    821
+                ],
+                "deps_not_checked": [
+                    829,
+                    830
+                ],
+                "set_latest_version": [
+                    831
+                ],
+                "dep_msg": [
+                    840,
+                    842,
+                    843
+                ],
+                "display.vvvv": [
+                    850,
+                    869,
+                    909,
+                    847
+                ],
+                "scheme.lower": [
+                    849
+                ],
+                "scheme": [
+                    849
+                ],
+                "urllib_error.URLError": [
+                    853
+                ],
+                "CollectionRequirement.from_tar": [
+                    858
+                ],
+                "dep_map": [
+                    870,
+                    871,
+                    883,
+                    861,
+                    862
+                ],
+                "collection_info": [
+                    865,
+                    871,
+                    872,
+                    875,
+                    877,
+                    878,
+                    880,
+                    881,
+                    883,
+                    862,
+                    863
+                ],
+                "collection_info.add_requirement": [
+                    872,
+                    863
+                ],
+                "validate_collection_name": [
+                    867
+                ],
+                "CollectionRequirement.from_name": [
+                    875
+                ],
+                "existing": [
+                    880,
+                    881,
+                    877,
+                    878
+                ],
+                "collection_info.force": [
+                    878
+                ],
+                "add_requirement": [
+                    880
+                ],
+                "bufsize": [
+                    928,
+                    901,
+                    933,
+                    905,
+                    887,
+                    925
+                ],
+                "digest": [
+                    888,
+                    908,
+                    903
+                ],
+                "urlsplit": [
+                    890,
+                    891,
+                    892
+                ],
+                "os.path.splitext": [
+                    890
+                ],
+                "url.rsplit": [
+                    890
+                ],
+                "url": [
+                    897,
+                    890,
+                    895
+                ],
+                "b_file_ext": [
+                    892,
+                    893
+                ],
+                "tempfile.NamedTemporaryFile": [
+                    924,
+                    893
+                ],
+                "open_url": [
+                    897
+                ],
+                "user_agent": [
+                    898
+                ],
+                "download_file": [
+                    904,
+                    900
+                ],
+                "data": [
+                    928,
+                    929,
+                    930,
+                    932,
+                    901,
+                    902,
+                    903,
+                    904,
+                    905,
+                    933
+                ],
+                "resp.read": [
+                    905,
+                    901
+                ],
+                "digest.update": [
+                    903
+                ],
+                "download_file.write": [
+                    904
+                ],
+                "expected_hash": [
+                    937,
+                    907,
+                    909,
+                    910
+                ],
+                "actual_hash": [
+                    935,
+                    937,
+                    908,
+                    909,
+                    910
+                ],
+                "digest.hexdigest": [
+                    908
+                ],
+                "n_filename": [
+                    922,
+                    939,
+                    917,
+                    919
+                ],
+                "tar.getmember": [
+                    919
+                ],
+                "tar.name": [
+                    921,
+                    939
+                ],
+                "tmpfile_obj": [
+                    948,
+                    930,
+                    931,
+                    924
+                ],
+                "sha256_digest": [
+                    932,
+                    926,
+                    935
+                ],
+                "tar_obj.read": [
+                    928,
+                    933
+                ],
+                "tmpfile_obj.write": [
+                    930
+                ],
+                "tmpfile_obj.flush": [
+                    931
+                ],
+                "sha256_digest.update": [
+                    932
+                ],
+                "sha256_digest.hexdigest": [
+                    935
+                ],
+                "b_dest_filepath": [
+                    948,
+                    941,
+                    942
+                ],
+                "b_dest": [
+                    941
+                ],
+                "b_parent_dir": [
+                    946,
+                    942,
+                    943
+                ],
+                "shutil.move": [
+                    948
+                ],
+                "tmpfile_obj.name": [
+                    948
+                ]
+            }
+        },
+        "test_data": []
+    }
+}

@@ -1,0 +1,4930 @@
+{
+    "pandas:101": {
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/core/dtypes/cast.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "astype_nansafe",
+                    "function_code": "def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):\n    \"\"\"\n    Cast the elements of an array to a given dtype a nan-safe manner.\n\n    Parameters\n    ----------\n    arr : ndarray\n    dtype : np.dtype\n    copy : bool, default True\n        If False, a view will be attempted but may fail, if\n        e.g. the item sizes don't align.\n    skipna: bool, default False\n        Whether or not we should skip NaN when casting as a string-type.\n\n    Raises\n    ------\n    ValueError\n        The dtype was a datetime64/timedelta64 dtype, but it had no unit.\n    \"\"\"\n\n    # dispatch on extension dtype if needed\n    if is_extension_array_dtype(dtype):\n        return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)\n\n    if not isinstance(dtype, np.dtype):\n        dtype = pandas_dtype(dtype)\n\n    if issubclass(dtype.type, str):\n        return lib.astype_str(arr.ravel(), skipna=skipna).reshape(arr.shape)\n\n    elif is_datetime64_dtype(arr):\n        if is_object_dtype(dtype):\n            return tslib.ints_to_pydatetime(arr.view(np.int64))\n        elif dtype == np.int64:\n            return arr.view(dtype)\n\n        # allow frequency conversions\n        if dtype.kind == \"M\":\n            return arr.astype(dtype)\n\n        raise TypeError(f\"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]\")\n\n    elif is_timedelta64_dtype(arr):\n        if is_object_dtype(dtype):\n            return tslibs.ints_to_pytimedelta(arr.view(np.int64))\n        elif dtype == np.int64:\n            return arr.view(dtype)\n\n        if dtype not in [_INT64_DTYPE, _TD_DTYPE]:\n\n            # allow frequency conversions\n            # we return a float here!\n            if dtype.kind == \"m\":\n                mask = isna(arr)\n                result = arr.astype(dtype).astype(np.float64)\n                result[mask] = np.nan\n                return result\n        elif dtype == _TD_DTYPE:\n            return arr.astype(_TD_DTYPE, copy=copy)\n\n        raise TypeError(f\"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]\")\n\n    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):\n\n        if not np.isfinite(arr).all():\n            raise ValueError(\"Cannot convert non-finite values (NA or inf) to integer\")\n\n    elif is_object_dtype(arr):\n\n        # work around NumPy brokenness, #1987\n        if np.issubdtype(dtype.type, np.integer):\n            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)\n\n        # if we have a datetime/timedelta array of objects\n        # then coerce to a proper dtype and recall astype_nansafe\n\n        elif is_datetime64_dtype(dtype):\n            from pandas import to_datetime\n\n            return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)\n        elif is_timedelta64_dtype(dtype):\n            from pandas import to_timedelta\n\n            return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)\n\n    if dtype.name in (\"datetime64\", \"timedelta64\"):\n        msg = (\n            f\"The '{dtype.name}' dtype has no unit. Please pass in \"\n            f\"'{dtype.name}[ns]' instead.\"\n        )\n        raise ValueError(msg)\n\n    if copy or is_object_dtype(arr) or is_object_dtype(dtype):\n        # Explicit copy, or required since NumPy can't view from / to object.\n        return arr.astype(dtype, copy=True)\n\n    return arr.view(dtype)\n",
+                    "decorators": [],
+                    "docstring": "Cast the elements of an array to a given dtype a nan-safe manner.\n\nParameters\n----------\narr : ndarray\ndtype : np.dtype\ncopy : bool, default True\n    If False, a view will be attempted but may fail, if\n    e.g. the item sizes don't align.\nskipna: bool, default False\n    Whether or not we should skip NaN when casting as a string-type.\n\nRaises\n------\nValueError\n    The dtype was a datetime64/timedelta64 dtype, but it had no unit.",
+                    "start_line": 792,
+                    "variables": {
+                        "bool": [
+                            792
+                        ],
+                        "is_extension_array_dtype": [
+                            813
+                        ],
+                        "dtype": [
+                            813,
+                            814,
+                            816,
+                            817,
+                            819,
+                            823,
+                            825,
+                            826,
+                            829,
+                            830,
+                            832,
+                            835,
+                            837,
+                            838,
+                            840,
+                            844,
+                            846,
+                            849,
+                            852,
+                            854,
+                            862,
+                            863,
+                            868,
+                            871,
+                            872,
+                            875,
+                            877,
+                            879,
+                            880,
+                            884,
+                            886,
+                            888
+                        ],
+                        "_from_sequence": [
+                            814
+                        ],
+                        "dtype.construct_array_type": [
+                            814
+                        ],
+                        "arr": [
+                            814,
+                            820,
+                            822,
+                            824,
+                            826,
+                            830,
+                            832,
+                            834,
+                            836,
+                            838,
+                            845,
+                            846,
+                            850,
+                            852,
+                            854,
+                            856,
+                            859,
+                            863,
+                            871,
+                            875,
+                            884,
+                            886,
+                            888
+                        ],
+                        "copy": [
+                            871,
+                            875,
+                            814,
+                            850,
+                            884
+                        ],
+                        "isinstance": [
+                            816
+                        ],
+                        "np.dtype": [
+                            816
+                        ],
+                        "np": [
+                            836,
+                            837,
+                            846,
+                            847,
+                            816,
+                            856,
+                            854,
+                            824,
+                            825,
+                            862
+                        ],
+                        "pandas_dtype": [
+                            817
+                        ],
+                        "issubclass": [
+                            819
+                        ],
+                        "dtype.type": [
+                            819,
+                            862
+                        ],
+                        "str": [
+                            819
+                        ],
+                        "reshape": [
+                            820,
+                            863
+                        ],
+                        "lib.astype_str": [
+                            820
+                        ],
+                        "lib": [
+                            820,
+                            863
+                        ],
+                        "arr.ravel": [
+                            820,
+                            863
+                        ],
+                        "skipna": [
+                            820
+                        ],
+                        "arr.shape": [
+                            820,
+                            863
+                        ],
+                        "is_datetime64_dtype": [
+                            868,
+                            822
+                        ],
+                        "is_object_dtype": [
+                            859,
+                            835,
+                            884,
+                            823
+                        ],
+                        "tslib.ints_to_pydatetime": [
+                            824
+                        ],
+                        "tslib": [
+                            824
+                        ],
+                        "arr.view": [
+                            836,
+                            838,
+                            888,
+                            824,
+                            826
+                        ],
+                        "np.int64": [
+                            824,
+                            825,
+                            836,
+                            837
+                        ],
+                        "dtype.kind": [
+                            844,
+                            829
+                        ],
+                        "arr.astype": [
+                            846,
+                            850,
+                            886,
+                            830
+                        ],
+                        "TypeError": [
+                            832,
+                            852
+                        ],
+                        "arr.dtype": [
+                            832,
+                            852,
+                            854
+                        ],
+                        "is_timedelta64_dtype": [
+                            872,
+                            834
+                        ],
+                        "tslibs.ints_to_pytimedelta": [
+                            836
+                        ],
+                        "tslibs": [
+                            836
+                        ],
+                        "_INT64_DTYPE": [
+                            840
+                        ],
+                        "_TD_DTYPE": [
+                            840,
+                            849,
+                            850
+                        ],
+                        "mask": [
+                            845,
+                            847
+                        ],
+                        "isna": [
+                            845
+                        ],
+                        "result": [
+                            848,
+                            846,
+                            847
+                        ],
+                        "astype": [
+                            846
+                        ],
+                        "np.float64": [
+                            846
+                        ],
+                        "np.nan": [
+                            847
+                        ],
+                        "np.issubdtype": [
+                            862,
+                            854
+                        ],
+                        "np.floating": [
+                            854
+                        ],
+                        "np.integer": [
+                            862,
+                            854
+                        ],
+                        "all": [
+                            856
+                        ],
+                        "np.isfinite": [
+                            856
+                        ],
+                        "ValueError": [
+                            857,
+                            882
+                        ],
+                        "lib.astype_intsafe": [
+                            863
+                        ],
+                        "astype_nansafe": [
+                            875,
+                            871
+                        ],
+                        "values": [
+                            875,
+                            871
+                        ],
+                        "to_datetime": [
+                            871
+                        ],
+                        "to_timedelta": [
+                            875
+                        ],
+                        "dtype.name": [
+                            880,
+                            877,
+                            879
+                        ],
+                        "msg": [
+                            882,
+                            878
+                        ]
+                    },
+                    "filtered_variables": {
+                        "is_extension_array_dtype": [
+                            813
+                        ],
+                        "dtype": [
+                            813,
+                            814,
+                            816,
+                            817,
+                            819,
+                            823,
+                            825,
+                            826,
+                            829,
+                            830,
+                            832,
+                            835,
+                            837,
+                            838,
+                            840,
+                            844,
+                            846,
+                            849,
+                            852,
+                            854,
+                            862,
+                            863,
+                            868,
+                            871,
+                            872,
+                            875,
+                            877,
+                            879,
+                            880,
+                            884,
+                            886,
+                            888
+                        ],
+                        "_from_sequence": [
+                            814
+                        ],
+                        "dtype.construct_array_type": [
+                            814
+                        ],
+                        "arr": [
+                            814,
+                            820,
+                            822,
+                            824,
+                            826,
+                            830,
+                            832,
+                            834,
+                            836,
+                            838,
+                            845,
+                            846,
+                            850,
+                            852,
+                            854,
+                            856,
+                            859,
+                            863,
+                            871,
+                            875,
+                            884,
+                            886,
+                            888
+                        ],
+                        "copy": [
+                            871,
+                            875,
+                            814,
+                            850,
+                            884
+                        ],
+                        "np.dtype": [
+                            816
+                        ],
+                        "np": [
+                            836,
+                            837,
+                            846,
+                            847,
+                            816,
+                            856,
+                            854,
+                            824,
+                            825,
+                            862
+                        ],
+                        "pandas_dtype": [
+                            817
+                        ],
+                        "dtype.type": [
+                            819,
+                            862
+                        ],
+                        "reshape": [
+                            820,
+                            863
+                        ],
+                        "lib.astype_str": [
+                            820
+                        ],
+                        "lib": [
+                            820,
+                            863
+                        ],
+                        "arr.ravel": [
+                            820,
+                            863
+                        ],
+                        "skipna": [
+                            820
+                        ],
+                        "arr.shape": [
+                            820,
+                            863
+                        ],
+                        "is_datetime64_dtype": [
+                            868,
+                            822
+                        ],
+                        "is_object_dtype": [
+                            859,
+                            835,
+                            884,
+                            823
+                        ],
+                        "tslib.ints_to_pydatetime": [
+                            824
+                        ],
+                        "tslib": [
+                            824
+                        ],
+                        "arr.view": [
+                            836,
+                            838,
+                            888,
+                            824,
+                            826
+                        ],
+                        "np.int64": [
+                            824,
+                            825,
+                            836,
+                            837
+                        ],
+                        "dtype.kind": [
+                            844,
+                            829
+                        ],
+                        "arr.astype": [
+                            846,
+                            850,
+                            886,
+                            830
+                        ],
+                        "arr.dtype": [
+                            832,
+                            852,
+                            854
+                        ],
+                        "is_timedelta64_dtype": [
+                            872,
+                            834
+                        ],
+                        "tslibs.ints_to_pytimedelta": [
+                            836
+                        ],
+                        "tslibs": [
+                            836
+                        ],
+                        "_INT64_DTYPE": [
+                            840
+                        ],
+                        "_TD_DTYPE": [
+                            840,
+                            849,
+                            850
+                        ],
+                        "mask": [
+                            845,
+                            847
+                        ],
+                        "isna": [
+                            845
+                        ],
+                        "result": [
+                            848,
+                            846,
+                            847
+                        ],
+                        "astype": [
+                            846
+                        ],
+                        "np.float64": [
+                            846
+                        ],
+                        "np.nan": [
+                            847
+                        ],
+                        "np.issubdtype": [
+                            862,
+                            854
+                        ],
+                        "np.floating": [
+                            854
+                        ],
+                        "np.integer": [
+                            862,
+                            854
+                        ],
+                        "np.isfinite": [
+                            856
+                        ],
+                        "lib.astype_intsafe": [
+                            863
+                        ],
+                        "astype_nansafe": [
+                            875,
+                            871
+                        ],
+                        "values": [
+                            875,
+                            871
+                        ],
+                        "to_datetime": [
+                            871
+                        ],
+                        "to_timedelta": [
+                            875
+                        ],
+                        "dtype.name": [
+                            880,
+                            877,
+                            879
+                        ],
+                        "msg": [
+                            882,
+                            878
+                        ]
+                    },
+                    "diff_line_number": 825,
+                    "class_data": null
+                }
+            ],
+            "inscope_functions": [
+                "maybe_convert_platform(values)",
+                "is_nested_object(obj) -> bool",
+                "maybe_downcast_to_dtype(result, dtype)",
+                "maybe_downcast_numeric(result, dtype, do_round: bool=False)",
+                "maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other)",
+                "maybe_promote(dtype, fill_value=np.nan)",
+                "_ensure_dtype_type(value, dtype)",
+                "infer_dtype_from(val, pandas_dtype: bool=False)",
+                "infer_dtype_from_scalar(val, pandas_dtype: bool=False)",
+                "infer_dtype_from_array(arr, pandas_dtype: bool=False)",
+                "maybe_infer_dtype_type(element)",
+                "maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool=False)",
+                "invalidate_string_dtypes(dtype_set)",
+                "coerce_indexer_dtype(indexer, categories)",
+                "coerce_to_dtypes(result, dtypes)",
+                "astype_nansafe(arr, dtype, copy: bool=True, skipna: bool=False)",
+                "maybe_convert_objects(values: np.ndarray, convert_numeric: bool=True)",
+                "soft_convert_objects(values: np.ndarray, datetime: bool=True, numeric: bool=True, timedelta: bool=True, coerce: bool=False, copy: bool=True)",
+                "maybe_castable(arr) -> bool",
+                "maybe_infer_to_datetimelike(value, convert_dates: bool=False)",
+                "maybe_cast_to_datetime(value, dtype, errors: str='raise')",
+                "find_common_type(types)",
+                "cast_scalar_to_array(shape, value, dtype=None)",
+                "construct_1d_arraylike_from_scalar(value, length: int, dtype)",
+                "construct_1d_object_array_from_listlike(values)",
+                "construct_1d_ndarray_preserving_na(values, dtype=None, copy: bool=False)",
+                "maybe_cast_to_integer_array(arr, dtype, copy: bool=False)",
+                "trans(x)",
+                "conv(r, dtype)",
+                "try_datetime(v)",
+                "try_timedelta(v)",
+                "changeit()"
+            ],
+            "variables_in_file": {
+                "_int8_max": [
+                    57,
+                    753
+                ],
+                "max": [
+                    57,
+                    58,
+                    59,
+                    60
+                ],
+                "np.iinfo": [
+                    57,
+                    58,
+                    59,
+                    60
+                ],
+                "np": [
+                    516,
+                    1057,
+                    554,
+                    557,
+                    57,
+                    58,
+                    59,
+                    60,
+                    573,
+                    575,
+                    578,
+                    68,
+                    584,
+                    587,
+                    589,
+                    592,
+                    595,
+                    598,
+                    601,
+                    604,
+                    607,
+                    1142,
+                    120,
+                    126,
+                    1160,
+                    654,
+                    664,
+                    1178,
+                    669,
+                    671,
+                    1189,
+                    1196,
+                    174,
+                    181,
+                    704,
+                    709,
+                    201,
+                    207,
+                    1231,
+                    212,
+                    1239,
+                    221,
+                    225,
+                    745,
+                    234,
+                    1258,
+                    771,
+                    264,
+                    777,
+                    1295,
+                    1299,
+                    1301,
+                    281,
+                    283,
+                    1309,
+                    1311,
+                    816,
+                    307,
+                    824,
+                    825,
+                    1336,
+                    321,
+                    836,
+                    837,
+                    332,
+                    846,
+                    847,
+                    1363,
+                    340,
+                    854,
+                    856,
+                    1368,
+                    1369,
+                    862,
+                    1376,
+                    362,
+                    363,
+                    369,
+                    370,
+                    371,
+                    373,
+                    376,
+                    377,
+                    1402,
+                    891,
+                    380,
+                    383,
+                    385,
+                    390,
+                    391,
+                    394,
+                    398,
+                    403,
+                    407,
+                    1431,
+                    414,
+                    416,
+                    1442,
+                    419,
+                    425,
+                    426,
+                    428,
+                    429,
+                    941,
+                    432,
+                    438,
+                    439,
+                    442,
+                    443,
+                    446,
+                    447,
+                    449,
+                    450,
+                    452,
+                    453,
+                    456,
+                    459,
+                    460,
+                    462,
+                    463,
+                    464,
+                    467,
+                    1493,
+                    474,
+                    476,
+                    477,
+                    1502,
+                    481,
+                    482,
+                    484,
+                    1510,
+                    489,
+                    490
+                ],
+                "np.int8": [
+                    57
+                ],
+                "_int16_max": [
+                    58,
+                    755
+                ],
+                "np.int16": [
+                    58
+                ],
+                "_int32_max": [
+                    59,
+                    757
+                ],
+                "np.int32": [
+                    59
+                ],
+                "_int64_max": [
+                    60
+                ],
+                "np.int64": [
+                    836,
+                    837,
+                    598,
+                    824,
+                    825,
+                    60
+                ],
+                "isinstance": [
+                    264,
+                    395,
+                    654,
+                    1294,
+                    1045,
+                    663,
+                    1049,
+                    1050,
+                    413,
+                    557,
+                    174,
+                    816,
+                    178,
+                    565,
+                    575,
+                    321,
+                    66,
+                    587,
+                    207,
+                    595,
+                    1363,
+                    85,
+                    87,
+                    1239,
+                    601,
+                    1369,
+                    101,
+                    105,
+                    362,
+                    1141,
+                    381
+                ],
+                "values": [
+                    906,
+                    909,
+                    910,
+                    913,
+                    914,
+                    917,
+                    1431,
+                    921,
+                    928,
+                    1440,
+                    1442,
+                    932,
+                    934,
+                    935,
+                    937,
+                    1336,
+                    1337,
+                    1339,
+                    1085,
+                    1086,
+                    66,
+                    67,
+                    68,
+                    69,
+                    70,
+                    71,
+                    965,
+                    73,
+                    967,
+                    968,
+                    976,
+                    722,
+                    980,
+                    726,
+                    728,
+                    984,
+                    731,
+                    733,
+                    734,
+                    991,
+                    736,
+                    738,
+                    995,
+                    997,
+                    871,
+                    999,
+                    1001,
+                    875,
+                    1006,
+                    1007,
+                    1009,
+                    1402,
+                    1403
+                ],
+                "list": [
+                    178,
+                    66
+                ],
+                "tuple": [
+                    66
+                ],
+                "range": [
+                    66
+                ],
+                "construct_1d_object_array_from_listlike": [
+                    67
+                ],
+                "getattr": [
+                    68
+                ],
+                "np.object_": [
+                    385,
+                    516,
+                    390,
+                    398,
+                    403,
+                    669,
+                    414,
+                    416,
+                    419,
+                    426,
+                    554,
+                    443,
+                    573,
+                    447,
+                    68,
+                    456,
+                    584,
+                    460,
+                    212,
+                    481,
+                    484,
+                    490,
+                    1258,
+                    369,
+                    370,
+                    373,
+                    377,
+                    383
+                ],
+                "hasattr": [
+                    1492,
+                    701,
+                    69,
+                    135
+                ],
+                "values._values": [
+                    70
+                ],
+                "lib.maybe_convert_objects": [
+                    932,
+                    997,
+                    71,
+                    910,
+                    914,
+                    991
+                ],
+                "lib": [
+                    610,
+                    932,
+                    613,
+                    997,
+                    71,
+                    1125,
+                    1001,
+                    107,
+                    910,
+                    914,
+                    1106,
+                    820,
+                    920,
+                    991,
+                    667,
+                    863
+                ],
+                "obj": [
+                    85,
+                    87
+                ],
+                "ABCSeries": [
+                    663,
+                    1049,
+                    85,
+                    87
+                ],
+                "is_object_dtype": [
+                    835,
+                    356,
+                    965,
+                    995,
+                    999,
+                    1060,
+                    1515,
+                    1228,
+                    909,
+                    913,
+                    722,
+                    884,
+                    85,
+                    917,
+                    823,
+                    859
+                ],
+                "any": [
+                    328,
+                    1512,
+                    203,
+                    1294,
+                    87,
+                    1305
+                ],
+                "v": [
+                    1053,
+                    1055,
+                    1056,
+                    1057,
+                    1060,
+                    1063,
+                    1064,
+                    1065,
+                    1067,
+                    1074,
+                    1085,
+                    1093,
+                    1102,
+                    1104,
+                    1106,
+                    1109,
+                    1111,
+                    87,
+                    1113,
+                    1117,
+                    1118,
+                    1124,
+                    1128
+                ],
+                "obj.values": [
+                    87
+                ],
+                "bool": [
+                    1026,
+                    525,
+                    781,
+                    792,
+                    542,
+                    160,
+                    1448,
+                    942,
+                    943,
+                    944,
+                    945,
+                    946,
+                    709,
+                    76,
+                    207,
+                    620,
+                    1012,
+                    891,
+                    1407
+                ],
+                "do_round": [
+                    128,
+                    97,
+                    121,
+                    184
+                ],
+                "is_scalar": [
+                    321,
+                    1185,
+                    99,
+                    356,
+                    266,
+                    722,
+                    1171,
+                    277,
+                    537
+                ],
+                "result": [
+                    128,
+                    129,
+                    134,
+                    264,
+                    141,
+                    142,
+                    144,
+                    276,
+                    789,
+                    151,
+                    279,
+                    281,
+                    283,
+                    157,
+                    297,
+                    299,
+                    301,
+                    302,
+                    176,
+                    178,
+                    306,
+                    181,
+                    188,
+                    316,
+                    190,
+                    191,
+                    317,
+                    195,
+                    197,
+                    200,
+                    332,
+                    205,
+                    846,
+                    847,
+                    848,
+                    209,
+                    337,
+                    212,
+                    213,
+                    215,
+                    216,
+                    218,
+                    221,
+                    226,
+                    99,
+                    100,
+                    101,
+                    227,
+                    103,
+                    229,
+                    231,
+                    107,
+                    120,
+                    1402,
+                    1403,
+                    1404,
+                    767
+                ],
+                "ABCDataFrame": [
+                    101
+                ],
+                "dtype": [
+                    514,
+                    516,
+                    522,
+                    554,
+                    562,
+                    573,
+                    578,
+                    581,
+                    589,
+                    592,
+                    596,
+                    598,
+                    602,
+                    604,
+                    607,
+                    611,
+                    615,
+                    105,
+                    106,
+                    617,
+                    109,
+                    111,
+                    113,
+                    115,
+                    1140,
+                    1141,
+                    1142,
+                    119,
+                    1144,
+                    1145,
+                    1146,
+                    124,
+                    126,
+                    128,
+                    1152,
+                    1153,
+                    1156,
+                    134,
+                    135,
+                    1160,
+                    137,
+                    1161,
+                    1163,
+                    1165,
+                    142,
+                    144,
+                    146,
+                    1174,
+                    151,
+                    1178,
+                    1179,
+                    1181,
+                    1183,
+                    1196,
+                    174,
+                    188,
+                    190,
+                    1214,
+                    193,
+                    1218,
+                    197,
+                    1227,
+                    1228,
+                    1235,
+                    215,
+                    730,
+                    731,
+                    732,
+                    1244,
+                    1246,
+                    225,
+                    1249,
+                    229,
+                    773,
+                    775,
+                    777,
+                    782,
+                    784,
+                    789,
+                    813,
+                    814,
+                    816,
+                    817,
+                    819,
+                    1331,
+                    1332,
+                    823,
+                    1336,
+                    825,
+                    826,
+                    829,
+                    830,
+                    832,
+                    835,
+                    837,
+                    838,
+                    840,
+                    844,
+                    846,
+                    1358,
+                    1359,
+                    849,
+                    1360,
+                    1363,
+                    852,
+                    1364,
+                    854,
+                    1366,
+                    1368,
+                    1369,
+                    1372,
+                    862,
+                    863,
+                    1376,
+                    356,
+                    868,
+                    871,
+                    872,
+                    875,
+                    877,
+                    879,
+                    880,
+                    370,
+                    884,
+                    373,
+                    886,
+                    888,
+                    377,
+                    380,
+                    383,
+                    385,
+                    390,
+                    391,
+                    398,
+                    403,
+                    1431,
+                    1433,
+                    410,
+                    414,
+                    416,
+                    417,
+                    419,
+                    421,
+                    422,
+                    425,
+                    426,
+                    428,
+                    429,
+                    431,
+                    433,
+                    435,
+                    437,
+                    439,
+                    442,
+                    443,
+                    446,
+                    447,
+                    449,
+                    450,
+                    453,
+                    454,
+                    456,
+                    459,
+                    460,
+                    462,
+                    464,
+                    466,
+                    468,
+                    1493,
+                    470,
+                    1495,
+                    473,
+                    475,
+                    476,
+                    1499,
+                    478,
+                    479,
+                    481,
+                    484,
+                    487,
+                    1512,
+                    489,
+                    490,
+                    1515,
+                    492,
+                    493
+                ],
+                "str": [
+                    105,
+                    489,
+                    395,
+                    1133,
+                    819,
+                    565,
+                    1141
+                ],
+                "inferred_type": [
+                    107,
+                    108,
+                    110,
+                    112,
+                    114,
+                    1106,
+                    1108,
+                    118,
+                    1110,
+                    1112,
+                    1114
+                ],
+                "lib.infer_dtype": [
+                    107,
+                    667,
+                    1125
+                ],
+                "ensure_object": [
+                    1106,
+                    107
+                ],
+                "result.ravel": [
+                    200,
+                    107
+                ],
+                "issubclass": [
+                    225,
+                    449,
+                    391,
+                    425,
+                    489,
+                    363,
+                    428,
+                    459,
+                    462,
+                    1258,
+                    819,
+                    212,
+                    120,
+                    442,
+                    380,
+                    446
+                ],
+                "result.dtype.type": [
+                    120,
+                    212,
+                    279
+                ],
+                "result.dtype": [
+                    226,
+                    227,
+                    134,
+                    297,
+                    212,
+                    276,
+                    316,
+                    279,
+                    120,
+                    281,
+                    283,
+                    188,
+                    317,
+                    190,
+                    216
+                ],
+                "np.number": [
+                    120,
+                    212
+                ],
+                "np.dtype": [
+                    385,
+                    390,
+                    1160,
+                    398,
+                    403,
+                    1299,
+                    1301,
+                    1178,
+                    414,
+                    416,
+                    419,
+                    426,
+                    429,
+                    174,
+                    816,
+                    443,
+                    447,
+                    578,
+                    456,
+                    460,
+                    589,
+                    1363,
+                    1368,
+                    1369,
+                    481,
+                    484,
+                    489,
+                    490,
+                    745,
+                    370,
+                    1142,
+                    377,
+                    126,
+                    383
+                ],
+                "converted": [
+                    128,
+                    129,
+                    130,
+                    1001,
+                    1006
+                ],
+                "maybe_downcast_numeric": [
+                    128
+                ],
+                "dtype.kind": [
+                    1249,
+                    134,
+                    454,
+                    1433,
+                    844,
+                    782,
+                    431,
+                    784,
+                    466,
+                    437,
+                    373,
+                    1369,
+                    188,
+                    829,
+                    1246
+                ],
+                "result.dtype.kind": [
+                    216,
+                    188,
+                    276,
+                    134
+                ],
+                "dtype.tz": [
+                    417,
+                    1218,
+                    137,
+                    142,
+                    1214
+                ],
+                "tz_localize": [
+                    141,
+                    1086
+                ],
+                "to_datetime": [
+                    871,
+                    141,
+                    1199,
+                    976,
+                    1211
+                ],
+                "result.tz_convert": [
+                    142
+                ],
+                "result.astype": [
+                    144,
+                    229
+                ],
+                "dtype.type": [
+                    225,
+                    449,
+                    391,
+                    425,
+                    522,
+                    459,
+                    428,
+                    462,
+                    862,
+                    146,
+                    819,
+                    442,
+                    380,
+                    446,
+                    479
+                ],
+                "Period": [
+                    146
+                ],
+                "PeriodArray": [
+                    151
+                ],
+                "dtype.freq": [
+                    151
+                ],
+                "TypeError": [
+                    832,
+                    1183,
+                    291,
+                    389,
+                    1223,
+                    1002,
+                    747,
+                    333,
+                    1165,
+                    1235,
+                    852,
+                    152,
+                    923,
+                    1087
+                ],
+                "np.array": [
+                    1057,
+                    1189,
+                    201,
+                    181,
+                    1493,
+                    1431,
+                    281,
+                    283
+                ],
+                "x.round": [
+                    185
+                ],
+                "x": [
+                    185,
+                    186
+                ],
+                "result.dtype.itemsize": [
+                    190
+                ],
+                "dtype.itemsize": [
+                    190
+                ],
+                "result.size": [
+                    195,
+                    190
+                ],
+                "is_bool_dtype": [
+                    193,
+                    226,
+                    1305
+                ],
+                "is_integer_dtype": [
+                    193,
+                    1515,
+                    1366,
+                    282,
+                    475,
+                    1308
+                ],
+                "astype": [
+                    197,
+                    846,
+                    215
+                ],
+                "trans": [
+                    197,
+                    215
+                ],
+                "r": [
+                    771,
+                    774,
+                    200,
+                    201,
+                    776,
+                    779,
+                    780,
+                    781,
+                    207,
+                    783,
+                    785,
+                    306,
+                    307,
+                    787,
+                    309,
+                    789
+                ],
+                "arr": [
+                    654,
+                    655,
+                    657,
+                    658,
+                    660,
+                    661,
+                    663,
+                    664,
+                    667,
+                    669,
+                    671,
+                    672,
+                    814,
+                    820,
+                    822,
+                    824,
+                    826,
+                    830,
+                    832,
+                    834,
+                    836,
+                    838,
+                    201,
+                    203,
+                    845,
+                    846,
+                    850,
+                    852,
+                    1492,
+                    854,
+                    1493,
+                    856,
+                    1495,
+                    859,
+                    1502,
+                    863,
+                    1510,
+                    871,
+                    1512,
+                    875,
+                    1515,
+                    884,
+                    886,
+                    888,
+                    1017,
+                    1019,
+                    1021,
+                    1023
+                ],
+                "isna": [
+                    384,
+                    1440,
+                    322,
+                    771,
+                    1186,
+                    421,
+                    518,
+                    328,
+                    203,
+                    845,
+                    1006,
+                    1171,
+                    278,
+                    1366,
+                    411,
+                    1373,
+                    1117,
+                    927
+                ],
+                "np.integer": [
+                    449,
+                    1258,
+                    428,
+                    462,
+                    207,
+                    595,
+                    854,
+                    862
+                ],
+                "np.floating": [
+                    225,
+                    462,
+                    207,
+                    854,
+                    601
+                ],
+                "np.bool": [
+                    207
+                ],
+                "int": [
+                    785,
+                    780,
+                    1342,
+                    207
+                ],
+                "float": [
+                    783,
+                    207
+                ],
+                "all": [
+                    298,
+                    1291,
+                    1006,
+                    1298,
+                    1300,
+                    213,
+                    856,
+                    218,
+                    1117,
+                    927
+                ],
+                "notna": [
+                    213
+                ],
+                "new_result": [
+                    299,
+                    300,
+                    301,
+                    215,
+                    216,
+                    218,
+                    219,
+                    221,
+                    222
+                ],
+                "new_result.dtype.kind": [
+                    216
+                ],
+                "new_result.dtype": [
+                    216
+                ],
+                "np.allclose": [
+                    221
+                ],
+                "is_string_dtype": [
+                    1210,
+                    227
+                ],
+                "np.ndarray": [
+                    321,
+                    264,
+                    234,
+                    362,
+                    557,
+                    654,
+                    941,
+                    1239,
+                    891
+                ],
+                "ValueError": [
+                    389,
+                    1285,
+                    265,
+                    1162,
+                    269,
+                    402,
+                    923,
+                    1180,
+                    560,
+                    1075,
+                    958,
+                    1087,
+                    960,
+                    1223,
+                    1103,
+                    724,
+                    857,
+                    359,
+                    1002,
+                    1516,
+                    882
+                ],
+                "other": [
+                    321,
+                    290,
+                    322,
+                    328,
+                    266,
+                    332,
+                    306,
+                    307,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281,
+                    282,
+                    283,
+                    316
+                ],
+                "mask.any": [
+                    271
+                ],
+                "mask": [
+                    290,
+                    300,
+                    332,
+                    845,
+                    271,
+                    847,
+                    307
+                ],
+                "is_integer": [
+                    384,
+                    393,
+                    779,
+                    594,
+                    280,
+                    445
+                ],
+                "om": [
+                    297,
+                    290,
+                    298
+                ],
+                "IndexError": [
+                    291
+                ],
+                "om_at": [
+                    297,
+                    298,
+                    300
+                ],
+                "om.astype": [
+                    297
+                ],
+                "result.values.copy": [
+                    299
+                ],
+                "result.values": [
+                    299
+                ],
+                "_": [
+                    306,
+                    316
+                ],
+                "maybe_upcast": [
+                    306
+                ],
+                "np.place": [
+                    307,
+                    332
+                ],
+                "new_dtype": [
+                    316,
+                    317,
+                    732,
+                    733,
+                    734
+                ],
+                "maybe_promote": [
+                    732,
+                    316
+                ],
+                "other.ndim": [
+                    321
+                ],
+                "changeit": [
+                    329,
+                    323,
+                    335
+                ],
+                "np.nan": [
+                    482,
+                    709,
+                    847,
+                    371,
+                    340,
+                    376,
+                    474,
+                    477
+                ],
+                "fill_value": [
+                    384,
+                    388,
+                    393,
+                    394,
+                    395,
+                    401,
+                    407,
+                    409,
+                    411,
+                    412,
+                    413,
+                    415,
+                    417,
+                    421,
+                    422,
+                    424,
+                    432,
+                    1332,
+                    438,
+                    1334,
+                    441,
+                    1337,
+                    445,
+                    450,
+                    452,
+                    458,
+                    463,
+                    722,
+                    467,
+                    472,
+                    474,
+                    732,
+                    477,
+                    479,
+                    482,
+                    738,
+                    356,
+                    362,
+                    363,
+                    364,
+                    492,
+                    493,
+                    369,
+                    371,
+                    376,
+                    381
+                ],
+                "fill_value.dtype.type": [
+                    363,
+                    364
+                ],
+                "fill_value.dtype": [
+                    369,
+                    363,
+                    364
+                ],
+                "np.datetime64": [
+                    363,
+                    380,
+                    575
+                ],
+                "np.timedelta64": [
+                    407,
+                    587,
+                    363,
+                    391
+                ],
+                "datetime": [
+                    973,
+                    950,
+                    987,
+                    956,
+                    381,
+                    413,
+                    575
+                ],
+                "fill_value.tzinfo": [
+                    417,
+                    381,
+                    415
+                ],
+                "is_float": [
+                    384,
+                    394,
+                    600,
+                    424
+                ],
+                "to_datetime64": [
+                    388
+                ],
+                "tslibs.Timestamp": [
+                    576,
+                    388,
+                    774
+                ],
+                "tslibs": [
+                    576,
+                    577,
+                    388,
+                    836,
+                    774,
+                    776,
+                    588,
+                    401,
+                    1247
+                ],
+                "np.isnan": [
+                    394
+                ],
+                "fv": [
+                    401,
+                    409,
+                    405
+                ],
+                "tslibs.Timedelta": [
+                    776,
+                    401,
+                    588
+                ],
+                "NaT": [
+                    412,
+                    405
+                ],
+                "fv.to_timedelta64": [
+                    409
+                ],
+                "is_datetime64tz_dtype": [
+                    1145,
+                    410
+                ],
+                "tz_compare": [
+                    417
+                ],
+                "is_extension_array_dtype": [
+                    514,
+                    421,
+                    487,
+                    813,
+                    1358,
+                    660,
+                    726
+                ],
+                "dtype.na_value": [
+                    422
+                ],
+                "np.bool_": [
+                    425,
+                    777,
+                    459,
+                    592,
+                    442,
+                    446
+                ],
+                "np.float64": [
+                    476,
+                    429,
+                    846,
+                    604
+                ],
+                "mst": [
+                    452,
+                    453,
+                    463,
+                    432,
+                    433,
+                    464,
+                    435,
+                    467,
+                    468,
+                    438,
+                    439,
+                    470
+                ],
+                "np.min_scalar_type": [
+                    452,
+                    463,
+                    432,
+                    467,
+                    438
+                ],
+                "np.promote_types": [
+                    464,
+                    453,
+                    439
+                ],
+                "is_bool": [
+                    441,
+                    591
+                ],
+                "np.can_cast": [
+                    450
+                ],
+                "is_complex": [
+                    458,
+                    606
+                ],
+                "is_float_dtype": [
+                    473,
+                    1515,
+                    1308
+                ],
+                "is_complex_dtype": [
+                    473,
+                    1308
+                ],
+                "is_datetime_or_timedelta_dtype": [
+                    478
+                ],
+                "type": [
+                    489,
+                    745,
+                    1363,
+                    596,
+                    602
+                ],
+                "bytes": [
+                    489
+                ],
+                "_ensure_dtype_type": [
+                    492
+                ],
+                "value": [
+                    515,
+                    517,
+                    518,
+                    520,
+                    522,
+                    1171,
+                    1172,
+                    1046,
+                    1048,
+                    1049,
+                    1050,
+                    1051,
+                    1053,
+                    1185,
+                    1186,
+                    1187,
+                    1061,
+                    1189,
+                    1192,
+                    1193,
+                    1068,
+                    1196,
+                    1199,
+                    1202,
+                    1203,
+                    1204,
+                    1332,
+                    1334,
+                    1210,
+                    1211,
+                    1214,
+                    1218,
+                    1220,
+                    1227,
+                    588,
+                    1229,
+                    1230,
+                    1231,
+                    1360,
+                    1109,
+                    1366,
+                    1111,
+                    1239,
+                    1113,
+                    1243,
+                    1244,
+                    1373,
+                    1118,
+                    1247,
+                    1374,
+                    1377,
+                    1250,
+                    1124,
+                    1125,
+                    1128,
+                    1130,
+                    1258,
+                    1261,
+                    1263
+                ],
+                "val": [
+                    537,
+                    538,
+                    539,
+                    557,
+                    559,
+                    562,
+                    563,
+                    565,
+                    575,
+                    576,
+                    577,
+                    581,
+                    584,
+                    585,
+                    587,
+                    588,
+                    591,
+                    594,
+                    595,
+                    596,
+                    600,
+                    601,
+                    602,
+                    606,
+                    610,
+                    611,
+                    612,
+                    613,
+                    614,
+                    617
+                ],
+                "infer_dtype_from_scalar": [
+                    538,
+                    1332,
+                    614
+                ],
+                "pandas_dtype": [
+                    609,
+                    580,
+                    817,
+                    660,
+                    538,
+                    539
+                ],
+                "infer_dtype_from_array": [
+                    539
+                ],
+                "msg": [
+                    1162,
+                    878,
+                    558,
+                    560,
+                    882,
+                    1180,
+                    1151
+                ],
+                "val.ndim": [
+                    559
+                ],
+                "val.dtype": [
+                    562
+                ],
+                "val.item": [
+                    563
+                ],
+                "tslibs.NaT": [
+                    577
+                ],
+                "val.tz": [
+                    577,
+                    581
+                ],
+                "DatetimeTZDtype": [
+                    581
+                ],
+                "val.value": [
+                    585
+                ],
+                "timedelta": [
+                    995,
+                    587,
+                    977,
+                    952,
+                    956
+                ],
+                "np.complex_": [
+                    607
+                ],
+                "lib.is_period": [
+                    610
+                ],
+                "PeriodDtype": [
+                    611
+                ],
+                "val.freq": [
+                    611
+                ],
+                "val.ordinal": [
+                    612
+                ],
+                "lib.is_interval": [
+                    613
+                ],
+                "subtype": [
+                    614,
+                    615
+                ],
+                "val.left": [
+                    614
+                ],
+                "IntervalDtype": [
+                    615
+                ],
+                "arr.dtype": [
+                    832,
+                    672,
+                    655,
+                    852,
+                    661,
+                    854,
+                    664,
+                    1017,
+                    1019,
+                    1021,
+                    1023
+                ],
+                "is_list_like": [
+                    657,
+                    1055,
+                    703
+                ],
+                "np.asarray": [
+                    704,
+                    1442,
+                    1510,
+                    1231,
+                    664,
+                    671
+                ],
+                "inferred": [
+                    667,
+                    668
+                ],
+                "tipo": [
+                    705,
+                    706,
+                    700,
+                    702
+                ],
+                "element": [
+                    704,
+                    705,
+                    701,
+                    702,
+                    703
+                ],
+                "element.dtype": [
+                    705,
+                    702
+                ],
+                "values.dtype": [
+                    995,
+                    965,
+                    999,
+                    909,
+                    913,
+                    722,
+                    917,
+                    731,
+                    733
+                ],
+                "copy": [
+                    1431,
+                    1495,
+                    871,
+                    967,
+                    875,
+                    814,
+                    1007,
+                    850,
+                    884,
+                    1493,
+                    727,
+                    954,
+                    735
+                ],
+                "values.copy": [
+                    736,
+                    967,
+                    935,
+                    1007,
+                    728
+                ],
+                "values.astype": [
+                    734
+                ],
+                "non_string_dtypes": [
+                    745,
+                    746
+                ],
+                "dtype_set": [
+                    745,
+                    746
+                ],
+                "length": [
+                    1376,
+                    752,
+                    753,
+                    1360,
+                    755,
+                    757,
+                    1366
+                ],
+                "len": [
+                    1284,
+                    1067,
+                    752,
+                    1402,
+                    767
+                ],
+                "categories": [
+                    752
+                ],
+                "ensure_int8": [
+                    754
+                ],
+                "indexer": [
+                    754,
+                    756,
+                    758,
+                    759
+                ],
+                "ensure_int16": [
+                    756
+                ],
+                "ensure_int32": [
+                    758
+                ],
+                "ensure_int64": [
+                    759
+                ],
+                "dtypes": [
+                    789,
+                    767
+                ],
+                "AssertionError": [
+                    768
+                ],
+                "np.any": [
+                    771
+                ],
+                "_NS_DTYPE": [
+                    1156,
+                    773,
+                    1163,
+                    1229,
+                    1230,
+                    1246
+                ],
+                "_TD_DTYPE": [
+                    1249,
+                    775,
+                    840,
+                    849,
+                    850,
+                    1174,
+                    1181
+                ],
+                "conv": [
+                    789
+                ],
+                "zip": [
+                    789
+                ],
+                "_from_sequence": [
+                    814
+                ],
+                "dtype.construct_array_type": [
+                    814,
+                    1359
+                ],
+                "reshape": [
+                    820,
+                    863
+                ],
+                "lib.astype_str": [
+                    820
+                ],
+                "arr.ravel": [
+                    820,
+                    863
+                ],
+                "skipna": [
+                    820
+                ],
+                "arr.shape": [
+                    820,
+                    863
+                ],
+                "is_datetime64_dtype": [
+                    868,
+                    1227,
+                    1298,
+                    822,
+                    1144
+                ],
+                "tslib.ints_to_pydatetime": [
+                    824,
+                    1232
+                ],
+                "tslib": [
+                    824,
+                    1074,
+                    1232
+                ],
+                "arr.view": [
+                    836,
+                    838,
+                    888,
+                    824,
+                    826
+                ],
+                "arr.astype": [
+                    846,
+                    850,
+                    886,
+                    1495,
+                    830
+                ],
+                "is_timedelta64_dtype": [
+                    872,
+                    834,
+                    1300,
+                    1146
+                ],
+                "tslibs.ints_to_pytimedelta": [
+                    836
+                ],
+                "_INT64_DTYPE": [
+                    840
+                ],
+                "np.issubdtype": [
+                    862,
+                    854
+                ],
+                "np.isfinite": [
+                    856
+                ],
+                "lib.astype_intsafe": [
+                    863
+                ],
+                "astype_nansafe": [
+                    875,
+                    871
+                ],
+                "to_timedelta": [
+                    1250,
+                    1220,
+                    875,
+                    1102,
+                    980
+                ],
+                "dtype.name": [
+                    1152,
+                    1153,
+                    1161,
+                    877,
+                    879,
+                    880,
+                    1179
+                ],
+                "validate_bool_kwarg": [
+                    904,
+                    950,
+                    951,
+                    952,
+                    953,
+                    954
+                ],
+                "convert_numeric": [
+                    904,
+                    918
+                ],
+                "orig_values": [
+                    906,
+                    934
+                ],
+                "new_values": [
+                    920,
+                    928,
+                    927
+                ],
+                "lib.maybe_convert_numeric": [
+                    920,
+                    1001
+                ],
+                "set": [
+                    921,
+                    1001
+                ],
+                "numeric": [
+                    999,
+                    956,
+                    981,
+                    951
+                ],
+                "coerce": [
+                    953,
+                    971,
+                    959
+                ],
+                "conversion_count": [
+                    956,
+                    957,
+                    959
+                ],
+                "sum": [
+                    956
+                ],
+                "to_numpy": [
+                    976,
+                    980
+                ],
+                "to_numeric": [
+                    984
+                ],
+                "OutOfBoundsDatetime": [
+                    992,
+                    1221
+                ],
+                "kind": [
+                    1017,
+                    1018,
+                    1020
+                ],
+                "arr.dtype.kind": [
+                    1017
+                ],
+                "is_datetime64_ns_dtype": [
+                    1019
+                ],
+                "is_timedelta64_ns_dtype": [
+                    1021
+                ],
+                "arr.dtype.name": [
+                    1023
+                ],
+                "_POSSIBLY_CAST_DTYPES": [
+                    1023
+                ],
+                "ABCDatetimeIndex": [
+                    1050,
+                    1046
+                ],
+                "ABCPeriodIndex": [
+                    1046
+                ],
+                "ABCDatetimeArray": [
+                    1046
+                ],
+                "ABCPeriodArray": [
+                    1046
+                ],
+                "value._values": [
+                    1050,
+                    1051,
+                    1204
+                ],
+                "shape": [
+                    1093,
+                    1063,
+                    1102,
+                    1104,
+                    1336
+                ],
+                "v.shape": [
+                    1063
+                ],
+                "v.ndim": [
+                    1064
+                ],
+                "v.ravel": [
+                    1065
+                ],
+                "tslib.array_to_datetime": [
+                    1074
+                ],
+                "tz": [
+                    1085,
+                    1086
+                ],
+                "conversion.datetime_to_datetime64": [
+                    1085
+                ],
+                "conversion": [
+                    1085
+                ],
+                "tz_convert": [
+                    1218,
+                    1086
+                ],
+                "DatetimeIndex": [
+                    1086
+                ],
+                "Exception": [
+                    1090
+                ],
+                "v.reshape": [
+                    1104,
+                    1093
+                ],
+                "_ndarray_values.reshape": [
+                    1102
+                ],
+                "_ndarray_values": [
+                    1102
+                ],
+                "lib.infer_datetimelike_array": [
+                    1106
+                ],
+                "convert_dates": [
+                    1108
+                ],
+                "try_datetime": [
+                    1128,
+                    1109,
+                    1118,
+                    1111
+                ],
+                "try_timedelta": [
+                    1113,
+                    1124
+                ],
+                "is_datetime64": [
+                    1144,
+                    1156,
+                    1148,
+                    1198
+                ],
+                "is_datetime64tz": [
+                    1145,
+                    1148,
+                    1205,
+                    1166
+                ],
+                "is_timedelta64": [
+                    1146,
+                    1219,
+                    1148,
+                    1174
+                ],
+                "is_dtype_equal": [
+                    1196,
+                    1291,
+                    1156,
+                    1174
+                ],
+                "iNaT": [
+                    1193,
+                    1186,
+                    1187
+                ],
+                "value.ndim": [
+                    1192
+                ],
+                "np.prod": [
+                    1196
+                ],
+                "value.shape": [
+                    1196
+                ],
+                "value.dtype": [
+                    1258,
+                    1196,
+                    1229,
+                    1243,
+                    1244
+                ],
+                "errors": [
+                    1211,
+                    1220,
+                    1199
+                ],
+                "value.tz": [
+                    1202
+                ],
+                "value.tz_localize": [
+                    1218,
+                    1203,
+                    1214
+                ],
+                "is_dt_string": [
+                    1210,
+                    1212
+                ],
+                "array": [
+                    1211
+                ],
+                "_values": [
+                    1220
+                ],
+                "AttributeError": [
+                    1223
+                ],
+                "value.astype": [
+                    1230
+                ],
+                "ints": [
+                    1232,
+                    1231
+                ],
+                "view": [
+                    1231
+                ],
+                "is_array": [
+                    1256,
+                    1243,
+                    1239
+                ],
+                "value.dtype.kind": [
+                    1243
+                ],
+                "tslibs.conversion.ensure_datetime64ns": [
+                    1247
+                ],
+                "tslibs.conversion": [
+                    1247
+                ],
+                "value.dtype.type": [
+                    1258
+                ],
+                "maybe_infer_to_datetimelike": [
+                    1261
+                ],
+                "types": [
+                    1284,
+                    1287,
+                    1291,
+                    1294,
+                    1298,
+                    1300,
+                    1305,
+                    1307,
+                    1311
+                ],
+                "first": [
+                    1291,
+                    1292,
+                    1287
+                ],
+                "t": [
+                    1291,
+                    1294,
+                    1298,
+                    1300,
+                    1305,
+                    1307,
+                    1308
+                ],
+                "ExtensionDtype": [
+                    1294
+                ],
+                "np.object": [
+                    1309,
+                    1295
+                ],
+                "has_bools": [
+                    1305,
+                    1306
+                ],
+                "np.find_common_type": [
+                    1311
+                ],
+                "np.empty": [
+                    1336,
+                    1402,
+                    1376
+                ],
+                "values.fill": [
+                    1337
+                ],
+                "cls": [
+                    1360,
+                    1359
+                ],
+                "subarr": [
+                    1376,
+                    1377,
+                    1441,
+                    1379,
+                    1443,
+                    1445,
+                    1360,
+                    1431
+                ],
+                "cls._from_sequence": [
+                    1360
+                ],
+                "dtype.dtype": [
+                    1364
+                ],
+                "object": [
+                    1441,
+                    1442,
+                    1372
+                ],
+                "ensure_str": [
+                    1374
+                ],
+                "subarr.fill": [
+                    1377
+                ],
+                "na_values": [
+                    1440,
+                    1442
+                ],
+                "subarr2": [
+                    1441,
+                    1442,
+                    1443
+                ],
+                "subarr.astype": [
+                    1441
+                ],
+                "casted": [
+                    1503,
+                    1493,
+                    1502,
+                    1495
+                ],
+                "OverflowError": [
+                    1496,
+                    1497,
+                    1513
+                ],
+                "np.array_equal": [
+                    1502
+                ],
+                "is_unsigned_integer_dtype": [
+                    1512
+                ]
+            },
+            "filtered_variables_in_file": {
+                "_int8_max": [
+                    57,
+                    753
+                ],
+                "np.iinfo": [
+                    57,
+                    58,
+                    59,
+                    60
+                ],
+                "np": [
+                    516,
+                    1057,
+                    554,
+                    557,
+                    57,
+                    58,
+                    59,
+                    60,
+                    573,
+                    575,
+                    578,
+                    68,
+                    584,
+                    587,
+                    589,
+                    592,
+                    595,
+                    598,
+                    601,
+                    604,
+                    607,
+                    1142,
+                    120,
+                    126,
+                    1160,
+                    654,
+                    664,
+                    1178,
+                    669,
+                    671,
+                    1189,
+                    1196,
+                    174,
+                    181,
+                    704,
+                    709,
+                    201,
+                    207,
+                    1231,
+                    212,
+                    1239,
+                    221,
+                    225,
+                    745,
+                    234,
+                    1258,
+                    771,
+                    264,
+                    777,
+                    1295,
+                    1299,
+                    1301,
+                    281,
+                    283,
+                    1309,
+                    1311,
+                    816,
+                    307,
+                    824,
+                    825,
+                    1336,
+                    321,
+                    836,
+                    837,
+                    332,
+                    846,
+                    847,
+                    1363,
+                    340,
+                    854,
+                    856,
+                    1368,
+                    1369,
+                    862,
+                    1376,
+                    362,
+                    363,
+                    369,
+                    370,
+                    371,
+                    373,
+                    376,
+                    377,
+                    1402,
+                    891,
+                    380,
+                    383,
+                    385,
+                    390,
+                    391,
+                    394,
+                    398,
+                    403,
+                    407,
+                    1431,
+                    414,
+                    416,
+                    1442,
+                    419,
+                    425,
+                    426,
+                    428,
+                    429,
+                    941,
+                    432,
+                    438,
+                    439,
+                    442,
+                    443,
+                    446,
+                    447,
+                    449,
+                    450,
+                    452,
+                    453,
+                    456,
+                    459,
+                    460,
+                    462,
+                    463,
+                    464,
+                    467,
+                    1493,
+                    474,
+                    476,
+                    477,
+                    1502,
+                    481,
+                    482,
+                    484,
+                    1510,
+                    489,
+                    490
+                ],
+                "np.int8": [
+                    57
+                ],
+                "_int16_max": [
+                    58,
+                    755
+                ],
+                "np.int16": [
+                    58
+                ],
+                "_int32_max": [
+                    59,
+                    757
+                ],
+                "np.int32": [
+                    59
+                ],
+                "_int64_max": [
+                    60
+                ],
+                "np.int64": [
+                    836,
+                    837,
+                    598,
+                    824,
+                    825,
+                    60
+                ],
+                "values": [
+                    906,
+                    909,
+                    910,
+                    913,
+                    914,
+                    917,
+                    1431,
+                    921,
+                    928,
+                    1440,
+                    1442,
+                    932,
+                    934,
+                    935,
+                    937,
+                    1336,
+                    1337,
+                    1339,
+                    1085,
+                    1086,
+                    66,
+                    67,
+                    68,
+                    69,
+                    70,
+                    71,
+                    965,
+                    73,
+                    967,
+                    968,
+                    976,
+                    722,
+                    980,
+                    726,
+                    728,
+                    984,
+                    731,
+                    733,
+                    734,
+                    991,
+                    736,
+                    738,
+                    995,
+                    997,
+                    871,
+                    999,
+                    1001,
+                    875,
+                    1006,
+                    1007,
+                    1009,
+                    1402,
+                    1403
+                ],
+                "construct_1d_object_array_from_listlike": [
+                    67
+                ],
+                "np.object_": [
+                    385,
+                    516,
+                    390,
+                    398,
+                    403,
+                    669,
+                    414,
+                    416,
+                    419,
+                    426,
+                    554,
+                    443,
+                    573,
+                    447,
+                    68,
+                    456,
+                    584,
+                    460,
+                    212,
+                    481,
+                    484,
+                    490,
+                    1258,
+                    369,
+                    370,
+                    373,
+                    377,
+                    383
+                ],
+                "values._values": [
+                    70
+                ],
+                "lib.maybe_convert_objects": [
+                    932,
+                    997,
+                    71,
+                    910,
+                    914,
+                    991
+                ],
+                "lib": [
+                    610,
+                    932,
+                    613,
+                    997,
+                    71,
+                    1125,
+                    1001,
+                    107,
+                    910,
+                    914,
+                    1106,
+                    820,
+                    920,
+                    991,
+                    667,
+                    863
+                ],
+                "obj": [
+                    85,
+                    87
+                ],
+                "ABCSeries": [
+                    663,
+                    1049,
+                    85,
+                    87
+                ],
+                "is_object_dtype": [
+                    835,
+                    356,
+                    965,
+                    995,
+                    999,
+                    1060,
+                    1515,
+                    1228,
+                    909,
+                    913,
+                    722,
+                    884,
+                    85,
+                    917,
+                    823,
+                    859
+                ],
+                "v": [
+                    1053,
+                    1055,
+                    1056,
+                    1057,
+                    1060,
+                    1063,
+                    1064,
+                    1065,
+                    1067,
+                    1074,
+                    1085,
+                    1093,
+                    1102,
+                    1104,
+                    1106,
+                    1109,
+                    1111,
+                    87,
+                    1113,
+                    1117,
+                    1118,
+                    1124,
+                    1128
+                ],
+                "obj.values": [
+                    87
+                ],
+                "do_round": [
+                    128,
+                    97,
+                    121,
+                    184
+                ],
+                "is_scalar": [
+                    321,
+                    1185,
+                    99,
+                    356,
+                    266,
+                    722,
+                    1171,
+                    277,
+                    537
+                ],
+                "result": [
+                    128,
+                    129,
+                    134,
+                    264,
+                    141,
+                    142,
+                    144,
+                    276,
+                    789,
+                    151,
+                    279,
+                    281,
+                    283,
+                    157,
+                    297,
+                    299,
+                    301,
+                    302,
+                    176,
+                    178,
+                    306,
+                    181,
+                    188,
+                    316,
+                    190,
+                    191,
+                    317,
+                    195,
+                    197,
+                    200,
+                    332,
+                    205,
+                    846,
+                    847,
+                    848,
+                    209,
+                    337,
+                    212,
+                    213,
+                    215,
+                    216,
+                    218,
+                    221,
+                    226,
+                    99,
+                    100,
+                    101,
+                    227,
+                    103,
+                    229,
+                    231,
+                    107,
+                    120,
+                    1402,
+                    1403,
+                    1404,
+                    767
+                ],
+                "ABCDataFrame": [
+                    101
+                ],
+                "dtype": [
+                    514,
+                    516,
+                    522,
+                    554,
+                    562,
+                    573,
+                    578,
+                    581,
+                    589,
+                    592,
+                    596,
+                    598,
+                    602,
+                    604,
+                    607,
+                    611,
+                    615,
+                    105,
+                    106,
+                    617,
+                    109,
+                    111,
+                    113,
+                    115,
+                    1140,
+                    1141,
+                    1142,
+                    119,
+                    1144,
+                    1145,
+                    1146,
+                    124,
+                    126,
+                    128,
+                    1152,
+                    1153,
+                    1156,
+                    134,
+                    135,
+                    1160,
+                    137,
+                    1161,
+                    1163,
+                    1165,
+                    142,
+                    144,
+                    146,
+                    1174,
+                    151,
+                    1178,
+                    1179,
+                    1181,
+                    1183,
+                    1196,
+                    174,
+                    188,
+                    190,
+                    1214,
+                    193,
+                    1218,
+                    197,
+                    1227,
+                    1228,
+                    1235,
+                    215,
+                    730,
+                    731,
+                    732,
+                    1244,
+                    1246,
+                    225,
+                    1249,
+                    229,
+                    773,
+                    775,
+                    777,
+                    782,
+                    784,
+                    789,
+                    813,
+                    814,
+                    816,
+                    817,
+                    819,
+                    1331,
+                    1332,
+                    823,
+                    1336,
+                    825,
+                    826,
+                    829,
+                    830,
+                    832,
+                    835,
+                    837,
+                    838,
+                    840,
+                    844,
+                    846,
+                    1358,
+                    1359,
+                    849,
+                    1360,
+                    1363,
+                    852,
+                    1364,
+                    854,
+                    1366,
+                    1368,
+                    1369,
+                    1372,
+                    862,
+                    863,
+                    1376,
+                    356,
+                    868,
+                    871,
+                    872,
+                    875,
+                    877,
+                    879,
+                    880,
+                    370,
+                    884,
+                    373,
+                    886,
+                    888,
+                    377,
+                    380,
+                    383,
+                    385,
+                    390,
+                    391,
+                    398,
+                    403,
+                    1431,
+                    1433,
+                    410,
+                    414,
+                    416,
+                    417,
+                    419,
+                    421,
+                    422,
+                    425,
+                    426,
+                    428,
+                    429,
+                    431,
+                    433,
+                    435,
+                    437,
+                    439,
+                    442,
+                    443,
+                    446,
+                    447,
+                    449,
+                    450,
+                    453,
+                    454,
+                    456,
+                    459,
+                    460,
+                    462,
+                    464,
+                    466,
+                    468,
+                    1493,
+                    470,
+                    1495,
+                    473,
+                    475,
+                    476,
+                    1499,
+                    478,
+                    479,
+                    481,
+                    484,
+                    487,
+                    1512,
+                    489,
+                    490,
+                    1515,
+                    492,
+                    493
+                ],
+                "inferred_type": [
+                    107,
+                    108,
+                    110,
+                    112,
+                    114,
+                    1106,
+                    1108,
+                    118,
+                    1110,
+                    1112,
+                    1114
+                ],
+                "lib.infer_dtype": [
+                    107,
+                    667,
+                    1125
+                ],
+                "ensure_object": [
+                    1106,
+                    107
+                ],
+                "result.ravel": [
+                    200,
+                    107
+                ],
+                "result.dtype.type": [
+                    120,
+                    212,
+                    279
+                ],
+                "result.dtype": [
+                    226,
+                    227,
+                    134,
+                    297,
+                    212,
+                    276,
+                    316,
+                    279,
+                    120,
+                    281,
+                    283,
+                    188,
+                    317,
+                    190,
+                    216
+                ],
+                "np.number": [
+                    120,
+                    212
+                ],
+                "np.dtype": [
+                    385,
+                    390,
+                    1160,
+                    398,
+                    403,
+                    1299,
+                    1301,
+                    1178,
+                    414,
+                    416,
+                    419,
+                    426,
+                    429,
+                    174,
+                    816,
+                    443,
+                    447,
+                    578,
+                    456,
+                    460,
+                    589,
+                    1363,
+                    1368,
+                    1369,
+                    481,
+                    484,
+                    489,
+                    490,
+                    745,
+                    370,
+                    1142,
+                    377,
+                    126,
+                    383
+                ],
+                "converted": [
+                    128,
+                    129,
+                    130,
+                    1001,
+                    1006
+                ],
+                "maybe_downcast_numeric": [
+                    128
+                ],
+                "dtype.kind": [
+                    1249,
+                    134,
+                    454,
+                    1433,
+                    844,
+                    782,
+                    431,
+                    784,
+                    466,
+                    437,
+                    373,
+                    1369,
+                    188,
+                    829,
+                    1246
+                ],
+                "result.dtype.kind": [
+                    216,
+                    188,
+                    276,
+                    134
+                ],
+                "dtype.tz": [
+                    417,
+                    1218,
+                    137,
+                    142,
+                    1214
+                ],
+                "tz_localize": [
+                    141,
+                    1086
+                ],
+                "to_datetime": [
+                    871,
+                    141,
+                    1199,
+                    976,
+                    1211
+                ],
+                "result.tz_convert": [
+                    142
+                ],
+                "result.astype": [
+                    144,
+                    229
+                ],
+                "dtype.type": [
+                    225,
+                    449,
+                    391,
+                    425,
+                    522,
+                    459,
+                    428,
+                    462,
+                    862,
+                    146,
+                    819,
+                    442,
+                    380,
+                    446,
+                    479
+                ],
+                "Period": [
+                    146
+                ],
+                "PeriodArray": [
+                    151
+                ],
+                "dtype.freq": [
+                    151
+                ],
+                "np.array": [
+                    1057,
+                    1189,
+                    201,
+                    181,
+                    1493,
+                    1431,
+                    281,
+                    283
+                ],
+                "x.round": [
+                    185
+                ],
+                "x": [
+                    185,
+                    186
+                ],
+                "result.dtype.itemsize": [
+                    190
+                ],
+                "dtype.itemsize": [
+                    190
+                ],
+                "result.size": [
+                    195,
+                    190
+                ],
+                "is_bool_dtype": [
+                    193,
+                    226,
+                    1305
+                ],
+                "is_integer_dtype": [
+                    193,
+                    1515,
+                    1366,
+                    282,
+                    475,
+                    1308
+                ],
+                "astype": [
+                    197,
+                    846,
+                    215
+                ],
+                "trans": [
+                    197,
+                    215
+                ],
+                "r": [
+                    771,
+                    774,
+                    200,
+                    201,
+                    776,
+                    779,
+                    780,
+                    781,
+                    207,
+                    783,
+                    785,
+                    306,
+                    307,
+                    787,
+                    309,
+                    789
+                ],
+                "arr": [
+                    654,
+                    655,
+                    657,
+                    658,
+                    660,
+                    661,
+                    663,
+                    664,
+                    667,
+                    669,
+                    671,
+                    672,
+                    814,
+                    820,
+                    822,
+                    824,
+                    826,
+                    830,
+                    832,
+                    834,
+                    836,
+                    838,
+                    201,
+                    203,
+                    845,
+                    846,
+                    850,
+                    852,
+                    1492,
+                    854,
+                    1493,
+                    856,
+                    1495,
+                    859,
+                    1502,
+                    863,
+                    1510,
+                    871,
+                    1512,
+                    875,
+                    1515,
+                    884,
+                    886,
+                    888,
+                    1017,
+                    1019,
+                    1021,
+                    1023
+                ],
+                "isna": [
+                    384,
+                    1440,
+                    322,
+                    771,
+                    1186,
+                    421,
+                    518,
+                    328,
+                    203,
+                    845,
+                    1006,
+                    1171,
+                    278,
+                    1366,
+                    411,
+                    1373,
+                    1117,
+                    927
+                ],
+                "np.integer": [
+                    449,
+                    1258,
+                    428,
+                    462,
+                    207,
+                    595,
+                    854,
+                    862
+                ],
+                "np.floating": [
+                    225,
+                    462,
+                    207,
+                    854,
+                    601
+                ],
+                "np.bool": [
+                    207
+                ],
+                "notna": [
+                    213
+                ],
+                "new_result": [
+                    299,
+                    300,
+                    301,
+                    215,
+                    216,
+                    218,
+                    219,
+                    221,
+                    222
+                ],
+                "new_result.dtype.kind": [
+                    216
+                ],
+                "new_result.dtype": [
+                    216
+                ],
+                "np.allclose": [
+                    221
+                ],
+                "is_string_dtype": [
+                    1210,
+                    227
+                ],
+                "np.ndarray": [
+                    321,
+                    264,
+                    234,
+                    362,
+                    557,
+                    654,
+                    941,
+                    1239,
+                    891
+                ],
+                "other": [
+                    321,
+                    290,
+                    322,
+                    328,
+                    266,
+                    332,
+                    306,
+                    307,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281,
+                    282,
+                    283,
+                    316
+                ],
+                "mask.any": [
+                    271
+                ],
+                "mask": [
+                    290,
+                    300,
+                    332,
+                    845,
+                    271,
+                    847,
+                    307
+                ],
+                "is_integer": [
+                    384,
+                    393,
+                    779,
+                    594,
+                    280,
+                    445
+                ],
+                "om": [
+                    297,
+                    290,
+                    298
+                ],
+                "om_at": [
+                    297,
+                    298,
+                    300
+                ],
+                "om.astype": [
+                    297
+                ],
+                "result.values.copy": [
+                    299
+                ],
+                "result.values": [
+                    299
+                ],
+                "_": [
+                    306,
+                    316
+                ],
+                "maybe_upcast": [
+                    306
+                ],
+                "np.place": [
+                    307,
+                    332
+                ],
+                "new_dtype": [
+                    316,
+                    317,
+                    732,
+                    733,
+                    734
+                ],
+                "maybe_promote": [
+                    732,
+                    316
+                ],
+                "other.ndim": [
+                    321
+                ],
+                "changeit": [
+                    329,
+                    323,
+                    335
+                ],
+                "np.nan": [
+                    482,
+                    709,
+                    847,
+                    371,
+                    340,
+                    376,
+                    474,
+                    477
+                ],
+                "fill_value": [
+                    384,
+                    388,
+                    393,
+                    394,
+                    395,
+                    401,
+                    407,
+                    409,
+                    411,
+                    412,
+                    413,
+                    415,
+                    417,
+                    421,
+                    422,
+                    424,
+                    432,
+                    1332,
+                    438,
+                    1334,
+                    441,
+                    1337,
+                    445,
+                    450,
+                    452,
+                    458,
+                    463,
+                    722,
+                    467,
+                    472,
+                    474,
+                    732,
+                    477,
+                    479,
+                    482,
+                    738,
+                    356,
+                    362,
+                    363,
+                    364,
+                    492,
+                    493,
+                    369,
+                    371,
+                    376,
+                    381
+                ],
+                "fill_value.dtype.type": [
+                    363,
+                    364
+                ],
+                "fill_value.dtype": [
+                    369,
+                    363,
+                    364
+                ],
+                "np.datetime64": [
+                    363,
+                    380,
+                    575
+                ],
+                "np.timedelta64": [
+                    407,
+                    587,
+                    363,
+                    391
+                ],
+                "datetime": [
+                    973,
+                    950,
+                    987,
+                    956,
+                    381,
+                    413,
+                    575
+                ],
+                "fill_value.tzinfo": [
+                    417,
+                    381,
+                    415
+                ],
+                "is_float": [
+                    384,
+                    394,
+                    600,
+                    424
+                ],
+                "to_datetime64": [
+                    388
+                ],
+                "tslibs.Timestamp": [
+                    576,
+                    388,
+                    774
+                ],
+                "tslibs": [
+                    576,
+                    577,
+                    388,
+                    836,
+                    774,
+                    776,
+                    588,
+                    401,
+                    1247
+                ],
+                "np.isnan": [
+                    394
+                ],
+                "fv": [
+                    401,
+                    409,
+                    405
+                ],
+                "tslibs.Timedelta": [
+                    776,
+                    401,
+                    588
+                ],
+                "NaT": [
+                    412,
+                    405
+                ],
+                "fv.to_timedelta64": [
+                    409
+                ],
+                "is_datetime64tz_dtype": [
+                    1145,
+                    410
+                ],
+                "tz_compare": [
+                    417
+                ],
+                "is_extension_array_dtype": [
+                    514,
+                    421,
+                    487,
+                    813,
+                    1358,
+                    660,
+                    726
+                ],
+                "dtype.na_value": [
+                    422
+                ],
+                "np.bool_": [
+                    425,
+                    777,
+                    459,
+                    592,
+                    442,
+                    446
+                ],
+                "np.float64": [
+                    476,
+                    429,
+                    846,
+                    604
+                ],
+                "mst": [
+                    452,
+                    453,
+                    463,
+                    432,
+                    433,
+                    464,
+                    435,
+                    467,
+                    468,
+                    438,
+                    439,
+                    470
+                ],
+                "np.min_scalar_type": [
+                    452,
+                    463,
+                    432,
+                    467,
+                    438
+                ],
+                "np.promote_types": [
+                    464,
+                    453,
+                    439
+                ],
+                "is_bool": [
+                    441,
+                    591
+                ],
+                "np.can_cast": [
+                    450
+                ],
+                "is_complex": [
+                    458,
+                    606
+                ],
+                "is_float_dtype": [
+                    473,
+                    1515,
+                    1308
+                ],
+                "is_complex_dtype": [
+                    473,
+                    1308
+                ],
+                "is_datetime_or_timedelta_dtype": [
+                    478
+                ],
+                "_ensure_dtype_type": [
+                    492
+                ],
+                "value": [
+                    515,
+                    517,
+                    518,
+                    520,
+                    522,
+                    1171,
+                    1172,
+                    1046,
+                    1048,
+                    1049,
+                    1050,
+                    1051,
+                    1053,
+                    1185,
+                    1186,
+                    1187,
+                    1061,
+                    1189,
+                    1192,
+                    1193,
+                    1068,
+                    1196,
+                    1199,
+                    1202,
+                    1203,
+                    1204,
+                    1332,
+                    1334,
+                    1210,
+                    1211,
+                    1214,
+                    1218,
+                    1220,
+                    1227,
+                    588,
+                    1229,
+                    1230,
+                    1231,
+                    1360,
+                    1109,
+                    1366,
+                    1111,
+                    1239,
+                    1113,
+                    1243,
+                    1244,
+                    1373,
+                    1118,
+                    1247,
+                    1374,
+                    1377,
+                    1250,
+                    1124,
+                    1125,
+                    1128,
+                    1130,
+                    1258,
+                    1261,
+                    1263
+                ],
+                "val": [
+                    537,
+                    538,
+                    539,
+                    557,
+                    559,
+                    562,
+                    563,
+                    565,
+                    575,
+                    576,
+                    577,
+                    581,
+                    584,
+                    585,
+                    587,
+                    588,
+                    591,
+                    594,
+                    595,
+                    596,
+                    600,
+                    601,
+                    602,
+                    606,
+                    610,
+                    611,
+                    612,
+                    613,
+                    614,
+                    617
+                ],
+                "infer_dtype_from_scalar": [
+                    538,
+                    1332,
+                    614
+                ],
+                "pandas_dtype": [
+                    609,
+                    580,
+                    817,
+                    660,
+                    538,
+                    539
+                ],
+                "infer_dtype_from_array": [
+                    539
+                ],
+                "msg": [
+                    1162,
+                    878,
+                    558,
+                    560,
+                    882,
+                    1180,
+                    1151
+                ],
+                "val.ndim": [
+                    559
+                ],
+                "val.dtype": [
+                    562
+                ],
+                "val.item": [
+                    563
+                ],
+                "tslibs.NaT": [
+                    577
+                ],
+                "val.tz": [
+                    577,
+                    581
+                ],
+                "DatetimeTZDtype": [
+                    581
+                ],
+                "val.value": [
+                    585
+                ],
+                "timedelta": [
+                    995,
+                    587,
+                    977,
+                    952,
+                    956
+                ],
+                "np.complex_": [
+                    607
+                ],
+                "lib.is_period": [
+                    610
+                ],
+                "PeriodDtype": [
+                    611
+                ],
+                "val.freq": [
+                    611
+                ],
+                "val.ordinal": [
+                    612
+                ],
+                "lib.is_interval": [
+                    613
+                ],
+                "subtype": [
+                    614,
+                    615
+                ],
+                "val.left": [
+                    614
+                ],
+                "IntervalDtype": [
+                    615
+                ],
+                "arr.dtype": [
+                    832,
+                    672,
+                    655,
+                    852,
+                    661,
+                    854,
+                    664,
+                    1017,
+                    1019,
+                    1021,
+                    1023
+                ],
+                "is_list_like": [
+                    657,
+                    1055,
+                    703
+                ],
+                "np.asarray": [
+                    704,
+                    1442,
+                    1510,
+                    1231,
+                    664,
+                    671
+                ],
+                "inferred": [
+                    667,
+                    668
+                ],
+                "tipo": [
+                    705,
+                    706,
+                    700,
+                    702
+                ],
+                "element": [
+                    704,
+                    705,
+                    701,
+                    702,
+                    703
+                ],
+                "element.dtype": [
+                    705,
+                    702
+                ],
+                "values.dtype": [
+                    995,
+                    965,
+                    999,
+                    909,
+                    913,
+                    722,
+                    917,
+                    731,
+                    733
+                ],
+                "copy": [
+                    1431,
+                    1495,
+                    871,
+                    967,
+                    875,
+                    814,
+                    1007,
+                    850,
+                    884,
+                    1493,
+                    727,
+                    954,
+                    735
+                ],
+                "values.copy": [
+                    736,
+                    967,
+                    935,
+                    1007,
+                    728
+                ],
+                "values.astype": [
+                    734
+                ],
+                "non_string_dtypes": [
+                    745,
+                    746
+                ],
+                "dtype_set": [
+                    745,
+                    746
+                ],
+                "length": [
+                    1376,
+                    752,
+                    753,
+                    1360,
+                    755,
+                    757,
+                    1366
+                ],
+                "categories": [
+                    752
+                ],
+                "ensure_int8": [
+                    754
+                ],
+                "indexer": [
+                    754,
+                    756,
+                    758,
+                    759
+                ],
+                "ensure_int16": [
+                    756
+                ],
+                "ensure_int32": [
+                    758
+                ],
+                "ensure_int64": [
+                    759
+                ],
+                "dtypes": [
+                    789,
+                    767
+                ],
+                "np.any": [
+                    771
+                ],
+                "_NS_DTYPE": [
+                    1156,
+                    773,
+                    1163,
+                    1229,
+                    1230,
+                    1246
+                ],
+                "_TD_DTYPE": [
+                    1249,
+                    775,
+                    840,
+                    849,
+                    850,
+                    1174,
+                    1181
+                ],
+                "conv": [
+                    789
+                ],
+                "_from_sequence": [
+                    814
+                ],
+                "dtype.construct_array_type": [
+                    814,
+                    1359
+                ],
+                "reshape": [
+                    820,
+                    863
+                ],
+                "lib.astype_str": [
+                    820
+                ],
+                "arr.ravel": [
+                    820,
+                    863
+                ],
+                "skipna": [
+                    820
+                ],
+                "arr.shape": [
+                    820,
+                    863
+                ],
+                "is_datetime64_dtype": [
+                    868,
+                    1227,
+                    1298,
+                    822,
+                    1144
+                ],
+                "tslib.ints_to_pydatetime": [
+                    824,
+                    1232
+                ],
+                "tslib": [
+                    824,
+                    1074,
+                    1232
+                ],
+                "arr.view": [
+                    836,
+                    838,
+                    888,
+                    824,
+                    826
+                ],
+                "arr.astype": [
+                    846,
+                    850,
+                    886,
+                    1495,
+                    830
+                ],
+                "is_timedelta64_dtype": [
+                    872,
+                    834,
+                    1300,
+                    1146
+                ],
+                "tslibs.ints_to_pytimedelta": [
+                    836
+                ],
+                "_INT64_DTYPE": [
+                    840
+                ],
+                "np.issubdtype": [
+                    862,
+                    854
+                ],
+                "np.isfinite": [
+                    856
+                ],
+                "lib.astype_intsafe": [
+                    863
+                ],
+                "astype_nansafe": [
+                    875,
+                    871
+                ],
+                "to_timedelta": [
+                    1250,
+                    1220,
+                    875,
+                    1102,
+                    980
+                ],
+                "dtype.name": [
+                    1152,
+                    1153,
+                    1161,
+                    877,
+                    879,
+                    880,
+                    1179
+                ],
+                "validate_bool_kwarg": [
+                    904,
+                    950,
+                    951,
+                    952,
+                    953,
+                    954
+                ],
+                "convert_numeric": [
+                    904,
+                    918
+                ],
+                "orig_values": [
+                    906,
+                    934
+                ],
+                "new_values": [
+                    920,
+                    928,
+                    927
+                ],
+                "lib.maybe_convert_numeric": [
+                    920,
+                    1001
+                ],
+                "numeric": [
+                    999,
+                    956,
+                    981,
+                    951
+                ],
+                "coerce": [
+                    953,
+                    971,
+                    959
+                ],
+                "conversion_count": [
+                    956,
+                    957,
+                    959
+                ],
+                "to_numpy": [
+                    976,
+                    980
+                ],
+                "to_numeric": [
+                    984
+                ],
+                "OutOfBoundsDatetime": [
+                    992,
+                    1221
+                ],
+                "kind": [
+                    1017,
+                    1018,
+                    1020
+                ],
+                "arr.dtype.kind": [
+                    1017
+                ],
+                "is_datetime64_ns_dtype": [
+                    1019
+                ],
+                "is_timedelta64_ns_dtype": [
+                    1021
+                ],
+                "arr.dtype.name": [
+                    1023
+                ],
+                "_POSSIBLY_CAST_DTYPES": [
+                    1023
+                ],
+                "ABCDatetimeIndex": [
+                    1050,
+                    1046
+                ],
+                "ABCPeriodIndex": [
+                    1046
+                ],
+                "ABCDatetimeArray": [
+                    1046
+                ],
+                "ABCPeriodArray": [
+                    1046
+                ],
+                "value._values": [
+                    1050,
+                    1051,
+                    1204
+                ],
+                "shape": [
+                    1093,
+                    1063,
+                    1102,
+                    1104,
+                    1336
+                ],
+                "v.shape": [
+                    1063
+                ],
+                "v.ndim": [
+                    1064
+                ],
+                "v.ravel": [
+                    1065
+                ],
+                "tslib.array_to_datetime": [
+                    1074
+                ],
+                "tz": [
+                    1085,
+                    1086
+                ],
+                "conversion.datetime_to_datetime64": [
+                    1085
+                ],
+                "conversion": [
+                    1085
+                ],
+                "tz_convert": [
+                    1218,
+                    1086
+                ],
+                "DatetimeIndex": [
+                    1086
+                ],
+                "v.reshape": [
+                    1104,
+                    1093
+                ],
+                "_ndarray_values.reshape": [
+                    1102
+                ],
+                "_ndarray_values": [
+                    1102
+                ],
+                "lib.infer_datetimelike_array": [
+                    1106
+                ],
+                "convert_dates": [
+                    1108
+                ],
+                "try_datetime": [
+                    1128,
+                    1109,
+                    1118,
+                    1111
+                ],
+                "try_timedelta": [
+                    1113,
+                    1124
+                ],
+                "is_datetime64": [
+                    1144,
+                    1156,
+                    1148,
+                    1198
+                ],
+                "is_datetime64tz": [
+                    1145,
+                    1148,
+                    1205,
+                    1166
+                ],
+                "is_timedelta64": [
+                    1146,
+                    1219,
+                    1148,
+                    1174
+                ],
+                "is_dtype_equal": [
+                    1196,
+                    1291,
+                    1156,
+                    1174
+                ],
+                "iNaT": [
+                    1193,
+                    1186,
+                    1187
+                ],
+                "value.ndim": [
+                    1192
+                ],
+                "np.prod": [
+                    1196
+                ],
+                "value.shape": [
+                    1196
+                ],
+                "value.dtype": [
+                    1258,
+                    1196,
+                    1229,
+                    1243,
+                    1244
+                ],
+                "errors": [
+                    1211,
+                    1220,
+                    1199
+                ],
+                "value.tz": [
+                    1202
+                ],
+                "value.tz_localize": [
+                    1218,
+                    1203,
+                    1214
+                ],
+                "is_dt_string": [
+                    1210,
+                    1212
+                ],
+                "array": [
+                    1211
+                ],
+                "_values": [
+                    1220
+                ],
+                "value.astype": [
+                    1230
+                ],
+                "ints": [
+                    1232,
+                    1231
+                ],
+                "view": [
+                    1231
+                ],
+                "is_array": [
+                    1256,
+                    1243,
+                    1239
+                ],
+                "value.dtype.kind": [
+                    1243
+                ],
+                "tslibs.conversion.ensure_datetime64ns": [
+                    1247
+                ],
+                "tslibs.conversion": [
+                    1247
+                ],
+                "value.dtype.type": [
+                    1258
+                ],
+                "maybe_infer_to_datetimelike": [
+                    1261
+                ],
+                "types": [
+                    1284,
+                    1287,
+                    1291,
+                    1294,
+                    1298,
+                    1300,
+                    1305,
+                    1307,
+                    1311
+                ],
+                "first": [
+                    1291,
+                    1292,
+                    1287
+                ],
+                "t": [
+                    1291,
+                    1294,
+                    1298,
+                    1300,
+                    1305,
+                    1307,
+                    1308
+                ],
+                "ExtensionDtype": [
+                    1294
+                ],
+                "np.object": [
+                    1309,
+                    1295
+                ],
+                "has_bools": [
+                    1305,
+                    1306
+                ],
+                "np.find_common_type": [
+                    1311
+                ],
+                "np.empty": [
+                    1336,
+                    1402,
+                    1376
+                ],
+                "values.fill": [
+                    1337
+                ],
+                "cls": [
+                    1360,
+                    1359
+                ],
+                "subarr": [
+                    1376,
+                    1377,
+                    1441,
+                    1379,
+                    1443,
+                    1445,
+                    1360,
+                    1431
+                ],
+                "cls._from_sequence": [
+                    1360
+                ],
+                "dtype.dtype": [
+                    1364
+                ],
+                "ensure_str": [
+                    1374
+                ],
+                "subarr.fill": [
+                    1377
+                ],
+                "na_values": [
+                    1440,
+                    1442
+                ],
+                "subarr2": [
+                    1441,
+                    1442,
+                    1443
+                ],
+                "subarr.astype": [
+                    1441
+                ],
+                "casted": [
+                    1503,
+                    1493,
+                    1502,
+                    1495
+                ],
+                "np.array_equal": [
+                    1502
+                ],
+                "is_unsigned_integer_dtype": [
+                    1512
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/tests/dtypes/test_common.py",
+                "test_function": "test_astype_nansafe",
+                "test_function_code": "@pytest.mark.parametrize(\"val\", [np.datetime64(\"NaT\"), np.timedelta64(\"NaT\")])\n@pytest.mark.parametrize(\"typ\", [np.int64])\ndef test_astype_nansafe(val, typ):\n    arr = np.array([val])\n\n    msg = \"Cannot convert NaT values to integer\"\n    with pytest.raises(ValueError, match=msg):\n        astype_nansafe(arr, dtype=typ)",
+                "test_error": "Failed: DID NOT RAISE <class 'ValueError'>",
+                "full_test_error": "val = numpy.datetime64('NaT'), typ = <class 'numpy.int64'>\n\n    @pytest.mark.parametrize(\"val\", [np.datetime64(\"NaT\"), np.timedelta64(\"NaT\")])\n    @pytest.mark.parametrize(\"typ\", [np.int64])\n    def test_astype_nansafe(val, typ):\n        arr = np.array([val])\n    \n        msg = \"Cannot convert NaT values to integer\"\n        with pytest.raises(ValueError, match=msg):\n>           astype_nansafe(arr, dtype=typ)\nE           Failed: DID NOT RAISE <class 'ValueError'>\n\npandas/tests/dtypes/test_common.py:723: Failed",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('val', [np.datetime64('NaT'), np.timedelta64('NaT')])",
+                    "pytest.mark.parametrize('typ', [np.int64])"
+                ]
+            },
+            {
+                "test_path": "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/tests/dtypes/test_common.py",
+                "test_function": "test_astype_nansafe",
+                "test_function_code": "@pytest.mark.parametrize(\"val\", [np.datetime64(\"NaT\"), np.timedelta64(\"NaT\")])\n@pytest.mark.parametrize(\"typ\", [np.int64])\ndef test_astype_nansafe(val, typ):\n    arr = np.array([val])\n\n    msg = \"Cannot convert NaT values to integer\"\n    with pytest.raises(ValueError, match=msg):\n        astype_nansafe(arr, dtype=typ)",
+                "test_error": "Failed: DID NOT RAISE <class 'ValueError'>",
+                "full_test_error": "val = numpy.timedelta64('NaT'), typ = <class 'numpy.int64'>\n\n    @pytest.mark.parametrize(\"val\", [np.datetime64(\"NaT\"), np.timedelta64(\"NaT\")])\n    @pytest.mark.parametrize(\"typ\", [np.int64])\n    def test_astype_nansafe(val, typ):\n        arr = np.array([val])\n    \n        msg = \"Cannot convert NaT values to integer\"\n        with pytest.raises(ValueError, match=msg):\n>           astype_nansafe(arr, dtype=typ)\nE           Failed: DID NOT RAISE <class 'ValueError'>\n\npandas/tests/dtypes/test_common.py:723: Failed",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('val', [np.datetime64('NaT'), np.timedelta64('NaT')])",
+                    "pytest.mark.parametrize('typ', [np.int64])"
+                ]
+            }
+        ]
+    }
+}

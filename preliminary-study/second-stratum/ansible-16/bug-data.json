@@ -1,0 +1,4030 @@
+{
+    "ansible:16": {
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/ansible/lib/ansible/module_utils/facts/hardware/linux.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "get_cpu_facts",
+                    "function_code": "def get_cpu_facts(self, collected_facts=None):\n    cpu_facts = {}\n    collected_facts = collected_facts or {}\n\n    i = 0\n    vendor_id_occurrence = 0\n    model_name_occurrence = 0\n    processor_occurence = 0\n    physid = 0\n    coreid = 0\n    sockets = {}\n    cores = {}\n\n    xen = False\n    xen_paravirt = False\n    try:\n        if os.path.exists('/proc/xen'):\n            xen = True\n        else:\n            for line in get_file_lines('/sys/hypervisor/type'):\n                if line.strip() == 'xen':\n                    xen = True\n                # Only interested in the first line\n                break\n    except IOError:\n        pass\n\n    if not os.access(\"/proc/cpuinfo\", os.R_OK):\n        return cpu_facts\n\n    cpu_facts['processor'] = []\n    for line in get_file_lines('/proc/cpuinfo'):\n        data = line.split(\":\", 1)\n        key = data[0].strip()\n\n        try:\n            val = data[1].strip()\n        except IndexError:\n            val = \"\"\n\n        if xen:\n            if key == 'flags':\n                # Check for vme cpu flag, Xen paravirt does not expose this.\n                #   Need to detect Xen paravirt because it exposes cpuinfo\n                #   differently than Xen HVM or KVM and causes reporting of\n                #   only a single cpu core.\n                if 'vme' not in val:\n                    xen_paravirt = True\n\n        # model name is for Intel arch, Processor (mind the uppercase P)\n        # works for some ARM devices, like the Sheevaplug.\n        # 'ncpus active' is SPARC attribute\n        if key in ['model name', 'Processor', 'vendor_id', 'cpu', 'Vendor', 'processor']:\n            if 'processor' not in cpu_facts:\n                cpu_facts['processor'] = []\n            cpu_facts['processor'].append(val)\n            if key == 'vendor_id':\n                vendor_id_occurrence += 1\n            if key == 'model name':\n                model_name_occurrence += 1\n            if key == 'processor':\n                processor_occurence += 1\n            i += 1\n        elif key == 'physical id':\n            physid = val\n            if physid not in sockets:\n                sockets[physid] = 1\n        elif key == 'core id':\n            coreid = val\n            if coreid not in sockets:\n                cores[coreid] = 1\n        elif key == 'cpu cores':\n            sockets[physid] = int(val)\n        elif key == 'siblings':\n            cores[coreid] = int(val)\n        elif key == '# processors':\n            cpu_facts['processor_cores'] = int(val)\n        elif key == 'ncpus active':\n            i = int(val)\n\n    # Skip for platforms without vendor_id/model_name in cpuinfo (e.g ppc64le)\n    if vendor_id_occurrence > 0:\n        if vendor_id_occurrence == model_name_occurrence:\n            i = vendor_id_occurrence\n\n    # The fields for ARM CPUs do not always include 'vendor_id' or 'model name',\n    # and sometimes includes both 'processor' and 'Processor'.\n    # Always use 'processor' count for ARM systems\n    if collected_facts.get('ansible_architecture', '').startswith(('armv', 'aarch')):\n        i = processor_occurence\n\n    # FIXME\n    if collected_facts.get('ansible_architecture') != 's390x':\n        if xen_paravirt:\n            cpu_facts['processor_count'] = i\n            cpu_facts['processor_cores'] = i\n            cpu_facts['processor_threads_per_core'] = 1\n            cpu_facts['processor_vcpus'] = i\n        else:\n            if sockets:\n                cpu_facts['processor_count'] = len(sockets)\n            else:\n                cpu_facts['processor_count'] = i\n\n            socket_values = list(sockets.values())\n            if socket_values and socket_values[0]:\n                cpu_facts['processor_cores'] = socket_values[0]\n            else:\n                cpu_facts['processor_cores'] = 1\n\n            core_values = list(cores.values())\n            if core_values:\n                cpu_facts['processor_threads_per_core'] = core_values[0] // cpu_facts['processor_cores']\n            else:\n                cpu_facts['processor_threads_per_core'] = 1 // cpu_facts['processor_cores']\n\n            cpu_facts['processor_vcpus'] = (cpu_facts['processor_threads_per_core'] *\n                                            cpu_facts['processor_count'] * cpu_facts['processor_cores'])\n\n    return cpu_facts\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 158,
+                    "variables": {
+                        "cpu_facts": [
+                            258,
+                            260,
+                            264,
+                            266,
+                            270,
+                            272,
+                            274,
+                            275,
+                            277,
+                            159,
+                            186,
+                            188,
+                            211,
+                            212,
+                            213,
+                            234,
+                            252,
+                            253,
+                            254,
+                            255
+                        ],
+                        "collected_facts": [
+                            160,
+                            250,
+                            246
+                        ],
+                        "i": [
+                            162,
+                            260,
+                            236,
+                            241,
+                            252,
+                            247,
+                            220,
+                            253,
+                            255
+                        ],
+                        "vendor_id_occurrence": [
+                            163,
+                            239,
+                            240,
+                            241,
+                            215
+                        ],
+                        "model_name_occurrence": [
+                            240,
+                            217,
+                            164
+                        ],
+                        "processor_occurence": [
+                            219,
+                            165,
+                            247
+                        ],
+                        "physid": [
+                            224,
+                            230,
+                            166,
+                            222,
+                            223
+                        ],
+                        "coreid": [
+                            226,
+                            227,
+                            228,
+                            167,
+                            232
+                        ],
+                        "sockets": [
+                            224,
+                            257,
+                            258,
+                            227,
+                            230,
+                            262,
+                            168,
+                            223
+                        ],
+                        "cores": [
+                            232,
+                            169,
+                            228,
+                            268
+                        ],
+                        "xen": [
+                            171,
+                            179,
+                            198,
+                            175
+                        ],
+                        "xen_paravirt": [
+                            251,
+                            172,
+                            205
+                        ],
+                        "os.path.exists": [
+                            174
+                        ],
+                        "os.path": [
+                            174
+                        ],
+                        "os": [
+                            185,
+                            174
+                        ],
+                        "line": [
+                            177,
+                            178,
+                            189,
+                            190
+                        ],
+                        "get_file_lines": [
+                            177,
+                            189
+                        ],
+                        "line.strip": [
+                            178
+                        ],
+                        "IOError": [
+                            182
+                        ],
+                        "os.access": [
+                            185
+                        ],
+                        "os.R_OK": [
+                            185
+                        ],
+                        "data": [
+                            194,
+                            190,
+                            191
+                        ],
+                        "line.split": [
+                            190
+                        ],
+                        "key": [
+                            225,
+                            229,
+                            199,
+                            231,
+                            233,
+                            235,
+                            210,
+                            214,
+                            216,
+                            218,
+                            221,
+                            191
+                        ],
+                        "strip": [
+                            194,
+                            191
+                        ],
+                        "val": [
+                            194,
+                            226,
+                            196,
+                            230,
+                            232,
+                            234,
+                            204,
+                            236,
+                            213,
+                            222
+                        ],
+                        "IndexError": [
+                            195
+                        ],
+                        "append": [
+                            213
+                        ],
+                        "int": [
+                            232,
+                            234,
+                            236,
+                            230
+                        ],
+                        "startswith": [
+                            246
+                        ],
+                        "collected_facts.get": [
+                            250,
+                            246
+                        ],
+                        "len": [
+                            258
+                        ],
+                        "socket_values": [
+                            264,
+                            262,
+                            263
+                        ],
+                        "list": [
+                            268,
+                            262
+                        ],
+                        "sockets.values": [
+                            262
+                        ],
+                        "core_values": [
+                            268,
+                            269,
+                            270
+                        ],
+                        "cores.values": [
+                            268
+                        ]
+                    },
+                    "filtered_variables": {
+                        "cpu_facts": [
+                            258,
+                            260,
+                            264,
+                            266,
+                            270,
+                            272,
+                            274,
+                            275,
+                            277,
+                            159,
+                            186,
+                            188,
+                            211,
+                            212,
+                            213,
+                            234,
+                            252,
+                            253,
+                            254,
+                            255
+                        ],
+                        "collected_facts": [
+                            160,
+                            250,
+                            246
+                        ],
+                        "i": [
+                            162,
+                            260,
+                            236,
+                            241,
+                            252,
+                            247,
+                            220,
+                            253,
+                            255
+                        ],
+                        "vendor_id_occurrence": [
+                            163,
+                            239,
+                            240,
+                            241,
+                            215
+                        ],
+                        "model_name_occurrence": [
+                            240,
+                            217,
+                            164
+                        ],
+                        "processor_occurence": [
+                            219,
+                            165,
+                            247
+                        ],
+                        "physid": [
+                            224,
+                            230,
+                            166,
+                            222,
+                            223
+                        ],
+                        "coreid": [
+                            226,
+                            227,
+                            228,
+                            167,
+                            232
+                        ],
+                        "sockets": [
+                            224,
+                            257,
+                            258,
+                            227,
+                            230,
+                            262,
+                            168,
+                            223
+                        ],
+                        "cores": [
+                            232,
+                            169,
+                            228,
+                            268
+                        ],
+                        "xen": [
+                            171,
+                            179,
+                            198,
+                            175
+                        ],
+                        "xen_paravirt": [
+                            251,
+                            172,
+                            205
+                        ],
+                        "os.path.exists": [
+                            174
+                        ],
+                        "os.path": [
+                            174
+                        ],
+                        "os": [
+                            185,
+                            174
+                        ],
+                        "line": [
+                            177,
+                            178,
+                            189,
+                            190
+                        ],
+                        "get_file_lines": [
+                            177,
+                            189
+                        ],
+                        "line.strip": [
+                            178
+                        ],
+                        "os.access": [
+                            185
+                        ],
+                        "os.R_OK": [
+                            185
+                        ],
+                        "data": [
+                            194,
+                            190,
+                            191
+                        ],
+                        "line.split": [
+                            190
+                        ],
+                        "key": [
+                            225,
+                            229,
+                            199,
+                            231,
+                            233,
+                            235,
+                            210,
+                            214,
+                            216,
+                            218,
+                            221,
+                            191
+                        ],
+                        "strip": [
+                            194,
+                            191
+                        ],
+                        "val": [
+                            194,
+                            226,
+                            196,
+                            230,
+                            232,
+                            234,
+                            204,
+                            236,
+                            213,
+                            222
+                        ],
+                        "append": [
+                            213
+                        ],
+                        "startswith": [
+                            246
+                        ],
+                        "collected_facts.get": [
+                            250,
+                            246
+                        ],
+                        "socket_values": [
+                            264,
+                            262,
+                            263
+                        ],
+                        "sockets.values": [
+                            262
+                        ],
+                        "core_values": [
+                            268,
+                            269,
+                            270
+                        ],
+                        "cores.values": [
+                            268
+                        ]
+                    },
+                    "diff_line_number": 245,
+                    "class_data": {
+                        "signature": "class LinuxHardware(Hardware)",
+                        "docstring": "Linux-specific subclass of Hardware.  Defines memory and CPU facts:\n- memfree_mb\n- memtotal_mb\n- swapfree_mb\n- swaptotal_mb\n- processor (a list)\n- processor_cores\n- processor_count\n\nIn addition, it also defines number of DMI facts and device facts.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "populate(self, collected_facts=None)",
+                            "get_memory_facts(self)",
+                            "get_cpu_facts(self, collected_facts=None)",
+                            "get_dmi_facts(self)",
+                            "_run_lsblk(self, lsblk_path)",
+                            "_lsblk_uuid(self)",
+                            "_udevadm_uuid(self, device)",
+                            "_run_findmnt(self, findmnt_path)",
+                            "_find_bind_mounts(self)",
+                            "_mtab_entries(self)",
+                            "_replace_octal_escapes_helper(match)",
+                            "_replace_octal_escapes(self, value)",
+                            "get_mount_info(self, mount, device, uuids)",
+                            "get_mount_facts(self)",
+                            "get_device_links(self, link_dir)",
+                            "get_all_device_owners(self)",
+                            "get_all_device_links(self)",
+                            "get_holders(self, block_dev_dict, sysdir)",
+                            "get_device_facts(self)",
+                            "get_uptime_facts(self)",
+                            "_find_mapper_device_name(self, dm_device)",
+                            "get_lvm_facts(self)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "platform",
+                            "ORIGINAL_MEMORY_FACTS",
+                            "MEMORY_FACTS",
+                            "BIND_MOUNT_RE",
+                            "MTAB_BIND_MOUNT_RE",
+                            "OCTAL_ESCAPE_RE"
+                        ],
+                        "class_decorators": []
+                    }
+                }
+            ],
+            "inscope_functions": [
+                "get_partition_uuid(partname)",
+                "populate(self, collected_facts=None)",
+                "get_memory_facts(self)",
+                "get_cpu_facts(self, collected_facts=None)",
+                "get_dmi_facts(self)",
+                "_run_lsblk(self, lsblk_path)",
+                "_lsblk_uuid(self)",
+                "_udevadm_uuid(self, device)",
+                "_run_findmnt(self, findmnt_path)",
+                "_find_bind_mounts(self)",
+                "_mtab_entries(self)",
+                "_replace_octal_escapes_helper(match)",
+                "_replace_octal_escapes(self, value)",
+                "get_mount_info(self, mount, device, uuids)",
+                "get_mount_facts(self)",
+                "get_device_links(self, link_dir)",
+                "get_all_device_owners(self)",
+                "get_all_device_links(self)",
+                "get_holders(self, block_dev_dict, sysdir)",
+                "get_device_facts(self)",
+                "get_uptime_facts(self)",
+                "_find_mapper_device_name(self, dm_device)",
+                "get_lvm_facts(self)"
+            ],
+            "variables_in_file": {
+                "__metaclass__": [
+                    17
+                ],
+                "type": [
+                    17
+                ],
+                "uuids": [
+                    481,
+                    518,
+                    392,
+                    394,
+                    43,
+                    396,
+                    491,
+                    47,
+                    369,
+                    372,
+                    376
+                ],
+                "os.listdir": [
+                    611,
+                    646,
+                    678,
+                    617,
+                    43,
+                    558,
+                    591
+                ],
+                "os": [
+                    644,
+                    646,
+                    655,
+                    287,
+                    678,
+                    554,
+                    43,
+                    174,
+                    558,
+                    48,
+                    560,
+                    185,
+                    454,
+                    590,
+                    591,
+                    611,
+                    617,
+                    624,
+                    114,
+                    627,
+                    759,
+                    636
+                ],
+                "OSError": [
+                    577,
+                    612,
+                    618,
+                    44,
+                    625,
+                    562,
+                    565,
+                    637
+                ],
+                "uuid": [
+                    481,
+                    419,
+                    483,
+                    421,
+                    391,
+                    394,
+                    47,
+                    48,
+                    400,
+                    50,
+                    529,
+                    404,
+                    532,
+                    409
+                ],
+                "dev": [
+                    48,
+                    49
+                ],
+                "os.path.realpath": [
+                    48
+                ],
+                "os.path": [
+                    644,
+                    454,
+                    554,
+                    174,
+                    590,
+                    48,
+                    560,
+                    624,
+                    627,
+                    655,
+                    636,
+                    287
+                ],
+                "partname": [
+                    682,
+                    683,
+                    687,
+                    49,
+                    696,
+                    699
+                ],
+                "Hardware": [
+                    55
+                ],
+                "platform": [
+                    69
+                ],
+                "ORIGINAL_MEMORY_FACTS": [
+                    72,
+                    74
+                ],
+                "frozenset": [
+                    72
+                ],
+                "MEMORY_FACTS": [
+                    74
+                ],
+                "ORIGINAL_MEMORY_FACTS.union": [
+                    74
+                ],
+                "BIND_MOUNT_RE": [
+                    77
+                ],
+                "re.compile": [
+                    80,
+                    83,
+                    77
+                ],
+                "re": [
+                    417,
+                    705,
+                    679,
+                    77,
+                    80,
+                    720,
+                    83,
+                    723,
+                    724,
+                    665
+                ],
+                "MTAB_BIND_MOUNT_RE": [
+                    80
+                ],
+                "OCTAL_ESCAPE_RE": [
+                    83
+                ],
+                "hardware_facts": [
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    107,
+                    108,
+                    110,
+                    86
+                ],
+                "self.module.run_command_environ_update": [
+                    87
+                ],
+                "self.module": [
+                    774,
+                    779,
+                    784,
+                    402,
+                    659,
+                    788,
+                    407,
+                    663,
+                    536,
+                    426,
+                    431,
+                    328,
+                    341,
+                    87,
+                    604,
+                    606,
+                    747,
+                    365,
+                    749,
+                    370,
+                    759,
+                    762,
+                    766
+                ],
+                "self": [
+                    514,
+                    518,
+                    774,
+                    779,
+                    784,
+                    402,
+                    659,
+                    788,
+                    407,
+                    536,
+                    663,
+                    791,
+                    426,
+                    431,
+                    435,
+                    697,
+                    447,
+                    582,
+                    583,
+                    328,
+                    584,
+                    585,
+                    728,
+                    341,
+                    87,
+                    472,
+                    89,
+                    90,
+                    91,
+                    92,
+                    93,
+                    94,
+                    604,
+                    606,
+                    481,
+                    98,
+                    490,
+                    491,
+                    492,
+                    365,
+                    747,
+                    749,
+                    370,
+                    500,
+                    629,
+                    374,
+                    759,
+                    121,
+                    762,
+                    125,
+                    766
+                ],
+                "cpu_facts": [
+                    258,
+                    260,
+                    264,
+                    266,
+                    270,
+                    272,
+                    274,
+                    275,
+                    277,
+                    159,
+                    186,
+                    188,
+                    211,
+                    212,
+                    213,
+                    89,
+                    102,
+                    234,
+                    252,
+                    253,
+                    254,
+                    255
+                ],
+                "self.get_cpu_facts": [
+                    89
+                ],
+                "collected_facts": [
+                    160,
+                    89,
+                    250,
+                    246
+                ],
+                "memory_facts": [
+                    103,
+                    138,
+                    113,
+                    115,
+                    90,
+                    123,
+                    156
+                ],
+                "self.get_memory_facts": [
+                    90
+                ],
+                "dmi_facts": [
+                    320,
+                    350,
+                    322,
+                    352,
+                    324,
+                    354,
+                    356,
+                    104,
+                    91,
+                    285,
+                    318
+                ],
+                "self.get_dmi_facts": [
+                    91
+                ],
+                "device_facts": [
+                    732,
+                    613,
+                    105,
+                    630,
+                    601,
+                    730,
+                    603,
+                    92
+                ],
+                "self.get_device_facts": [
+                    92
+                ],
+                "uptime_facts": [
+                    739,
+                    741,
+                    106,
+                    93,
+                    735
+                ],
+                "self.get_uptime_facts": [
+                    93
+                ],
+                "lvm_facts": [
+                    107,
+                    798,
+                    757,
+                    796,
+                    94
+                ],
+                "self.get_lvm_facts": [
+                    94
+                ],
+                "mount_facts": [
+                    96,
+                    98,
+                    108
+                ],
+                "self.get_mount_facts": [
+                    98
+                ],
+                "timeout.TimeoutError": [
+                    99
+                ],
+                "timeout": [
+                    497,
+                    99
+                ],
+                "hardware_facts.update": [
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    107,
+                    108
+                ],
+                "os.access": [
+                    185,
+                    114
+                ],
+                "os.R_OK": [
+                    185,
+                    114
+                ],
+                "memstats": [
+                    129,
+                    130,
+                    131,
+                    132,
+                    133,
+                    134,
+                    135,
+                    136,
+                    140,
+                    141,
+                    142,
+                    145,
+                    146,
+                    149,
+                    150,
+                    151,
+                    152,
+                    117,
+                    127
+                ],
+                "line": [
+                    385,
+                    386,
+                    440,
+                    459,
+                    460,
+                    177,
+                    178,
+                    118,
+                    119,
+                    344,
+                    441,
+                    189,
+                    190
+                ],
+                "get_file_lines": [
+                    177,
+                    189,
+                    118
+                ],
+                "data": [
+                    318,
+                    320,
+                    194,
+                    126,
+                    322,
+                    314,
+                    119,
+                    120,
+                    122,
+                    315,
+                    190,
+                    191
+                ],
+                "line.split": [
+                    441,
+                    460,
+                    190,
+                    119
+                ],
+                "key": [
+                    656,
+                    657,
+                    669,
+                    672,
+                    313,
+                    316,
+                    191,
+                    322,
+                    324,
+                    199,
+                    210,
+                    214,
+                    216,
+                    218,
+                    221,
+                    225,
+                    229,
+                    231,
+                    233,
+                    235,
+                    120,
+                    121,
+                    123,
+                    125,
+                    127
+                ],
+                "self.ORIGINAL_MEMORY_FACTS": [
+                    121
+                ],
+                "val": [
+                    194,
+                    226,
+                    196,
+                    230,
+                    232,
+                    234,
+                    204,
+                    236,
+                    213,
+                    122,
+                    123,
+                    222,
+                    126,
+                    127
+                ],
+                "split": [
+                    768,
+                    781,
+                    790,
+                    122,
+                    126
+                ],
+                "strip": [
+                    194,
+                    391,
+                    122,
+                    126,
+                    191
+                ],
+                "key.lower": [
+                    123,
+                    127
+                ],
+                "int": [
+                    739,
+                    230,
+                    232,
+                    234,
+                    236,
+                    469,
+                    123,
+                    318,
+                    127
+                ],
+                "self.MEMORY_FACTS": [
+                    125
+                ],
+                "memstats.get": [
+                    129,
+                    131,
+                    133,
+                    135,
+                    140,
+                    141,
+                    142,
+                    145,
+                    146,
+                    149,
+                    150,
+                    151,
+                    152
+                ],
+                "i": [
+                    162,
+                    260,
+                    236,
+                    241,
+                    252,
+                    247,
+                    220,
+                    253,
+                    255
+                ],
+                "vendor_id_occurrence": [
+                    163,
+                    239,
+                    240,
+                    241,
+                    215
+                ],
+                "model_name_occurrence": [
+                    240,
+                    217,
+                    164
+                ],
+                "processor_occurence": [
+                    219,
+                    165,
+                    247
+                ],
+                "physid": [
+                    224,
+                    230,
+                    166,
+                    222,
+                    223
+                ],
+                "coreid": [
+                    226,
+                    227,
+                    228,
+                    167,
+                    232
+                ],
+                "sockets": [
+                    224,
+                    257,
+                    258,
+                    227,
+                    230,
+                    262,
+                    168,
+                    223
+                ],
+                "cores": [
+                    232,
+                    169,
+                    228,
+                    268
+                ],
+                "xen": [
+                    171,
+                    179,
+                    198,
+                    175
+                ],
+                "xen_paravirt": [
+                    251,
+                    172,
+                    205
+                ],
+                "os.path.exists": [
+                    554,
+                    454,
+                    174,
+                    287
+                ],
+                "line.strip": [
+                    178
+                ],
+                "IOError": [
+                    182
+                ],
+                "IndexError": [
+                    195,
+                    319
+                ],
+                "append": [
+                    596,
+                    213,
+                    598
+                ],
+                "startswith": [
+                    246
+                ],
+                "collected_facts.get": [
+                    250,
+                    246
+                ],
+                "len": [
+                    258,
+                    388,
+                    461,
+                    496,
+                    443
+                ],
+                "socket_values": [
+                    264,
+                    262,
+                    263
+                ],
+                "list": [
+                    576,
+                    268,
+                    262,
+                    564
+                ],
+                "sockets.values": [
+                    262
+                ],
+                "core_values": [
+                    268,
+                    269,
+                    270
+                ],
+                "cores.values": [
+                    268
+                ],
+                "FORM_FACTOR": [
+                    291,
+                    318
+                ],
+                "DMI_DICT": [
+                    329,
+                    313,
+                    339,
+                    302
+                ],
+                "path": [
+                    640,
+                    644,
+                    313,
+                    314,
+                    571,
+                    636,
+                    572
+                ],
+                "DMI_DICT.items": [
+                    313,
+                    339
+                ],
+                "get_file_content": [
+                    672,
+                    736,
+                    709,
+                    712,
+                    457,
+                    714,
+                    657,
+                    594,
+                    689,
+                    690,
+                    692,
+                    694,
+                    314,
+                    701,
+                    703
+                ],
+                "dmi_bin": [
+                    328,
+                    340,
+                    341
+                ],
+                "self.module.get_bin_path": [
+                    774,
+                    328,
+                    747,
+                    431,
+                    784,
+                    370,
+                    402,
+                    659,
+                    759,
+                    762,
+                    604
+                ],
+                "k": [
+                    352,
+                    576,
+                    354,
+                    339,
+                    564,
+                    350
+                ],
+                "v": [
+                    576,
+                    339,
+                    564,
+                    341
+                ],
+                "rc": [
+                    779,
+                    788,
+                    407,
+                    663,
+                    664,
+                    408,
+                    426,
+                    427,
+                    435,
+                    436,
+                    341,
+                    342,
+                    606,
+                    365,
+                    366,
+                    749,
+                    750,
+                    374,
+                    375,
+                    766
+                ],
+                "out": [
+                    417,
+                    440,
+                    426,
+                    427,
+                    365,
+                    366,
+                    435,
+                    341,
+                    374,
+                    407,
+                    344,
+                    381
+                ],
+                "err": [
+                    663,
+                    426,
+                    427,
+                    779,
+                    365,
+                    366,
+                    749,
+                    766,
+                    435,
+                    788,
+                    341,
+                    374,
+                    407,
+                    606
+                ],
+                "self.module.run_command": [
+                    663,
+                    426,
+                    779,
+                    365,
+                    749,
+                    766,
+                    788,
+                    341,
+                    407,
+                    606
+                ],
+                "thisvalue": [
+                    344,
+                    346,
+                    348,
+                    350
+                ],
+                "join": [
+                    344
+                ],
+                "out.splitlines": [
+                    344,
+                    381,
+                    440
+                ],
+                "line.startswith": [
+                    344
+                ],
+                "json.dumps": [
+                    346
+                ],
+                "json": [
+                    346
+                ],
+                "UnicodeDecodeError": [
+                    347
+                ],
+                "args": [
+                    424,
+                    425,
+                    363,
+                    364
+                ],
+                "cmd": [
+                    425,
+                    426,
+                    364,
+                    365,
+                    406,
+                    407
+                ],
+                "lsblk_path": [
+                    370,
+                    371,
+                    364,
+                    374
+                ],
+                "self._run_lsblk": [
+                    374
+                ],
+                "lsblk_line": [
+                    385,
+                    381,
+                    382
+                ],
+                "lsblk_line.strip": [
+                    385
+                ],
+                "fields": [
+                    448,
+                    386,
+                    388,
+                    391,
+                    460,
+                    461,
+                    463,
+                    498,
+                    500,
+                    502,
+                    441,
+                    443,
+                    447
+                ],
+                "line.rsplit": [
+                    386
+                ],
+                "device_name": [
+                    392,
+                    394,
+                    391
+                ],
+                "udevadm_path": [
+                    402,
+                    403,
+                    406
+                ],
+                "device": [
+                    481,
+                    518,
+                    663,
+                    406,
+                    502,
+                    504,
+                    662,
+                    508,
+                    573,
+                    575
+                ],
+                "m": [
+                    417,
+                    418,
+                    419,
+                    705,
+                    706,
+                    707,
+                    679,
+                    680,
+                    682,
+                    720,
+                    721,
+                    722,
+                    724,
+                    725,
+                    726
+                ],
+                "re.search": [
+                    417,
+                    665,
+                    724,
+                    679
+                ],
+                "m.group": [
+                    419,
+                    707,
+                    682,
+                    722,
+                    726
+                ],
+                "findmnt_path": [
+                    432,
+                    425,
+                    435,
+                    431
+                ],
+                "bind_mounts": [
+                    448,
+                    512,
+                    450,
+                    490,
+                    430,
+                    433,
+                    437
+                ],
+                "set": [
+                    570,
+                    805,
+                    557,
+                    430
+                ],
+                "self._run_findmnt": [
+                    435
+                ],
+                "self.BIND_MOUNT_RE.match": [
+                    447
+                ],
+                "self.BIND_MOUNT_RE": [
+                    447
+                ],
+                "bind_mounts.add": [
+                    448
+                ],
+                "mtab_file": [
+                    457,
+                    453,
+                    454,
+                    455
+                ],
+                "mtab": [
+                    457,
+                    459
+                ],
+                "mtab_entries": [
+                    458,
+                    492,
+                    463,
+                    464,
+                    496,
+                    498
+                ],
+                "mtab.splitlines": [
+                    459
+                ],
+                "mtab_entries.append": [
+                    463
+                ],
+                "chr": [
+                    469
+                ],
+                "match.group": [
+                    469
+                ],
+                "match": [
+                    469
+                ],
+                "staticmethod": [
+                    466
+                ],
+                "self.OCTAL_ESCAPE_RE.sub": [
+                    472
+                ],
+                "self.OCTAL_ESCAPE_RE": [
+                    472
+                ],
+                "self._replace_octal_escapes_helper": [
+                    472
+                ],
+                "value": [
+                    472
+                ],
+                "mount_size": [
+                    483,
+                    529,
+                    530,
+                    531,
+                    476
+                ],
+                "get_mount_size": [
+                    476
+                ],
+                "mount": [
+                    512,
+                    544,
+                    545,
+                    517,
+                    518,
+                    542,
+                    525,
+                    526,
+                    531,
+                    532,
+                    502,
+                    536,
+                    537,
+                    507,
+                    476,
+                    540,
+                    539,
+                    543
+                ],
+                "uuids.get": [
+                    481
+                ],
+                "self._udevadm_uuid": [
+                    481
+                ],
+                "mounts": [
+                    544,
+                    539,
+                    551,
+                    487
+                ],
+                "self._find_bind_mounts": [
+                    490
+                ],
+                "self._lsblk_uuid": [
+                    491
+                ],
+                "self._mtab_entries": [
+                    492
+                ],
+                "results": [
+                    544,
+                    545,
+                    517,
+                    524,
+                    525,
+                    526,
+                    495,
+                    531,
+                    532,
+                    537,
+                    539,
+                    540,
+                    542,
+                    543
+                ],
+                "pool": [
+                    496,
+                    521,
+                    518
+                ],
+                "ThreadPool": [
+                    496
+                ],
+                "min": [
+                    496
+                ],
+                "cpu_count": [
+                    496
+                ],
+                "maxtime": [
+                    497,
+                    519
+                ],
+                "get": [
+                    497
+                ],
+                "globals": [
+                    497
+                ],
+                "timeout.DEFAULT_GATHER_TIMEOUT": [
+                    497
+                ],
+                "self._replace_octal_escapes": [
+                    500
+                ],
+                "field": [
+                    500
+                ],
+                "fstype": [
+                    504,
+                    509,
+                    502
+                ],
+                "options": [
+                    514,
+                    502,
+                    510
+                ],
+                "device.startswith": [
+                    504
+                ],
+                "mount_info": [
+                    515,
+                    507,
+                    517
+                ],
+                "self.MTAB_BIND_MOUNT_RE.match": [
+                    514
+                ],
+                "self.MTAB_BIND_MOUNT_RE": [
+                    514
+                ],
+                "pool.apply_async": [
+                    518
+                ],
+                "self.get_mount_info": [
+                    518
+                ],
+                "time.time": [
+                    542,
+                    519
+                ],
+                "time": [
+                    549,
+                    542,
+                    519
+                ],
+                "pool.close": [
+                    521
+                ],
+                "res": [
+                    526,
+                    527,
+                    528,
+                    529,
+                    535
+                ],
+                "res.ready": [
+                    527
+                ],
+                "res.successful": [
+                    528
+                ],
+                "res.get": [
+                    529,
+                    535
+                ],
+                "update": [
+                    531
+                ],
+                "errmsg": [
+                    536,
+                    537,
+                    535
+                ],
+                "to_text": [
+                    535
+                ],
+                "self.module.warn": [
+                    536
+                ],
+                "mounts.append": [
+                    544,
+                    539
+                ],
+                "time.sleep": [
+                    549
+                ],
+                "link_dir": [
+                    560,
+                    554,
+                    558
+                ],
+                "retval": [
+                    576,
+                    557,
+                    561,
+                    564,
+                    570,
+                    575
+                ],
+                "collections.defaultdict": [
+                    570,
+                    557
+                ],
+                "collections": [
+                    570,
+                    557
+                ],
+                "entry": [
+                    560,
+                    561,
+                    558
+                ],
+                "target": [
+                    560,
+                    561,
+                    574,
+                    575
+                ],
+                "os.path.basename": [
+                    560,
+                    627,
+                    655
+                ],
+                "os.readlink": [
+                    560,
+                    636,
+                    624
+                ],
+                "os.path.join": [
+                    560,
+                    636,
+                    624,
+                    644
+                ],
+                "add": [
+                    561,
+                    575
+                ],
+                "dict": [
+                    576,
+                    564
+                ],
+                "sorted": [
+                    576,
+                    564
+                ],
+                "iteritems": [
+                    576,
+                    564,
+                    653,
+                    686
+                ],
+                "glob.glob": [
+                    571
+                ],
+                "glob": [
+                    571
+                ],
+                "elements": [
+                    572,
+                    573,
+                    574
+                ],
+                "path.split": [
+                    572
+                ],
+                "self.get_device_links": [
+                    584,
+                    582,
+                    583
+                ],
+                "self.get_all_device_owners": [
+                    585
+                ],
+                "block_dev_dict": [
+                    596,
+                    589,
+                    598
+                ],
+                "os.path.isdir": [
+                    590
+                ],
+                "sysdir": [
+                    672,
+                    644,
+                    709,
+                    646,
+                    678,
+                    712,
+                    714,
+                    683,
+                    590,
+                    591,
+                    655,
+                    657,
+                    594,
+                    720,
+                    728,
+                    701,
+                    703
+                ],
+                "folder": [
+                    646,
+                    647,
+                    678,
+                    679,
+                    591,
+                    592,
+                    594,
+                    598
+                ],
+                "folder.startswith": [
+                    592
+                ],
+                "name": [
+                    594,
+                    595,
+                    596
+                ],
+                "lspci": [
+                    604,
+                    605,
+                    606
+                ],
+                "pcidata": [
+                    608,
+                    721,
+                    724,
+                    606
+                ],
+                "block_devs": [
+                    632,
+                    611
+                ],
+                "devs_wwn": [
+                    674,
+                    627,
+                    675,
+                    615
+                ],
+                "devs_by_id": [
+                    617,
+                    621
+                ],
+                "link_name": [
+                    624,
+                    627,
+                    621,
+                    622
+                ],
+                "link_name.startswith": [
+                    622
+                ],
+                "wwn_link": [
+                    624,
+                    627
+                ],
+                "links": [
+                    686,
+                    629,
+                    630,
+                    653
+                ],
+                "self.get_all_device_links": [
+                    629
+                ],
+                "block": [
+                    640,
+                    654,
+                    662,
+                    632,
+                    636
+                ],
+                "virtual": [
+                    648,
+                    633,
+                    651
+                ],
+                "sysfs_no_links": [
+                    641,
+                    634,
+                    645
+                ],
+                "e": [
+                    638,
+                    639
+                ],
+                "sys.exc_info": [
+                    638
+                ],
+                "sys": [
+                    638
+                ],
+                "e.errno": [
+                    639
+                ],
+                "errno.EINVAL": [
+                    639
+                ],
+                "errno": [
+                    639
+                ],
+                "d": [
+                    650,
+                    651,
+                    652,
+                    654,
+                    657,
+                    667,
+                    672,
+                    675,
+                    677,
+                    699,
+                    701,
+                    702,
+                    707,
+                    709,
+                    710,
+                    711,
+                    712,
+                    713,
+                    714,
+                    715,
+                    717,
+                    726,
+                    728,
+                    730
+                ],
+                "link_type": [
+                    686,
+                    653,
+                    654,
+                    687
+                ],
+                "link_values": [
+                    686,
+                    653,
+                    654,
+                    687
+                ],
+                "link_values.get": [
+                    654,
+                    687
+                ],
+                "diskname": [
+                    674,
+                    675,
+                    679,
+                    655,
+                    730
+                ],
+                "sg_inq": [
+                    659,
+                    661,
+                    663
+                ],
+                "drivedata": [
+                    665,
+                    663
+                ],
+                "serial": [
+                    665,
+                    666,
+                    667
+                ],
+                "serial.group": [
+                    667
+                ],
+                "test": [
+                    672,
+                    669
+                ],
+                "part": [
+                    681,
+                    685,
+                    687,
+                    689,
+                    690,
+                    692,
+                    693,
+                    694,
+                    695,
+                    696,
+                    697,
+                    699
+                ],
+                "part_sysdir": [
+                    683,
+                    689,
+                    690,
+                    692,
+                    694,
+                    697
+                ],
+                "bytes_to_human": [
+                    715,
+                    695
+                ],
+                "float": [
+                    715,
+                    739,
+                    695
+                ],
+                "get_partition_uuid": [
+                    696
+                ],
+                "self.get_holders": [
+                    728,
+                    697
+                ],
+                "scheduler": [
+                    704,
+                    705,
+                    703
+                ],
+                "re.match": [
+                    720,
+                    705
+                ],
+                "pciid": [
+                    722,
+                    723
+                ],
+                "did": [
+                    723,
+                    724
+                ],
+                "re.escape": [
+                    723
+                ],
+                "re.MULTILINE": [
+                    724
+                ],
+                "uptime_file_content": [
+                    736,
+                    737,
+                    738
+                ],
+                "uptime_seconds_string": [
+                    738,
+                    739
+                ],
+                "uptime_file_content.split": [
+                    738
+                ],
+                "dm_prefix": [
+                    744,
+                    746
+                ],
+                "mapper_device": [
+                    752,
+                    745,
+                    751
+                ],
+                "dm_device": [
+                    745,
+                    746,
+                    749
+                ],
+                "dm_device.startswith": [
+                    746
+                ],
+                "dmsetup_cmd": [
+                    747,
+                    749
+                ],
+                "mapper_prefix": [
+                    748,
+                    751
+                ],
+                "dm_name": [
+                    749,
+                    751
+                ],
+                "dm_name.rstrip": [
+                    751
+                ],
+                "os.getuid": [
+                    759
+                ],
+                "lvm_util_options": [
+                    760,
+                    779,
+                    788,
+                    766
+                ],
+                "vgs_path": [
+                    762,
+                    765,
+                    766
+                ],
+                "vgs": [
+                    769,
+                    764,
+                    796
+                ],
+                "vg_lines": [
+                    766,
+                    767
+                ],
+                "vg_line": [
+                    768,
+                    767
+                ],
+                "vg_lines.splitlines": [
+                    767
+                ],
+                "items": [
+                    768,
+                    769,
+                    770,
+                    771,
+                    772,
+                    781,
+                    782,
+                    790,
+                    791,
+                    792,
+                    793,
+                    794
+                ],
+                "vg_line.strip": [
+                    768
+                ],
+                "lvs_path": [
+                    778,
+                    779,
+                    774
+                ],
+                "lvs": [
+                    777,
+                    796,
+                    782
+                ],
+                "lv_lines": [
+                    779,
+                    780
+                ],
+                "lv_line": [
+                    780,
+                    781
+                ],
+                "lv_lines.splitlines": [
+                    780
+                ],
+                "lv_line.strip": [
+                    781
+                ],
+                "pvs_path": [
+                    784,
+                    787,
+                    788
+                ],
+                "pvs": [
+                    786,
+                    796,
+                    791
+                ],
+                "pv_lines": [
+                    788,
+                    789
+                ],
+                "pv_line": [
+                    789,
+                    790
+                ],
+                "pv_lines.splitlines": [
+                    789
+                ],
+                "pv_line.strip": [
+                    790
+                ],
+                "self._find_mapper_device_name": [
+                    791
+                ],
+                "HardwareCollector": [
+                    801
+                ],
+                "_platform": [
+                    802
+                ],
+                "_fact_class": [
+                    803
+                ],
+                "LinuxHardware": [
+                    803
+                ],
+                "required_facts": [
+                    805
+                ]
+            },
+            "filtered_variables_in_file": {
+                "__metaclass__": [
+                    17
+                ],
+                "uuids": [
+                    481,
+                    518,
+                    392,
+                    394,
+                    43,
+                    396,
+                    491,
+                    47,
+                    369,
+                    372,
+                    376
+                ],
+                "os.listdir": [
+                    611,
+                    646,
+                    678,
+                    617,
+                    43,
+                    558,
+                    591
+                ],
+                "os": [
+                    644,
+                    646,
+                    655,
+                    287,
+                    678,
+                    554,
+                    43,
+                    174,
+                    558,
+                    48,
+                    560,
+                    185,
+                    454,
+                    590,
+                    591,
+                    611,
+                    617,
+                    624,
+                    114,
+                    627,
+                    759,
+                    636
+                ],
+                "uuid": [
+                    481,
+                    419,
+                    483,
+                    421,
+                    391,
+                    394,
+                    47,
+                    48,
+                    400,
+                    50,
+                    529,
+                    404,
+                    532,
+                    409
+                ],
+                "dev": [
+                    48,
+                    49
+                ],
+                "os.path.realpath": [
+                    48
+                ],
+                "os.path": [
+                    644,
+                    454,
+                    554,
+                    174,
+                    590,
+                    48,
+                    560,
+                    624,
+                    627,
+                    655,
+                    636,
+                    287
+                ],
+                "partname": [
+                    682,
+                    683,
+                    687,
+                    49,
+                    696,
+                    699
+                ],
+                "Hardware": [
+                    55
+                ],
+                "platform": [
+                    69
+                ],
+                "ORIGINAL_MEMORY_FACTS": [
+                    72,
+                    74
+                ],
+                "MEMORY_FACTS": [
+                    74
+                ],
+                "ORIGINAL_MEMORY_FACTS.union": [
+                    74
+                ],
+                "BIND_MOUNT_RE": [
+                    77
+                ],
+                "re.compile": [
+                    80,
+                    83,
+                    77
+                ],
+                "re": [
+                    417,
+                    705,
+                    679,
+                    77,
+                    80,
+                    720,
+                    83,
+                    723,
+                    724,
+                    665
+                ],
+                "MTAB_BIND_MOUNT_RE": [
+                    80
+                ],
+                "OCTAL_ESCAPE_RE": [
+                    83
+                ],
+                "hardware_facts": [
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    107,
+                    108,
+                    110,
+                    86
+                ],
+                "self.module.run_command_environ_update": [
+                    87
+                ],
+                "self.module": [
+                    774,
+                    779,
+                    784,
+                    402,
+                    659,
+                    788,
+                    407,
+                    663,
+                    536,
+                    426,
+                    431,
+                    328,
+                    341,
+                    87,
+                    604,
+                    606,
+                    747,
+                    365,
+                    749,
+                    370,
+                    759,
+                    762,
+                    766
+                ],
+                "self": [
+                    514,
+                    518,
+                    774,
+                    779,
+                    784,
+                    402,
+                    659,
+                    788,
+                    407,
+                    536,
+                    663,
+                    791,
+                    426,
+                    431,
+                    435,
+                    697,
+                    447,
+                    582,
+                    583,
+                    328,
+                    584,
+                    585,
+                    728,
+                    341,
+                    87,
+                    472,
+                    89,
+                    90,
+                    91,
+                    92,
+                    93,
+                    94,
+                    604,
+                    606,
+                    481,
+                    98,
+                    490,
+                    491,
+                    492,
+                    365,
+                    747,
+                    749,
+                    370,
+                    500,
+                    629,
+                    374,
+                    759,
+                    121,
+                    762,
+                    125,
+                    766
+                ],
+                "cpu_facts": [
+                    258,
+                    260,
+                    264,
+                    266,
+                    270,
+                    272,
+                    274,
+                    275,
+                    277,
+                    159,
+                    186,
+                    188,
+                    211,
+                    212,
+                    213,
+                    89,
+                    102,
+                    234,
+                    252,
+                    253,
+                    254,
+                    255
+                ],
+                "self.get_cpu_facts": [
+                    89
+                ],
+                "collected_facts": [
+                    160,
+                    89,
+                    250,
+                    246
+                ],
+                "memory_facts": [
+                    103,
+                    138,
+                    113,
+                    115,
+                    90,
+                    123,
+                    156
+                ],
+                "self.get_memory_facts": [
+                    90
+                ],
+                "dmi_facts": [
+                    320,
+                    350,
+                    322,
+                    352,
+                    324,
+                    354,
+                    356,
+                    104,
+                    91,
+                    285,
+                    318
+                ],
+                "self.get_dmi_facts": [
+                    91
+                ],
+                "device_facts": [
+                    732,
+                    613,
+                    105,
+                    630,
+                    601,
+                    730,
+                    603,
+                    92
+                ],
+                "self.get_device_facts": [
+                    92
+                ],
+                "uptime_facts": [
+                    739,
+                    741,
+                    106,
+                    93,
+                    735
+                ],
+                "self.get_uptime_facts": [
+                    93
+                ],
+                "lvm_facts": [
+                    107,
+                    798,
+                    757,
+                    796,
+                    94
+                ],
+                "self.get_lvm_facts": [
+                    94
+                ],
+                "mount_facts": [
+                    96,
+                    98,
+                    108
+                ],
+                "self.get_mount_facts": [
+                    98
+                ],
+                "timeout.TimeoutError": [
+                    99
+                ],
+                "timeout": [
+                    497,
+                    99
+                ],
+                "hardware_facts.update": [
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    107,
+                    108
+                ],
+                "os.access": [
+                    185,
+                    114
+                ],
+                "os.R_OK": [
+                    185,
+                    114
+                ],
+                "memstats": [
+                    129,
+                    130,
+                    131,
+                    132,
+                    133,
+                    134,
+                    135,
+                    136,
+                    140,
+                    141,
+                    142,
+                    145,
+                    146,
+                    149,
+                    150,
+                    151,
+                    152,
+                    117,
+                    127
+                ],
+                "line": [
+                    385,
+                    386,
+                    440,
+                    459,
+                    460,
+                    177,
+                    178,
+                    118,
+                    119,
+                    344,
+                    441,
+                    189,
+                    190
+                ],
+                "get_file_lines": [
+                    177,
+                    189,
+                    118
+                ],
+                "data": [
+                    318,
+                    320,
+                    194,
+                    126,
+                    322,
+                    314,
+                    119,
+                    120,
+                    122,
+                    315,
+                    190,
+                    191
+                ],
+                "line.split": [
+                    441,
+                    460,
+                    190,
+                    119
+                ],
+                "key": [
+                    656,
+                    657,
+                    669,
+                    672,
+                    313,
+                    316,
+                    191,
+                    322,
+                    324,
+                    199,
+                    210,
+                    214,
+                    216,
+                    218,
+                    221,
+                    225,
+                    229,
+                    231,
+                    233,
+                    235,
+                    120,
+                    121,
+                    123,
+                    125,
+                    127
+                ],
+                "self.ORIGINAL_MEMORY_FACTS": [
+                    121
+                ],
+                "val": [
+                    194,
+                    226,
+                    196,
+                    230,
+                    232,
+                    234,
+                    204,
+                    236,
+                    213,
+                    122,
+                    123,
+                    222,
+                    126,
+                    127
+                ],
+                "split": [
+                    768,
+                    781,
+                    790,
+                    122,
+                    126
+                ],
+                "strip": [
+                    194,
+                    391,
+                    122,
+                    126,
+                    191
+                ],
+                "key.lower": [
+                    123,
+                    127
+                ],
+                "self.MEMORY_FACTS": [
+                    125
+                ],
+                "memstats.get": [
+                    129,
+                    131,
+                    133,
+                    135,
+                    140,
+                    141,
+                    142,
+                    145,
+                    146,
+                    149,
+                    150,
+                    151,
+                    152
+                ],
+                "i": [
+                    162,
+                    260,
+                    236,
+                    241,
+                    252,
+                    247,
+                    220,
+                    253,
+                    255
+                ],
+                "vendor_id_occurrence": [
+                    163,
+                    239,
+                    240,
+                    241,
+                    215
+                ],
+                "model_name_occurrence": [
+                    240,
+                    217,
+                    164
+                ],
+                "processor_occurence": [
+                    219,
+                    165,
+                    247
+                ],
+                "physid": [
+                    224,
+                    230,
+                    166,
+                    222,
+                    223
+                ],
+                "coreid": [
+                    226,
+                    227,
+                    228,
+                    167,
+                    232
+                ],
+                "sockets": [
+                    224,
+                    257,
+                    258,
+                    227,
+                    230,
+                    262,
+                    168,
+                    223
+                ],
+                "cores": [
+                    232,
+                    169,
+                    228,
+                    268
+                ],
+                "xen": [
+                    171,
+                    179,
+                    198,
+                    175
+                ],
+                "xen_paravirt": [
+                    251,
+                    172,
+                    205
+                ],
+                "os.path.exists": [
+                    554,
+                    454,
+                    174,
+                    287
+                ],
+                "line.strip": [
+                    178
+                ],
+                "append": [
+                    596,
+                    213,
+                    598
+                ],
+                "startswith": [
+                    246
+                ],
+                "collected_facts.get": [
+                    250,
+                    246
+                ],
+                "socket_values": [
+                    264,
+                    262,
+                    263
+                ],
+                "sockets.values": [
+                    262
+                ],
+                "core_values": [
+                    268,
+                    269,
+                    270
+                ],
+                "cores.values": [
+                    268
+                ],
+                "FORM_FACTOR": [
+                    291,
+                    318
+                ],
+                "DMI_DICT": [
+                    329,
+                    313,
+                    339,
+                    302
+                ],
+                "path": [
+                    640,
+                    644,
+                    313,
+                    314,
+                    571,
+                    636,
+                    572
+                ],
+                "DMI_DICT.items": [
+                    313,
+                    339
+                ],
+                "get_file_content": [
+                    672,
+                    736,
+                    709,
+                    712,
+                    457,
+                    714,
+                    657,
+                    594,
+                    689,
+                    690,
+                    692,
+                    694,
+                    314,
+                    701,
+                    703
+                ],
+                "dmi_bin": [
+                    328,
+                    340,
+                    341
+                ],
+                "self.module.get_bin_path": [
+                    774,
+                    328,
+                    747,
+                    431,
+                    784,
+                    370,
+                    402,
+                    659,
+                    759,
+                    762,
+                    604
+                ],
+                "k": [
+                    352,
+                    576,
+                    354,
+                    339,
+                    564,
+                    350
+                ],
+                "v": [
+                    576,
+                    339,
+                    564,
+                    341
+                ],
+                "rc": [
+                    779,
+                    788,
+                    407,
+                    663,
+                    664,
+                    408,
+                    426,
+                    427,
+                    435,
+                    436,
+                    341,
+                    342,
+                    606,
+                    365,
+                    366,
+                    749,
+                    750,
+                    374,
+                    375,
+                    766
+                ],
+                "out": [
+                    417,
+                    440,
+                    426,
+                    427,
+                    365,
+                    366,
+                    435,
+                    341,
+                    374,
+                    407,
+                    344,
+                    381
+                ],
+                "err": [
+                    663,
+                    426,
+                    427,
+                    779,
+                    365,
+                    366,
+                    749,
+                    766,
+                    435,
+                    788,
+                    341,
+                    374,
+                    407,
+                    606
+                ],
+                "self.module.run_command": [
+                    663,
+                    426,
+                    779,
+                    365,
+                    749,
+                    766,
+                    788,
+                    341,
+                    407,
+                    606
+                ],
+                "thisvalue": [
+                    344,
+                    346,
+                    348,
+                    350
+                ],
+                "join": [
+                    344
+                ],
+                "out.splitlines": [
+                    344,
+                    381,
+                    440
+                ],
+                "line.startswith": [
+                    344
+                ],
+                "json.dumps": [
+                    346
+                ],
+                "json": [
+                    346
+                ],
+                "args": [
+                    424,
+                    425,
+                    363,
+                    364
+                ],
+                "cmd": [
+                    425,
+                    426,
+                    364,
+                    365,
+                    406,
+                    407
+                ],
+                "lsblk_path": [
+                    370,
+                    371,
+                    364,
+                    374
+                ],
+                "self._run_lsblk": [
+                    374
+                ],
+                "lsblk_line": [
+                    385,
+                    381,
+                    382
+                ],
+                "lsblk_line.strip": [
+                    385
+                ],
+                "fields": [
+                    448,
+                    386,
+                    388,
+                    391,
+                    460,
+                    461,
+                    463,
+                    498,
+                    500,
+                    502,
+                    441,
+                    443,
+                    447
+                ],
+                "line.rsplit": [
+                    386
+                ],
+                "device_name": [
+                    392,
+                    394,
+                    391
+                ],
+                "udevadm_path": [
+                    402,
+                    403,
+                    406
+                ],
+                "device": [
+                    481,
+                    518,
+                    663,
+                    406,
+                    502,
+                    504,
+                    662,
+                    508,
+                    573,
+                    575
+                ],
+                "m": [
+                    417,
+                    418,
+                    419,
+                    705,
+                    706,
+                    707,
+                    679,
+                    680,
+                    682,
+                    720,
+                    721,
+                    722,
+                    724,
+                    725,
+                    726
+                ],
+                "re.search": [
+                    417,
+                    665,
+                    724,
+                    679
+                ],
+                "m.group": [
+                    419,
+                    707,
+                    682,
+                    722,
+                    726
+                ],
+                "findmnt_path": [
+                    432,
+                    425,
+                    435,
+                    431
+                ],
+                "bind_mounts": [
+                    448,
+                    512,
+                    450,
+                    490,
+                    430,
+                    433,
+                    437
+                ],
+                "self._run_findmnt": [
+                    435
+                ],
+                "self.BIND_MOUNT_RE.match": [
+                    447
+                ],
+                "self.BIND_MOUNT_RE": [
+                    447
+                ],
+                "bind_mounts.add": [
+                    448
+                ],
+                "mtab_file": [
+                    457,
+                    453,
+                    454,
+                    455
+                ],
+                "mtab": [
+                    457,
+                    459
+                ],
+                "mtab_entries": [
+                    458,
+                    492,
+                    463,
+                    464,
+                    496,
+                    498
+                ],
+                "mtab.splitlines": [
+                    459
+                ],
+                "mtab_entries.append": [
+                    463
+                ],
+                "match.group": [
+                    469
+                ],
+                "match": [
+                    469
+                ],
+                "self.OCTAL_ESCAPE_RE.sub": [
+                    472
+                ],
+                "self.OCTAL_ESCAPE_RE": [
+                    472
+                ],
+                "self._replace_octal_escapes_helper": [
+                    472
+                ],
+                "value": [
+                    472
+                ],
+                "mount_size": [
+                    483,
+                    529,
+                    530,
+                    531,
+                    476
+                ],
+                "get_mount_size": [
+                    476
+                ],
+                "mount": [
+                    512,
+                    544,
+                    545,
+                    517,
+                    518,
+                    542,
+                    525,
+                    526,
+                    531,
+                    532,
+                    502,
+                    536,
+                    537,
+                    507,
+                    476,
+                    540,
+                    539,
+                    543
+                ],
+                "uuids.get": [
+                    481
+                ],
+                "self._udevadm_uuid": [
+                    481
+                ],
+                "mounts": [
+                    544,
+                    539,
+                    551,
+                    487
+                ],
+                "self._find_bind_mounts": [
+                    490
+                ],
+                "self._lsblk_uuid": [
+                    491
+                ],
+                "self._mtab_entries": [
+                    492
+                ],
+                "results": [
+                    544,
+                    545,
+                    517,
+                    524,
+                    525,
+                    526,
+                    495,
+                    531,
+                    532,
+                    537,
+                    539,
+                    540,
+                    542,
+                    543
+                ],
+                "pool": [
+                    496,
+                    521,
+                    518
+                ],
+                "ThreadPool": [
+                    496
+                ],
+                "cpu_count": [
+                    496
+                ],
+                "maxtime": [
+                    497,
+                    519
+                ],
+                "get": [
+                    497
+                ],
+                "timeout.DEFAULT_GATHER_TIMEOUT": [
+                    497
+                ],
+                "self._replace_octal_escapes": [
+                    500
+                ],
+                "field": [
+                    500
+                ],
+                "fstype": [
+                    504,
+                    509,
+                    502
+                ],
+                "options": [
+                    514,
+                    502,
+                    510
+                ],
+                "device.startswith": [
+                    504
+                ],
+                "mount_info": [
+                    515,
+                    507,
+                    517
+                ],
+                "self.MTAB_BIND_MOUNT_RE.match": [
+                    514
+                ],
+                "self.MTAB_BIND_MOUNT_RE": [
+                    514
+                ],
+                "pool.apply_async": [
+                    518
+                ],
+                "self.get_mount_info": [
+                    518
+                ],
+                "time.time": [
+                    542,
+                    519
+                ],
+                "time": [
+                    549,
+                    542,
+                    519
+                ],
+                "pool.close": [
+                    521
+                ],
+                "res": [
+                    526,
+                    527,
+                    528,
+                    529,
+                    535
+                ],
+                "res.ready": [
+                    527
+                ],
+                "res.successful": [
+                    528
+                ],
+                "res.get": [
+                    529,
+                    535
+                ],
+                "update": [
+                    531
+                ],
+                "errmsg": [
+                    536,
+                    537,
+                    535
+                ],
+                "to_text": [
+                    535
+                ],
+                "self.module.warn": [
+                    536
+                ],
+                "mounts.append": [
+                    544,
+                    539
+                ],
+                "time.sleep": [
+                    549
+                ],
+                "link_dir": [
+                    560,
+                    554,
+                    558
+                ],
+                "retval": [
+                    576,
+                    557,
+                    561,
+                    564,
+                    570,
+                    575
+                ],
+                "collections.defaultdict": [
+                    570,
+                    557
+                ],
+                "collections": [
+                    570,
+                    557
+                ],
+                "entry": [
+                    560,
+                    561,
+                    558
+                ],
+                "target": [
+                    560,
+                    561,
+                    574,
+                    575
+                ],
+                "os.path.basename": [
+                    560,
+                    627,
+                    655
+                ],
+                "os.readlink": [
+                    560,
+                    636,
+                    624
+                ],
+                "os.path.join": [
+                    560,
+                    636,
+                    624,
+                    644
+                ],
+                "add": [
+                    561,
+                    575
+                ],
+                "iteritems": [
+                    576,
+                    564,
+                    653,
+                    686
+                ],
+                "glob.glob": [
+                    571
+                ],
+                "glob": [
+                    571
+                ],
+                "elements": [
+                    572,
+                    573,
+                    574
+                ],
+                "path.split": [
+                    572
+                ],
+                "self.get_device_links": [
+                    584,
+                    582,
+                    583
+                ],
+                "self.get_all_device_owners": [
+                    585
+                ],
+                "block_dev_dict": [
+                    596,
+                    589,
+                    598
+                ],
+                "os.path.isdir": [
+                    590
+                ],
+                "sysdir": [
+                    672,
+                    644,
+                    709,
+                    646,
+                    678,
+                    712,
+                    714,
+                    683,
+                    590,
+                    591,
+                    655,
+                    657,
+                    594,
+                    720,
+                    728,
+                    701,
+                    703
+                ],
+                "folder": [
+                    646,
+                    647,
+                    678,
+                    679,
+                    591,
+                    592,
+                    594,
+                    598
+                ],
+                "folder.startswith": [
+                    592
+                ],
+                "name": [
+                    594,
+                    595,
+                    596
+                ],
+                "lspci": [
+                    604,
+                    605,
+                    606
+                ],
+                "pcidata": [
+                    608,
+                    721,
+                    724,
+                    606
+                ],
+                "block_devs": [
+                    632,
+                    611
+                ],
+                "devs_wwn": [
+                    674,
+                    627,
+                    675,
+                    615
+                ],
+                "devs_by_id": [
+                    617,
+                    621
+                ],
+                "link_name": [
+                    624,
+                    627,
+                    621,
+                    622
+                ],
+                "link_name.startswith": [
+                    622
+                ],
+                "wwn_link": [
+                    624,
+                    627
+                ],
+                "links": [
+                    686,
+                    629,
+                    630,
+                    653
+                ],
+                "self.get_all_device_links": [
+                    629
+                ],
+                "block": [
+                    640,
+                    654,
+                    662,
+                    632,
+                    636
+                ],
+                "virtual": [
+                    648,
+                    633,
+                    651
+                ],
+                "sysfs_no_links": [
+                    641,
+                    634,
+                    645
+                ],
+                "e": [
+                    638,
+                    639
+                ],
+                "sys.exc_info": [
+                    638
+                ],
+                "sys": [
+                    638
+                ],
+                "e.errno": [
+                    639
+                ],
+                "errno.EINVAL": [
+                    639
+                ],
+                "errno": [
+                    639
+                ],
+                "d": [
+                    650,
+                    651,
+                    652,
+                    654,
+                    657,
+                    667,
+                    672,
+                    675,
+                    677,
+                    699,
+                    701,
+                    702,
+                    707,
+                    709,
+                    710,
+                    711,
+                    712,
+                    713,
+                    714,
+                    715,
+                    717,
+                    726,
+                    728,
+                    730
+                ],
+                "link_type": [
+                    686,
+                    653,
+                    654,
+                    687
+                ],
+                "link_values": [
+                    686,
+                    653,
+                    654,
+                    687
+                ],
+                "link_values.get": [
+                    654,
+                    687
+                ],
+                "diskname": [
+                    674,
+                    675,
+                    679,
+                    655,
+                    730
+                ],
+                "sg_inq": [
+                    659,
+                    661,
+                    663
+                ],
+                "drivedata": [
+                    665,
+                    663
+                ],
+                "serial": [
+                    665,
+                    666,
+                    667
+                ],
+                "serial.group": [
+                    667
+                ],
+                "test": [
+                    672,
+                    669
+                ],
+                "part": [
+                    681,
+                    685,
+                    687,
+                    689,
+                    690,
+                    692,
+                    693,
+                    694,
+                    695,
+                    696,
+                    697,
+                    699
+                ],
+                "part_sysdir": [
+                    683,
+                    689,
+                    690,
+                    692,
+                    694,
+                    697
+                ],
+                "bytes_to_human": [
+                    715,
+                    695
+                ],
+                "get_partition_uuid": [
+                    696
+                ],
+                "self.get_holders": [
+                    728,
+                    697
+                ],
+                "scheduler": [
+                    704,
+                    705,
+                    703
+                ],
+                "re.match": [
+                    720,
+                    705
+                ],
+                "pciid": [
+                    722,
+                    723
+                ],
+                "did": [
+                    723,
+                    724
+                ],
+                "re.escape": [
+                    723
+                ],
+                "re.MULTILINE": [
+                    724
+                ],
+                "uptime_file_content": [
+                    736,
+                    737,
+                    738
+                ],
+                "uptime_seconds_string": [
+                    738,
+                    739
+                ],
+                "uptime_file_content.split": [
+                    738
+                ],
+                "dm_prefix": [
+                    744,
+                    746
+                ],
+                "mapper_device": [
+                    752,
+                    745,
+                    751
+                ],
+                "dm_device": [
+                    745,
+                    746,
+                    749
+                ],
+                "dm_device.startswith": [
+                    746
+                ],
+                "dmsetup_cmd": [
+                    747,
+                    749
+                ],
+                "mapper_prefix": [
+                    748,
+                    751
+                ],
+                "dm_name": [
+                    749,
+                    751
+                ],
+                "dm_name.rstrip": [
+                    751
+                ],
+                "os.getuid": [
+                    759
+                ],
+                "lvm_util_options": [
+                    760,
+                    779,
+                    788,
+                    766
+                ],
+                "vgs_path": [
+                    762,
+                    765,
+                    766
+                ],
+                "vgs": [
+                    769,
+                    764,
+                    796
+                ],
+                "vg_lines": [
+                    766,
+                    767
+                ],
+                "vg_line": [
+                    768,
+                    767
+                ],
+                "vg_lines.splitlines": [
+                    767
+                ],
+                "items": [
+                    768,
+                    769,
+                    770,
+                    771,
+                    772,
+                    781,
+                    782,
+                    790,
+                    791,
+                    792,
+                    793,
+                    794
+                ],
+                "vg_line.strip": [
+                    768
+                ],
+                "lvs_path": [
+                    778,
+                    779,
+                    774
+                ],
+                "lvs": [
+                    777,
+                    796,
+                    782
+                ],
+                "lv_lines": [
+                    779,
+                    780
+                ],
+                "lv_line": [
+                    780,
+                    781
+                ],
+                "lv_lines.splitlines": [
+                    780
+                ],
+                "lv_line.strip": [
+                    781
+                ],
+                "pvs_path": [
+                    784,
+                    787,
+                    788
+                ],
+                "pvs": [
+                    786,
+                    796,
+                    791
+                ],
+                "pv_lines": [
+                    788,
+                    789
+                ],
+                "pv_line": [
+                    789,
+                    790
+                ],
+                "pv_lines.splitlines": [
+                    789
+                ],
+                "pv_line.strip": [
+                    790
+                ],
+                "self._find_mapper_device_name": [
+                    791
+                ],
+                "HardwareCollector": [
+                    801
+                ],
+                "_platform": [
+                    802
+                ],
+                "_fact_class": [
+                    803
+                ],
+                "LinuxHardware": [
+                    803
+                ],
+                "required_facts": [
+                    805
+                ]
+            }
+        },
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/ansible/test/units/module_utils/facts/hardware/linux_data.py": {
+            "buggy_functions": [
+                {
+                    "function_name": null,
+                    "function_code": null,
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": null,
+                    "variables": {},
+                    "filtered_variables": {},
+                    "diff_line_number": 498,
+                    "class_data": null
+                }
+            ],
+            "inscope_functions": [],
+            "variables_in_file": {
+                "__metaclass__": [
+                    17
+                ],
+                "type": [
+                    17
+                ],
+                "LSBLK_OUTPUT": [
+                    21
+                ],
+                "LSBLK_OUTPUT_2": [
+                    38
+                ],
+                "LSBLK_UUIDS": [
+                    50
+                ],
+                "UDEVADM_UUID": [
+                    52
+                ],
+                "UDEVADM_OUTPUT": [
+                    54
+                ],
+                "MTAB": [
+                    74
+                ],
+                "MTAB_ENTRIES": [
+                    115
+                ],
+                "STATVFS_INFO": [
+                    323
+                ],
+                "BIND_MOUNTS": [
+                    364
+                ],
+                "CPU_INFO_TEST_SCENARIOS": [
+                    366
+                ],
+                "readlines": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "open": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os.path.join": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os.path": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os.path.dirname": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "__file__": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ]
+            },
+            "filtered_variables_in_file": {
+                "__metaclass__": [
+                    17
+                ],
+                "LSBLK_OUTPUT": [
+                    21
+                ],
+                "LSBLK_OUTPUT_2": [
+                    38
+                ],
+                "LSBLK_UUIDS": [
+                    50
+                ],
+                "UDEVADM_UUID": [
+                    52
+                ],
+                "UDEVADM_OUTPUT": [
+                    54
+                ],
+                "MTAB": [
+                    74
+                ],
+                "MTAB_ENTRIES": [
+                    115
+                ],
+                "STATVFS_INFO": [
+                    323
+                ],
+                "BIND_MOUNTS": [
+                    364
+                ],
+                "CPU_INFO_TEST_SCENARIOS": [
+                    366
+                ],
+                "readlines": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os.path.join": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os.path": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "os.path.dirname": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ],
+                "__file__": [
+                    484,
+                    453,
+                    424,
+                    504,
+                    394,
+                    369,
+                    443,
+                    472,
+                    409,
+                    379,
+                    540
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/ansible/test/units/module_utils/facts/hardware/test_linux_get_cpu_info.py",
+                "test_function": "test_get_cpu_info_missing_arch",
+                "test_function_code": "def test_get_cpu_info_missing_arch(mocker):\n    module = mocker.Mock()\n    inst = linux.LinuxHardware(module)\n\n    # ARM and Power will report incorrect processor count if architecture is not available\n    mocker.patch('os.path.exists', return_value=False)\n    mocker.patch('os.access', return_value=True)\n    for test in CPU_INFO_TEST_SCENARIOS:\n        mocker.patch('ansible.module_utils.facts.hardware.linux.get_file_lines', side_effect=[[], test['cpuinfo']])\n        test_result = inst.get_cpu_facts()\n        if test['architecture'].startswith(('armv', 'aarch', 'ppc')):\n            assert test['expected_result'] != test_result\n        else:\n            assert test['expected_result'] == test_result",
+                "test_error": "AssertionError: assert {'processor': ['0', 'POWER7 (architected), altivec supported', '1', 'POWER7 (architected), altivec supported', '2', 'POWER7 (architected), altivec supported', ...], 'processor_cores': 1, 'processor_count': 16, 'processor_threads_per_core': 1, ...} != {'processor': ['0', 'POWER7 (architected), altivec supported', '1', 'POWER7 (architected), altivec supported', '2', 'POWER7 (architected), altivec supported', ...], 'processor_cores': 1, 'processor_count': 16, 'processor_threads_per_core': 1, ...}",
+                "full_test_error": "mocker = <pytest_mock.plugin.MockerFixture object at 0x7f8e311c4a50>\n\n    def test_get_cpu_info_missing_arch(mocker):\n        module = mocker.Mock()\n        inst = linux.LinuxHardware(module)\n    \n        # ARM and Power will report incorrect processor count if architecture is not available\n        mocker.patch('os.path.exists', return_value=False)\n        mocker.patch('os.access', return_value=True)\n        for test in CPU_INFO_TEST_SCENARIOS:\n            mocker.patch('ansible.module_utils.facts.hardware.linux.get_file_lines', side_effect=[[], test['cpuinfo']])\n            test_result = inst.get_cpu_facts()\n            if test['architecture'].startswith(('armv', 'aarch', 'ppc')):\n>               assert test['expected_result'] != test_result\nE               AssertionError: assert {'processor': ['0', 'POWER7 (architected), altivec supported', '1', 'POWER7 (architected), altivec supported', '2', 'POWER7 (architected), altivec supported', ...], 'processor_cores': 1, 'processor_count': 16, 'processor_threads_per_core': 1, ...} != {'processor': ['0', 'POWER7 (architected), altivec supported', '1', 'POWER7 (architected), altivec supported', '2', 'POWER7 (architected), altivec supported', ...], 'processor_cores': 1, 'processor_count': 16, 'processor_threads_per_core': 1, ...}\n\ntest/units/module_utils/facts/hardware/test_linux_get_cpu_info.py:36: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

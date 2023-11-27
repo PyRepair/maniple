@@ -1,0 +1,6519 @@
+{
+    "pandas:112": {
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/core/indexes/interval.py": {
+            "buggy_functions": [
+                {
+                    "function_name": null,
+                    "function_code": null,
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": null,
+                    "variables": {},
+                    "filtered_variables": {},
+                    "diff_line_number": 21,
+                    "class_data": null
+                },
+                {
+                    "function_name": "get_indexer",
+                    "function_code": "@Substitution(\n    **dict(\n        _index_doc_kwargs,\n        **{\n            \"raises_section\": textwrap.dedent(\n                \"\"\"\n    Raises\n    ------\n    NotImplementedError\n        If any method argument other than the default of\n        None is specified as these are not yet implemented.\n    \"\"\"\n            )\n        },\n    )\n)\n@Appender(_index_shared_docs[\"get_indexer\"])\ndef get_indexer(\n    self,\n    target: AnyArrayLike,\n    method: Optional[str] = None,\n    limit: Optional[int] = None,\n    tolerance: Optional[Any] = None,\n) -> np.ndarray:\n\n    self._check_method(method)\n\n    if self.is_overlapping:\n        msg = (\n            \"cannot handle overlapping indices; use \"\n            \"IntervalIndex.get_indexer_non_unique\"\n        )\n        raise InvalidIndexError(msg)\n\n    target_as_index = ensure_index(target)\n\n    if isinstance(target_as_index, IntervalIndex):\n        # equal indexes -> 1:1 positional match\n        if self.equals(target_as_index):\n            return np.arange(len(self), dtype=\"intp\")\n\n        # different closed or incompatible subtype -> no matches\n        common_subtype = find_common_type(\n            [self.dtype.subtype, target_as_index.dtype.subtype]\n        )\n        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):\n            return np.repeat(np.intp(-1), len(target_as_index))\n\n        # non-overlapping -> at most one match per interval in target_as_index\n        # want exact matches -> need both left/right to match, so defer to\n        # left/right get_indexer, compare elementwise, equality -> match\n        left_indexer = self.left.get_indexer(target_as_index.left)\n        right_indexer = self.right.get_indexer(target_as_index.right)\n        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)\n    elif not is_object_dtype(target_as_index):\n        # homogeneous scalar index: use IntervalTree\n        target_as_index = self._maybe_convert_i8(target_as_index)\n        indexer = self._engine.get_indexer(target_as_index.values)\n    else:\n        # heterogeneous scalar index: defer elementwise to get_loc\n        # (non-overlapping so get_loc guarantees scalar of KeyError)\n        indexer = []\n        for key in target_as_index:\n            try:\n                loc = self.get_loc(key)\n            except KeyError:\n                loc = -1\n            indexer.append(loc)\n\n    return ensure_platform_int(indexer)\n",
+                    "decorators": [
+                        "Substitution(**dict(_index_doc_kwargs, **{'raises_section': textwrap.dedent('\\n        Raises\\n        ------\\n        NotImplementedError\\n            If any method argument other than the default of\\n            None is specified as these are not yet implemented.\\n        ')}))",
+                        "Appender(_index_shared_docs['get_indexer'])"
+                    ],
+                    "docstring": null,
+                    "start_line": 907,
+                    "variables": {
+                        "AnyArrayLike": [
+                            926
+                        ],
+                        "Optional": [
+                            928,
+                            929,
+                            927
+                        ],
+                        "str": [
+                            927
+                        ],
+                        "int": [
+                            928
+                        ],
+                        "Any": [
+                            929
+                        ],
+                        "self._check_method": [
+                            932
+                        ],
+                        "self": [
+                            963,
+                            932,
+                            964,
+                            934,
+                            971,
+                            945,
+                            946,
+                            950,
+                            952,
+                            958,
+                            959
+                        ],
+                        "method": [
+                            932
+                        ],
+                        "self.is_overlapping": [
+                            934
+                        ],
+                        "msg": [
+                            939,
+                            935
+                        ],
+                        "InvalidIndexError": [
+                            939
+                        ],
+                        "target_as_index": [
+                            961,
+                            963,
+                            964,
+                            969,
+                            941,
+                            943,
+                            945,
+                            950,
+                            952,
+                            953,
+                            958,
+                            959
+                        ],
+                        "ensure_index": [
+                            941
+                        ],
+                        "target": [
+                            941
+                        ],
+                        "isinstance": [
+                            943
+                        ],
+                        "IntervalIndex": [
+                            943
+                        ],
+                        "self.equals": [
+                            945
+                        ],
+                        "np.arange": [
+                            946
+                        ],
+                        "np": [
+                            960,
+                            953,
+                            946,
+                            930
+                        ],
+                        "len": [
+                            953,
+                            946
+                        ],
+                        "common_subtype": [
+                            952,
+                            949
+                        ],
+                        "find_common_type": [
+                            949
+                        ],
+                        "self.dtype.subtype": [
+                            950
+                        ],
+                        "self.dtype": [
+                            950
+                        ],
+                        "target_as_index.dtype.subtype": [
+                            950
+                        ],
+                        "target_as_index.dtype": [
+                            950
+                        ],
+                        "self.closed": [
+                            952
+                        ],
+                        "target_as_index.closed": [
+                            952
+                        ],
+                        "is_object_dtype": [
+                            952,
+                            961
+                        ],
+                        "np.repeat": [
+                            953
+                        ],
+                        "np.intp": [
+                            953
+                        ],
+                        "left_indexer": [
+                            960,
+                            958
+                        ],
+                        "self.left.get_indexer": [
+                            958
+                        ],
+                        "self.left": [
+                            958
+                        ],
+                        "target_as_index.left": [
+                            958
+                        ],
+                        "right_indexer": [
+                            960,
+                            959
+                        ],
+                        "self.right.get_indexer": [
+                            959
+                        ],
+                        "self.right": [
+                            959
+                        ],
+                        "target_as_index.right": [
+                            959
+                        ],
+                        "indexer": [
+                            960,
+                            964,
+                            968,
+                            974,
+                            976
+                        ],
+                        "np.where": [
+                            960
+                        ],
+                        "self._maybe_convert_i8": [
+                            963
+                        ],
+                        "self._engine.get_indexer": [
+                            964
+                        ],
+                        "self._engine": [
+                            964
+                        ],
+                        "target_as_index.values": [
+                            964
+                        ],
+                        "key": [
+                            969,
+                            971
+                        ],
+                        "loc": [
+                            971,
+                            973,
+                            974
+                        ],
+                        "self.get_loc": [
+                            971
+                        ],
+                        "KeyError": [
+                            972
+                        ],
+                        "indexer.append": [
+                            974
+                        ],
+                        "ensure_platform_int": [
+                            976
+                        ],
+                        "Substitution": [
+                            907
+                        ],
+                        "dict": [
+                            908
+                        ],
+                        "_index_doc_kwargs": [
+                            909
+                        ],
+                        "textwrap.dedent": [
+                            911
+                        ],
+                        "textwrap": [
+                            911
+                        ],
+                        "Appender": [
+                            923
+                        ],
+                        "_index_shared_docs": [
+                            923
+                        ],
+                        "np.ndarray": [
+                            930
+                        ]
+                    },
+                    "filtered_variables": {
+                        "AnyArrayLike": [
+                            926
+                        ],
+                        "Optional": [
+                            928,
+                            929,
+                            927
+                        ],
+                        "Any": [
+                            929
+                        ],
+                        "self._check_method": [
+                            932
+                        ],
+                        "self": [
+                            963,
+                            932,
+                            964,
+                            934,
+                            971,
+                            945,
+                            946,
+                            950,
+                            952,
+                            958,
+                            959
+                        ],
+                        "method": [
+                            932
+                        ],
+                        "self.is_overlapping": [
+                            934
+                        ],
+                        "msg": [
+                            939,
+                            935
+                        ],
+                        "InvalidIndexError": [
+                            939
+                        ],
+                        "target_as_index": [
+                            961,
+                            963,
+                            964,
+                            969,
+                            941,
+                            943,
+                            945,
+                            950,
+                            952,
+                            953,
+                            958,
+                            959
+                        ],
+                        "ensure_index": [
+                            941
+                        ],
+                        "target": [
+                            941
+                        ],
+                        "IntervalIndex": [
+                            943
+                        ],
+                        "self.equals": [
+                            945
+                        ],
+                        "np.arange": [
+                            946
+                        ],
+                        "np": [
+                            960,
+                            953,
+                            946,
+                            930
+                        ],
+                        "common_subtype": [
+                            952,
+                            949
+                        ],
+                        "find_common_type": [
+                            949
+                        ],
+                        "self.dtype.subtype": [
+                            950
+                        ],
+                        "self.dtype": [
+                            950
+                        ],
+                        "target_as_index.dtype.subtype": [
+                            950
+                        ],
+                        "target_as_index.dtype": [
+                            950
+                        ],
+                        "self.closed": [
+                            952
+                        ],
+                        "target_as_index.closed": [
+                            952
+                        ],
+                        "is_object_dtype": [
+                            952,
+                            961
+                        ],
+                        "np.repeat": [
+                            953
+                        ],
+                        "np.intp": [
+                            953
+                        ],
+                        "left_indexer": [
+                            960,
+                            958
+                        ],
+                        "self.left.get_indexer": [
+                            958
+                        ],
+                        "self.left": [
+                            958
+                        ],
+                        "target_as_index.left": [
+                            958
+                        ],
+                        "right_indexer": [
+                            960,
+                            959
+                        ],
+                        "self.right.get_indexer": [
+                            959
+                        ],
+                        "self.right": [
+                            959
+                        ],
+                        "target_as_index.right": [
+                            959
+                        ],
+                        "indexer": [
+                            960,
+                            964,
+                            968,
+                            974,
+                            976
+                        ],
+                        "np.where": [
+                            960
+                        ],
+                        "self._maybe_convert_i8": [
+                            963
+                        ],
+                        "self._engine.get_indexer": [
+                            964
+                        ],
+                        "self._engine": [
+                            964
+                        ],
+                        "target_as_index.values": [
+                            964
+                        ],
+                        "key": [
+                            969,
+                            971
+                        ],
+                        "loc": [
+                            971,
+                            973,
+                            974
+                        ],
+                        "self.get_loc": [
+                            971
+                        ],
+                        "indexer.append": [
+                            974
+                        ],
+                        "ensure_platform_int": [
+                            976
+                        ],
+                        "Substitution": [
+                            907
+                        ],
+                        "_index_doc_kwargs": [
+                            909
+                        ],
+                        "textwrap.dedent": [
+                            911
+                        ],
+                        "textwrap": [
+                            911
+                        ],
+                        "Appender": [
+                            923
+                        ],
+                        "_index_shared_docs": [
+                            923
+                        ],
+                        "np.ndarray": [
+                            930
+                        ]
+                    },
+                    "diff_line_number": 960,
+                    "class_data": {
+                        "signature": "class IntervalIndex(IntervalMixin, Index)",
+                        "docstring": null,
+                        "constructor_docstring": null,
+                        "functions": [
+                            "__new__(cls, data, closed=None, dtype=None, copy=False, name=None, verify_integrity=True)",
+                            "_simple_new(cls, array, name, closed=None)",
+                            "from_breaks(cls, breaks, closed='right', name=None, copy=False, dtype=None)",
+                            "from_arrays(cls, left, right, closed='right', name=None, copy=False, dtype=None)",
+                            "from_tuples(cls, data, closed='right', name=None, copy=False, dtype=None)",
+                            "_shallow_copy(self, left=None, right=None, **kwargs)",
+                            "_isnan(self)",
+                            "_engine(self)",
+                            "__contains__(self, key) -> bool",
+                            "to_tuples(self, na_tuple=True)",
+                            "_multiindex(self)",
+                            "left(self)",
+                            "right(self)",
+                            "closed(self)",
+                            "set_closed(self, closed)",
+                            "length(self)",
+                            "size(self)",
+                            "__len__(self) -> int",
+                            "values(self)",
+                            "_values(self)",
+                            "_ndarray_values(self) -> np.ndarray",
+                            "__array__(self, result=None)",
+                            "__array_wrap__(self, result, context=None)",
+                            "__reduce__(self)",
+                            "copy(self, deep=False, name=None)",
+                            "astype(self, dtype, copy=True)",
+                            "dtype(self)",
+                            "inferred_type(self) -> str",
+                            "memory_usage(self, deep: bool=False) -> int",
+                            "mid(self)",
+                            "is_monotonic(self) -> bool",
+                            "is_monotonic_increasing(self) -> bool",
+                            "is_monotonic_decreasing(self) -> bool",
+                            "is_unique(self)",
+                            "is_non_overlapping_monotonic(self)",
+                            "is_overlapping(self)",
+                            "_convert_scalar_indexer(self, key, kind=None)",
+                            "_maybe_cast_slice_bound(self, label, side, kind)",
+                            "_convert_list_indexer(self, keyarr, kind=None)",
+                            "_maybe_cast_indexed(self, key)",
+                            "_can_reindex(self, indexer: np.ndarray) -> None",
+                            "_needs_i8_conversion(self, key)",
+                            "_maybe_convert_i8(self, key)",
+                            "_check_method(self, method)",
+                            "_searchsorted_monotonic(self, label, side, exclude_label=False)",
+                            "_find_non_overlapping_monotonic_bounds(self, key)",
+                            "get_loc(self, key: Any, method: Optional[str]=None, tolerance=None) -> Union[int, slice, np.ndarray]",
+                            "get_indexer(self, target: AnyArrayLike, method: Optional[str]=None, limit: Optional[int]=None, tolerance: Optional[Any]=None) -> np.ndarray",
+                            "get_indexer_non_unique(self, target: AnyArrayLike) -> Tuple[np.ndarray, np.ndarray]",
+                            "get_indexer_for(self, target: AnyArrayLike, **kwargs) -> np.ndarray",
+                            "get_value(self, series: ABCSeries, key: Any) -> Any",
+                            "where(self, cond, other=None)",
+                            "delete(self, loc)",
+                            "insert(self, loc, item)",
+                            "_concat_same_dtype(self, to_concat, name)",
+                            "take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs)",
+                            "__getitem__(self, value)",
+                            "_format_with_header(self, header, **kwargs)",
+                            "_format_native_types(self, na_rep='NaN', quoting=None, **kwargs)",
+                            "_format_data(self, name=None)",
+                            "_format_attrs(self)",
+                            "_format_space(self)",
+                            "argsort(self, *args, **kwargs)",
+                            "equals(self, other) -> bool",
+                            "contains(self, other)",
+                            "overlaps(self, other)",
+                            "intersection(self, other: 'IntervalIndex', sort: bool=False) -> 'IntervalIndex'",
+                            "_intersection_unique(self, other: 'IntervalIndex') -> 'IntervalIndex'",
+                            "_intersection_non_unique(self, other: 'IntervalIndex') -> 'IntervalIndex'",
+                            "_setop(op_name: str, sort=None)",
+                            "is_all_dates(self) -> bool",
+                            "func(self, other, sort=sort)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_typ",
+                            "_comparables",
+                            "_attributes",
+                            "_defer_to_indexing",
+                            "_mask",
+                            "union",
+                            "difference",
+                            "symmetric_difference"
+                        ],
+                        "class_decorators": [
+                            "Appender(_interval_shared_docs['class'] % dict(klass='IntervalIndex', summary='Immutable index of intervals that are closed on the same side.', name=_index_doc_kwargs['name'], versionadded='0.20.0', extra_attributes='is_overlapping\\nvalues\\n', extra_methods='', examples=textwrap.dedent(\"    Examples\\n    --------\\n    A new ``IntervalIndex`` is typically constructed using\\n    :func:`interval_range`:\\n\\n    >>> pd.interval_range(start=0, end=5)\\n    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],\\n                  closed='right',\\n                  dtype='interval[int64]')\\n\\n    It may also be constructed using one of the constructor\\n    methods: :meth:`IntervalIndex.from_arrays`,\\n    :meth:`IntervalIndex.from_breaks`, and :meth:`IntervalIndex.from_tuples`.\\n\\n    See further examples in the doc strings of ``interval_range`` and the\\n    mentioned constructor methods.\\n    \")))"
+                        ]
+                    }
+                }
+            ],
+            "inscope_functions": [
+                "_get_next_label(label)",
+                "_get_prev_label(label)",
+                "_get_interval_closed_bounds(interval)",
+                "_new_IntervalIndex(cls, d)",
+                "_is_valid_endpoint(endpoint) -> bool",
+                "_is_type_compatible(a, b) -> bool",
+                "interval_range(start=None, end=None, periods=None, freq=None, name=None, closed='right')",
+                "__init__(self, op_name)",
+                "__call__(self, setop)",
+                "__new__(cls, data, closed=None, dtype=None, copy=False, name=None, verify_integrity=True)",
+                "_simple_new(cls, array, name, closed=None)",
+                "from_breaks(cls, breaks, closed='right', name=None, copy=False, dtype=None)",
+                "from_arrays(cls, left, right, closed='right', name=None, copy=False, dtype=None)",
+                "from_tuples(cls, data, closed='right', name=None, copy=False, dtype=None)",
+                "_shallow_copy(self, left=None, right=None, **kwargs)",
+                "_isnan(self)",
+                "_engine(self)",
+                "__contains__(self, key) -> bool",
+                "to_tuples(self, na_tuple=True)",
+                "_multiindex(self)",
+                "left(self)",
+                "right(self)",
+                "closed(self)",
+                "set_closed(self, closed)",
+                "length(self)",
+                "size(self)",
+                "__len__(self) -> int",
+                "values(self)",
+                "_values(self)",
+                "_ndarray_values(self) -> np.ndarray",
+                "__array__(self, result=None)",
+                "__array_wrap__(self, result, context=None)",
+                "__reduce__(self)",
+                "copy(self, deep=False, name=None)",
+                "astype(self, dtype, copy=True)",
+                "dtype(self)",
+                "inferred_type(self) -> str",
+                "memory_usage(self, deep: bool=False) -> int",
+                "mid(self)",
+                "is_monotonic(self) -> bool",
+                "is_monotonic_increasing(self) -> bool",
+                "is_monotonic_decreasing(self) -> bool",
+                "is_unique(self)",
+                "is_non_overlapping_monotonic(self)",
+                "is_overlapping(self)",
+                "_convert_scalar_indexer(self, key, kind=None)",
+                "_maybe_cast_slice_bound(self, label, side, kind)",
+                "_convert_list_indexer(self, keyarr, kind=None)",
+                "_maybe_cast_indexed(self, key)",
+                "_can_reindex(self, indexer: np.ndarray) -> None",
+                "_needs_i8_conversion(self, key)",
+                "_maybe_convert_i8(self, key)",
+                "_check_method(self, method)",
+                "_searchsorted_monotonic(self, label, side, exclude_label=False)",
+                "_find_non_overlapping_monotonic_bounds(self, key)",
+                "get_loc(self, key: Any, method: Optional[str]=None, tolerance=None) -> Union[int, slice, np.ndarray]",
+                "get_indexer(self, target: AnyArrayLike, method: Optional[str]=None, limit: Optional[int]=None, tolerance: Optional[Any]=None) -> np.ndarray",
+                "get_indexer_non_unique(self, target: AnyArrayLike) -> Tuple[np.ndarray, np.ndarray]",
+                "get_indexer_for(self, target: AnyArrayLike, **kwargs) -> np.ndarray",
+                "get_value(self, series: ABCSeries, key: Any) -> Any",
+                "where(self, cond, other=None)",
+                "delete(self, loc)",
+                "insert(self, loc, item)",
+                "_concat_same_dtype(self, to_concat, name)",
+                "take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs)",
+                "__getitem__(self, value)",
+                "_format_with_header(self, header, **kwargs)",
+                "_format_native_types(self, na_rep='NaN', quoting=None, **kwargs)",
+                "_format_data(self, name=None)",
+                "_format_attrs(self)",
+                "_format_space(self)",
+                "argsort(self, *args, **kwargs)",
+                "equals(self, other) -> bool",
+                "contains(self, other)",
+                "overlaps(self, other)",
+                "intersection(self, other: 'IntervalIndex', sort: bool=False) -> 'IntervalIndex'",
+                "_intersection_unique(self, other: 'IntervalIndex') -> 'IntervalIndex'",
+                "_intersection_non_unique(self, other: 'IntervalIndex') -> 'IntervalIndex'",
+                "_setop(op_name: str, sort=None)",
+                "is_all_dates(self) -> bool",
+                "func(intvidx_self, other, sort=False)",
+                "func(self, other, sort=sort)"
+            ],
+            "variables_in_file": {
+                "_VALID_CLOSED": [
+                    432,
+                    57
+                ],
+                "_index_doc_kwargs": [
+                    1122,
+                    170,
+                    1036,
+                    909,
+                    978,
+                    58,
+                    60,
+                    575
+                ],
+                "dict": [
+                    480,
+                    1220,
+                    167,
+                    250,
+                    300,
+                    365,
+                    908,
+                    274,
+                    1240,
+                    58,
+                    412,
+                    61
+                ],
+                "ibase._index_doc_kwargs": [
+                    58
+                ],
+                "ibase": [
+                    58
+                ],
+                "_index_doc_kwargs.update": [
+                    60
+                ],
+                "textwrap.dedent": [
+                    65,
+                    1222,
+                    302,
+                    911,
+                    174,
+                    276,
+                    1242,
+                    252,
+                    414
+                ],
+                "textwrap": [
+                    65,
+                    1222,
+                    302,
+                    911,
+                    174,
+                    276,
+                    1242,
+                    252,
+                    414
+                ],
+                "dtype": [
+                    97,
+                    293,
+                    267,
+                    76,
+                    78,
+                    79,
+                    81,
+                    498,
+                    83,
+                    501,
+                    316,
+                    90,
+                    92,
+                    93,
+                    222,
+                    95
+                ],
+                "getattr": [
+                    641,
+                    90,
+                    139,
+                    76,
+                    1328,
+                    1210
+                ],
+                "label": [
+                    96,
+                    641,
+                    98,
+                    802,
+                    100,
+                    806,
+                    808,
+                    76,
+                    77,
+                    80,
+                    82,
+                    84,
+                    86,
+                    790,
+                    90,
+                    91,
+                    94
+                ],
+                "type": [
+                    482,
+                    100,
+                    1190,
+                    76,
+                    497,
+                    86,
+                    1337,
+                    90
+                ],
+                "isinstance": [
+                    1541,
+                    138,
+                    662,
+                    790,
+                    1048,
+                    669,
+                    811,
+                    943,
+                    818,
+                    1207,
+                    1090,
+                    712,
+                    716,
+                    77,
+                    1364,
+                    1365,
+                    985,
+                    91,
+                    1373,
+                    1374,
+                    354,
+                    996,
+                    743,
+                    1004,
+                    1132,
+                    886
+                ],
+                "Timestamp": [
+                    1541,
+                    715,
+                    77,
+                    1364,
+                    91,
+                    1373
+                ],
+                "Timedelta": [
+                    715,
+                    77,
+                    1365,
+                    91,
+                    1374
+                ],
+                "is_datetime_or_timedelta_dtype": [
+                    93,
+                    79
+                ],
+                "is_datetime64tz_dtype": [
+                    93,
+                    79
+                ],
+                "np.timedelta64": [
+                    80,
+                    94
+                ],
+                "np": [
+                    669,
+                    1312,
+                    930,
+                    1315,
+                    1060,
+                    677,
+                    1196,
+                    946,
+                    565,
+                    953,
+                    960,
+                    840,
+                    80,
+                    84,
+                    469,
+                    468,
+                    981,
+                    94,
+                    992,
+                    993,
+                    98,
+                    1005,
+                    1006,
+                    1009,
+                    1011,
+                    1020,
+                    1535
+                ],
+                "is_integer_dtype": [
+                    671,
+                    81,
+                    95
+                ],
+                "is_float_dtype": [
+                    97,
+                    666,
+                    83
+                ],
+                "np.nextafter": [
+                    98,
+                    84
+                ],
+                "np.infty": [
+                    98,
+                    84
+                ],
+                "TypeError": [
+                    896,
+                    100,
+                    1516,
+                    86,
+                    1497,
+                    158
+                ],
+                "repr": [
+                    100,
+                    86,
+                    1183
+                ],
+                "left": [
+                    323,
+                    293,
+                    745,
+                    555,
+                    108,
+                    748,
+                    110,
+                    113,
+                    337,
+                    339,
+                    561,
+                    565,
+                    567
+                ],
+                "right": [
+                    323,
+                    293,
+                    746,
+                    108,
+                    556,
+                    748,
+                    112,
+                    113,
+                    338,
+                    339,
+                    561,
+                    567
+                ],
+                "interval.left": [
+                    108
+                ],
+                "interval": [
+                    108,
+                    109,
+                    111
+                ],
+                "interval.right": [
+                    108
+                ],
+                "interval.open_left": [
+                    109
+                ],
+                "_get_next_label": [
+                    802,
+                    110
+                ],
+                "interval.open_right": [
+                    111
+                ],
+                "_get_prev_label": [
+                    112,
+                    806
+                ],
+                "cls.from_arrays": [
+                    121
+                ],
+                "cls": [
+                    226,
+                    291,
+                    217,
+                    295,
+                    265,
+                    269,
+                    241,
+                    121,
+                    315,
+                    317
+                ],
+                "d": [
+                    480,
+                    121,
+                    482,
+                    481
+                ],
+                "self.op_name": [
+                    140,
+                    131,
+                    139,
+                    158
+                ],
+                "self": [
+                    517,
+                    1032,
+                    1033,
+                    1034,
+                    524,
+                    1042,
+                    1043,
+                    532,
+                    1047,
+                    1051,
+                    540,
+                    1053,
+                    1059,
+                    548,
+                    1060,
+                    1061,
+                    555,
+                    556,
+                    558,
+                    1071,
+                    1072,
+                    1073,
+                    577,
+                    1091,
+                    1105,
+                    1106,
+                    1107,
+                    1124,
+                    1127,
+                    1128,
+                    1131,
+                    1133,
+                    1143,
+                    632,
+                    641,
+                    1153,
+                    131,
+                    649,
+                    1161,
+                    139,
+                    140,
+                    1164,
+                    1165,
+                    1171,
+                    1172,
+                    665,
+                    1177,
+                    1180,
+                    158,
+                    1183,
+                    1184,
+                    1185,
+                    1186,
+                    1190,
+                    1196,
+                    1202,
+                    691,
+                    1213,
+                    1214,
+                    1215,
+                    713,
+                    1236,
+                    739,
+                    1254,
+                    745,
+                    746,
+                    748,
+                    1261,
+                    1262,
+                    1263,
+                    1266,
+                    1269,
+                    762,
+                    1290,
+                    1291,
+                    783,
+                    1296,
+                    797,
+                    798,
+                    800,
+                    801,
+                    1312,
+                    1314,
+                    804,
+                    805,
+                    1315,
+                    1319,
+                    1323,
+                    812,
+                    815,
+                    1328,
+                    1329,
+                    1333,
+                    1337,
+                    826,
+                    828,
+                    830,
+                    834,
+                    323,
+                    324,
+                    835,
+                    326,
+                    331,
+                    332,
+                    333,
+                    337,
+                    338,
+                    339,
+                    358,
+                    879,
+                    887,
+                    889,
+                    379,
+                    892,
+                    893,
+                    895,
+                    384,
+                    392,
+                    400,
+                    408,
+                    932,
+                    934,
+                    945,
+                    946,
+                    437,
+                    438,
+                    950,
+                    952,
+                    446,
+                    958,
+                    959,
+                    451,
+                    963,
+                    964,
+                    454,
+                    971,
+                    461,
+                    465,
+                    469,
+                    473,
+                    987,
+                    989,
+                    480,
+                    481,
+                    482,
+                    486,
+                    489,
+                    1003,
+                    493,
+                    497,
+                    498,
+                    500,
+                    1013,
+                    1014,
+                    506
+                ],
+                "op_name": [
+                    1328,
+                    131,
+                    1326
+                ],
+                "intvidx_self._assert_can_do_setop": [
+                    135
+                ],
+                "intvidx_self": [
+                    160,
+                    135,
+                    139,
+                    141,
+                    143,
+                    151
+                ],
+                "other": [
+                    135,
+                    136,
+                    138,
+                    139,
+                    1290,
+                    1291,
+                    143,
+                    151,
+                    160,
+                    1058,
+                    1059,
+                    1060,
+                    1314,
+                    1318,
+                    1328,
+                    1329,
+                    1202,
+                    1207,
+                    1208,
+                    1210,
+                    1213,
+                    1214,
+                    1215,
+                    1236,
+                    1254,
+                    1262,
+                    1263,
+                    1266,
+                    1269
+                ],
+                "ensure_index": [
+                    136,
+                    737,
+                    941,
+                    982
+                ],
+                "IntervalIndex": [
+                    997,
+                    138,
+                    747,
+                    1356,
+                    1548,
+                    943,
+                    662,
+                    1207,
+                    985
+                ],
+                "result": [
+                    139,
+                    141,
+                    142,
+                    1328,
+                    1332,
+                    1333,
+                    1335,
+                    1337,
+                    323,
+                    326,
+                    477,
+                    1124,
+                    1128,
+                    1131,
+                    1132,
+                    1133,
+                    1136,
+                    241,
+                    242,
+                    243,
+                    244,
+                    245
+                ],
+                "intvidx_self.astype": [
+                    139
+                ],
+                "object": [
+                    139
+                ],
+                "result.astype": [
+                    141
+                ],
+                "intvidx_self.dtype": [
+                    141,
+                    151
+                ],
+                "intvidx_self.closed": [
+                    143
+                ],
+                "other.closed": [
+                    1215,
+                    143
+                ],
+                "msg": [
+                    768,
+                    777,
+                    778,
+                    144,
+                    148,
+                    791,
+                    792,
+                    154,
+                    158,
+                    935,
+                    939,
+                    433,
+                    434,
+                    1487,
+                    1488,
+                    1490,
+                    1491,
+                    1496,
+                    1497,
+                    1115,
+                    1119,
+                    763
+                ],
+                "ValueError": [
+                    768,
+                    1092,
+                    1481,
+                    1503,
+                    780,
+                    1101,
+                    1488,
+                    434,
+                    1491,
+                    692,
+                    148,
+                    1050,
+                    1502,
+                    1119
+                ],
+                "subtypes": [
+                    152,
+                    151
+                ],
+                "intvidx_self.dtype.subtype": [
+                    151
+                ],
+                "other.dtype.subtype": [
+                    151
+                ],
+                "other.dtype": [
+                    151
+                ],
+                "common_subtype": [
+                    949,
+                    952,
+                    152,
+                    153,
+                    986,
+                    989
+                ],
+                "find_common_type": [
+                    152,
+                    986,
+                    949
+                ],
+                "is_object_dtype": [
+                    961,
+                    996,
+                    952,
+                    153,
+                    989
+                ],
+                "msg.format": [
+                    768,
+                    778,
+                    1488,
+                    434,
+                    1491,
+                    1497,
+                    158
+                ],
+                "setop": [
+                    160
+                ],
+                "sort": [
+                    160,
+                    1328,
+                    1327,
+                    1271
+                ],
+                "func": [
+                    162,
+                    1339
+                ],
+                "IntervalMixin": [
+                    241,
+                    811,
+                    196,
+                    790
+                ],
+                "Index": [
+                    513,
+                    196,
+                    755,
+                    1210,
+                    380,
+                    669
+                ],
+                "_typ": [
+                    197
+                ],
+                "_comparables": [
+                    198
+                ],
+                "_attributes": [
+                    199
+                ],
+                "_defer_to_indexing": [
+                    202
+                ],
+                "_mask": [
+                    205
+                ],
+                "name": [
+                    1120,
+                    226,
+                    295,
+                    490,
+                    491,
+                    1548,
+                    269,
+                    243,
+                    214,
+                    215,
+                    317
+                ],
+                "hasattr": [
+                    214
+                ],
+                "data": [
+                    219,
+                    316,
+                    214,
+                    215
+                ],
+                "data.name": [
+                    215
+                ],
+                "rewrite_exception": [
+                    291,
+                    265,
+                    497,
+                    217,
+                    315
+                ],
+                "cls.__name__": [
+                    217,
+                    291,
+                    265,
+                    315
+                ],
+                "array": [
+                    226,
+                    292,
+                    486,
+                    295,
+                    488,
+                    266,
+                    269,
+                    493,
+                    242,
+                    437,
+                    438,
+                    218
+                ],
+                "IntervalArray": [
+                    292,
+                    266,
+                    1132,
+                    218,
+                    316
+                ],
+                "closed": [
+                    293,
+                    267,
+                    1548,
+                    432,
+                    434,
+                    437,
+                    316,
+                    220
+                ],
+                "copy": [
+                    293,
+                    267,
+                    498,
+                    501,
+                    316,
+                    221
+                ],
+                "verify_integrity": [
+                    223
+                ],
+                "cls._simple_new": [
+                    226,
+                    317,
+                    269,
+                    295
+                ],
+                "IntervalMixin.__new__": [
+                    241
+                ],
+                "result._data": [
+                    242
+                ],
+                "result.name": [
+                    243
+                ],
+                "result._reset_identity": [
+                    244
+                ],
+                "classmethod": [
+                    297,
+                    228,
+                    271,
+                    247
+                ],
+                "IntervalArray.from_breaks": [
+                    266
+                ],
+                "breaks": [
+                    1538,
+                    1546,
+                    267,
+                    1548,
+                    1535
+                ],
+                "Appender": [
+                    513,
+                    643,
+                    1036,
+                    272,
+                    410,
+                    923,
+                    1056,
+                    165,
+                    298,
+                    575,
+                    321,
+                    1218,
+                    978,
+                    1238,
+                    1122,
+                    484,
+                    1256,
+                    363,
+                    495,
+                    248,
+                    634
+                ],
+                "_interval_shared_docs": [
+                    1219,
+                    166,
+                    299,
+                    364,
+                    273,
+                    1239,
+                    249,
+                    411,
+                    575
+                ],
+                "IntervalArray.from_arrays": [
+                    292
+                ],
+                "arr": [
+                    316,
+                    317
+                ],
+                "IntervalArray.from_tuples": [
+                    316
+                ],
+                "self._data._shallow_copy": [
+                    323
+                ],
+                "self._data": [
+                    392,
+                    524,
+                    400,
+                    408,
+                    437,
+                    446,
+                    577,
+                    323,
+                    451,
+                    461,
+                    465,
+                    1236,
+                    469,
+                    1124,
+                    486,
+                    1254,
+                    1131,
+                    506,
+                    379
+                ],
+                "attributes": [
+                    324,
+                    325,
+                    326,
+                    1127,
+                    1128,
+                    489,
+                    491,
+                    493
+                ],
+                "self._get_attributes_dict": [
+                    481,
+                    324,
+                    489,
+                    1127
+                ],
+                "attributes.update": [
+                    491,
+                    325
+                ],
+                "kwargs": [
+                    1125,
+                    325,
+                    1034,
+                    1143,
+                    1147
+                ],
+                "self._simple_new": [
+                    1128,
+                    438,
+                    493,
+                    326
+                ],
+                "_index_shared_docs": [
+                    1056,
+                    321,
+                    1122,
+                    643,
+                    484,
+                    1256,
+                    1036,
+                    495,
+                    978,
+                    634,
+                    923
+                ],
+                "self._mask": [
+                    331,
+                    332,
+                    333
+                ],
+                "isna": [
+                    1097,
+                    332
+                ],
+                "self.left": [
+                    384,
+                    517,
+                    1290,
+                    797,
+                    798,
+                    804,
+                    1319,
+                    555,
+                    1196,
+                    1071,
+                    1213,
+                    958,
+                    454,
+                    332,
+                    337,
+                    1105,
+                    480,
+                    1261,
+                    889,
+                    895
+                ],
+                "cache_readonly": [
+                    550,
+                    519,
+                    328,
+                    456,
+                    542,
+                    574,
+                    526,
+                    463,
+                    335,
+                    467,
+                    534,
+                    503,
+                    382
+                ],
+                "self._maybe_convert_i8": [
+                    963,
+                    745,
+                    746,
+                    337,
+                    338,
+                    1013
+                ],
+                "self.right": [
+                    384,
+                    480,
+                    800,
+                    517,
+                    1319,
+                    1291,
+                    556,
+                    1196,
+                    1261,
+                    1072,
+                    338,
+                    1106,
+                    889,
+                    1214,
+                    959,
+                    895
+                ],
+                "IntervalTree": [
+                    339
+                ],
+                "self.closed": [
+                    1215,
+                    1091,
+                    748,
+                    339,
+                    887,
+                    952,
+                    1337,
+                    989,
+                    1183
+                ],
+                "key": [
+                    898,
+                    902,
+                    1039,
+                    1040,
+                    1041,
+                    1043,
+                    662,
+                    663,
+                    1047,
+                    1048,
+                    1049,
+                    667,
+                    668,
+                    669,
+                    670,
+                    1051,
+                    672,
+                    673,
+                    1053,
+                    675,
+                    811,
+                    813,
+                    816,
+                    818,
+                    820,
+                    821,
+                    834,
+                    835,
+                    712,
+                    713,
+                    969,
+                    971,
+                    716,
+                    889,
+                    735,
+                    736,
+                    737,
+                    354,
+                    739,
+                    358,
+                    742,
+                    743,
+                    745,
+                    746,
+                    1001,
+                    1003,
+                    887,
+                    752,
+                    755,
+                    756,
+                    883,
+                    884,
+                    759,
+                    886,
+                    888,
+                    637,
+                    638,
+                    895
+                ],
+                "Interval": [
+                    354,
+                    1090,
+                    743,
+                    712,
+                    747,
+                    886
+                ],
+                "self.get_loc": [
+                    971,
+                    1053,
+                    358,
+                    1003
+                ],
+                "KeyError": [
+                    898,
+                    902,
+                    360,
+                    972,
+                    653,
+                    1007,
+                    784,
+                    884,
+                    1045,
+                    888
+                ],
+                "bool": [
+                    1312,
+                    514,
+                    1259,
+                    1198,
+                    527,
+                    1359,
+                    341,
+                    535,
+                    1371,
+                    1342,
+                    543
+                ],
+                "tuples": [
+                    379,
+                    380
+                ],
+                "self._data.to_tuples": [
+                    379
+                ],
+                "na_tuple": [
+                    379
+                ],
+                "MultiIndex.from_arrays": [
+                    384
+                ],
+                "MultiIndex": [
+                    384
+                ],
+                "self._data._left": [
+                    392
+                ],
+                "property": [
+                    448,
+                    386,
+                    579,
+                    394,
+                    402,
+                    440,
+                    508,
+                    1341
+                ],
+                "self._data._right": [
+                    400
+                ],
+                "self._data._closed": [
+                    408
+                ],
+                "self._data.set_closed": [
+                    437
+                ],
+                "self.name": [
+                    1184,
+                    1185,
+                    438
+                ],
+                "self._data.length": [
+                    446
+                ],
+                "self._data.size": [
+                    451
+                ],
+                "len": [
+                    992,
+                    993,
+                    1153,
+                    1312,
+                    1315,
+                    454,
+                    1190,
+                    946,
+                    691,
+                    1044,
+                    953,
+                    1114,
+                    828
+                ],
+                "int": [
+                    928,
+                    673,
+                    514,
+                    453,
+                    840,
+                    1494,
+                    1529
+                ],
+                "np.array": [
+                    1009,
+                    469,
+                    1006
+                ],
+                "np.ndarray": [
+                    930,
+                    677,
+                    840,
+                    468,
+                    981,
+                    1020,
+                    669
+                ],
+                "self._ndarray_values": [
+                    473
+                ],
+                "d.update": [
+                    481
+                ],
+                "_new_IntervalIndex": [
+                    482
+                ],
+                "deep": [
+                    517,
+                    487
+                ],
+                "array.copy": [
+                    488
+                ],
+                "__name__": [
+                    497,
+                    1190
+                ],
+                "new_values": [
+                    498,
+                    499,
+                    500
+                ],
+                "self.values.astype": [
+                    498
+                ],
+                "self.values": [
+                    498,
+                    1060
+                ],
+                "is_interval_dtype": [
+                    712,
+                    499,
+                    1208,
+                    743
+                ],
+                "self._shallow_copy": [
+                    1061,
+                    1133,
+                    1073,
+                    1107,
+                    500
+                ],
+                "new_values.left": [
+                    500
+                ],
+                "new_values.right": [
+                    500
+                ],
+                "astype": [
+                    501
+                ],
+                "super": [
+                    1120,
+                    637,
+                    1147,
+                    501
+                ],
+                "self._data.dtype": [
+                    506
+                ],
+                "str": [
+                    1156,
+                    839,
+                    1325,
+                    509,
+                    927
+                ],
+                "self.left.memory_usage": [
+                    517
+                ],
+                "self.right.memory_usage": [
+                    517
+                ],
+                "Index.memory_usage.__doc__": [
+                    513
+                ],
+                "Index.memory_usage": [
+                    513
+                ],
+                "self._data.mid": [
+                    524
+                ],
+                "self.is_monotonic_increasing": [
+                    532
+                ],
+                "self._engine.is_monotonic_increasing": [
+                    540
+                ],
+                "self._engine": [
+                    632,
+                    964,
+                    540,
+                    1014
+                ],
+                "is_monotonic_increasing": [
+                    548
+                ],
+                "sum": [
+                    558,
+                    1263
+                ],
+                "self.isna": [
+                    1315,
+                    558,
+                    1263
+                ],
+                "left.is_unique": [
+                    561
+                ],
+                "right.is_unique": [
+                    561
+                ],
+                "seen_pairs": [
+                    568,
+                    570,
+                    564
+                ],
+                "set": [
+                    564,
+                    1318
+                ],
+                "check_idx": [
+                    565,
+                    566
+                ],
+                "np.where": [
+                    960,
+                    1060,
+                    565
+                ],
+                "left.duplicated": [
+                    565
+                ],
+                "idx": [
+                    566,
+                    567
+                ],
+                "pair": [
+                    568,
+                    570,
+                    567
+                ],
+                "seen_pairs.add": [
+                    570
+                ],
+                "self._data.is_non_overlapping_monotonic": [
+                    577
+                ],
+                "self._engine.is_overlapping": [
+                    632
+                ],
+                "kind": [
+                    641,
+                    636,
+                    637
+                ],
+                "_convert_scalar_indexer": [
+                    637
+                ],
+                "_maybe_cast_slice_bound": [
+                    641
+                ],
+                "side": [
+                    808,
+                    641,
+                    797,
+                    798
+                ],
+                "locs": [
+                    649,
+                    1003,
+                    652,
+                    1004,
+                    1005,
+                    655,
+                    1006,
+                    1009,
+                    1010
+                ],
+                "self.get_indexer_for": [
+                    649
+                ],
+                "keyarr": [
+                    649
+                ],
+                "any": [
+                    1361,
+                    652
+                ],
+                "subtype": [
+                    768,
+                    762,
+                    671,
+                    665,
+                    666,
+                    767
+                ],
+                "self.dtype.subtype": [
+                    1333,
+                    950,
+                    665,
+                    762,
+                    987
+                ],
+                "self.dtype": [
+                    1186,
+                    1333,
+                    950,
+                    665,
+                    762,
+                    987
+                ],
+                "is_integer": [
+                    672,
+                    1536,
+                    667,
+                    1495
+                ],
+                "float": [
+                    668
+                ],
+                "key.astype": [
+                    670
+                ],
+                "self.is_overlapping": [
+                    1032,
+                    1042,
+                    691,
+                    934
+                ],
+                "indexer": [
+                    960,
+                    964,
+                    968,
+                    1000,
+                    974,
+                    1294,
+                    976,
+                    1296,
+                    1010,
+                    691,
+                    1011,
+                    1014,
+                    1018
+                ],
+                "self._needs_i8_conversion": [
+                    713,
+                    739
+                ],
+                "key.left": [
+                    713,
+                    813,
+                    745,
+                    889
+                ],
+                "i8_types": [
+                    715,
+                    716
+                ],
+                "DatetimeIndex": [
+                    715
+                ],
+                "TimedeltaIndex": [
+                    715
+                ],
+                "original": [
+                    740,
+                    735
+                ],
+                "is_list_like": [
+                    736,
+                    1041,
+                    883
+                ],
+                "scalar": [
+                    747,
+                    742,
+                    750
+                ],
+                "is_scalar": [
+                    1097,
+                    742
+                ],
+                "key.right": [
+                    816,
+                    889,
+                    746
+                ],
+                "constructor": [
+                    747,
+                    748
+                ],
+                "IntervalIndex.from_arrays": [
+                    747
+                ],
+                "key_dtype": [
+                    752,
+                    768,
+                    755,
+                    767
+                ],
+                "key_i8": [
+                    752,
+                    770,
+                    755,
+                    759
+                ],
+                "infer_dtype_from_scalar": [
+                    752
+                ],
+                "key.dtype": [
+                    755
+                ],
+                "key.asi8": [
+                    755
+                ],
+                "key.hasnans": [
+                    756
+                ],
+                "key_i8.where": [
+                    759
+                ],
+                "key._isnan": [
+                    759
+                ],
+                "is_dtype_equal": [
+                    767
+                ],
+                "method": [
+                    932,
+                    773,
+                    776,
+                    778,
+                    879
+                ],
+                "NotImplementedError": [
+                    792,
+                    778,
+                    822
+                ],
+                "self.is_non_overlapping_monotonic": [
+                    783
+                ],
+                "self.left.is_monotonic_increasing": [
+                    797,
+                    798
+                ],
+                "sub_idx": [
+                    800,
+                    808,
+                    804
+                ],
+                "self.open_right": [
+                    801
+                ],
+                "exclude_label": [
+                    801,
+                    805
+                ],
+                "self.open_left": [
+                    805
+                ],
+                "sub_idx._searchsorted_monotonic": [
+                    808
+                ],
+                "start": [
+                    1536,
+                    1546,
+                    812,
+                    820,
+                    823,
+                    824,
+                    826,
+                    1473,
+                    834,
+                    1475,
+                    836,
+                    1477,
+                    1480,
+                    1486,
+                    1488,
+                    1511,
+                    1512,
+                    1524,
+                    1525,
+                    1529,
+                    1530,
+                    1531,
+                    1533,
+                    1535
+                ],
+                "self._searchsorted_monotonic": [
+                    834,
+                    835,
+                    812,
+                    815,
+                    826,
+                    830
+                ],
+                "key.open_left": [
+                    813
+                ],
+                "stop": [
+                    835,
+                    836,
+                    815,
+                    820,
+                    827,
+                    828,
+                    830
+                ],
+                "key.open_right": [
+                    816
+                ],
+                "slice": [
+                    840,
+                    1048,
+                    818,
+                    1004
+                ],
+                "key.start": [
+                    820
+                ],
+                "key.stop": [
+                    820
+                ],
+                "key.step": [
+                    1049,
+                    821
+                ],
+                "Any": [
+                    929,
+                    1037,
+                    839
+                ],
+                "Optional": [
+                    927,
+                    929,
+                    928,
+                    839
+                ],
+                "self._check_method": [
+                    932,
+                    879
+                ],
+                "key.closed": [
+                    887
+                ],
+                "mask": [
+                    1312,
+                    900,
+                    1316,
+                    904,
+                    905,
+                    1321,
+                    1323,
+                    889,
+                    895
+                ],
+                "op_left": [
+                    892,
+                    895
+                ],
+                "self.closed_left": [
+                    892
+                ],
+                "le": [
+                    892,
+                    893
+                ],
+                "lt": [
+                    892,
+                    893
+                ],
+                "op_right": [
+                    893,
+                    895
+                ],
+                "self.closed_right": [
+                    893
+                ],
+                "matches": [
+                    900,
+                    901,
+                    903
+                ],
+                "mask.sum": [
+                    900
+                ],
+                "mask.argmax": [
+                    904
+                ],
+                "lib.maybe_booleans_to_slice": [
+                    905
+                ],
+                "lib": [
+                    905
+                ],
+                "mask.view": [
+                    905
+                ],
+                "Union": [
+                    840
+                ],
+                "AnyArrayLike": [
+                    980,
+                    1020,
+                    926
+                ],
+                "InvalidIndexError": [
+                    939
+                ],
+                "target_as_index": [
+                    941,
+                    943,
+                    945,
+                    950,
+                    952,
+                    953,
+                    958,
+                    959,
+                    961,
+                    963,
+                    964,
+                    969,
+                    982,
+                    985,
+                    987,
+                    989,
+                    992,
+                    993,
+                    996,
+                    997,
+                    1001,
+                    1013,
+                    1015
+                ],
+                "target": [
+                    1033,
+                    1034,
+                    941,
+                    982
+                ],
+                "self.equals": [
+                    945
+                ],
+                "np.arange": [
+                    993,
+                    946,
+                    1315,
+                    1005
+                ],
+                "target_as_index.dtype.subtype": [
+                    987,
+                    950
+                ],
+                "target_as_index.dtype": [
+                    987,
+                    950
+                ],
+                "target_as_index.closed": [
+                    952,
+                    989
+                ],
+                "np.repeat": [
+                    992,
+                    953
+                ],
+                "np.intp": [
+                    953
+                ],
+                "left_indexer": [
+                    960,
+                    958
+                ],
+                "self.left.get_indexer": [
+                    1290,
+                    958
+                ],
+                "target_as_index.left": [
+                    958
+                ],
+                "right_indexer": [
+                    960,
+                    959
+                ],
+                "self.right.get_indexer": [
+                    1291,
+                    959
+                ],
+                "target_as_index.right": [
+                    959
+                ],
+                "self._engine.get_indexer": [
+                    964
+                ],
+                "target_as_index.values": [
+                    964,
+                    1015
+                ],
+                "loc": [
+                    971,
+                    973,
+                    974,
+                    1071,
+                    1040,
+                    1072,
+                    1105,
+                    1043,
+                    1106,
+                    1047,
+                    1051,
+                    1053,
+                    1054
+                ],
+                "indexer.append": [
+                    1010,
+                    974
+                ],
+                "ensure_platform_int": [
+                    976,
+                    1018
+                ],
+                "Substitution": [
+                    907
+                ],
+                "missing": [
+                    1000,
+                    1008,
+                    1043,
+                    1044,
+                    1014,
+                    1018
+                ],
+                "i": [
+                    1319,
+                    1001,
+                    1321,
+                    1008,
+                    1114
+                ],
+                "enumerate": [
+                    1001,
+                    1319
+                ],
+                "locs.start": [
+                    1005
+                ],
+                "locs.stop": [
+                    1005
+                ],
+                "locs.step": [
+                    1005
+                ],
+                "missing.append": [
+                    1008
+                ],
+                "np.concatenate": [
+                    1011
+                ],
+                "self._engine.get_indexer_non_unique": [
+                    1014
+                ],
+                "Tuple": [
+                    981
+                ],
+                "self.get_indexer_non_unique": [
+                    1033,
+                    1043
+                ],
+                "self.get_indexer": [
+                    1034,
+                    1047
+                ],
+                "ABCSeries": [
+                    1037
+                ],
+                "com.is_bool_indexer": [
+                    1039
+                ],
+                "com": [
+                    1536,
+                    1473,
+                    1474,
+                    1379,
+                    1477,
+                    1480,
+                    1039,
+                    1524
+                ],
+                "self._convert_slice_indexer": [
+                    1051
+                ],
+                "series.iloc": [
+                    1054
+                ],
+                "series": [
+                    1054
+                ],
+                "self._na_value": [
+                    1059
+                ],
+                "values": [
+                    1060,
+                    1061
+                ],
+                "cond": [
+                    1060
+                ],
+                "new_left": [
+                    1105,
+                    1073,
+                    1107,
+                    1071
+                ],
+                "self.left.delete": [
+                    1071
+                ],
+                "new_right": [
+                    1072,
+                    1073,
+                    1106,
+                    1107
+                ],
+                "self.right.delete": [
+                    1072
+                ],
+                "item": [
+                    1090,
+                    1091,
+                    1095,
+                    1096,
+                    1097,
+                    1099
+                ],
+                "item.closed": [
+                    1091
+                ],
+                "left_insert": [
+                    1105,
+                    1099,
+                    1095
+                ],
+                "item.left": [
+                    1095
+                ],
+                "right_insert": [
+                    1096,
+                    1106,
+                    1099
+                ],
+                "item.right": [
+                    1096
+                ],
+                "self.left.insert": [
+                    1105
+                ],
+                "self.right.insert": [
+                    1106
+                ],
+                "i.closed": [
+                    1114
+                ],
+                "to_concat": [
+                    1120,
+                    1114
+                ],
+                "_concat_same_dtype": [
+                    1120
+                ],
+                "self._data.take": [
+                    1124
+                ],
+                "indices": [
+                    1125
+                ],
+                "axis": [
+                    1125
+                ],
+                "allow_fill": [
+                    1125
+                ],
+                "fill_value": [
+                    1125
+                ],
+                "value": [
+                    1131
+                ],
+                "header": [
+                    1143
+                ],
+                "list": [
+                    1143
+                ],
+                "self._format_native_types": [
+                    1143
+                ],
+                "_format_native_types": [
+                    1147
+                ],
+                "na_rep": [
+                    1147
+                ],
+                "quoting": [
+                    1147
+                ],
+                "n": [
+                    1153,
+                    1154,
+                    1158,
+                    1160,
+                    1163,
+                    1169,
+                    1170,
+                    1171,
+                    1172
+                ],
+                "max_seq_items": [
+                    1169,
+                    1154,
+                    1170
+                ],
+                "min": [
+                    1154,
+                    1170
+                ],
+                "get_option": [
+                    1154
+                ],
+                "formatter": [
+                    1156,
+                    1161,
+                    1164,
+                    1165,
+                    1171,
+                    1172,
+                    1177
+                ],
+                "summary": [
+                    1159,
+                    1162,
+                    1166,
+                    1173,
+                    1178,
+                    1180
+                ],
+                "first": [
+                    1161,
+                    1162,
+                    1164,
+                    1166
+                ],
+                "format": [
+                    1504,
+                    1186,
+                    1191,
+                    1162,
+                    1166,
+                    1173,
+                    1178
+                ],
+                "last": [
+                    1165,
+                    1166
+                ],
+                "head": [
+                    1171,
+                    1174
+                ],
+                "x": [
+                    1536,
+                    1171,
+                    1172,
+                    1177,
+                    1373,
+                    1374
+                ],
+                "tail": [
+                    1177,
+                    1178,
+                    1172,
+                    1174
+                ],
+                "join": [
+                    1178,
+                    1174
+                ],
+                "self._format_space": [
+                    1180
+                ],
+                "attrs": [
+                    1185,
+                    1186,
+                    1187,
+                    1183
+                ],
+                "attrs.append": [
+                    1185,
+                    1186
+                ],
+                "default_pprint": [
+                    1185
+                ],
+                "space": [
+                    1190,
+                    1191
+                ],
+                "np.lexsort": [
+                    1196
+                ],
+                "self.is_": [
+                    1202
+                ],
+                "self.left.equals": [
+                    1213
+                ],
+                "other.left": [
+                    1290,
+                    1213,
+                    1318,
+                    1263
+                ],
+                "self.right.equals": [
+                    1214
+                ],
+                "other.right": [
+                    1318,
+                    1291,
+                    1214,
+                    1263
+                ],
+                "self._data.contains": [
+                    1236
+                ],
+                "self._data.overlaps": [
+                    1254
+                ],
+                "self.left.is_unique": [
+                    1261
+                ],
+                "self.right.is_unique": [
+                    1261
+                ],
+                "taken": [
+                    1262,
+                    1266,
+                    1269,
+                    1272,
+                    1274
+                ],
+                "self._intersection_unique": [
+                    1262
+                ],
+                "other.left.is_unique": [
+                    1263
+                ],
+                "other.right.is_unique": [
+                    1263
+                ],
+                "other._intersection_unique": [
+                    1266
+                ],
+                "self._intersection_non_unique": [
+                    1269
+                ],
+                "taken.sort_values": [
+                    1272
+                ],
+                "SetopCheck": [
+                    1257,
+                    1326
+                ],
+                "lindexer": [
+                    1290,
+                    1293,
+                    1294
+                ],
+                "rindexer": [
+                    1291,
+                    1293
+                ],
+                "match": [
+                    1293,
+                    1294
+                ],
+                "lindexer.take": [
+                    1294
+                ],
+                "match.nonzero": [
+                    1294
+                ],
+                "self.take": [
+                    1296
+                ],
+                "np.zeros": [
+                    1312
+                ],
+                "self.hasnans": [
+                    1314
+                ],
+                "other.hasnans": [
+                    1314
+                ],
+                "first_nan_loc": [
+                    1315,
+                    1316
+                ],
+                "other_tups": [
+                    1320,
+                    1318
+                ],
+                "zip": [
+                    1318,
+                    1319
+                ],
+                "tup": [
+                    1320,
+                    1319
+                ],
+                "self._multiindex": [
+                    1328
+                ],
+                "other._multiindex": [
+                    1328
+                ],
+                "result_name": [
+                    1329,
+                    1337
+                ],
+                "get_op_result_name": [
+                    1329
+                ],
+                "result.empty": [
+                    1332
+                ],
+                "result.values.astype": [
+                    1333
+                ],
+                "result.values": [
+                    1333,
+                    1335
+                ],
+                "from_tuples": [
+                    1337
+                ],
+                "union": [
+                    1349
+                ],
+                "_setop": [
+                    1349,
+                    1350,
+                    1351
+                ],
+                "difference": [
+                    1350
+                ],
+                "symmetric_difference": [
+                    1351
+                ],
+                "IntervalIndex._add_logical_methods_disabled": [
+                    1356
+                ],
+                "is_number": [
+                    1376,
+                    1478,
+                    1522,
+                    1363,
+                    1499
+                ],
+                "endpoint": [
+                    1475,
+                    1541,
+                    1478,
+                    1522,
+                    1363,
+                    1364,
+                    1365,
+                    1366
+                ],
+                "is_ts_compat": [
+                    1377,
+                    1373
+                ],
+                "DateOffset": [
+                    1373,
+                    1374
+                ],
+                "is_td_compat": [
+                    1378,
+                    1374
+                ],
+                "a": [
+                    1376,
+                    1377,
+                    1378,
+                    1379
+                ],
+                "b": [
+                    1376,
+                    1377,
+                    1378,
+                    1379
+                ],
+                "com.any_none": [
+                    1379,
+                    1477
+                ],
+                "com.maybe_box_datetimelike": [
+                    1473,
+                    1474
+                ],
+                "end": [
+                    1536,
+                    1474,
+                    1475,
+                    1477,
+                    1511,
+                    1480,
+                    1513,
+                    1546,
+                    1489,
+                    1491,
+                    1524,
+                    1525,
+                    1529,
+                    1531,
+                    1532,
+                    1533,
+                    1535
+                ],
+                "freq": [
+                    1536,
+                    1505,
+                    1533,
+                    1477,
+                    1478,
+                    1480,
+                    1512,
+                    1513,
+                    1546,
+                    1524,
+                    1525,
+                    1531,
+                    1529,
+                    1499,
+                    1501
+                ],
+                "periods": [
+                    1477,
+                    1480,
+                    1546,
+                    1529,
+                    1519,
+                    1520,
+                    1493,
+                    1494,
+                    1495,
+                    1528,
+                    1497,
+                    1531,
+                    1533,
+                    1535
+                ],
+                "com.count_not_none": [
+                    1480
+                ],
+                "_is_valid_endpoint": [
+                    1489,
+                    1486
+                ],
+                "is_float": [
+                    1493
+                ],
+                "to_offset": [
+                    1501
+                ],
+                "all": [
+                    1536,
+                    1509
+                ],
+                "_is_type_compatible": [
+                    1512,
+                    1513,
+                    1511
+                ],
+                "com.all_not_none": [
+                    1524
+                ],
+                "np.linspace": [
+                    1535
+                ],
+                "com.not_none": [
+                    1536
+                ],
+                "maybe_downcast_to_dtype": [
+                    1538
+                ],
+                "range_func": [
+                    1544,
+                    1546,
+                    1542
+                ],
+                "date_range": [
+                    1542
+                ],
+                "timedelta_range": [
+                    1544
+                ],
+                "IntervalIndex.from_breaks": [
+                    1548
+                ]
+            },
+            "filtered_variables_in_file": {
+                "_VALID_CLOSED": [
+                    432,
+                    57
+                ],
+                "_index_doc_kwargs": [
+                    1122,
+                    170,
+                    1036,
+                    909,
+                    978,
+                    58,
+                    60,
+                    575
+                ],
+                "ibase._index_doc_kwargs": [
+                    58
+                ],
+                "ibase": [
+                    58
+                ],
+                "_index_doc_kwargs.update": [
+                    60
+                ],
+                "textwrap.dedent": [
+                    65,
+                    1222,
+                    302,
+                    911,
+                    174,
+                    276,
+                    1242,
+                    252,
+                    414
+                ],
+                "textwrap": [
+                    65,
+                    1222,
+                    302,
+                    911,
+                    174,
+                    276,
+                    1242,
+                    252,
+                    414
+                ],
+                "dtype": [
+                    97,
+                    293,
+                    267,
+                    76,
+                    78,
+                    79,
+                    81,
+                    498,
+                    83,
+                    501,
+                    316,
+                    90,
+                    92,
+                    93,
+                    222,
+                    95
+                ],
+                "label": [
+                    96,
+                    641,
+                    98,
+                    802,
+                    100,
+                    806,
+                    808,
+                    76,
+                    77,
+                    80,
+                    82,
+                    84,
+                    86,
+                    790,
+                    90,
+                    91,
+                    94
+                ],
+                "Timestamp": [
+                    1541,
+                    715,
+                    77,
+                    1364,
+                    91,
+                    1373
+                ],
+                "Timedelta": [
+                    715,
+                    77,
+                    1365,
+                    91,
+                    1374
+                ],
+                "is_datetime_or_timedelta_dtype": [
+                    93,
+                    79
+                ],
+                "is_datetime64tz_dtype": [
+                    93,
+                    79
+                ],
+                "np.timedelta64": [
+                    80,
+                    94
+                ],
+                "np": [
+                    669,
+                    1312,
+                    930,
+                    1315,
+                    1060,
+                    677,
+                    1196,
+                    946,
+                    565,
+                    953,
+                    960,
+                    840,
+                    80,
+                    84,
+                    469,
+                    468,
+                    981,
+                    94,
+                    992,
+                    993,
+                    98,
+                    1005,
+                    1006,
+                    1009,
+                    1011,
+                    1020,
+                    1535
+                ],
+                "is_integer_dtype": [
+                    671,
+                    81,
+                    95
+                ],
+                "is_float_dtype": [
+                    97,
+                    666,
+                    83
+                ],
+                "np.nextafter": [
+                    98,
+                    84
+                ],
+                "np.infty": [
+                    98,
+                    84
+                ],
+                "left": [
+                    323,
+                    293,
+                    745,
+                    555,
+                    108,
+                    748,
+                    110,
+                    113,
+                    337,
+                    339,
+                    561,
+                    565,
+                    567
+                ],
+                "right": [
+                    323,
+                    293,
+                    746,
+                    108,
+                    556,
+                    748,
+                    112,
+                    113,
+                    338,
+                    339,
+                    561,
+                    567
+                ],
+                "interval.left": [
+                    108
+                ],
+                "interval": [
+                    108,
+                    109,
+                    111
+                ],
+                "interval.right": [
+                    108
+                ],
+                "interval.open_left": [
+                    109
+                ],
+                "_get_next_label": [
+                    802,
+                    110
+                ],
+                "interval.open_right": [
+                    111
+                ],
+                "_get_prev_label": [
+                    112,
+                    806
+                ],
+                "cls.from_arrays": [
+                    121
+                ],
+                "cls": [
+                    226,
+                    291,
+                    217,
+                    295,
+                    265,
+                    269,
+                    241,
+                    121,
+                    315,
+                    317
+                ],
+                "d": [
+                    480,
+                    121,
+                    482,
+                    481
+                ],
+                "self.op_name": [
+                    140,
+                    131,
+                    139,
+                    158
+                ],
+                "self": [
+                    517,
+                    1032,
+                    1033,
+                    1034,
+                    524,
+                    1042,
+                    1043,
+                    532,
+                    1047,
+                    1051,
+                    540,
+                    1053,
+                    1059,
+                    548,
+                    1060,
+                    1061,
+                    555,
+                    556,
+                    558,
+                    1071,
+                    1072,
+                    1073,
+                    577,
+                    1091,
+                    1105,
+                    1106,
+                    1107,
+                    1124,
+                    1127,
+                    1128,
+                    1131,
+                    1133,
+                    1143,
+                    632,
+                    641,
+                    1153,
+                    131,
+                    649,
+                    1161,
+                    139,
+                    140,
+                    1164,
+                    1165,
+                    1171,
+                    1172,
+                    665,
+                    1177,
+                    1180,
+                    158,
+                    1183,
+                    1184,
+                    1185,
+                    1186,
+                    1190,
+                    1196,
+                    1202,
+                    691,
+                    1213,
+                    1214,
+                    1215,
+                    713,
+                    1236,
+                    739,
+                    1254,
+                    745,
+                    746,
+                    748,
+                    1261,
+                    1262,
+                    1263,
+                    1266,
+                    1269,
+                    762,
+                    1290,
+                    1291,
+                    783,
+                    1296,
+                    797,
+                    798,
+                    800,
+                    801,
+                    1312,
+                    1314,
+                    804,
+                    805,
+                    1315,
+                    1319,
+                    1323,
+                    812,
+                    815,
+                    1328,
+                    1329,
+                    1333,
+                    1337,
+                    826,
+                    828,
+                    830,
+                    834,
+                    323,
+                    324,
+                    835,
+                    326,
+                    331,
+                    332,
+                    333,
+                    337,
+                    338,
+                    339,
+                    358,
+                    879,
+                    887,
+                    889,
+                    379,
+                    892,
+                    893,
+                    895,
+                    384,
+                    392,
+                    400,
+                    408,
+                    932,
+                    934,
+                    945,
+                    946,
+                    437,
+                    438,
+                    950,
+                    952,
+                    446,
+                    958,
+                    959,
+                    451,
+                    963,
+                    964,
+                    454,
+                    971,
+                    461,
+                    465,
+                    469,
+                    473,
+                    987,
+                    989,
+                    480,
+                    481,
+                    482,
+                    486,
+                    489,
+                    1003,
+                    493,
+                    497,
+                    498,
+                    500,
+                    1013,
+                    1014,
+                    506
+                ],
+                "op_name": [
+                    1328,
+                    131,
+                    1326
+                ],
+                "intvidx_self._assert_can_do_setop": [
+                    135
+                ],
+                "intvidx_self": [
+                    160,
+                    135,
+                    139,
+                    141,
+                    143,
+                    151
+                ],
+                "other": [
+                    135,
+                    136,
+                    138,
+                    139,
+                    1290,
+                    1291,
+                    143,
+                    151,
+                    160,
+                    1058,
+                    1059,
+                    1060,
+                    1314,
+                    1318,
+                    1328,
+                    1329,
+                    1202,
+                    1207,
+                    1208,
+                    1210,
+                    1213,
+                    1214,
+                    1215,
+                    1236,
+                    1254,
+                    1262,
+                    1263,
+                    1266,
+                    1269
+                ],
+                "ensure_index": [
+                    136,
+                    737,
+                    941,
+                    982
+                ],
+                "IntervalIndex": [
+                    997,
+                    138,
+                    747,
+                    1356,
+                    1548,
+                    943,
+                    662,
+                    1207,
+                    985
+                ],
+                "result": [
+                    139,
+                    141,
+                    142,
+                    1328,
+                    1332,
+                    1333,
+                    1335,
+                    1337,
+                    323,
+                    326,
+                    477,
+                    1124,
+                    1128,
+                    1131,
+                    1132,
+                    1133,
+                    1136,
+                    241,
+                    242,
+                    243,
+                    244,
+                    245
+                ],
+                "intvidx_self.astype": [
+                    139
+                ],
+                "result.astype": [
+                    141
+                ],
+                "intvidx_self.dtype": [
+                    141,
+                    151
+                ],
+                "intvidx_self.closed": [
+                    143
+                ],
+                "other.closed": [
+                    1215,
+                    143
+                ],
+                "msg": [
+                    768,
+                    777,
+                    778,
+                    144,
+                    148,
+                    791,
+                    792,
+                    154,
+                    158,
+                    935,
+                    939,
+                    433,
+                    434,
+                    1487,
+                    1488,
+                    1490,
+                    1491,
+                    1496,
+                    1497,
+                    1115,
+                    1119,
+                    763
+                ],
+                "subtypes": [
+                    152,
+                    151
+                ],
+                "intvidx_self.dtype.subtype": [
+                    151
+                ],
+                "other.dtype.subtype": [
+                    151
+                ],
+                "other.dtype": [
+                    151
+                ],
+                "common_subtype": [
+                    949,
+                    952,
+                    152,
+                    153,
+                    986,
+                    989
+                ],
+                "find_common_type": [
+                    152,
+                    986,
+                    949
+                ],
+                "is_object_dtype": [
+                    961,
+                    996,
+                    952,
+                    153,
+                    989
+                ],
+                "msg.format": [
+                    768,
+                    778,
+                    1488,
+                    434,
+                    1491,
+                    1497,
+                    158
+                ],
+                "setop": [
+                    160
+                ],
+                "sort": [
+                    160,
+                    1328,
+                    1327,
+                    1271
+                ],
+                "func": [
+                    162,
+                    1339
+                ],
+                "IntervalMixin": [
+                    241,
+                    811,
+                    196,
+                    790
+                ],
+                "Index": [
+                    513,
+                    196,
+                    755,
+                    1210,
+                    380,
+                    669
+                ],
+                "_typ": [
+                    197
+                ],
+                "_comparables": [
+                    198
+                ],
+                "_attributes": [
+                    199
+                ],
+                "_defer_to_indexing": [
+                    202
+                ],
+                "_mask": [
+                    205
+                ],
+                "name": [
+                    1120,
+                    226,
+                    295,
+                    490,
+                    491,
+                    1548,
+                    269,
+                    243,
+                    214,
+                    215,
+                    317
+                ],
+                "data": [
+                    219,
+                    316,
+                    214,
+                    215
+                ],
+                "data.name": [
+                    215
+                ],
+                "rewrite_exception": [
+                    291,
+                    265,
+                    497,
+                    217,
+                    315
+                ],
+                "cls.__name__": [
+                    217,
+                    291,
+                    265,
+                    315
+                ],
+                "array": [
+                    226,
+                    292,
+                    486,
+                    295,
+                    488,
+                    266,
+                    269,
+                    493,
+                    242,
+                    437,
+                    438,
+                    218
+                ],
+                "IntervalArray": [
+                    292,
+                    266,
+                    1132,
+                    218,
+                    316
+                ],
+                "closed": [
+                    293,
+                    267,
+                    1548,
+                    432,
+                    434,
+                    437,
+                    316,
+                    220
+                ],
+                "copy": [
+                    293,
+                    267,
+                    498,
+                    501,
+                    316,
+                    221
+                ],
+                "verify_integrity": [
+                    223
+                ],
+                "cls._simple_new": [
+                    226,
+                    317,
+                    269,
+                    295
+                ],
+                "IntervalMixin.__new__": [
+                    241
+                ],
+                "result._data": [
+                    242
+                ],
+                "result.name": [
+                    243
+                ],
+                "result._reset_identity": [
+                    244
+                ],
+                "IntervalArray.from_breaks": [
+                    266
+                ],
+                "breaks": [
+                    1538,
+                    1546,
+                    267,
+                    1548,
+                    1535
+                ],
+                "Appender": [
+                    513,
+                    643,
+                    1036,
+                    272,
+                    410,
+                    923,
+                    1056,
+                    165,
+                    298,
+                    575,
+                    321,
+                    1218,
+                    978,
+                    1238,
+                    1122,
+                    484,
+                    1256,
+                    363,
+                    495,
+                    248,
+                    634
+                ],
+                "_interval_shared_docs": [
+                    1219,
+                    166,
+                    299,
+                    364,
+                    273,
+                    1239,
+                    249,
+                    411,
+                    575
+                ],
+                "IntervalArray.from_arrays": [
+                    292
+                ],
+                "arr": [
+                    316,
+                    317
+                ],
+                "IntervalArray.from_tuples": [
+                    316
+                ],
+                "self._data._shallow_copy": [
+                    323
+                ],
+                "self._data": [
+                    392,
+                    524,
+                    400,
+                    408,
+                    437,
+                    446,
+                    577,
+                    323,
+                    451,
+                    461,
+                    465,
+                    1236,
+                    469,
+                    1124,
+                    486,
+                    1254,
+                    1131,
+                    506,
+                    379
+                ],
+                "attributes": [
+                    324,
+                    325,
+                    326,
+                    1127,
+                    1128,
+                    489,
+                    491,
+                    493
+                ],
+                "self._get_attributes_dict": [
+                    481,
+                    324,
+                    489,
+                    1127
+                ],
+                "attributes.update": [
+                    491,
+                    325
+                ],
+                "kwargs": [
+                    1125,
+                    325,
+                    1034,
+                    1143,
+                    1147
+                ],
+                "self._simple_new": [
+                    1128,
+                    438,
+                    493,
+                    326
+                ],
+                "_index_shared_docs": [
+                    1056,
+                    321,
+                    1122,
+                    643,
+                    484,
+                    1256,
+                    1036,
+                    495,
+                    978,
+                    634,
+                    923
+                ],
+                "self._mask": [
+                    331,
+                    332,
+                    333
+                ],
+                "isna": [
+                    1097,
+                    332
+                ],
+                "self.left": [
+                    384,
+                    517,
+                    1290,
+                    797,
+                    798,
+                    804,
+                    1319,
+                    555,
+                    1196,
+                    1071,
+                    1213,
+                    958,
+                    454,
+                    332,
+                    337,
+                    1105,
+                    480,
+                    1261,
+                    889,
+                    895
+                ],
+                "cache_readonly": [
+                    550,
+                    519,
+                    328,
+                    456,
+                    542,
+                    574,
+                    526,
+                    463,
+                    335,
+                    467,
+                    534,
+                    503,
+                    382
+                ],
+                "self._maybe_convert_i8": [
+                    963,
+                    745,
+                    746,
+                    337,
+                    338,
+                    1013
+                ],
+                "self.right": [
+                    384,
+                    480,
+                    800,
+                    517,
+                    1319,
+                    1291,
+                    556,
+                    1196,
+                    1261,
+                    1072,
+                    338,
+                    1106,
+                    889,
+                    1214,
+                    959,
+                    895
+                ],
+                "IntervalTree": [
+                    339
+                ],
+                "self.closed": [
+                    1215,
+                    1091,
+                    748,
+                    339,
+                    887,
+                    952,
+                    1337,
+                    989,
+                    1183
+                ],
+                "key": [
+                    898,
+                    902,
+                    1039,
+                    1040,
+                    1041,
+                    1043,
+                    662,
+                    663,
+                    1047,
+                    1048,
+                    1049,
+                    667,
+                    668,
+                    669,
+                    670,
+                    1051,
+                    672,
+                    673,
+                    1053,
+                    675,
+                    811,
+                    813,
+                    816,
+                    818,
+                    820,
+                    821,
+                    834,
+                    835,
+                    712,
+                    713,
+                    969,
+                    971,
+                    716,
+                    889,
+                    735,
+                    736,
+                    737,
+                    354,
+                    739,
+                    358,
+                    742,
+                    743,
+                    745,
+                    746,
+                    1001,
+                    1003,
+                    887,
+                    752,
+                    755,
+                    756,
+                    883,
+                    884,
+                    759,
+                    886,
+                    888,
+                    637,
+                    638,
+                    895
+                ],
+                "Interval": [
+                    354,
+                    1090,
+                    743,
+                    712,
+                    747,
+                    886
+                ],
+                "self.get_loc": [
+                    971,
+                    1053,
+                    358,
+                    1003
+                ],
+                "tuples": [
+                    379,
+                    380
+                ],
+                "self._data.to_tuples": [
+                    379
+                ],
+                "na_tuple": [
+                    379
+                ],
+                "MultiIndex.from_arrays": [
+                    384
+                ],
+                "MultiIndex": [
+                    384
+                ],
+                "self._data._left": [
+                    392
+                ],
+                "self._data._right": [
+                    400
+                ],
+                "self._data._closed": [
+                    408
+                ],
+                "self._data.set_closed": [
+                    437
+                ],
+                "self.name": [
+                    1184,
+                    1185,
+                    438
+                ],
+                "self._data.length": [
+                    446
+                ],
+                "self._data.size": [
+                    451
+                ],
+                "np.array": [
+                    1009,
+                    469,
+                    1006
+                ],
+                "np.ndarray": [
+                    930,
+                    677,
+                    840,
+                    468,
+                    981,
+                    1020,
+                    669
+                ],
+                "self._ndarray_values": [
+                    473
+                ],
+                "d.update": [
+                    481
+                ],
+                "_new_IntervalIndex": [
+                    482
+                ],
+                "deep": [
+                    517,
+                    487
+                ],
+                "array.copy": [
+                    488
+                ],
+                "new_values": [
+                    498,
+                    499,
+                    500
+                ],
+                "self.values.astype": [
+                    498
+                ],
+                "self.values": [
+                    498,
+                    1060
+                ],
+                "is_interval_dtype": [
+                    712,
+                    499,
+                    1208,
+                    743
+                ],
+                "self._shallow_copy": [
+                    1061,
+                    1133,
+                    1073,
+                    1107,
+                    500
+                ],
+                "new_values.left": [
+                    500
+                ],
+                "new_values.right": [
+                    500
+                ],
+                "astype": [
+                    501
+                ],
+                "self._data.dtype": [
+                    506
+                ],
+                "self.left.memory_usage": [
+                    517
+                ],
+                "self.right.memory_usage": [
+                    517
+                ],
+                "Index.memory_usage.__doc__": [
+                    513
+                ],
+                "Index.memory_usage": [
+                    513
+                ],
+                "self._data.mid": [
+                    524
+                ],
+                "self.is_monotonic_increasing": [
+                    532
+                ],
+                "self._engine.is_monotonic_increasing": [
+                    540
+                ],
+                "self._engine": [
+                    632,
+                    964,
+                    540,
+                    1014
+                ],
+                "is_monotonic_increasing": [
+                    548
+                ],
+                "self.isna": [
+                    1315,
+                    558,
+                    1263
+                ],
+                "left.is_unique": [
+                    561
+                ],
+                "right.is_unique": [
+                    561
+                ],
+                "seen_pairs": [
+                    568,
+                    570,
+                    564
+                ],
+                "check_idx": [
+                    565,
+                    566
+                ],
+                "np.where": [
+                    960,
+                    1060,
+                    565
+                ],
+                "left.duplicated": [
+                    565
+                ],
+                "idx": [
+                    566,
+                    567
+                ],
+                "pair": [
+                    568,
+                    570,
+                    567
+                ],
+                "seen_pairs.add": [
+                    570
+                ],
+                "self._data.is_non_overlapping_monotonic": [
+                    577
+                ],
+                "self._engine.is_overlapping": [
+                    632
+                ],
+                "kind": [
+                    641,
+                    636,
+                    637
+                ],
+                "_convert_scalar_indexer": [
+                    637
+                ],
+                "_maybe_cast_slice_bound": [
+                    641
+                ],
+                "side": [
+                    808,
+                    641,
+                    797,
+                    798
+                ],
+                "locs": [
+                    649,
+                    1003,
+                    652,
+                    1004,
+                    1005,
+                    655,
+                    1006,
+                    1009,
+                    1010
+                ],
+                "self.get_indexer_for": [
+                    649
+                ],
+                "keyarr": [
+                    649
+                ],
+                "subtype": [
+                    768,
+                    762,
+                    671,
+                    665,
+                    666,
+                    767
+                ],
+                "self.dtype.subtype": [
+                    1333,
+                    950,
+                    665,
+                    762,
+                    987
+                ],
+                "self.dtype": [
+                    1186,
+                    1333,
+                    950,
+                    665,
+                    762,
+                    987
+                ],
+                "is_integer": [
+                    672,
+                    1536,
+                    667,
+                    1495
+                ],
+                "key.astype": [
+                    670
+                ],
+                "self.is_overlapping": [
+                    1032,
+                    1042,
+                    691,
+                    934
+                ],
+                "indexer": [
+                    960,
+                    964,
+                    968,
+                    1000,
+                    974,
+                    1294,
+                    976,
+                    1296,
+                    1010,
+                    691,
+                    1011,
+                    1014,
+                    1018
+                ],
+                "self._needs_i8_conversion": [
+                    713,
+                    739
+                ],
+                "key.left": [
+                    713,
+                    813,
+                    745,
+                    889
+                ],
+                "i8_types": [
+                    715,
+                    716
+                ],
+                "DatetimeIndex": [
+                    715
+                ],
+                "TimedeltaIndex": [
+                    715
+                ],
+                "original": [
+                    740,
+                    735
+                ],
+                "is_list_like": [
+                    736,
+                    1041,
+                    883
+                ],
+                "scalar": [
+                    747,
+                    742,
+                    750
+                ],
+                "is_scalar": [
+                    1097,
+                    742
+                ],
+                "key.right": [
+                    816,
+                    889,
+                    746
+                ],
+                "constructor": [
+                    747,
+                    748
+                ],
+                "IntervalIndex.from_arrays": [
+                    747
+                ],
+                "key_dtype": [
+                    752,
+                    768,
+                    755,
+                    767
+                ],
+                "key_i8": [
+                    752,
+                    770,
+                    755,
+                    759
+                ],
+                "infer_dtype_from_scalar": [
+                    752
+                ],
+                "key.dtype": [
+                    755
+                ],
+                "key.asi8": [
+                    755
+                ],
+                "key.hasnans": [
+                    756
+                ],
+                "key_i8.where": [
+                    759
+                ],
+                "key._isnan": [
+                    759
+                ],
+                "is_dtype_equal": [
+                    767
+                ],
+                "method": [
+                    932,
+                    773,
+                    776,
+                    778,
+                    879
+                ],
+                "self.is_non_overlapping_monotonic": [
+                    783
+                ],
+                "self.left.is_monotonic_increasing": [
+                    797,
+                    798
+                ],
+                "sub_idx": [
+                    800,
+                    808,
+                    804
+                ],
+                "self.open_right": [
+                    801
+                ],
+                "exclude_label": [
+                    801,
+                    805
+                ],
+                "self.open_left": [
+                    805
+                ],
+                "sub_idx._searchsorted_monotonic": [
+                    808
+                ],
+                "start": [
+                    1536,
+                    1546,
+                    812,
+                    820,
+                    823,
+                    824,
+                    826,
+                    1473,
+                    834,
+                    1475,
+                    836,
+                    1477,
+                    1480,
+                    1486,
+                    1488,
+                    1511,
+                    1512,
+                    1524,
+                    1525,
+                    1529,
+                    1530,
+                    1531,
+                    1533,
+                    1535
+                ],
+                "self._searchsorted_monotonic": [
+                    834,
+                    835,
+                    812,
+                    815,
+                    826,
+                    830
+                ],
+                "key.open_left": [
+                    813
+                ],
+                "stop": [
+                    835,
+                    836,
+                    815,
+                    820,
+                    827,
+                    828,
+                    830
+                ],
+                "key.open_right": [
+                    816
+                ],
+                "key.start": [
+                    820
+                ],
+                "key.stop": [
+                    820
+                ],
+                "key.step": [
+                    1049,
+                    821
+                ],
+                "Any": [
+                    929,
+                    1037,
+                    839
+                ],
+                "Optional": [
+                    927,
+                    929,
+                    928,
+                    839
+                ],
+                "self._check_method": [
+                    932,
+                    879
+                ],
+                "key.closed": [
+                    887
+                ],
+                "mask": [
+                    1312,
+                    900,
+                    1316,
+                    904,
+                    905,
+                    1321,
+                    1323,
+                    889,
+                    895
+                ],
+                "op_left": [
+                    892,
+                    895
+                ],
+                "self.closed_left": [
+                    892
+                ],
+                "le": [
+                    892,
+                    893
+                ],
+                "lt": [
+                    892,
+                    893
+                ],
+                "op_right": [
+                    893,
+                    895
+                ],
+                "self.closed_right": [
+                    893
+                ],
+                "matches": [
+                    900,
+                    901,
+                    903
+                ],
+                "mask.sum": [
+                    900
+                ],
+                "mask.argmax": [
+                    904
+                ],
+                "lib.maybe_booleans_to_slice": [
+                    905
+                ],
+                "lib": [
+                    905
+                ],
+                "mask.view": [
+                    905
+                ],
+                "Union": [
+                    840
+                ],
+                "AnyArrayLike": [
+                    980,
+                    1020,
+                    926
+                ],
+                "InvalidIndexError": [
+                    939
+                ],
+                "target_as_index": [
+                    941,
+                    943,
+                    945,
+                    950,
+                    952,
+                    953,
+                    958,
+                    959,
+                    961,
+                    963,
+                    964,
+                    969,
+                    982,
+                    985,
+                    987,
+                    989,
+                    992,
+                    993,
+                    996,
+                    997,
+                    1001,
+                    1013,
+                    1015
+                ],
+                "target": [
+                    1033,
+                    1034,
+                    941,
+                    982
+                ],
+                "self.equals": [
+                    945
+                ],
+                "np.arange": [
+                    993,
+                    946,
+                    1315,
+                    1005
+                ],
+                "target_as_index.dtype.subtype": [
+                    987,
+                    950
+                ],
+                "target_as_index.dtype": [
+                    987,
+                    950
+                ],
+                "target_as_index.closed": [
+                    952,
+                    989
+                ],
+                "np.repeat": [
+                    992,
+                    953
+                ],
+                "np.intp": [
+                    953
+                ],
+                "left_indexer": [
+                    960,
+                    958
+                ],
+                "self.left.get_indexer": [
+                    1290,
+                    958
+                ],
+                "target_as_index.left": [
+                    958
+                ],
+                "right_indexer": [
+                    960,
+                    959
+                ],
+                "self.right.get_indexer": [
+                    1291,
+                    959
+                ],
+                "target_as_index.right": [
+                    959
+                ],
+                "self._engine.get_indexer": [
+                    964
+                ],
+                "target_as_index.values": [
+                    964,
+                    1015
+                ],
+                "loc": [
+                    971,
+                    973,
+                    974,
+                    1071,
+                    1040,
+                    1072,
+                    1105,
+                    1043,
+                    1106,
+                    1047,
+                    1051,
+                    1053,
+                    1054
+                ],
+                "indexer.append": [
+                    1010,
+                    974
+                ],
+                "ensure_platform_int": [
+                    976,
+                    1018
+                ],
+                "Substitution": [
+                    907
+                ],
+                "missing": [
+                    1000,
+                    1008,
+                    1043,
+                    1044,
+                    1014,
+                    1018
+                ],
+                "i": [
+                    1319,
+                    1001,
+                    1321,
+                    1008,
+                    1114
+                ],
+                "locs.start": [
+                    1005
+                ],
+                "locs.stop": [
+                    1005
+                ],
+                "locs.step": [
+                    1005
+                ],
+                "missing.append": [
+                    1008
+                ],
+                "np.concatenate": [
+                    1011
+                ],
+                "self._engine.get_indexer_non_unique": [
+                    1014
+                ],
+                "Tuple": [
+                    981
+                ],
+                "self.get_indexer_non_unique": [
+                    1033,
+                    1043
+                ],
+                "self.get_indexer": [
+                    1034,
+                    1047
+                ],
+                "ABCSeries": [
+                    1037
+                ],
+                "com.is_bool_indexer": [
+                    1039
+                ],
+                "com": [
+                    1536,
+                    1473,
+                    1474,
+                    1379,
+                    1477,
+                    1480,
+                    1039,
+                    1524
+                ],
+                "self._convert_slice_indexer": [
+                    1051
+                ],
+                "series.iloc": [
+                    1054
+                ],
+                "series": [
+                    1054
+                ],
+                "self._na_value": [
+                    1059
+                ],
+                "values": [
+                    1060,
+                    1061
+                ],
+                "cond": [
+                    1060
+                ],
+                "new_left": [
+                    1105,
+                    1073,
+                    1107,
+                    1071
+                ],
+                "self.left.delete": [
+                    1071
+                ],
+                "new_right": [
+                    1072,
+                    1073,
+                    1106,
+                    1107
+                ],
+                "self.right.delete": [
+                    1072
+                ],
+                "item": [
+                    1090,
+                    1091,
+                    1095,
+                    1096,
+                    1097,
+                    1099
+                ],
+                "item.closed": [
+                    1091
+                ],
+                "left_insert": [
+                    1105,
+                    1099,
+                    1095
+                ],
+                "item.left": [
+                    1095
+                ],
+                "right_insert": [
+                    1096,
+                    1106,
+                    1099
+                ],
+                "item.right": [
+                    1096
+                ],
+                "self.left.insert": [
+                    1105
+                ],
+                "self.right.insert": [
+                    1106
+                ],
+                "i.closed": [
+                    1114
+                ],
+                "to_concat": [
+                    1120,
+                    1114
+                ],
+                "_concat_same_dtype": [
+                    1120
+                ],
+                "self._data.take": [
+                    1124
+                ],
+                "indices": [
+                    1125
+                ],
+                "axis": [
+                    1125
+                ],
+                "allow_fill": [
+                    1125
+                ],
+                "fill_value": [
+                    1125
+                ],
+                "value": [
+                    1131
+                ],
+                "header": [
+                    1143
+                ],
+                "self._format_native_types": [
+                    1143
+                ],
+                "_format_native_types": [
+                    1147
+                ],
+                "na_rep": [
+                    1147
+                ],
+                "quoting": [
+                    1147
+                ],
+                "n": [
+                    1153,
+                    1154,
+                    1158,
+                    1160,
+                    1163,
+                    1169,
+                    1170,
+                    1171,
+                    1172
+                ],
+                "max_seq_items": [
+                    1169,
+                    1154,
+                    1170
+                ],
+                "get_option": [
+                    1154
+                ],
+                "formatter": [
+                    1156,
+                    1161,
+                    1164,
+                    1165,
+                    1171,
+                    1172,
+                    1177
+                ],
+                "summary": [
+                    1159,
+                    1162,
+                    1166,
+                    1173,
+                    1178,
+                    1180
+                ],
+                "first": [
+                    1161,
+                    1162,
+                    1164,
+                    1166
+                ],
+                "last": [
+                    1165,
+                    1166
+                ],
+                "head": [
+                    1171,
+                    1174
+                ],
+                "x": [
+                    1536,
+                    1171,
+                    1172,
+                    1177,
+                    1373,
+                    1374
+                ],
+                "tail": [
+                    1177,
+                    1178,
+                    1172,
+                    1174
+                ],
+                "join": [
+                    1178,
+                    1174
+                ],
+                "self._format_space": [
+                    1180
+                ],
+                "attrs": [
+                    1185,
+                    1186,
+                    1187,
+                    1183
+                ],
+                "attrs.append": [
+                    1185,
+                    1186
+                ],
+                "default_pprint": [
+                    1185
+                ],
+                "space": [
+                    1190,
+                    1191
+                ],
+                "np.lexsort": [
+                    1196
+                ],
+                "self.is_": [
+                    1202
+                ],
+                "self.left.equals": [
+                    1213
+                ],
+                "other.left": [
+                    1290,
+                    1213,
+                    1318,
+                    1263
+                ],
+                "self.right.equals": [
+                    1214
+                ],
+                "other.right": [
+                    1318,
+                    1291,
+                    1214,
+                    1263
+                ],
+                "self._data.contains": [
+                    1236
+                ],
+                "self._data.overlaps": [
+                    1254
+                ],
+                "self.left.is_unique": [
+                    1261
+                ],
+                "self.right.is_unique": [
+                    1261
+                ],
+                "taken": [
+                    1262,
+                    1266,
+                    1269,
+                    1272,
+                    1274
+                ],
+                "self._intersection_unique": [
+                    1262
+                ],
+                "other.left.is_unique": [
+                    1263
+                ],
+                "other.right.is_unique": [
+                    1263
+                ],
+                "other._intersection_unique": [
+                    1266
+                ],
+                "self._intersection_non_unique": [
+                    1269
+                ],
+                "taken.sort_values": [
+                    1272
+                ],
+                "SetopCheck": [
+                    1257,
+                    1326
+                ],
+                "lindexer": [
+                    1290,
+                    1293,
+                    1294
+                ],
+                "rindexer": [
+                    1291,
+                    1293
+                ],
+                "match": [
+                    1293,
+                    1294
+                ],
+                "lindexer.take": [
+                    1294
+                ],
+                "match.nonzero": [
+                    1294
+                ],
+                "self.take": [
+                    1296
+                ],
+                "np.zeros": [
+                    1312
+                ],
+                "self.hasnans": [
+                    1314
+                ],
+                "other.hasnans": [
+                    1314
+                ],
+                "first_nan_loc": [
+                    1315,
+                    1316
+                ],
+                "other_tups": [
+                    1320,
+                    1318
+                ],
+                "tup": [
+                    1320,
+                    1319
+                ],
+                "self._multiindex": [
+                    1328
+                ],
+                "other._multiindex": [
+                    1328
+                ],
+                "result_name": [
+                    1329,
+                    1337
+                ],
+                "get_op_result_name": [
+                    1329
+                ],
+                "result.empty": [
+                    1332
+                ],
+                "result.values.astype": [
+                    1333
+                ],
+                "result.values": [
+                    1333,
+                    1335
+                ],
+                "from_tuples": [
+                    1337
+                ],
+                "union": [
+                    1349
+                ],
+                "_setop": [
+                    1349,
+                    1350,
+                    1351
+                ],
+                "difference": [
+                    1350
+                ],
+                "symmetric_difference": [
+                    1351
+                ],
+                "IntervalIndex._add_logical_methods_disabled": [
+                    1356
+                ],
+                "is_number": [
+                    1376,
+                    1478,
+                    1522,
+                    1363,
+                    1499
+                ],
+                "endpoint": [
+                    1475,
+                    1541,
+                    1478,
+                    1522,
+                    1363,
+                    1364,
+                    1365,
+                    1366
+                ],
+                "is_ts_compat": [
+                    1377,
+                    1373
+                ],
+                "DateOffset": [
+                    1373,
+                    1374
+                ],
+                "is_td_compat": [
+                    1378,
+                    1374
+                ],
+                "a": [
+                    1376,
+                    1377,
+                    1378,
+                    1379
+                ],
+                "b": [
+                    1376,
+                    1377,
+                    1378,
+                    1379
+                ],
+                "com.any_none": [
+                    1379,
+                    1477
+                ],
+                "com.maybe_box_datetimelike": [
+                    1473,
+                    1474
+                ],
+                "end": [
+                    1536,
+                    1474,
+                    1475,
+                    1477,
+                    1511,
+                    1480,
+                    1513,
+                    1546,
+                    1489,
+                    1491,
+                    1524,
+                    1525,
+                    1529,
+                    1531,
+                    1532,
+                    1533,
+                    1535
+                ],
+                "freq": [
+                    1536,
+                    1505,
+                    1533,
+                    1477,
+                    1478,
+                    1480,
+                    1512,
+                    1513,
+                    1546,
+                    1524,
+                    1525,
+                    1531,
+                    1529,
+                    1499,
+                    1501
+                ],
+                "periods": [
+                    1477,
+                    1480,
+                    1546,
+                    1529,
+                    1519,
+                    1520,
+                    1493,
+                    1494,
+                    1495,
+                    1528,
+                    1497,
+                    1531,
+                    1533,
+                    1535
+                ],
+                "com.count_not_none": [
+                    1480
+                ],
+                "_is_valid_endpoint": [
+                    1489,
+                    1486
+                ],
+                "is_float": [
+                    1493
+                ],
+                "to_offset": [
+                    1501
+                ],
+                "_is_type_compatible": [
+                    1512,
+                    1513,
+                    1511
+                ],
+                "com.all_not_none": [
+                    1524
+                ],
+                "np.linspace": [
+                    1535
+                ],
+                "com.not_none": [
+                    1536
+                ],
+                "maybe_downcast_to_dtype": [
+                    1538
+                ],
+                "range_func": [
+                    1544,
+                    1546,
+                    1542
+                ],
+                "date_range": [
+                    1542
+                ],
+                "timedelta_range": [
+                    1544
+                ],
+                "IntervalIndex.from_breaks": [
+                    1548
+                ]
+            }
+        },
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/tests/indexes/interval/test_indexing.py": {
+            "buggy_functions": [],
+            "inscope_functions": [
+                "test_get_loc_interval(self, closed, side)",
+                "test_get_loc_scalar(self, closed, scalar)",
+                "test_get_loc_length_one_scalar(self, scalar, closed)",
+                "test_get_loc_length_one_interval(self, left, right, closed, other_closed)",
+                "test_get_loc_datetimelike_nonoverlapping(self, breaks)",
+                "test_get_loc_datetimelike_overlapping(self, arrays)",
+                "test_get_loc_decreasing(self, values)",
+                "test_get_indexer_with_interval(self, query, expected)",
+                "test_get_indexer_with_int_and_float(self, query, expected)",
+                "test_get_indexer_length_one(self, item, closed)",
+                "test_get_indexer_length_one_interval(self, size, closed)",
+                "test_get_indexer_errors(self, tuples, closed)",
+                "test_get_indexer_non_unique_with_int_and_float(self, query, expected)",
+                "test_slice_locs_with_interval(self)",
+                "test_slice_locs_with_ints_and_floats_succeeds(self)",
+                "test_slice_locs_with_ints_and_floats_errors(self, tuples, query)"
+            ],
+            "variables_in_file": {
+                "idx": [
+                    32,
+                    35,
+                    15,
+                    49,
+                    54,
+                    57,
+                    27,
+                    29
+                ],
+                "IntervalIndex.from_tuples": [
+                    321,
+                    229,
+                    294,
+                    74,
+                    362,
+                    15,
+                    303,
+                    49,
+                    212,
+                    245,
+                    277,
+                    183,
+                    312,
+                    373,
+                    404,
+                    221,
+                    62,
+                    383
+                ],
+                "IntervalIndex": [
+                    132,
+                    15,
+                    404,
+                    277,
+                    157,
+                    294,
+                    303,
+                    49,
+                    183,
+                    312,
+                    62,
+                    321,
+                    74,
+                    212,
+                    221,
+                    229,
+                    103,
+                    362,
+                    245,
+                    373,
+                    383
+                ],
+                "closed": [
+                    229,
+                    230,
+                    74,
+                    15,
+                    49,
+                    53,
+                    54,
+                    245,
+                    25,
+                    221,
+                    62
+                ],
+                "bound": [
+                    32,
+                    35,
+                    17,
+                    22,
+                    26,
+                    28
+                ],
+                "msg": [
+                    34,
+                    20,
+                    247,
+                    251,
+                    31
+                ],
+                "re.escape": [
+                    354,
+                    325,
+                    334,
+                    82,
+                    20,
+                    345
+                ],
+                "re": [
+                    354,
+                    325,
+                    334,
+                    82,
+                    20,
+                    345
+                ],
+                "format": [
+                    83,
+                    21
+                ],
+                "side": [
+                    32,
+                    35,
+                    22,
+                    25,
+                    27,
+                    29
+                ],
+                "idx.get_loc": [
+                    32,
+                    35,
+                    54,
+                    57,
+                    27,
+                    29
+                ],
+                "Interval": [
+                    139,
+                    27,
+                    29,
+                    32,
+                    35,
+                    167,
+                    168,
+                    169,
+                    170,
+                    171,
+                    172,
+                    173,
+                    174,
+                    175,
+                    176,
+                    177,
+                    297,
+                    298,
+                    299,
+                    300,
+                    305,
+                    306,
+                    307,
+                    308,
+                    309,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    330,
+                    75,
+                    296,
+                    339,
+                    341,
+                    350,
+                    230,
+                    359,
+                    364,
+                    365,
+                    110,
+                    366,
+                    367,
+                    368
+                ],
+                "pytest.raises": [
+                    352,
+                    34,
+                    67,
+                    323,
+                    332,
+                    80,
+                    405,
+                    343,
+                    56,
+                    251,
+                    31
+                ],
+                "pytest": [
+                    391,
+                    392,
+                    12,
+                    144,
+                    405,
+                    31,
+                    34,
+                    164,
+                    37,
+                    56,
+                    59,
+                    189,
+                    67,
+                    323,
+                    70,
+                    71,
+                    332,
+                    80,
+                    343,
+                    218,
+                    91,
+                    352,
+                    226,
+                    234,
+                    115,
+                    251,
+                    254
+                ],
+                "KeyError": [
+                    353,
+                    34,
+                    67,
+                    324,
+                    344,
+                    333,
+                    81,
+                    406,
+                    56,
+                    31
+                ],
+                "pytest.mark.parametrize": [
+                    226,
+                    164,
+                    37,
+                    70,
+                    71,
+                    391,
+                    392,
+                    91,
+                    234,
+                    12,
+                    144,
+                    115,
+                    218,
+                    59,
+                    189,
+                    254
+                ],
+                "pytest.mark": [
+                    226,
+                    164,
+                    37,
+                    70,
+                    71,
+                    391,
+                    392,
+                    91,
+                    234,
+                    12,
+                    144,
+                    115,
+                    218,
+                    59,
+                    189,
+                    254
+                ],
+                "correct": [
+                    42,
+                    53,
+                    54
+                ],
+                "scalar": [
+                    64,
+                    67,
+                    68,
+                    53,
+                    54,
+                    56,
+                    57,
+                    63
+                ],
+                "keys": [
+                    53
+                ],
+                "str": [
+                    128,
+                    98,
+                    67,
+                    56,
+                    153
+                ],
+                "index": [
+                    62,
+                    63,
+                    64,
+                    68,
+                    74,
+                    76,
+                    77,
+                    88,
+                    103,
+                    105,
+                    106,
+                    110,
+                    111,
+                    132,
+                    134,
+                    135,
+                    139,
+                    140,
+                    157,
+                    158,
+                    183,
+                    185,
+                    212,
+                    214,
+                    221,
+                    222,
+                    229,
+                    230,
+                    245,
+                    252,
+                    277,
+                    279,
+                    294,
+                    296,
+                    297,
+                    298,
+                    299,
+                    300,
+                    303,
+                    305,
+                    306,
+                    307,
+                    308,
+                    309,
+                    312,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    321,
+                    330,
+                    339,
+                    341,
+                    350,
+                    359,
+                    362,
+                    364,
+                    365,
+                    366,
+                    367,
+                    368,
+                    373,
+                    375,
+                    376,
+                    377,
+                    378,
+                    379,
+                    380,
+                    383,
+                    384,
+                    385,
+                    386,
+                    387,
+                    388,
+                    389,
+                    404,
+                    412
+                ],
+                "result": [
+                    135,
+                    137,
+                    140,
+                    142,
+                    158,
+                    160,
+                    185,
+                    187,
+                    64,
+                    65,
+                    77,
+                    78,
+                    214,
+                    216,
+                    222,
+                    224,
+                    230,
+                    232,
+                    106,
+                    108,
+                    111,
+                    113
+                ],
+                "index.get_loc": [
+                    64,
+                    68,
+                    135,
+                    106,
+                    140,
+                    77,
+                    111,
+                    88,
+                    158
+                ],
+                "interval": [
+                    75,
+                    76,
+                    77,
+                    110,
+                    111,
+                    139,
+                    140,
+                    88
+                ],
+                "left": [
+                    75,
+                    84,
+                    139,
+                    110
+                ],
+                "right": [
+                    75,
+                    84,
+                    139,
+                    110
+                ],
+                "other_closed": [
+                    75,
+                    84
+                ],
+                "IntervalIndex.from_breaks": [
+                    103
+                ],
+                "breaks": [
+                    103
+                ],
+                "value": [
+                    105,
+                    106,
+                    134,
+                    135
+                ],
+                "mid": [
+                    105,
+                    134
+                ],
+                "expected": [
+                    136,
+                    137,
+                    141,
+                    142,
+                    280,
+                    281,
+                    159,
+                    160,
+                    186,
+                    187,
+                    215,
+                    216,
+                    223,
+                    224,
+                    231,
+                    232,
+                    107,
+                    108,
+                    112,
+                    113
+                ],
+                "date_range": [
+                    147,
+                    148,
+                    118,
+                    120,
+                    121,
+                    94,
+                    95
+                ],
+                "timedelta_range": [
+                    96,
+                    124,
+                    125,
+                    149
+                ],
+                "x.dtype": [
+                    153,
+                    98
+                ],
+                "x": [
+                    128,
+                    153,
+                    98
+                ],
+                "IntervalIndex.from_arrays": [
+                    132,
+                    157
+                ],
+                "arrays": [
+                    132
+                ],
+                "Timedelta": [
+                    134
+                ],
+                "slice": [
+                    136
+                ],
+                "dtype": [
+                    128
+                ],
+                "values": [
+                    157
+                ],
+                "np.arange": [
+                    218,
+                    150,
+                    151
+                ],
+                "np": [
+                    280,
+                    231,
+                    218,
+                    150,
+                    215,
+                    151,
+                    281,
+                    186,
+                    223
+                ],
+                "tuples": [
+                    211,
+                    212,
+                    245,
+                    182,
+                    183,
+                    276,
+                    277,
+                    404
+                ],
+                "index.get_indexer": [
+                    230,
+                    214,
+                    185,
+                    252,
+                    222
+                ],
+                "query": [
+                    185,
+                    403,
+                    214,
+                    279
+                ],
+                "np.array": [
+                    231,
+                    215,
+                    280,
+                    281,
+                    186,
+                    223
+                ],
+                "tm.assert_numpy_array_equal": [
+                    224,
+                    232,
+                    283,
+                    216,
+                    187,
+                    284
+                ],
+                "tm": [
+                    224,
+                    232,
+                    283,
+                    216,
+                    187,
+                    284
+                ],
+                "item": [
+                    222,
+                    223
+                ],
+                "len": [
+                    223
+                ],
+                "size": [
+                    230,
+                    231
+                ],
+                "InvalidIndexError": [
+                    251
+                ],
+                "result_indexer": [
+                    283,
+                    279
+                ],
+                "result_missing": [
+                    284,
+                    279
+                ],
+                "index.get_indexer_non_unique": [
+                    279
+                ],
+                "expected_indexer": [
+                    280,
+                    283
+                ],
+                "expected_missing": [
+                    281,
+                    284
+                ],
+                "index.slice_locs": [
+                    384,
+                    385,
+                    386,
+                    387,
+                    388,
+                    389,
+                    412,
+                    296,
+                    297,
+                    298,
+                    299,
+                    300,
+                    305,
+                    306,
+                    307,
+                    308,
+                    309,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    330,
+                    339,
+                    341,
+                    350,
+                    359,
+                    364,
+                    365,
+                    366,
+                    367,
+                    368,
+                    375,
+                    376,
+                    377,
+                    378,
+                    379,
+                    380
+                ],
+                "start": [
+                    403,
+                    412
+                ],
+                "stop": [
+                    403,
+                    412
+                ]
+            },
+            "filtered_variables_in_file": {
+                "idx": [
+                    32,
+                    35,
+                    15,
+                    49,
+                    54,
+                    57,
+                    27,
+                    29
+                ],
+                "IntervalIndex.from_tuples": [
+                    321,
+                    229,
+                    294,
+                    74,
+                    362,
+                    15,
+                    303,
+                    49,
+                    212,
+                    245,
+                    277,
+                    183,
+                    312,
+                    373,
+                    404,
+                    221,
+                    62,
+                    383
+                ],
+                "IntervalIndex": [
+                    132,
+                    15,
+                    404,
+                    277,
+                    157,
+                    294,
+                    303,
+                    49,
+                    183,
+                    312,
+                    62,
+                    321,
+                    74,
+                    212,
+                    221,
+                    229,
+                    103,
+                    362,
+                    245,
+                    373,
+                    383
+                ],
+                "closed": [
+                    229,
+                    230,
+                    74,
+                    15,
+                    49,
+                    53,
+                    54,
+                    245,
+                    25,
+                    221,
+                    62
+                ],
+                "bound": [
+                    32,
+                    35,
+                    17,
+                    22,
+                    26,
+                    28
+                ],
+                "msg": [
+                    34,
+                    20,
+                    247,
+                    251,
+                    31
+                ],
+                "re.escape": [
+                    354,
+                    325,
+                    334,
+                    82,
+                    20,
+                    345
+                ],
+                "re": [
+                    354,
+                    325,
+                    334,
+                    82,
+                    20,
+                    345
+                ],
+                "side": [
+                    32,
+                    35,
+                    22,
+                    25,
+                    27,
+                    29
+                ],
+                "idx.get_loc": [
+                    32,
+                    35,
+                    54,
+                    57,
+                    27,
+                    29
+                ],
+                "Interval": [
+                    139,
+                    27,
+                    29,
+                    32,
+                    35,
+                    167,
+                    168,
+                    169,
+                    170,
+                    171,
+                    172,
+                    173,
+                    174,
+                    175,
+                    176,
+                    177,
+                    297,
+                    298,
+                    299,
+                    300,
+                    305,
+                    306,
+                    307,
+                    308,
+                    309,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    330,
+                    75,
+                    296,
+                    339,
+                    341,
+                    350,
+                    230,
+                    359,
+                    364,
+                    365,
+                    110,
+                    366,
+                    367,
+                    368
+                ],
+                "pytest.raises": [
+                    352,
+                    34,
+                    67,
+                    323,
+                    332,
+                    80,
+                    405,
+                    343,
+                    56,
+                    251,
+                    31
+                ],
+                "pytest": [
+                    391,
+                    392,
+                    12,
+                    144,
+                    405,
+                    31,
+                    34,
+                    164,
+                    37,
+                    56,
+                    59,
+                    189,
+                    67,
+                    323,
+                    70,
+                    71,
+                    332,
+                    80,
+                    343,
+                    218,
+                    91,
+                    352,
+                    226,
+                    234,
+                    115,
+                    251,
+                    254
+                ],
+                "pytest.mark.parametrize": [
+                    226,
+                    164,
+                    37,
+                    70,
+                    71,
+                    391,
+                    392,
+                    91,
+                    234,
+                    12,
+                    144,
+                    115,
+                    218,
+                    59,
+                    189,
+                    254
+                ],
+                "pytest.mark": [
+                    226,
+                    164,
+                    37,
+                    70,
+                    71,
+                    391,
+                    392,
+                    91,
+                    234,
+                    12,
+                    144,
+                    115,
+                    218,
+                    59,
+                    189,
+                    254
+                ],
+                "correct": [
+                    42,
+                    53,
+                    54
+                ],
+                "scalar": [
+                    64,
+                    67,
+                    68,
+                    53,
+                    54,
+                    56,
+                    57,
+                    63
+                ],
+                "keys": [
+                    53
+                ],
+                "index": [
+                    62,
+                    63,
+                    64,
+                    68,
+                    74,
+                    76,
+                    77,
+                    88,
+                    103,
+                    105,
+                    106,
+                    110,
+                    111,
+                    132,
+                    134,
+                    135,
+                    139,
+                    140,
+                    157,
+                    158,
+                    183,
+                    185,
+                    212,
+                    214,
+                    221,
+                    222,
+                    229,
+                    230,
+                    245,
+                    252,
+                    277,
+                    279,
+                    294,
+                    296,
+                    297,
+                    298,
+                    299,
+                    300,
+                    303,
+                    305,
+                    306,
+                    307,
+                    308,
+                    309,
+                    312,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    321,
+                    330,
+                    339,
+                    341,
+                    350,
+                    359,
+                    362,
+                    364,
+                    365,
+                    366,
+                    367,
+                    368,
+                    373,
+                    375,
+                    376,
+                    377,
+                    378,
+                    379,
+                    380,
+                    383,
+                    384,
+                    385,
+                    386,
+                    387,
+                    388,
+                    389,
+                    404,
+                    412
+                ],
+                "result": [
+                    135,
+                    137,
+                    140,
+                    142,
+                    158,
+                    160,
+                    185,
+                    187,
+                    64,
+                    65,
+                    77,
+                    78,
+                    214,
+                    216,
+                    222,
+                    224,
+                    230,
+                    232,
+                    106,
+                    108,
+                    111,
+                    113
+                ],
+                "index.get_loc": [
+                    64,
+                    68,
+                    135,
+                    106,
+                    140,
+                    77,
+                    111,
+                    88,
+                    158
+                ],
+                "interval": [
+                    75,
+                    76,
+                    77,
+                    110,
+                    111,
+                    139,
+                    140,
+                    88
+                ],
+                "left": [
+                    75,
+                    84,
+                    139,
+                    110
+                ],
+                "right": [
+                    75,
+                    84,
+                    139,
+                    110
+                ],
+                "other_closed": [
+                    75,
+                    84
+                ],
+                "IntervalIndex.from_breaks": [
+                    103
+                ],
+                "breaks": [
+                    103
+                ],
+                "value": [
+                    105,
+                    106,
+                    134,
+                    135
+                ],
+                "mid": [
+                    105,
+                    134
+                ],
+                "expected": [
+                    136,
+                    137,
+                    141,
+                    142,
+                    280,
+                    281,
+                    159,
+                    160,
+                    186,
+                    187,
+                    215,
+                    216,
+                    223,
+                    224,
+                    231,
+                    232,
+                    107,
+                    108,
+                    112,
+                    113
+                ],
+                "date_range": [
+                    147,
+                    148,
+                    118,
+                    120,
+                    121,
+                    94,
+                    95
+                ],
+                "timedelta_range": [
+                    96,
+                    124,
+                    125,
+                    149
+                ],
+                "x.dtype": [
+                    153,
+                    98
+                ],
+                "x": [
+                    128,
+                    153,
+                    98
+                ],
+                "IntervalIndex.from_arrays": [
+                    132,
+                    157
+                ],
+                "arrays": [
+                    132
+                ],
+                "Timedelta": [
+                    134
+                ],
+                "dtype": [
+                    128
+                ],
+                "values": [
+                    157
+                ],
+                "np.arange": [
+                    218,
+                    150,
+                    151
+                ],
+                "np": [
+                    280,
+                    231,
+                    218,
+                    150,
+                    215,
+                    151,
+                    281,
+                    186,
+                    223
+                ],
+                "tuples": [
+                    211,
+                    212,
+                    245,
+                    182,
+                    183,
+                    276,
+                    277,
+                    404
+                ],
+                "index.get_indexer": [
+                    230,
+                    214,
+                    185,
+                    252,
+                    222
+                ],
+                "query": [
+                    185,
+                    403,
+                    214,
+                    279
+                ],
+                "np.array": [
+                    231,
+                    215,
+                    280,
+                    281,
+                    186,
+                    223
+                ],
+                "tm.assert_numpy_array_equal": [
+                    224,
+                    232,
+                    283,
+                    216,
+                    187,
+                    284
+                ],
+                "tm": [
+                    224,
+                    232,
+                    283,
+                    216,
+                    187,
+                    284
+                ],
+                "item": [
+                    222,
+                    223
+                ],
+                "size": [
+                    230,
+                    231
+                ],
+                "InvalidIndexError": [
+                    251
+                ],
+                "result_indexer": [
+                    283,
+                    279
+                ],
+                "result_missing": [
+                    284,
+                    279
+                ],
+                "index.get_indexer_non_unique": [
+                    279
+                ],
+                "expected_indexer": [
+                    280,
+                    283
+                ],
+                "expected_missing": [
+                    281,
+                    284
+                ],
+                "index.slice_locs": [
+                    384,
+                    385,
+                    386,
+                    387,
+                    388,
+                    389,
+                    412,
+                    296,
+                    297,
+                    298,
+                    299,
+                    300,
+                    305,
+                    306,
+                    307,
+                    308,
+                    309,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    330,
+                    339,
+                    341,
+                    350,
+                    359,
+                    364,
+                    365,
+                    366,
+                    367,
+                    368,
+                    375,
+                    376,
+                    377,
+                    378,
+                    379,
+                    380
+                ],
+                "start": [
+                    403,
+                    412
+                ],
+                "stop": [
+                    403,
+                    412
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/tests/frame/test_analytics.py",
+                "test_function": "test_round_interval_category_columns",
+                "test_function_code": "    def test_round_interval_category_columns(self):\n        # GH 30063\n        columns = pd.CategoricalIndex(pd.interval_range(0, 2))\n        df = DataFrame([[0.66, 1.1], [0.3, 0.25]], columns=columns)\n\n        result = df.round()\n        expected = DataFrame([[1.0, 1.0], [0.0, 0.0]], columns=columns)\n        tm.assert_frame_equal(result, expected)",
+                "test_error": "TypeError: No matching signature found",
+                "full_test_error": "self = <pandas.tests.frame.test_analytics.TestDataFrameAnalytics object at 0x118fc9e20>\n\n    def test_round_interval_category_columns(self):\n        # GH 30063\n        columns = pd.CategoricalIndex(pd.interval_range(0, 2))\n        df = DataFrame([[0.66, 1.1], [0.3, 0.25]], columns=columns)\n    \n>       result = df.round()\n\npandas/tests/frame/test_analytics.py:2280: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/frame.py:7127: in round\n    return self._constructor(\npandas/core/frame.py:416: in __init__\n    mgr = self._init_mgr(\npandas/core/generic.py:219: in _init_mgr\n    mgr = mgr.reindex_axis(\npandas/core/internals/managers.py:1186: in reindex_axis\n    new_index, indexer = self.axes[axis].reindex(\npandas/core/indexes/base.py:3200: in reindex\n    indexer = self.get_indexer(\npandas/core/indexes/interval.py:964: in get_indexer\n    indexer = self._engine.get_indexer(target_as_index.values)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   def get_indexer(self, scalar_t[:] target):\nE   TypeError: No matching signature found\n\npandas/_libs/intervaltree.pxi:154: TypeError",
+                "traceback": "pandas/core/frame.py:7127: in round\n    return self._constructor(\npandas/core/frame.py:416: in __init__\n    mgr = self._init_mgr(\npandas/core/generic.py:219: in _init_mgr\n    mgr = mgr.reindex_axis(\npandas/core/internals/managers.py:1186: in reindex_axis\n    new_index, indexer = self.axes[axis].reindex(\npandas/core/indexes/base.py:3200: in reindex\n    indexer = self.get_indexer(\npandas/core/indexes/interval.py:964: in get_indexer\n    indexer = self._engine.get_indexer(target_as_index.values)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   def get_indexer(self, scalar_t[:] target):\nE   TypeError: No matching signature found\n\npandas/_libs/intervaltree.pxi:154: TypeError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

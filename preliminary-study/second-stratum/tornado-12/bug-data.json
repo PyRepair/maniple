@@ -1,0 +1,3426 @@
+{
+    "tornado:12": {
+        "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/tornado/tornado/auth.py": {
+            "buggy_functions": [
+                {
+                    "function_name": null,
+                    "function_code": null,
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": null,
+                    "variables": {},
+                    "filtered_variables": {},
+                    "diff_line_number": 78,
+                    "class_data": null
+                },
+                {
+                    "function_name": "_on_access_token",
+                    "function_code": "def _on_access_token(self, redirect_uri, client_id, client_secret,\n                     future, fields, response):\n    if response.error:\n        future.set_exception(AuthError('Facebook auth error: %s' % str(response)))\n        return\n\n    args = escape.parse_qs_bytes(escape.native_str(response.body))\n    session = {\n        \"access_token\": args[\"access_token\"][-1],\n        \"expires\": args.get(\"expires\")\n    }\n\n    self.facebook_request(\n        path=\"/me\",\n        callback=functools.partial(\n            self._on_get_user_info, future, session, fields),\n        access_token=session[\"access_token\"],\n        fields=\",\".join(fields)\n    )\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 982,
+                    "variables": {
+                        "response.error": [
+                            984
+                        ],
+                        "response": [
+                            984,
+                            985,
+                            988
+                        ],
+                        "future.set_exception": [
+                            985
+                        ],
+                        "future": [
+                            985,
+                            997
+                        ],
+                        "AuthError": [
+                            985
+                        ],
+                        "str": [
+                            985
+                        ],
+                        "args": [
+                            988,
+                            990,
+                            991
+                        ],
+                        "escape.parse_qs_bytes": [
+                            988
+                        ],
+                        "escape": [
+                            988
+                        ],
+                        "escape.native_str": [
+                            988
+                        ],
+                        "response.body": [
+                            988
+                        ],
+                        "session": [
+                            997,
+                            989,
+                            998
+                        ],
+                        "args.get": [
+                            991
+                        ],
+                        "self.facebook_request": [
+                            994
+                        ],
+                        "self": [
+                            994,
+                            997
+                        ],
+                        "functools.partial": [
+                            996
+                        ],
+                        "functools": [
+                            996
+                        ],
+                        "self._on_get_user_info": [
+                            997
+                        ],
+                        "fields": [
+                            997,
+                            999
+                        ],
+                        "join": [
+                            999
+                        ]
+                    },
+                    "filtered_variables": {
+                        "response.error": [
+                            984
+                        ],
+                        "response": [
+                            984,
+                            985,
+                            988
+                        ],
+                        "future.set_exception": [
+                            985
+                        ],
+                        "future": [
+                            985,
+                            997
+                        ],
+                        "AuthError": [
+                            985
+                        ],
+                        "args": [
+                            988,
+                            990,
+                            991
+                        ],
+                        "escape.parse_qs_bytes": [
+                            988
+                        ],
+                        "escape": [
+                            988
+                        ],
+                        "escape.native_str": [
+                            988
+                        ],
+                        "response.body": [
+                            988
+                        ],
+                        "session": [
+                            997,
+                            989,
+                            998
+                        ],
+                        "args.get": [
+                            991
+                        ],
+                        "self.facebook_request": [
+                            994
+                        ],
+                        "self": [
+                            994,
+                            997
+                        ],
+                        "functools.partial": [
+                            996
+                        ],
+                        "functools": [
+                            996
+                        ],
+                        "self._on_get_user_info": [
+                            997
+                        ],
+                        "fields": [
+                            997,
+                            999
+                        ],
+                        "join": [
+                            999
+                        ]
+                    },
+                    "diff_line_number": 988,
+                    "class_data": {
+                        "signature": "class FacebookGraphMixin(OAuth2Mixin)",
+                        "docstring": "Facebook authentication using the new Graph API and OAuth2.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "get_authenticated_user(self, redirect_uri, client_id, client_secret, code, callback, extra_fields=None)",
+                            "_on_access_token(self, redirect_uri, client_id, client_secret, future, fields, response)",
+                            "_on_get_user_info(self, future, session, fields, user)",
+                            "facebook_request(self, path, callback, access_token=None, post_args=None, **args)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_OAUTH_ACCESS_TOKEN_URL",
+                            "_OAUTH_AUTHORIZE_URL",
+                            "_OAUTH_NO_CALLBACKS",
+                            "_FACEBOOK_BASE_URL"
+                        ],
+                        "class_decorators": []
+                    }
+                },
+                {
+                    "function_name": "facebook_request",
+                    "function_code": "@_auth_return_future\ndef facebook_request(self, path, callback, access_token=None,\n                     post_args=None, **args):\n    \"\"\"Fetches the given relative API path, e.g., \"/btaylor/picture\"\n\n    If the request is a POST, ``post_args`` should be provided. Query\n    string arguments should be given as keyword arguments.\n\n    An introduction to the Facebook Graph API can be found at\n    http://developers.facebook.com/docs/api\n\n    Many methods require an OAuth access token which you can\n    obtain through `~OAuth2Mixin.authorize_redirect` and\n    `get_authenticated_user`. The user returned through that\n    process includes an ``access_token`` attribute that can be\n    used to make authenticated requests via this method.\n\n    Example usage:\n\n    ..testcode::\n\n        class MainHandler(tornado.web.RequestHandler,\n                          tornado.auth.FacebookGraphMixin):\n            @tornado.web.authenticated\n            @tornado.gen.coroutine\n            def get(self):\n                new_entry = yield self.facebook_request(\n                    \"/me/feed\",\n                    post_args={\"message\": \"I am posting from my Tornado application!\"},\n                    access_token=self.current_user[\"access_token\"])\n\n                if not new_entry:\n                    # Call failed; perhaps missing permission?\n                    yield self.authorize_redirect()\n                    return\n                self.finish(\"Posted a message!\")\n\n    .. testoutput::\n       :hide:\n\n    The given path is relative to ``self._FACEBOOK_BASE_URL``,\n    by default \"https://graph.facebook.com\".\n\n    This method is a wrapper around `OAuth2Mixin.oauth2_request`;\n    the only difference is that this method takes a relative path,\n    while ``oauth2_request`` takes a complete url.\n\n    .. versionchanged:: 3.1\n       Added the ability to override ``self._FACEBOOK_BASE_URL``.\n    \"\"\"\n    url = self._FACEBOOK_BASE_URL + path\n    return self.oauth2_request(url, callback, access_token,\n                               post_args, **args)\n",
+                    "decorators": [
+                        "_auth_return_future"
+                    ],
+                    "docstring": "Fetches the given relative API path, e.g., \"/btaylor/picture\"\n\nIf the request is a POST, ``post_args`` should be provided. Query\nstring arguments should be given as keyword arguments.\n\nAn introduction to the Facebook Graph API can be found at\nhttp://developers.facebook.com/docs/api\n\nMany methods require an OAuth access token which you can\nobtain through `~OAuth2Mixin.authorize_redirect` and\n`get_authenticated_user`. The user returned through that\nprocess includes an ``access_token`` attribute that can be\nused to make authenticated requests via this method.\n\nExample usage:\n\n..testcode::\n\n    class MainHandler(tornado.web.RequestHandler,\n                      tornado.auth.FacebookGraphMixin):\n        @tornado.web.authenticated\n        @tornado.gen.coroutine\n        def get(self):\n            new_entry = yield self.facebook_request(\n                \"/me/feed\",\n                post_args={\"message\": \"I am posting from my Tornado application!\"},\n                access_token=self.current_user[\"access_token\"])\n\n            if not new_entry:\n                # Call failed; perhaps missing permission?\n                yield self.authorize_redirect()\n                return\n            self.finish(\"Posted a message!\")\n\n.. testoutput::\n   :hide:\n\nThe given path is relative to ``self._FACEBOOK_BASE_URL``,\nby default \"https://graph.facebook.com\".\n\nThis method is a wrapper around `OAuth2Mixin.oauth2_request`;\nthe only difference is that this method takes a relative path,\nwhile ``oauth2_request`` takes a complete url.\n\n.. versionchanged:: 3.1\n   Added the ability to override ``self._FACEBOOK_BASE_URL``.",
+                    "start_line": 1014,
+                    "variables": {
+                        "url": [
+                            1064,
+                            1065
+                        ],
+                        "self._FACEBOOK_BASE_URL": [
+                            1064
+                        ],
+                        "self": [
+                            1064,
+                            1065
+                        ],
+                        "path": [
+                            1064
+                        ],
+                        "self.oauth2_request": [
+                            1065
+                        ],
+                        "callback": [
+                            1065
+                        ],
+                        "access_token": [
+                            1065
+                        ],
+                        "post_args": [
+                            1066
+                        ],
+                        "args": [
+                            1066
+                        ],
+                        "_auth_return_future": [
+                            1014
+                        ]
+                    },
+                    "filtered_variables": {
+                        "url": [
+                            1064,
+                            1065
+                        ],
+                        "self._FACEBOOK_BASE_URL": [
+                            1064
+                        ],
+                        "self": [
+                            1064,
+                            1065
+                        ],
+                        "path": [
+                            1064
+                        ],
+                        "self.oauth2_request": [
+                            1065
+                        ],
+                        "callback": [
+                            1065
+                        ],
+                        "access_token": [
+                            1065
+                        ],
+                        "post_args": [
+                            1066
+                        ],
+                        "args": [
+                            1066
+                        ],
+                        "_auth_return_future": [
+                            1014
+                        ]
+                    },
+                    "diff_line_number": 1065,
+                    "class_data": {
+                        "signature": "class FacebookGraphMixin(OAuth2Mixin)",
+                        "docstring": "Facebook authentication using the new Graph API and OAuth2.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "get_authenticated_user(self, redirect_uri, client_id, client_secret, code, callback, extra_fields=None)",
+                            "_on_access_token(self, redirect_uri, client_id, client_secret, future, fields, response)",
+                            "_on_get_user_info(self, future, session, fields, user)",
+                            "facebook_request(self, path, callback, access_token=None, post_args=None, **args)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_OAUTH_ACCESS_TOKEN_URL",
+                            "_OAUTH_AUTHORIZE_URL",
+                            "_OAUTH_NO_CALLBACKS",
+                            "_FACEBOOK_BASE_URL"
+                        ],
+                        "class_decorators": []
+                    }
+                }
+            ],
+            "inscope_functions": [
+                "_auth_future_to_callback(callback, future)",
+                "_auth_return_future(f)",
+                "_oauth_signature(consumer_token, method, url, parameters={}, token=None)",
+                "_oauth10a_signature(consumer_token, method, url, parameters={}, token=None)",
+                "_oauth_escape(val)",
+                "_oauth_parse_response(body)",
+                "wrapper(*args, **kwargs)",
+                "authenticate_redirect(self, callback_uri=None, ax_attrs=['name', 'email', 'language', 'username'], callback=None)",
+                "get_authenticated_user(self, callback, http_client=None)",
+                "_openid_args(self, callback_uri, ax_attrs=[], oauth_scope=None)",
+                "_on_authentication_verified(self, future, response)",
+                "get_auth_http_client(self)",
+                "authorize_redirect(self, callback_uri=None, extra_params=None, http_client=None, callback=None)",
+                "get_authenticated_user(self, callback, http_client=None)",
+                "_oauth_request_token_url(self, callback_uri=None, extra_params=None)",
+                "_on_request_token(self, authorize_url, callback_uri, callback, response)",
+                "_oauth_access_token_url(self, request_token)",
+                "_on_access_token(self, future, response)",
+                "_oauth_consumer_token(self)",
+                "_oauth_get_user_future(self, access_token, callback)",
+                "_oauth_get_user(self, access_token, callback)",
+                "_on_oauth_get_user(self, access_token, future, user_future)",
+                "_oauth_request_parameters(self, url, access_token, parameters={}, method='GET')",
+                "get_auth_http_client(self)",
+                "authorize_redirect(self, redirect_uri=None, client_id=None, client_secret=None, extra_params=None, callback=None, scope=None, response_type='code')",
+                "_oauth_request_token_url(self, redirect_uri=None, client_id=None, client_secret=None, code=None, extra_params=None)",
+                "oauth2_request(self, url, callback, access_token=None, post_args=None, **args)",
+                "_on_oauth2_request(self, future, response)",
+                "get_auth_http_client(self)",
+                "authenticate_redirect(self, callback_uri=None, callback=None)",
+                "twitter_request(self, path, callback=None, access_token=None, post_args=None, **args)",
+                "_on_twitter_request(self, future, response)",
+                "_oauth_consumer_token(self)",
+                "_oauth_get_user_future(self, access_token)",
+                "get_authenticated_user(self, redirect_uri, code, callback)",
+                "_on_access_token(self, future, response)",
+                "get_authenticated_user(self, redirect_uri, client_id, client_secret, code, callback, extra_fields=None)",
+                "_on_access_token(self, redirect_uri, client_id, client_secret, future, fields, response)",
+                "_on_get_user_info(self, future, session, fields, user)",
+                "facebook_request(self, path, callback, access_token=None, post_args=None, **args)",
+                "handle_exception(typ, value, tb)",
+                "get_ax_arg(uri)"
+            ],
+            "variables_in_file": {
+                "ImportError": [
+                    89,
+                    94
+                ],
+                "long": [
+                    98,
+                    100
+                ],
+                "NameError": [
+                    99
+                ],
+                "int": [
+                    464,
+                    419,
+                    100,
+                    543
+                ],
+                "Exception": [
+                    441,
+                    359,
+                    103
+                ],
+                "result": [
+                    112,
+                    113,
+                    109
+                ],
+                "future.result": [
+                    109
+                ],
+                "future": [
+                    128,
+                    130,
+                    134,
+                    391,
+                    137,
+                    522,
+                    396,
+                    141,
+                    526,
+                    529,
+                    402,
+                    921,
+                    925,
+                    674,
+                    678,
+                    305,
+                    817,
+                    821,
+                    985,
+                    483,
+                    997,
+                    488,
+                    1004,
+                    109,
+                    1012,
+                    249,
+                    127
+                ],
+                "AuthError": [
+                    674,
+                    483,
+                    396,
+                    110,
+                    526,
+                    817,
+                    402,
+                    249,
+                    921,
+                    985
+                ],
+                "gen_log.warning": [
+                    111
+                ],
+                "gen_log": [
+                    111
+                ],
+                "str": [
+                    419,
+                    111,
+                    464,
+                    1105,
+                    921,
+                    985,
+                    1081,
+                    543
+                ],
+                "e": [
+                    1083,
+                    1108,
+                    111
+                ],
+                "callback": [
+                    128,
+                    129,
+                    131,
+                    515,
+                    391,
+                    915,
+                    664,
+                    411,
+                    668,
+                    670,
+                    808,
+                    1065,
+                    175,
+                    449,
+                    196,
+                    455,
+                    980,
+                    608,
+                    747,
+                    113,
+                    370,
+                    377
+                ],
+                "replacer": [
+                    128,
+                    123
+                ],
+                "ArgReplacer": [
+                    123
+                ],
+                "f": [
+                    123,
+                    140,
+                    125
+                ],
+                "TracebackFuture": [
+                    127
+                ],
+                "args": [
+                    128,
+                    140,
+                    660,
+                    924,
+                    925,
+                    799,
+                    416,
+                    547,
+                    548,
+                    549,
+                    804,
+                    551,
+                    805,
+                    425,
+                    554,
+                    427,
+                    806,
+                    173,
+                    174,
+                    430,
+                    431,
+                    433,
+                    1066,
+                    435,
+                    436,
+                    190,
+                    191,
+                    446,
+                    448,
+                    452,
+                    197,
+                    454,
+                    966,
+                    201,
+                    460,
+                    978,
+                    212,
+                    469,
+                    597,
+                    472,
+                    475,
+                    603,
+                    221,
+                    478,
+                    479,
+                    605,
+                    607,
+                    988,
+                    990,
+                    991,
+                    614,
+                    235,
+                    237,
+                    621,
+                    239,
+                    622,
+                    245
+                ],
+                "kwargs": [
+                    128,
+                    140
+                ],
+                "replacer.replace": [
+                    128
+                ],
+                "future.add_done_callback": [
+                    130
+                ],
+                "functools.partial": [
+                    131,
+                    195,
+                    996,
+                    488,
+                    745,
+                    808,
+                    366,
+                    915,
+                    979,
+                    374,
+                    664,
+                    411
+                ],
+                "functools": [
+                    131,
+                    195,
+                    996,
+                    488,
+                    745,
+                    808,
+                    366,
+                    915,
+                    979,
+                    374,
+                    664,
+                    411,
+                    125
+                ],
+                "_auth_future_to_callback": [
+                    131
+                ],
+                "future.done": [
+                    134
+                ],
+                "future.set_exc_info": [
+                    137
+                ],
+                "typ": [
+                    137
+                ],
+                "value": [
+                    137
+                ],
+                "tb": [
+                    137
+                ],
+                "ExceptionStackContext": [
+                    139
+                ],
+                "handle_exception": [
+                    139
+                ],
+                "functools.wraps": [
+                    125
+                ],
+                "wrapper": [
+                    142
+                ],
+                "object": [
+                    568,
+                    145,
+                    316
+                ],
+                "callback_uri": [
+                    451,
+                    453,
+                    358,
+                    200,
+                    424,
+                    426,
+                    744,
+                    364,
+                    172,
+                    173,
+                    428,
+                    369,
+                    376,
+                    447
+                ],
+                "self.request.uri": [
+                    172
+                ],
+                "self.request": [
+                    256,
+                    453,
+                    200,
+                    267,
+                    172,
+                    428,
+                    242,
+                    190
+                ],
+                "self": [
+                    256,
+                    258,
+                    515,
+                    392,
+                    393,
+                    394,
+                    267,
+                    268,
+                    905,
+                    909,
+                    399,
+                    910,
+                    274,
+                    914,
+                    915,
+                    664,
+                    409,
+                    410,
+                    411,
+                    538,
+                    665,
+                    414,
+                    415,
+                    795,
+                    997,
+                    802,
+                    550,
+                    423,
+                    807,
+                    808,
+                    1064,
+                    1065,
+                    172,
+                    173,
+                    174,
+                    302,
+                    428,
+                    824,
+                    825,
+                    827,
+                    828,
+                    445,
+                    190,
+                    192,
+                    448,
+                    194,
+                    832,
+                    196,
+                    453,
+                    454,
+                    965,
+                    200,
+                    458,
+                    459,
+                    978,
+                    979,
+                    471,
+                    606,
+                    607,
+                    994,
+                    613,
+                    358,
+                    487,
+                    488,
+                    361,
+                    362,
+                    743,
+                    364,
+                    744,
+                    746,
+                    367,
+                    368,
+                    242,
+                    373,
+                    375
+                ],
+                "self._openid_args": [
+                    173
+                ],
+                "ax_attrs": [
+                    234,
+                    173,
+                    211,
+                    216,
+                    218,
+                    219
+                ],
+                "self.redirect": [
+                    606,
+                    454,
+                    174
+                ],
+                "self._OPENID_ENDPOINT": [
+                    192,
+                    174
+                ],
+                "urllib_parse.urlencode": [
+                    448,
+                    197,
+                    454,
+                    806,
+                    810,
+                    906,
+                    174,
+                    436,
+                    663,
+                    667,
+                    479
+                ],
+                "urllib_parse": [
+                    448,
+                    1120,
+                    197,
+                    454,
+                    806,
+                    810,
+                    906,
+                    174,
+                    436,
+                    1109,
+                    1110,
+                    663,
+                    667,
+                    479
+                ],
+                "return_future": [
+                    579,
+                    332,
+                    497,
+                    152,
+                    731
+                ],
+                "dict": [
+                    416,
+                    614,
+                    1129,
+                    460,
+                    826,
+                    405,
+                    282,
+                    539,
+                    190,
+                    446
+                ],
+                "k": [
+                    1133,
+                    1105,
+                    1106,
+                    1081,
+                    1082,
+                    190
+                ],
+                "v": [
+                    1105,
+                    1106,
+                    1081,
+                    1082,
+                    190
+                ],
+                "self.request.arguments.items": [
+                    190
+                ],
+                "self.request.arguments": [
+                    256,
+                    267,
+                    190
+                ],
+                "u": [
+                    258,
+                    293,
+                    264,
+                    273,
+                    274,
+                    191
+                ],
+                "url": [
+                    663,
+                    793,
+                    667,
+                    795,
+                    670,
+                    415,
+                    803,
+                    806,
+                    551,
+                    1064,
+                    1065,
+                    554,
+                    810,
+                    813,
+                    431,
+                    433,
+                    1074,
+                    436,
+                    192,
+                    195,
+                    200,
+                    1098,
+                    459,
+                    207,
+                    208,
+                    472,
+                    475,
+                    479,
+                    613,
+                    622
+                ],
+                "http_client": [
+                    193,
+                    194,
+                    195,
+                    360,
+                    361,
+                    363,
+                    372,
+                    408,
+                    409,
+                    410
+                ],
+                "self.get_auth_http_client": [
+                    194,
+                    965,
+                    743,
+                    807,
+                    361,
+                    409,
+                    905,
+                    665
+                ],
+                "http_client.fetch": [
+                    363,
+                    410,
+                    195,
+                    372
+                ],
+                "self._on_authentication_verified": [
+                    196
+                ],
+                "_auth_return_future": [
+                    864,
+                    935,
+                    749,
+                    624,
+                    177,
+                    1014,
+                    379
+                ],
+                "urlparse.urljoin": [
+                    200,
+                    427,
+                    452,
+                    208
+                ],
+                "urlparse": [
+                    452,
+                    200,
+                    1128,
+                    1098,
+                    427,
+                    208,
+                    1074
+                ],
+                "self.request.full_url": [
+                    200,
+                    428,
+                    453
+                ],
+                "args.update": [
+                    548,
+                    549,
+                    804,
+                    621,
+                    430,
+                    239,
+                    212,
+                    603,
+                    221
+                ],
+                "set": [
+                    216,
+                    219,
+                    973
+                ],
+                "required": [
+                    217,
+                    220,
+                    236,
+                    237
+                ],
+                "known_attrs": [
+                    235,
+                    229
+                ],
+                "name": [
+                    256,
+                    257,
+                    258,
+                    259,
+                    290,
+                    291,
+                    234,
+                    235,
+                    236,
+                    267,
+                    268,
+                    269,
+                    277
+                ],
+                "required.append": [
+                    236
+                ],
+                "join": [
+                    293,
+                    999,
+                    237,
+                    1105,
+                    1108,
+                    1111,
+                    1081,
+                    1083,
+                    605,
+                    1087
+                ],
+                "oauth_scope": [
+                    243,
+                    238
+                ],
+                "self.request.host.split": [
+                    242
+                ],
+                "self.request.host": [
+                    242
+                ],
+                "response.error": [
+                    673,
+                    482,
+                    675,
+                    440,
+                    816,
+                    818,
+                    920,
+                    984,
+                    248,
+                    441,
+                    250
+                ],
+                "response": [
+                    920,
+                    921,
+                    924,
+                    673,
+                    675,
+                    678,
+                    816,
+                    818,
+                    819,
+                    821,
+                    440,
+                    441,
+                    442,
+                    984,
+                    985,
+                    988,
+                    482,
+                    486,
+                    248,
+                    250,
+                    251
+                ],
+                "response.body": [
+                    678,
+                    486,
+                    988,
+                    821,
+                    248,
+                    442,
+                    251,
+                    924
+                ],
+                "future.set_exception": [
+                    674,
+                    483,
+                    522,
+                    396,
+                    526,
+                    817,
+                    402,
+                    249,
+                    921,
+                    985
+                ],
+                "ax_ns": [
+                    259,
+                    263,
+                    265,
+                    270,
+                    255
+                ],
+                "name.startswith": [
+                    257,
+                    268
+                ],
+                "self.get_argument": [
+                    258,
+                    392,
+                    393,
+                    268,
+                    302,
+                    274
+                ],
+                "prefix": [
+                    265,
+                    268,
+                    269
+                ],
+                "ax_name": [
+                    272,
+                    266,
+                    274,
+                    270
+                ],
+                "self.request.arguments.keys": [
+                    267
+                ],
+                "uri": [
+                    268
+                ],
+                "part": [
+                    269,
+                    270
+                ],
+                "len": [
+                    269
+                ],
+                "email": [
+                    294,
+                    295,
+                    296,
+                    297,
+                    276
+                ],
+                "get_ax_arg": [
+                    276,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281
+                ],
+                "first_name": [
+                    284,
+                    285,
+                    278,
+                    286
+                ],
+                "last_name": [
+                    288,
+                    289,
+                    287,
+                    279
+                ],
+                "username": [
+                    280,
+                    300,
+                    301
+                ],
+                "locale": [
+                    281,
+                    298,
+                    299
+                ],
+                "lower": [
+                    281
+                ],
+                "user": [
+                    524,
+                    525,
+                    528,
+                    529,
+                    282,
+                    285,
+                    288,
+                    291,
+                    293,
+                    295,
+                    297,
+                    299,
+                    301,
+                    304,
+                    305,
+                    832,
+                    835,
+                    836,
+                    837,
+                    1003,
+                    1009
+                ],
+                "name_parts": [
+                    289,
+                    292,
+                    293,
+                    283,
+                    286
+                ],
+                "name_parts.append": [
+                    289,
+                    286
+                ],
+                "email.split": [
+                    295
+                ],
+                "claimed_id": [
+                    304,
+                    302,
+                    303
+                ],
+                "future.set_result": [
+                    678,
+                    1004,
+                    305,
+                    529,
+                    1012,
+                    821,
+                    925
+                ],
+                "httpclient.AsyncHTTPClient": [
+                    688,
+                    313,
+                    565
+                ],
+                "httpclient": [
+                    688,
+                    313,
+                    565
+                ],
+                "getattr": [
+                    550,
+                    358,
+                    423,
+                    362,
+                    471
+                ],
+                "self._oauth_request_token_url": [
+                    744,
+                    978,
+                    364,
+                    373
+                ],
+                "extra_params": [
+                    620,
+                    365,
+                    430,
+                    429,
+                    621,
+                    602,
+                    603
+                ],
+                "self._on_request_token": [
+                    746,
+                    375,
+                    367
+                ],
+                "self._OAUTH_AUTHORIZE_URL": [
+                    368,
+                    607,
+                    375
+                ],
+                "request_key": [
+                    392,
+                    401
+                ],
+                "escape.utf8": [
+                    1089,
+                    392,
+                    400,
+                    1109,
+                    1110,
+                    1113,
+                    443,
+                    444,
+                    1085,
+                    1086
+                ],
+                "escape": [
+                    392,
+                    400,
+                    924,
+                    541,
+                    540,
+                    544,
+                    417,
+                    420,
+                    678,
+                    556,
+                    821,
+                    443,
+                    444,
+                    1085,
+                    1086,
+                    1089,
+                    461,
+                    462,
+                    465,
+                    1109,
+                    1110,
+                    1113,
+                    988,
+                    1127
+                ],
+                "oauth_verifier": [
+                    393,
+                    406,
+                    407
+                ],
+                "request_cookie": [
+                    400,
+                    394,
+                    395
+                ],
+                "self.get_cookie": [
+                    394
+                ],
+                "self.clear_cookie": [
+                    399
+                ],
+                "cookie_key": [
+                    400,
+                    401,
+                    405
+                ],
+                "cookie_secret": [
+                    400,
+                    405
+                ],
+                "base64.b64decode": [
+                    400
+                ],
+                "base64": [
+                    400,
+                    443,
+                    444
+                ],
+                "i": [
+                    400
+                ],
+                "request_cookie.split": [
+                    400
+                ],
+                "token": [
+                    1129,
+                    1133,
+                    1134,
+                    405,
+                    1110,
+                    407,
+                    410,
+                    1086
+                ],
+                "self._oauth_access_token_url": [
+                    410
+                ],
+                "self._on_access_token": [
+                    411,
+                    915,
+                    979
+                ],
+                "consumer_token": [
+                    417,
+                    551,
+                    458,
+                    554,
+                    461,
+                    431,
+                    433,
+                    1109,
+                    472,
+                    538,
+                    475,
+                    540,
+                    1085,
+                    414
+                ],
+                "self._oauth_consumer_token": [
+                    458,
+                    538,
+                    414
+                ],
+                "self._OAUTH_REQUEST_TOKEN_URL": [
+                    415
+                ],
+                "escape.to_basestring": [
+                    544,
+                    417,
+                    420,
+                    556,
+                    461,
+                    462,
+                    465,
+                    540,
+                    541
+                ],
+                "time.time": [
+                    464,
+                    419,
+                    543
+                ],
+                "time": [
+                    464,
+                    419,
+                    543
+                ],
+                "binascii.b2a_hex": [
+                    544,
+                    465,
+                    420
+                ],
+                "binascii": [
+                    544,
+                    1090,
+                    420,
+                    465,
+                    1114
+                ],
+                "bytes": [
+                    544,
+                    465,
+                    420
+                ],
+                "uuid.uuid4": [
+                    544,
+                    465,
+                    420
+                ],
+                "uuid": [
+                    544,
+                    465,
+                    420
+                ],
+                "signature": [
+                    551,
+                    554,
+                    556,
+                    431,
+                    433,
+                    435,
+                    472,
+                    475,
+                    478
+                ],
+                "_oauth10a_signature": [
+                    472,
+                    551,
+                    431
+                ],
+                "_oauth_signature": [
+                    433,
+                    554,
+                    475
+                ],
+                "request_token": [
+                    476,
+                    462,
+                    468,
+                    469,
+                    473,
+                    442,
+                    443,
+                    444,
+                    446
+                ],
+                "_oauth_parse_response": [
+                    442,
+                    486
+                ],
+                "data": [
+                    443,
+                    445
+                ],
+                "base64.b64encode": [
+                    443,
+                    444
+                ],
+                "self.set_cookie": [
+                    445
+                ],
+                "self.finish": [
+                    448
+                ],
+                "authorize_url": [
+                    448,
+                    454
+                ],
+                "self._OAUTH_ACCESS_TOKEN_URL": [
+                    914,
+                    459,
+                    613
+                ],
+                "access_token": [
+                    834,
+                    515,
+                    803,
+                    486,
+                    487,
+                    488,
+                    552,
+                    797,
+                    555,
+                    1065,
+                    528,
+                    658,
+                    659,
+                    541
+                ],
+                "add_done_callback": [
+                    487
+                ],
+                "self._oauth_get_user_future": [
+                    487
+                ],
+                "self._on_oauth_get_user": [
+                    488
+                ],
+                "NotImplementedError": [
+                    518,
+                    495
+                ],
+                "self._oauth_get_user": [
+                    515
+                ],
+                "user_future.exception": [
+                    521,
+                    522
+                ],
+                "user_future": [
+                    521,
+                    522,
+                    524
+                ],
+                "user_future.result": [
+                    524
+                ],
+                "base_args": [
+                    539,
+                    548,
+                    557,
+                    556
+                ],
+                "parameters": [
+                    1082,
+                    1106,
+                    549
+                ],
+                "method": [
+                    801,
+                    803,
+                    551,
+                    554,
+                    1103,
+                    1079
+                ],
+                "redirect_uri": [
+                    967,
+                    615,
+                    907,
+                    979,
+                    598
+                ],
+                "client_id": [
+                    617,
+                    979,
+                    969,
+                    599
+                ],
+                "response_type": [
+                    600
+                ],
+                "scope": [
+                    604,
+                    605
+                ],
+                "url_concat": [
+                    622,
+                    607
+                ],
+                "code": [
+                    616,
+                    908,
+                    968
+                ],
+                "client_secret": [
+                    970,
+                    618,
+                    980
+                ],
+                "all_args": [
+                    800,
+                    803,
+                    657,
+                    659,
+                    660,
+                    662,
+                    663,
+                    798,
+                    799
+                ],
+                "all_args.update": [
+                    800,
+                    660,
+                    799
+                ],
+                "self._on_oauth2_request": [
+                    664
+                ],
+                "http": [
+                    965,
+                    743,
+                    744,
+                    807,
+                    810,
+                    905,
+                    813,
+                    914,
+                    978,
+                    665,
+                    667,
+                    670
+                ],
+                "post_args": [
+                    800,
+                    801,
+                    809,
+                    810,
+                    1066,
+                    666,
+                    667
+                ],
+                "http.fetch": [
+                    744,
+                    810,
+                    813,
+                    914,
+                    978,
+                    667,
+                    670
+                ],
+                "response.request.url": [
+                    819,
+                    675
+                ],
+                "response.request": [
+                    819,
+                    675
+                ],
+                "escape.json_decode": [
+                    924,
+                    821,
+                    678
+                ],
+                "OAuthMixin": [
+                    691
+                ],
+                "_OAUTH_REQUEST_TOKEN_URL": [
+                    724
+                ],
+                "_OAUTH_ACCESS_TOKEN_URL": [
+                    930,
+                    859,
+                    725
+                ],
+                "_OAUTH_AUTHORIZE_URL": [
+                    858,
+                    931,
+                    726
+                ],
+                "_OAUTH_AUTHENTICATE_URL": [
+                    727
+                ],
+                "_OAUTH_NO_CALLBACKS": [
+                    728,
+                    932,
+                    861
+                ],
+                "_TWITTER_BASE_URL": [
+                    729
+                ],
+                "self._OAUTH_AUTHENTICATE_URL": [
+                    746
+                ],
+                "path.startswith": [
+                    790
+                ],
+                "path": [
+                    1064,
+                    1099,
+                    1100,
+                    1075,
+                    1076,
+                    790,
+                    793,
+                    795
+                ],
+                "self._TWITTER_BASE_URL": [
+                    795
+                ],
+                "oauth": [
+                    802,
+                    804
+                ],
+                "self._oauth_request_parameters": [
+                    802
+                ],
+                "http_callback": [
+                    808,
+                    811,
+                    813
+                ],
+                "self._on_twitter_request": [
+                    808
+                ],
+                "self.require_setting": [
+                    824,
+                    825
+                ],
+                "self.settings": [
+                    827,
+                    828,
+                    909,
+                    910
+                ],
+                "self.twitter_request": [
+                    832
+                ],
+                "gen.Return": [
+                    837
+                ],
+                "gen": [
+                    837,
+                    830
+                ],
+                "gen.coroutine": [
+                    830
+                ],
+                "OAuth2Mixin": [
+                    840,
+                    928
+                ],
+                "_OAUTH_USERINFO_URL": [
+                    860
+                ],
+                "_OAUTH_SETTINGS_KEY": [
+                    862
+                ],
+                "body": [
+                    1128,
+                    906,
+                    916,
+                    1127
+                ],
+                "self._OAUTH_SETTINGS_KEY": [
+                    909,
+                    910
+                ],
+                "_FACEBOOK_BASE_URL": [
+                    933
+                ],
+                "fields": [
+                    997,
+                    999,
+                    973,
+                    976,
+                    1008,
+                    980
+                ],
+                "extra_fields": [
+                    976,
+                    975
+                ],
+                "fields.update": [
+                    976
+                ],
+                "escape.parse_qs_bytes": [
+                    988
+                ],
+                "escape.native_str": [
+                    988,
+                    1127
+                ],
+                "session": [
+                    997,
+                    1011,
+                    989,
+                    998
+                ],
+                "args.get": [
+                    991
+                ],
+                "self.facebook_request": [
+                    994
+                ],
+                "self._on_get_user_info": [
+                    997
+                ],
+                "fieldmap": [
+                    1009,
+                    1011,
+                    1012,
+                    1007
+                ],
+                "field": [
+                    1008,
+                    1009
+                ],
+                "user.get": [
+                    1009
+                ],
+                "fieldmap.update": [
+                    1011
+                ],
+                "session.get": [
+                    1011
+                ],
+                "self._FACEBOOK_BASE_URL": [
+                    1064
+                ],
+                "self.oauth2_request": [
+                    1065
+                ],
+                "parts": [
+                    1074,
+                    1075,
+                    1099,
+                    1098
+                ],
+                "urlparse.urlparse": [
+                    1074,
+                    1098
+                ],
+                "scheme": [
+                    1099,
+                    1075,
+                    1076,
+                    1100
+                ],
+                "netloc": [
+                    1099,
+                    1075,
+                    1076,
+                    1100
+                ],
+                "normalized_url": [
+                    1080,
+                    1104,
+                    1076,
+                    1100
+                ],
+                "scheme.lower": [
+                    1076,
+                    1100
+                ],
+                "netloc.lower": [
+                    1076,
+                    1100
+                ],
+                "base_elems": [
+                    1102,
+                    1103,
+                    1104,
+                    1105,
+                    1108,
+                    1078,
+                    1079,
+                    1080,
+                    1081,
+                    1083
+                ],
+                "base_elems.append": [
+                    1103,
+                    1104,
+                    1105,
+                    1079,
+                    1080,
+                    1081
+                ],
+                "method.upper": [
+                    1103,
+                    1079
+                ],
+                "_oauth_escape": [
+                    1105,
+                    1081,
+                    1083,
+                    1108
+                ],
+                "sorted": [
+                    1082,
+                    1106
+                ],
+                "parameters.items": [
+                    1082,
+                    1106
+                ],
+                "base_string": [
+                    1113,
+                    1089,
+                    1083,
+                    1108
+                ],
+                "key_elems": [
+                    1109,
+                    1110,
+                    1111,
+                    1085,
+                    1086,
+                    1087
+                ],
+                "key_elems.append": [
+                    1110,
+                    1086
+                ],
+                "key": [
+                    1113,
+                    1089,
+                    1111,
+                    1087
+                ],
+                "hash": [
+                    1113,
+                    1089,
+                    1090,
+                    1114
+                ],
+                "hmac.new": [
+                    1113,
+                    1089
+                ],
+                "hmac": [
+                    1113,
+                    1089
+                ],
+                "hashlib.sha1": [
+                    1113,
+                    1089
+                ],
+                "hashlib": [
+                    1113,
+                    1089
+                ],
+                "binascii.b2a_base64": [
+                    1090,
+                    1114
+                ],
+                "hash.digest": [
+                    1090,
+                    1114
+                ],
+                "urllib_parse.quote": [
+                    1120,
+                    1109,
+                    1110
+                ],
+                "isinstance": [
+                    1118
+                ],
+                "val": [
+                    1120,
+                    1118,
+                    1119
+                ],
+                "unicode_type": [
+                    1118
+                ],
+                "val.encode": [
+                    1119
+                ],
+                "p": [
+                    1128,
+                    1129,
+                    1133
+                ],
+                "urlparse.parse_qs": [
+                    1128
+                ],
+                "special": [
+                    1132,
+                    1133
+                ],
+                "token.update": [
+                    1133
+                ]
+            },
+            "filtered_variables_in_file": {
+                "long": [
+                    98,
+                    100
+                ],
+                "result": [
+                    112,
+                    113,
+                    109
+                ],
+                "future.result": [
+                    109
+                ],
+                "future": [
+                    128,
+                    130,
+                    134,
+                    391,
+                    137,
+                    522,
+                    396,
+                    141,
+                    526,
+                    529,
+                    402,
+                    921,
+                    925,
+                    674,
+                    678,
+                    305,
+                    817,
+                    821,
+                    985,
+                    483,
+                    997,
+                    488,
+                    1004,
+                    109,
+                    1012,
+                    249,
+                    127
+                ],
+                "AuthError": [
+                    674,
+                    483,
+                    396,
+                    110,
+                    526,
+                    817,
+                    402,
+                    249,
+                    921,
+                    985
+                ],
+                "gen_log.warning": [
+                    111
+                ],
+                "gen_log": [
+                    111
+                ],
+                "e": [
+                    1083,
+                    1108,
+                    111
+                ],
+                "callback": [
+                    128,
+                    129,
+                    131,
+                    515,
+                    391,
+                    915,
+                    664,
+                    411,
+                    668,
+                    670,
+                    808,
+                    1065,
+                    175,
+                    449,
+                    196,
+                    455,
+                    980,
+                    608,
+                    747,
+                    113,
+                    370,
+                    377
+                ],
+                "replacer": [
+                    128,
+                    123
+                ],
+                "ArgReplacer": [
+                    123
+                ],
+                "f": [
+                    123,
+                    140,
+                    125
+                ],
+                "TracebackFuture": [
+                    127
+                ],
+                "args": [
+                    128,
+                    140,
+                    660,
+                    924,
+                    925,
+                    799,
+                    416,
+                    547,
+                    548,
+                    549,
+                    804,
+                    551,
+                    805,
+                    425,
+                    554,
+                    427,
+                    806,
+                    173,
+                    174,
+                    430,
+                    431,
+                    433,
+                    1066,
+                    435,
+                    436,
+                    190,
+                    191,
+                    446,
+                    448,
+                    452,
+                    197,
+                    454,
+                    966,
+                    201,
+                    460,
+                    978,
+                    212,
+                    469,
+                    597,
+                    472,
+                    475,
+                    603,
+                    221,
+                    478,
+                    479,
+                    605,
+                    607,
+                    988,
+                    990,
+                    991,
+                    614,
+                    235,
+                    237,
+                    621,
+                    239,
+                    622,
+                    245
+                ],
+                "kwargs": [
+                    128,
+                    140
+                ],
+                "replacer.replace": [
+                    128
+                ],
+                "future.add_done_callback": [
+                    130
+                ],
+                "functools.partial": [
+                    131,
+                    195,
+                    996,
+                    488,
+                    745,
+                    808,
+                    366,
+                    915,
+                    979,
+                    374,
+                    664,
+                    411
+                ],
+                "functools": [
+                    131,
+                    195,
+                    996,
+                    488,
+                    745,
+                    808,
+                    366,
+                    915,
+                    979,
+                    374,
+                    664,
+                    411,
+                    125
+                ],
+                "_auth_future_to_callback": [
+                    131
+                ],
+                "future.done": [
+                    134
+                ],
+                "future.set_exc_info": [
+                    137
+                ],
+                "typ": [
+                    137
+                ],
+                "value": [
+                    137
+                ],
+                "tb": [
+                    137
+                ],
+                "ExceptionStackContext": [
+                    139
+                ],
+                "handle_exception": [
+                    139
+                ],
+                "functools.wraps": [
+                    125
+                ],
+                "wrapper": [
+                    142
+                ],
+                "callback_uri": [
+                    451,
+                    453,
+                    358,
+                    200,
+                    424,
+                    426,
+                    744,
+                    364,
+                    172,
+                    173,
+                    428,
+                    369,
+                    376,
+                    447
+                ],
+                "self.request.uri": [
+                    172
+                ],
+                "self.request": [
+                    256,
+                    453,
+                    200,
+                    267,
+                    172,
+                    428,
+                    242,
+                    190
+                ],
+                "self": [
+                    256,
+                    258,
+                    515,
+                    392,
+                    393,
+                    394,
+                    267,
+                    268,
+                    905,
+                    909,
+                    399,
+                    910,
+                    274,
+                    914,
+                    915,
+                    664,
+                    409,
+                    410,
+                    411,
+                    538,
+                    665,
+                    414,
+                    415,
+                    795,
+                    997,
+                    802,
+                    550,
+                    423,
+                    807,
+                    808,
+                    1064,
+                    1065,
+                    172,
+                    173,
+                    174,
+                    302,
+                    428,
+                    824,
+                    825,
+                    827,
+                    828,
+                    445,
+                    190,
+                    192,
+                    448,
+                    194,
+                    832,
+                    196,
+                    453,
+                    454,
+                    965,
+                    200,
+                    458,
+                    459,
+                    978,
+                    979,
+                    471,
+                    606,
+                    607,
+                    994,
+                    613,
+                    358,
+                    487,
+                    488,
+                    361,
+                    362,
+                    743,
+                    364,
+                    744,
+                    746,
+                    367,
+                    368,
+                    242,
+                    373,
+                    375
+                ],
+                "self._openid_args": [
+                    173
+                ],
+                "ax_attrs": [
+                    234,
+                    173,
+                    211,
+                    216,
+                    218,
+                    219
+                ],
+                "self.redirect": [
+                    606,
+                    454,
+                    174
+                ],
+                "self._OPENID_ENDPOINT": [
+                    192,
+                    174
+                ],
+                "urllib_parse.urlencode": [
+                    448,
+                    197,
+                    454,
+                    806,
+                    810,
+                    906,
+                    174,
+                    436,
+                    663,
+                    667,
+                    479
+                ],
+                "urllib_parse": [
+                    448,
+                    1120,
+                    197,
+                    454,
+                    806,
+                    810,
+                    906,
+                    174,
+                    436,
+                    1109,
+                    1110,
+                    663,
+                    667,
+                    479
+                ],
+                "return_future": [
+                    579,
+                    332,
+                    497,
+                    152,
+                    731
+                ],
+                "k": [
+                    1133,
+                    1105,
+                    1106,
+                    1081,
+                    1082,
+                    190
+                ],
+                "v": [
+                    1105,
+                    1106,
+                    1081,
+                    1082,
+                    190
+                ],
+                "self.request.arguments.items": [
+                    190
+                ],
+                "self.request.arguments": [
+                    256,
+                    267,
+                    190
+                ],
+                "u": [
+                    258,
+                    293,
+                    264,
+                    273,
+                    274,
+                    191
+                ],
+                "url": [
+                    663,
+                    793,
+                    667,
+                    795,
+                    670,
+                    415,
+                    803,
+                    806,
+                    551,
+                    1064,
+                    1065,
+                    554,
+                    810,
+                    813,
+                    431,
+                    433,
+                    1074,
+                    436,
+                    192,
+                    195,
+                    200,
+                    1098,
+                    459,
+                    207,
+                    208,
+                    472,
+                    475,
+                    479,
+                    613,
+                    622
+                ],
+                "http_client": [
+                    193,
+                    194,
+                    195,
+                    360,
+                    361,
+                    363,
+                    372,
+                    408,
+                    409,
+                    410
+                ],
+                "self.get_auth_http_client": [
+                    194,
+                    965,
+                    743,
+                    807,
+                    361,
+                    409,
+                    905,
+                    665
+                ],
+                "http_client.fetch": [
+                    363,
+                    410,
+                    195,
+                    372
+                ],
+                "self._on_authentication_verified": [
+                    196
+                ],
+                "_auth_return_future": [
+                    864,
+                    935,
+                    749,
+                    624,
+                    177,
+                    1014,
+                    379
+                ],
+                "urlparse.urljoin": [
+                    200,
+                    427,
+                    452,
+                    208
+                ],
+                "urlparse": [
+                    452,
+                    200,
+                    1128,
+                    1098,
+                    427,
+                    208,
+                    1074
+                ],
+                "self.request.full_url": [
+                    200,
+                    428,
+                    453
+                ],
+                "args.update": [
+                    548,
+                    549,
+                    804,
+                    621,
+                    430,
+                    239,
+                    212,
+                    603,
+                    221
+                ],
+                "required": [
+                    217,
+                    220,
+                    236,
+                    237
+                ],
+                "known_attrs": [
+                    235,
+                    229
+                ],
+                "name": [
+                    256,
+                    257,
+                    258,
+                    259,
+                    290,
+                    291,
+                    234,
+                    235,
+                    236,
+                    267,
+                    268,
+                    269,
+                    277
+                ],
+                "required.append": [
+                    236
+                ],
+                "join": [
+                    293,
+                    999,
+                    237,
+                    1105,
+                    1108,
+                    1111,
+                    1081,
+                    1083,
+                    605,
+                    1087
+                ],
+                "oauth_scope": [
+                    243,
+                    238
+                ],
+                "self.request.host.split": [
+                    242
+                ],
+                "self.request.host": [
+                    242
+                ],
+                "response.error": [
+                    673,
+                    482,
+                    675,
+                    440,
+                    816,
+                    818,
+                    920,
+                    984,
+                    248,
+                    441,
+                    250
+                ],
+                "response": [
+                    920,
+                    921,
+                    924,
+                    673,
+                    675,
+                    678,
+                    816,
+                    818,
+                    819,
+                    821,
+                    440,
+                    441,
+                    442,
+                    984,
+                    985,
+                    988,
+                    482,
+                    486,
+                    248,
+                    250,
+                    251
+                ],
+                "response.body": [
+                    678,
+                    486,
+                    988,
+                    821,
+                    248,
+                    442,
+                    251,
+                    924
+                ],
+                "future.set_exception": [
+                    674,
+                    483,
+                    522,
+                    396,
+                    526,
+                    817,
+                    402,
+                    249,
+                    921,
+                    985
+                ],
+                "ax_ns": [
+                    259,
+                    263,
+                    265,
+                    270,
+                    255
+                ],
+                "name.startswith": [
+                    257,
+                    268
+                ],
+                "self.get_argument": [
+                    258,
+                    392,
+                    393,
+                    268,
+                    302,
+                    274
+                ],
+                "prefix": [
+                    265,
+                    268,
+                    269
+                ],
+                "ax_name": [
+                    272,
+                    266,
+                    274,
+                    270
+                ],
+                "self.request.arguments.keys": [
+                    267
+                ],
+                "uri": [
+                    268
+                ],
+                "part": [
+                    269,
+                    270
+                ],
+                "email": [
+                    294,
+                    295,
+                    296,
+                    297,
+                    276
+                ],
+                "get_ax_arg": [
+                    276,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281
+                ],
+                "first_name": [
+                    284,
+                    285,
+                    278,
+                    286
+                ],
+                "last_name": [
+                    288,
+                    289,
+                    287,
+                    279
+                ],
+                "username": [
+                    280,
+                    300,
+                    301
+                ],
+                "locale": [
+                    281,
+                    298,
+                    299
+                ],
+                "lower": [
+                    281
+                ],
+                "user": [
+                    524,
+                    525,
+                    528,
+                    529,
+                    282,
+                    285,
+                    288,
+                    291,
+                    293,
+                    295,
+                    297,
+                    299,
+                    301,
+                    304,
+                    305,
+                    832,
+                    835,
+                    836,
+                    837,
+                    1003,
+                    1009
+                ],
+                "name_parts": [
+                    289,
+                    292,
+                    293,
+                    283,
+                    286
+                ],
+                "name_parts.append": [
+                    289,
+                    286
+                ],
+                "email.split": [
+                    295
+                ],
+                "claimed_id": [
+                    304,
+                    302,
+                    303
+                ],
+                "future.set_result": [
+                    678,
+                    1004,
+                    305,
+                    529,
+                    1012,
+                    821,
+                    925
+                ],
+                "httpclient.AsyncHTTPClient": [
+                    688,
+                    313,
+                    565
+                ],
+                "httpclient": [
+                    688,
+                    313,
+                    565
+                ],
+                "self._oauth_request_token_url": [
+                    744,
+                    978,
+                    364,
+                    373
+                ],
+                "extra_params": [
+                    620,
+                    365,
+                    430,
+                    429,
+                    621,
+                    602,
+                    603
+                ],
+                "self._on_request_token": [
+                    746,
+                    375,
+                    367
+                ],
+                "self._OAUTH_AUTHORIZE_URL": [
+                    368,
+                    607,
+                    375
+                ],
+                "request_key": [
+                    392,
+                    401
+                ],
+                "escape.utf8": [
+                    1089,
+                    392,
+                    400,
+                    1109,
+                    1110,
+                    1113,
+                    443,
+                    444,
+                    1085,
+                    1086
+                ],
+                "escape": [
+                    392,
+                    400,
+                    924,
+                    541,
+                    540,
+                    544,
+                    417,
+                    420,
+                    678,
+                    556,
+                    821,
+                    443,
+                    444,
+                    1085,
+                    1086,
+                    1089,
+                    461,
+                    462,
+                    465,
+                    1109,
+                    1110,
+                    1113,
+                    988,
+                    1127
+                ],
+                "oauth_verifier": [
+                    393,
+                    406,
+                    407
+                ],
+                "request_cookie": [
+                    400,
+                    394,
+                    395
+                ],
+                "self.get_cookie": [
+                    394
+                ],
+                "self.clear_cookie": [
+                    399
+                ],
+                "cookie_key": [
+                    400,
+                    401,
+                    405
+                ],
+                "cookie_secret": [
+                    400,
+                    405
+                ],
+                "base64.b64decode": [
+                    400
+                ],
+                "base64": [
+                    400,
+                    443,
+                    444
+                ],
+                "i": [
+                    400
+                ],
+                "request_cookie.split": [
+                    400
+                ],
+                "token": [
+                    1129,
+                    1133,
+                    1134,
+                    405,
+                    1110,
+                    407,
+                    410,
+                    1086
+                ],
+                "self._oauth_access_token_url": [
+                    410
+                ],
+                "self._on_access_token": [
+                    411,
+                    915,
+                    979
+                ],
+                "consumer_token": [
+                    417,
+                    551,
+                    458,
+                    554,
+                    461,
+                    431,
+                    433,
+                    1109,
+                    472,
+                    538,
+                    475,
+                    540,
+                    1085,
+                    414
+                ],
+                "self._oauth_consumer_token": [
+                    458,
+                    538,
+                    414
+                ],
+                "self._OAUTH_REQUEST_TOKEN_URL": [
+                    415
+                ],
+                "escape.to_basestring": [
+                    544,
+                    417,
+                    420,
+                    556,
+                    461,
+                    462,
+                    465,
+                    540,
+                    541
+                ],
+                "time.time": [
+                    464,
+                    419,
+                    543
+                ],
+                "time": [
+                    464,
+                    419,
+                    543
+                ],
+                "binascii.b2a_hex": [
+                    544,
+                    465,
+                    420
+                ],
+                "binascii": [
+                    544,
+                    1090,
+                    420,
+                    465,
+                    1114
+                ],
+                "uuid.uuid4": [
+                    544,
+                    465,
+                    420
+                ],
+                "uuid": [
+                    544,
+                    465,
+                    420
+                ],
+                "signature": [
+                    551,
+                    554,
+                    556,
+                    431,
+                    433,
+                    435,
+                    472,
+                    475,
+                    478
+                ],
+                "_oauth10a_signature": [
+                    472,
+                    551,
+                    431
+                ],
+                "_oauth_signature": [
+                    433,
+                    554,
+                    475
+                ],
+                "request_token": [
+                    476,
+                    462,
+                    468,
+                    469,
+                    473,
+                    442,
+                    443,
+                    444,
+                    446
+                ],
+                "_oauth_parse_response": [
+                    442,
+                    486
+                ],
+                "data": [
+                    443,
+                    445
+                ],
+                "base64.b64encode": [
+                    443,
+                    444
+                ],
+                "self.set_cookie": [
+                    445
+                ],
+                "self.finish": [
+                    448
+                ],
+                "authorize_url": [
+                    448,
+                    454
+                ],
+                "self._OAUTH_ACCESS_TOKEN_URL": [
+                    914,
+                    459,
+                    613
+                ],
+                "access_token": [
+                    834,
+                    515,
+                    803,
+                    486,
+                    487,
+                    488,
+                    552,
+                    797,
+                    555,
+                    1065,
+                    528,
+                    658,
+                    659,
+                    541
+                ],
+                "add_done_callback": [
+                    487
+                ],
+                "self._oauth_get_user_future": [
+                    487
+                ],
+                "self._on_oauth_get_user": [
+                    488
+                ],
+                "self._oauth_get_user": [
+                    515
+                ],
+                "user_future.exception": [
+                    521,
+                    522
+                ],
+                "user_future": [
+                    521,
+                    522,
+                    524
+                ],
+                "user_future.result": [
+                    524
+                ],
+                "base_args": [
+                    539,
+                    548,
+                    557,
+                    556
+                ],
+                "parameters": [
+                    1082,
+                    1106,
+                    549
+                ],
+                "method": [
+                    801,
+                    803,
+                    551,
+                    554,
+                    1103,
+                    1079
+                ],
+                "redirect_uri": [
+                    967,
+                    615,
+                    907,
+                    979,
+                    598
+                ],
+                "client_id": [
+                    617,
+                    979,
+                    969,
+                    599
+                ],
+                "response_type": [
+                    600
+                ],
+                "scope": [
+                    604,
+                    605
+                ],
+                "url_concat": [
+                    622,
+                    607
+                ],
+                "code": [
+                    616,
+                    908,
+                    968
+                ],
+                "client_secret": [
+                    970,
+                    618,
+                    980
+                ],
+                "all_args": [
+                    800,
+                    803,
+                    657,
+                    659,
+                    660,
+                    662,
+                    663,
+                    798,
+                    799
+                ],
+                "all_args.update": [
+                    800,
+                    660,
+                    799
+                ],
+                "self._on_oauth2_request": [
+                    664
+                ],
+                "http": [
+                    965,
+                    743,
+                    744,
+                    807,
+                    810,
+                    905,
+                    813,
+                    914,
+                    978,
+                    665,
+                    667,
+                    670
+                ],
+                "post_args": [
+                    800,
+                    801,
+                    809,
+                    810,
+                    1066,
+                    666,
+                    667
+                ],
+                "http.fetch": [
+                    744,
+                    810,
+                    813,
+                    914,
+                    978,
+                    667,
+                    670
+                ],
+                "response.request.url": [
+                    819,
+                    675
+                ],
+                "response.request": [
+                    819,
+                    675
+                ],
+                "escape.json_decode": [
+                    924,
+                    821,
+                    678
+                ],
+                "OAuthMixin": [
+                    691
+                ],
+                "_OAUTH_REQUEST_TOKEN_URL": [
+                    724
+                ],
+                "_OAUTH_ACCESS_TOKEN_URL": [
+                    930,
+                    859,
+                    725
+                ],
+                "_OAUTH_AUTHORIZE_URL": [
+                    858,
+                    931,
+                    726
+                ],
+                "_OAUTH_AUTHENTICATE_URL": [
+                    727
+                ],
+                "_OAUTH_NO_CALLBACKS": [
+                    728,
+                    932,
+                    861
+                ],
+                "_TWITTER_BASE_URL": [
+                    729
+                ],
+                "self._OAUTH_AUTHENTICATE_URL": [
+                    746
+                ],
+                "path.startswith": [
+                    790
+                ],
+                "path": [
+                    1064,
+                    1099,
+                    1100,
+                    1075,
+                    1076,
+                    790,
+                    793,
+                    795
+                ],
+                "self._TWITTER_BASE_URL": [
+                    795
+                ],
+                "oauth": [
+                    802,
+                    804
+                ],
+                "self._oauth_request_parameters": [
+                    802
+                ],
+                "http_callback": [
+                    808,
+                    811,
+                    813
+                ],
+                "self._on_twitter_request": [
+                    808
+                ],
+                "self.require_setting": [
+                    824,
+                    825
+                ],
+                "self.settings": [
+                    827,
+                    828,
+                    909,
+                    910
+                ],
+                "self.twitter_request": [
+                    832
+                ],
+                "gen.Return": [
+                    837
+                ],
+                "gen": [
+                    837,
+                    830
+                ],
+                "gen.coroutine": [
+                    830
+                ],
+                "OAuth2Mixin": [
+                    840,
+                    928
+                ],
+                "_OAUTH_USERINFO_URL": [
+                    860
+                ],
+                "_OAUTH_SETTINGS_KEY": [
+                    862
+                ],
+                "body": [
+                    1128,
+                    906,
+                    916,
+                    1127
+                ],
+                "self._OAUTH_SETTINGS_KEY": [
+                    909,
+                    910
+                ],
+                "_FACEBOOK_BASE_URL": [
+                    933
+                ],
+                "fields": [
+                    997,
+                    999,
+                    973,
+                    976,
+                    1008,
+                    980
+                ],
+                "extra_fields": [
+                    976,
+                    975
+                ],
+                "fields.update": [
+                    976
+                ],
+                "escape.parse_qs_bytes": [
+                    988
+                ],
+                "escape.native_str": [
+                    988,
+                    1127
+                ],
+                "session": [
+                    997,
+                    1011,
+                    989,
+                    998
+                ],
+                "args.get": [
+                    991
+                ],
+                "self.facebook_request": [
+                    994
+                ],
+                "self._on_get_user_info": [
+                    997
+                ],
+                "fieldmap": [
+                    1009,
+                    1011,
+                    1012,
+                    1007
+                ],
+                "field": [
+                    1008,
+                    1009
+                ],
+                "user.get": [
+                    1009
+                ],
+                "fieldmap.update": [
+                    1011
+                ],
+                "session.get": [
+                    1011
+                ],
+                "self._FACEBOOK_BASE_URL": [
+                    1064
+                ],
+                "self.oauth2_request": [
+                    1065
+                ],
+                "parts": [
+                    1074,
+                    1075,
+                    1099,
+                    1098
+                ],
+                "urlparse.urlparse": [
+                    1074,
+                    1098
+                ],
+                "scheme": [
+                    1099,
+                    1075,
+                    1076,
+                    1100
+                ],
+                "netloc": [
+                    1099,
+                    1075,
+                    1076,
+                    1100
+                ],
+                "normalized_url": [
+                    1080,
+                    1104,
+                    1076,
+                    1100
+                ],
+                "scheme.lower": [
+                    1076,
+                    1100
+                ],
+                "netloc.lower": [
+                    1076,
+                    1100
+                ],
+                "base_elems": [
+                    1102,
+                    1103,
+                    1104,
+                    1105,
+                    1108,
+                    1078,
+                    1079,
+                    1080,
+                    1081,
+                    1083
+                ],
+                "base_elems.append": [
+                    1103,
+                    1104,
+                    1105,
+                    1079,
+                    1080,
+                    1081
+                ],
+                "method.upper": [
+                    1103,
+                    1079
+                ],
+                "_oauth_escape": [
+                    1105,
+                    1081,
+                    1083,
+                    1108
+                ],
+                "parameters.items": [
+                    1082,
+                    1106
+                ],
+                "base_string": [
+                    1113,
+                    1089,
+                    1083,
+                    1108
+                ],
+                "key_elems": [
+                    1109,
+                    1110,
+                    1111,
+                    1085,
+                    1086,
+                    1087
+                ],
+                "key_elems.append": [
+                    1110,
+                    1086
+                ],
+                "key": [
+                    1113,
+                    1089,
+                    1111,
+                    1087
+                ],
+                "hmac.new": [
+                    1113,
+                    1089
+                ],
+                "hmac": [
+                    1113,
+                    1089
+                ],
+                "hashlib.sha1": [
+                    1113,
+                    1089
+                ],
+                "hashlib": [
+                    1113,
+                    1089
+                ],
+                "binascii.b2a_base64": [
+                    1090,
+                    1114
+                ],
+                "hash.digest": [
+                    1090,
+                    1114
+                ],
+                "urllib_parse.quote": [
+                    1120,
+                    1109,
+                    1110
+                ],
+                "val": [
+                    1120,
+                    1118,
+                    1119
+                ],
+                "unicode_type": [
+                    1118
+                ],
+                "val.encode": [
+                    1119
+                ],
+                "p": [
+                    1128,
+                    1129,
+                    1133
+                ],
+                "urlparse.parse_qs": [
+                    1128
+                ],
+                "special": [
+                    1132,
+                    1133
+                ],
+                "token.update": [
+                    1133
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/tornado/tornado/test/auth_test.py",
+                "test_function": "test_facebook_login",
+                "test_function_code": "    def test_facebook_login(self):\n        response = self.fetch('/facebook/client/login', follow_redirects=False)\n        self.assertEqual(response.code, 302)\n        self.assertTrue('/facebook/server/authorize?' in response.headers['Location'])\n        response = self.fetch('/facebook/client/login?code=1234', follow_redirects=False)\n        self.assertEqual(response.code, 200)",
+                "test_error": "AssertionError: Async operation timed out after 5 seconds",
+                "full_test_error": "self = <tornado.test.auth_test.AuthTest testMethod=test_facebook_login>\n\n    def test_facebook_login(self):\n        response = self.fetch('/facebook/client/login', follow_redirects=False)\n        self.assertEqual(response.code, 302)\n        self.assertTrue('/facebook/server/authorize?' in response.headers['Location'])\n>       response = self.fetch('/facebook/client/login?code=1234', follow_redirects=False)\n\ntornado/test/auth_test.py:403: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/testing.py:395: in fetch\n    return self.wait()\ntornado/testing.py:325: in wait\n    self.__rethrow()\ntornado/testing.py:261: in __rethrow\n    raise_exc_info(failure)\n<string>:3: in raise_exc_info\n    ???\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def timeout_func():\n        try:\n            raise self.failureException(\n                'Async operation timed out after %s seconds' %\n>               timeout)\nE               AssertionError: Async operation timed out after 5 seconds\n\ntornado/testing.py:309: AssertionError",
+                "traceback": "tornado/testing.py:395: in fetch\n    return self.wait()\ntornado/testing.py:325: in wait\n    self.__rethrow()\ntornado/testing.py:261: in __rethrow\n    raise_exc_info(failure)\n<string>:3: in raise_exc_info\n    ???",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def timeout_func():\n        try:\n            raise self.failureException(\n                'Async operation timed out after %s seconds' %\n>               timeout)\nE               AssertionError: Async operation timed out after 5 seconds\n\ntornado/testing.py:309: AssertionError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}
