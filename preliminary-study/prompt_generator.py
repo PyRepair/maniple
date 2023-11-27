@@ -2,6 +2,7 @@ import glob
 import json
 import os.path
 import time
+import re
 
 import openai
 from openai import OpenAI
@@ -168,22 +169,41 @@ class PromptGenerator:
                 print(f"{response_file_name} already exists in directory {self.output_dir}")
 
             else:
-                time.sleep(3)
                 with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
                     try:
-                        chat_completion = client.chat.completions.create(
-                            model=gpt_model,
-                            messages=[
-                                {"role": "user", "content": self.prompt}
-                            ]
-                        )
+                        max_generation_count = 5
+                        while max_generation_count > 0:
+                            chat_completion = client.chat.completions.create(
+                                model=gpt_model,
+                                messages=[
+                                    {"role": "user", "content": self.prompt}
+                                ]
+                            )
 
-                        response = chat_completion.choices[0].message.content
+                            response = chat_completion.choices[0].message.content
+
+                            if self.contain_valid_fix_patch(response):
+                                break
+                            else:
+                                time.sleep(3)
+                                response = chat_completion.choices[0].message.content
+                                max_generation_count -= 1
+
                         output_file.write(response)
                         print(f"write response to file {response_file_name} in directory {self.output_dir}")
                     except Exception as e:
                         output_file.write(str(e))
                         print(f"write response error to file {response_file_name} in directory {self.output_dir}")
+
+    # used to check if there is ```python ``` code tag in the response
+    @staticmethod
+    def contain_valid_fix_patch(response: str) -> bool:
+        code_block_pattern = r'```(?:python)?(.*?)```'
+        code_blocks = re.findall(code_block_pattern, response, re.DOTALL)
+        if len(code_blocks) == 0:
+            return False
+        else:
+            return True
 
 
 if __name__ == "__main__":
