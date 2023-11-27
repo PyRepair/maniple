@@ -1,1 +1,0 @@
-The test file is `test/units/galaxy/test_collection_install.py`.
