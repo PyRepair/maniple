@@ -1,4 +1,3 @@
-import argparse
 import os
 import shutil
 import subprocess
@@ -6,13 +5,7 @@ import json
 import re
 from typing import List
 import ast
-import inspect
-
-
-FLAG_OVERWRITE = False
-
-
-IGNORED_BUGS = ["spacy:2"]
+from utils import print_in_red
 
 
 def extract_function_with_imports(src: str, func_name: str) -> str:
@@ -71,12 +64,6 @@ def extract_function_with_imports(src: str, func_name: str) -> str:
     )
 
     return modified_function
-
-
-def print_in_red(text):
-    RED = "\033[91m"
-    RESET = "\033[0m"
-    print(f"{RED}{text}{RESET}")
 
 
 class NotSupportedError(Exception):
@@ -310,7 +297,7 @@ class Facts:
             self.facts["2.2.2"].append(full_stacktrace)
 
 
-def collect_facts(bugid: str, dir_path: str):
+def collect_facts(bugid: str, dir_path: str, flag_overwrite=False):
     if bugid in IGNORED_BUGS:
         print_in_red(f"WARNING: {bugid} is ignored")
         return
@@ -321,7 +308,7 @@ def collect_facts(bugid: str, dir_path: str):
 
     bug_json_file = os.path.join(full_bugdir_path, "bug-data.json")
 
-    if FLAG_OVERWRITE or not os.path.exists(bug_json_file):
+    if flag_overwrite or not os.path.exists(bug_json_file):
         if shutil.which("bgp") is None:
             print_in_red(
                 """FATAL: bgp command not found. 
@@ -417,39 +404,3 @@ def write_markdown_files(facts: Facts, output_dir: str):
             else:
                 fact_content = "```text\n" + fact_content + "\n```"
             f.write(f"""# {Facts.FACT_MAP[fact_key]}\n\n{fact_content}""")
-
-
-if __name__ == "__main__":
-    args_parser = argparse.ArgumentParser()
-    args_parser.add_argument(
-        "--bugids",
-        type=lambda s: s.split(","),
-        help="specify a list of bugids to collect facts, like `pandas:30,scikit-learn:1`",
-    )
-    args_parser.add_argument("-o", "--output-dir", help="specify the output directory")
-    args_parser.add_argument("--overwrite", action="store_true")
-    args = args_parser.parse_args()
-
-    if args.overwrite:
-        FLAG_OVERWRITE = True
-
-    if args.output_dir is None:
-        args_parser.print_help()
-        exit(1)
-
-    bugids = args.bugids
-    if bugids is None:
-        bugids = []
-        dirs = os.listdir(args.output_dir)
-        for directory in dirs:
-            if not os.path.isdir(os.path.join(args.output_dir, directory)):
-                continue
-            parts = directory.split("-")
-            bugids.append(f"{'-'.join(parts[:-1])}:{parts[-1]}")
-
-    for bugid in bugids:
-        try:
-            collect_facts(bugid, args.output_dir)
-        except NotSupportedError as e:
-            print_in_red(f"ERROR: {e}")
-            print_in_red(f"Skip {bugid}")
