@@ -108,31 +108,38 @@ class PromptGenerator:
         self.prompt = self.prompt + self.template["1.1.1"]
         self.prompt = self.prompt + "```python\n"
 
-        indent = ""
         omitted_code = "# ... omitted code ...\n\n"
+        has_function_in_file = False
+        has_class_declaration = False
+        indent = ""
 
         if "1.3.2" in self.facts and self.bitvector["1.3.2"] == 1:
             self.prompt = self.prompt + self.template["1.3.2"] + self.facts["1.3.2"]
             self.add_newline_between_sections()
 
         if "1.3.4" in self.facts and self.facts["1.3.4"] != [] and self.bitvector["1.3.4"] == 1:
+            has_function_in_file = True
             functions: list[str] = self.facts["1.3.4"]
             for function_index in range(len(functions)):
                 self.prompt = self.prompt + self.template["1.3.4"]
                 self.prompt = self.prompt + "def " + functions[function_index] + ":\n    " + omitted_code
 
         if "1.2.1" in self.facts and self.bitvector["1.2.1"] == 1:
-            indent = "    "
+            has_class_declaration = True
             self.prompt = self.prompt + self.template["1.2.1"]
             self.prompt = self.prompt + self.facts["1.2.1"] + ":\n"
-            self.prompt = self.prompt + indent + omitted_code
+            self.prompt = self.prompt + "    " + omitted_code
 
         if "1.2.4" in self.facts and self.facts["1.2.4"] != [] and self.bitvector["1.2.4"] == 1:
-            indent = "    "
+            if not has_function_in_file and not has_class_declaration:
+                indent = ""
+            else:
+                indent = "    "
+
             functions: list[str] = self.facts["1.2.4"]
             for function_index in range(len(functions)):
                 self.prompt = self.prompt + indent + self.template["1.2.4"]
-                self.prompt = self.prompt + indent + "def " + functions[function_index] + ":\n" + indent + indent + omitted_code
+                self.prompt = self.prompt + indent + "def " + functions[function_index] + ":\n" + indent + "    " + omitted_code
 
         if indent != "":
             self.add_newline_between_sections()
@@ -207,7 +214,9 @@ class PromptGenerator:
 
 
 if __name__ == "__main__":
-    first_stratum_path = os.listdir("first-stratum")
+    stratum_path = "second-stratum"
+
+    first_stratum_path = os.listdir(stratum_path)
 
     bitvectors = []
 
@@ -220,9 +229,17 @@ if __name__ == "__main__":
 
     for bitvector in bitvectors:
         for bug_dir in first_stratum_path:
-            with open(os.path.join("first-stratum", bug_dir, "facts.json"), "r") as input_file:
-                bug_facts = json.load(input_file)
+            facts_path = os.path.join(stratum_path, bug_dir, "facts.json")
+            if os.path.isfile(facts_path):
+                with open(facts_path, "r") as input_file:
+                    bug_facts = json.load(input_file)
 
-            prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join("first-stratum", bug_dir))
-            prompt_generator.generate_prompt()
-            prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
+                try:
+                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum_path, bug_dir))
+                    prompt_generator.generate_prompt()
+                    # prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
+                    print(f"generate prompt for {bug_dir}")
+                except KeyError as e:
+                    print(f"{bug_dir}: buggy function code are not available, not supported")
+            else:
+                print(f"{bug_dir}: multi function fix, not supported")
