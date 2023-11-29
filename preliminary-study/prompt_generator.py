@@ -130,12 +130,12 @@ class PromptGenerator:
             self.prompt = self.prompt + self.facts["1.2.1"] + ":\n"
             self.prompt = self.prompt + "    " + omitted_code
 
-        if "1.2.4" in self.facts and self.facts["1.2.4"] != [] and self.bitvector["1.2.4"] == 1:
-            if not has_function_in_file and not has_class_declaration:
-                indent = ""
-            else:
-                indent = "    "
+        if (not has_function_in_file) and (not has_class_declaration):
+            indent = ""
+        else:
+            indent = "    "
 
+        if "1.2.4" in self.facts and self.facts["1.2.4"] != [] and self.bitvector["1.2.4"] == 1:
             functions: list[str] = self.facts["1.2.4"]
             for function_index in range(len(functions)):
                 self.prompt = self.prompt + indent + self.template["1.2.4"]
@@ -214,9 +214,9 @@ class PromptGenerator:
 
 
 if __name__ == "__main__":
-    stratum_path = "second-stratum"
+    stratum = "first-stratum"
 
-    first_stratum_path = os.listdir(stratum_path)
+    stratum_path = os.listdir(stratum)
 
     bitvectors = []
 
@@ -228,14 +228,14 @@ if __name__ == "__main__":
             bitvectors.append(json.load(input_bitvector_file))
 
     for bitvector in bitvectors:
-        for bug_dir in first_stratum_path:
-            facts_path = os.path.join(stratum_path, bug_dir, "facts.json")
+        for bug_dir in stratum_path:
+            facts_path = os.path.join(stratum, bug_dir, "facts.json")
             if os.path.isfile(facts_path):
                 with open(facts_path, "r") as input_file:
                     bug_facts = json.load(input_file)
 
                 try:
-                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum_path, bug_dir))
+                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir))
                     prompt_generator.generate_prompt()
                     # prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
                     print(f"generate prompt for {bug_dir}")
