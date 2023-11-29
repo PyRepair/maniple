@@ -214,7 +214,7 @@ class PromptGenerator:
 
 
 if __name__ == "__main__":
-    stratum = "first-stratum"
+    stratum = "second-stratum"
 
     stratum_path = os.listdir(stratum)
 
@@ -222,8 +222,8 @@ if __name__ == "__main__":
 
     current_directory = os.getcwd()
     pattern = "*bitvector*.json"
-    json_files = glob.glob(os.path.join(current_directory, pattern))
-    for file in json_files:
+    bitvector_files = glob.glob(os.path.join(current_directory, pattern))
+    for file in bitvector_files:
         with open(file, "r") as input_bitvector_file:
             bitvectors.append(json.load(input_bitvector_file))
 
