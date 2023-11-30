@@ -5,7 +5,7 @@ import json
 import re
 from typing import List
 import ast
-from utils import print_in_red
+from utils import IGNORED_BUGS, print_in_red
 
 
 def extract_function_with_imports(src: str, func_name: str) -> str:
