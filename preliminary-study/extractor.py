@@ -95,6 +95,8 @@ class Facts:
         "2.1.2": "test file name",
         "2.2.1": "error message",
         "2.2.2": "stacktrace",
+        "2.2.3": "variable runtime value",
+        "2.2.4": "variable runtime type",
         "3.1.1": "issue title",
         "3.1.2": "issue description",
     }
@@ -191,6 +193,64 @@ class Facts:
 
         if buggy_function_info["class_data"] is not None:
             self._resolve_class_info(buggy_function_info["class_data"])
+
+        self.facts["2.2.3"] = {"start": [], "end": []}  # value
+        self.facts["2.2.4"] = {"start": [], "end": []}  # type
+
+        variable_values_start = buggy_function_info["variable_values_start"]
+        if variable_values_start is not None:
+            self.facts["2.2.3"]["start"] = self._resolve_variable_values(
+                variable_values_start
+            )
+            self.facts["2.2.4"]["start"] = self._resolve_variable_types(
+                variable_values_start
+            )
+
+        variables_values_end = buggy_function_info["variable_values_end"]
+        if variables_values_end is not None:
+            self.facts["2.2.3"]["end"] = self._resolve_variable_values(
+                variables_values_end
+            )
+            self.facts["2.2.4"]["end"] = self._resolve_variable_types(
+                variables_values_end
+            )
+
+    @staticmethod
+    def matches_builtin_method(string):
+        pattern = r"<([a-zA-Z\-]+) (?:[^>]+) at 0x[0-9a-f]+>"
+        return bool(re.match(pattern, string))
+
+    def _resolve_variable_values(self, variable_values):
+        values = []
+        for var in variable_values:
+            if (
+                var["value"] != "None"
+                and var["varType"] != "None"
+                and not Facts.matches_builtin_method(var["value"])
+            ):
+                values.append(
+                    {
+                        "varName": var["varName"],
+                        "value": var["value"],
+                    }
+                )
+        return values
+
+    def _resolve_variable_types(self, variable_values):
+        types = []
+        for var in variable_values:
+            if (
+                var["value"] != "None"
+                and var["varType"] != "None"
+                and not Facts.matches_builtin_method(var["value"])
+            ):
+                types.append(
+                    {
+                        "varName": var["varName"],
+                        "varType": var["varType"],
+                    }
+                )
+        return types
 
     def _resolve_class_info(self, buggy_class_info):
         class_signature = buggy_class_info["signature"]
@@ -376,31 +436,24 @@ def collect_facts(bugid: str, dir_path: str, flag_overwrite=False):
         print(f"in_scope_functions ref num: {len(facts.facts['1.3.4'])}")
 
 
+def format_json(obj):
+    formatted_json = json.dumps(obj, indent=4)
+    return formatted_json
+
+
 def write_markdown_files(facts: Facts, output_dir: str):
     for fact_key, fact_content in facts.facts.items():
-        if isinstance(fact_content, list):
+        fact_name = Facts.FACT_MAP[fact_key]
+        if "code" in fact_name:
+            fact_type = "python"
+        else:
+            fact_type = "text"
 
-            def flatten_and_join(arr):
-                # Function to recursively flatten the array
-                def flatten(array):
-                    for element in array:
-                        if isinstance(element, list):
-                            # If the element is a list, extend the result with the flattened list
-                            yield from flatten(element)
-                        else:
-                            # Otherwise, just yield the element
-                            yield element
-
-                # Flatten the array and join with newlines
-                return "\n".join(map(str, flatten(arr)))
-
-            fact_content = flatten_and_join(fact_content)
+        if isinstance(fact_content, list) or isinstance(fact_content, dict):
+            fact_content = format_json(fact_content)
+            fact_type = "json"
+        fact_content = f"```{fact_type}\n{fact_content}\n```\n"
 
         filename = "f" + fact_key.replace(".", "-") + ".md"
         with open(os.path.join(output_dir, filename), "w") as f:
-            fact_name = Facts.FACT_MAP[fact_key]
-            if "code" in fact_name:
-                fact_content = "```python\n" + fact_content + "\n```"
-            else:
-                fact_content = "```text\n" + fact_content + "\n```"
-            f.write(f"""# {Facts.FACT_MAP[fact_key]}\n\n{fact_content}""")
+            f.write(f"""# {fact_name}\n\n{fact_content}""")
