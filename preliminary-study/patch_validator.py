@@ -20,13 +20,17 @@ def validate_patches(bugid: str, output_dir: str):
         result_file_path = os.path.join(
             full_bugdir_path, filename.replace("response", "result")
         )
+        error_log_path = os.path.join(
+            full_bugdir_path,
+            filename.replace("response", "log").replace(".json", ".txt"),
+        )
 
-        subprocess.run(["bgp", "checkout_buggy", "--bugids", bugid], check=True)
+        # subprocess.run(["bgp", "checkout_buggy", "--bugids", bugid], check=True)
         output = subprocess.run(
             ["run_custom_patch", patchfile_path, "--output-file", result_file_path],
             check=True,
-            capture_output=False,
+            capture_output=True,
         )
-        # if output.stderr:
-        #     with open(os.path.join(full_bugdir_path, f"error.log"), "w") as f:
-        #         f.write(output.stderr.decode("utf-8"))
+        if output.stderr:
+            with open(os.path.join(error_log_path), "w") as f:
+                f.write(output.stderr.decode("utf-8"))

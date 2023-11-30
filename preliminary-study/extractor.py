@@ -197,23 +197,25 @@ class Facts:
         self.facts["2.2.3"] = {"start": [], "end": []}  # value
         self.facts["2.2.4"] = {"start": [], "end": []}  # type
 
-        variable_values_start = buggy_function_info["variable_values_start"]
-        if variable_values_start is not None:
-            self.facts["2.2.3"]["start"] = self._resolve_variable_values(
-                variable_values_start
-            )
-            self.facts["2.2.4"]["start"] = self._resolve_variable_types(
-                variable_values_start
-            )
+        if buggy_function_info.get("variable_values_start") is not None:
+            variable_values_start = buggy_function_info["variable_values_start"]
+            if variable_values_start is not None:
+                self.facts["2.2.3"]["start"] = self._resolve_variable_values(
+                    variable_values_start
+                )
+                self.facts["2.2.4"]["start"] = self._resolve_variable_types(
+                    variable_values_start
+                )
 
-        variables_values_end = buggy_function_info["variable_values_end"]
-        if variables_values_end is not None:
-            self.facts["2.2.3"]["end"] = self._resolve_variable_values(
-                variables_values_end
-            )
-            self.facts["2.2.4"]["end"] = self._resolve_variable_types(
-                variables_values_end
-            )
+        if buggy_function_info.get("variable_values_end") is not None:
+            variables_values_end = buggy_function_info["variable_values_end"]
+            if variables_values_end is not None:
+                self.facts["2.2.3"]["end"] = self._resolve_variable_values(
+                    variables_values_end
+                )
+                self.facts["2.2.4"]["end"] = self._resolve_variable_types(
+                    variables_values_end
+                )
 
     @staticmethod
     def matches_builtin_method(string):
