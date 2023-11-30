@@ -61,41 +61,41 @@
                         "docstring": "A level-triggered I/O loop.\n\nWe use ``epoll`` (Linux) or ``kqueue`` (BSD and Mac OS X) if they\nare available, or else we fall back on select(). If you are\nimplementing a system that needs to handle thousands of\nsimultaneous connections, you should use a system that supports\neither ``epoll`` or ``kqueue``.\n\nExample usage for a simple TCP server:\n\n.. testcode::\n\n    import errno\n    import functools\n    import tornado.ioloop\n    import socket\n\n    def connection_ready(sock, fd, events):\n        while True:\n            try:\n                connection, address = sock.accept()\n            except socket.error as e:\n                if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):\n                    raise\n                return\n            connection.setblocking(0)\n            handle_connection(connection, address)\n\n    if __name__ == '__main__':\n        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)\n        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n        sock.setblocking(0)\n        sock.bind((\"\", port))\n        sock.listen(128)\n\n        io_loop = tornado.ioloop.IOLoop.current()\n        callback = functools.partial(connection_ready, sock)\n        io_loop.add_handler(sock.fileno(), callback, io_loop.READ)\n        io_loop.start()\n\n.. testoutput::\n   :hide:\n\nBy default, a newly-constructed `IOLoop` becomes the thread's current\n`IOLoop`, unless there already is a current `IOLoop`. This behavior\ncan be controlled with the ``make_current`` argument to the `IOLoop`\nconstructor: if ``make_current=True``, the new `IOLoop` will always\ntry to become current and it raises an error if there is already a\ncurrent instance. If ``make_current=False``, the new `IOLoop` will\nnot try to become current.\n\n.. versionchanged:: 4.2\n   Added the ``make_current`` keyword argument to the `IOLoop`\n   constructor.",
                         "constructor_docstring": null,
                         "functions": [
-                            "instance()",
-                            "initialized()",
-                            "install(self)",
-                            "clear_instance()",
-                            "current(instance=True)",
-                            "make_current(self)",
-                            "clear_current()",
-                            "configurable_base(cls)",
-                            "configurable_default(cls)",
-                            "initialize(self, make_current=None)",
-                            "close(self, all_fds=False)",
-                            "add_handler(self, fd, handler, events)",
-                            "update_handler(self, fd, events)",
-                            "remove_handler(self, fd)",
-                            "set_blocking_signal_threshold(self, seconds, action)",
-                            "set_blocking_log_threshold(self, seconds)",
-                            "log_stack(self, signal, frame)",
-                            "start(self)",
-                            "_setup_logging(self)",
-                            "stop(self)",
-                            "run_sync(self, func, timeout=None)",
-                            "time(self)",
-                            "add_timeout(self, deadline, callback, *args, **kwargs)",
-                            "call_later(self, delay, callback, *args, **kwargs)",
-                            "call_at(self, when, callback, *args, **kwargs)",
-                            "remove_timeout(self, timeout)",
-                            "add_callback(self, callback, *args, **kwargs)",
-                            "add_callback_from_signal(self, callback, *args, **kwargs)",
-                            "spawn_callback(self, callback, *args, **kwargs)",
-                            "add_future(self, future, callback)",
-                            "_run_callback(self, callback)",
-                            "handle_callback_exception(self, callback)",
-                            "split_fd(self, fd)",
-                            "close_fd(self, fd)",
-                            "run()"
+                            "@staticmethod\ndef instance():\n    \"\"\"Returns a global `IOLoop` instance.\n\n    Most applications have a single, global `IOLoop` running on the\n    main thread.  Use this method to get this instance from\n    another thread.  In most other cases, it is better to use `current()`\n    to get the current thread's `IOLoop`.\n    \"\"\"\n    if not hasattr(IOLoop, '_instance'):\n        with IOLoop._instance_lock:\n            if not hasattr(IOLoop, '_instance'):\n                IOLoop._instance = IOLoop()\n    return IOLoop._instance",
+                            "@staticmethod\ndef initialized():\n    \"\"\"Returns true if the singleton instance has been created.\"\"\"\n    return hasattr(IOLoop, '_instance')",
+                            "def install(self):\n    \"\"\"Installs this `IOLoop` object as the singleton instance.\n\n    This is normally not necessary as `instance()` will create\n    an `IOLoop` on demand, but you may want to call `install` to use\n    a custom subclass of `IOLoop`.\n    \"\"\"\n    assert not IOLoop.initialized()\n    IOLoop._instance = self",
+                            "@staticmethod\ndef clear_instance():\n    \"\"\"Clear the global `IOLoop` instance.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    if hasattr(IOLoop, '_instance'):\n        del IOLoop._instance",
+                            "@staticmethod\ndef current(instance=True):\n    \"\"\"Returns the current thread's `IOLoop`.\n\n    If an `IOLoop` is currently running or has been marked as\n    current by `make_current`, returns that instance.  If there is\n    no current `IOLoop`, returns `IOLoop.instance()` (i.e. the\n    main thread's `IOLoop`, creating one if necessary) if ``instance``\n    is true.\n\n    In general you should use `IOLoop.current` as the default when\n    constructing an asynchronous object, and use `IOLoop.instance`\n    when you mean to communicate to the main thread from a different\n    one.\n\n    .. versionchanged:: 4.1\n       Added ``instance`` argument to control the fallback to\n       `IOLoop.instance()`.\n    \"\"\"\n    current = getattr(IOLoop._current, 'instance', None)\n    if current is None and instance:\n        return IOLoop.instance()\n    return current",
+                            "def make_current(self):\n    \"\"\"Makes this the `IOLoop` for the current thread.\n\n    An `IOLoop` automatically becomes current for its thread\n    when it is started, but it is sometimes useful to call\n    `make_current` explicitly before starting the `IOLoop`,\n    so that code run at startup time can find the right\n    instance.\n\n    .. versionchanged:: 4.1\n       An `IOLoop` created while there is no current `IOLoop`\n       will automatically become current.\n    \"\"\"\n    IOLoop._current.instance = self",
+                            "@staticmethod\ndef clear_current():\n    IOLoop._current.instance = None",
+                            "@classmethod\ndef configurable_base(cls):\n    return IOLoop",
+                            "@classmethod\ndef configurable_default(cls):\n    if hasattr(select, 'epoll'):\n        from tornado.platform.epoll import EPollIOLoop\n        return EPollIOLoop\n    if hasattr(select, 'kqueue'):\n        from tornado.platform.kqueue import KQueueIOLoop\n        return KQueueIOLoop\n    from tornado.platform.select import SelectIOLoop\n    return SelectIOLoop",
+                            "def initialize(self, make_current=None):\n    if make_current is None:\n        if IOLoop.current(instance=False) is None:\n            self.make_current()\n    elif make_current:\n        if IOLoop.current(instance=False) is None:\n            raise RuntimeError('current IOLoop already exists')\n        self.make_current()",
+                            "def close(self, all_fds=False):\n    \"\"\"Closes the `IOLoop`, freeing any resources used.\n\n    If ``all_fds`` is true, all file descriptors registered on the\n    IOLoop will be closed (not just the ones created by the\n    `IOLoop` itself).\n\n    Many applications will only use a single `IOLoop` that runs for the\n    entire lifetime of the process.  In that case closing the `IOLoop`\n    is not necessary since everything will be cleaned up when the\n    process exits.  `IOLoop.close` is provided mainly for scenarios\n    such as unit tests, which create and destroy a large number of\n    ``IOLoops``.\n\n    An `IOLoop` must be completely stopped before it can be closed.  This\n    means that `IOLoop.stop()` must be called *and* `IOLoop.start()` must\n    be allowed to return before attempting to call `IOLoop.close()`.\n    Therefore the call to `close` will usually appear just after\n    the call to `start` rather than near the call to `stop`.\n\n    .. versionchanged:: 3.1\n       If the `IOLoop` implementation supports non-integer objects\n       for \"file descriptors\", those objects will have their\n       ``close`` method when ``all_fds`` is true.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def add_handler(self, fd, handler, events):\n    \"\"\"Registers the given handler to receive the given events for ``fd``.\n\n    The ``fd`` argument may either be an integer file descriptor or\n    a file-like object with a ``fileno()`` method (and optionally a\n    ``close()`` method, which may be called when the `IOLoop` is shut\n    down).\n\n    The ``events`` argument is a bitwise or of the constants\n    ``IOLoop.READ``, ``IOLoop.WRITE``, and ``IOLoop.ERROR``.\n\n    When an event occurs, ``handler(fd, events)`` will be run.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def update_handler(self, fd, events):\n    \"\"\"Changes the events we listen for ``fd``.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def remove_handler(self, fd):\n    \"\"\"Stop listening for events on ``fd``.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def set_blocking_signal_threshold(self, seconds, action):\n    \"\"\"Sends a signal if the `IOLoop` is blocked for more than\n    ``s`` seconds.\n\n    Pass ``seconds=None`` to disable.  Requires Python 2.6 on a unixy\n    platform.\n\n    The action parameter is a Python signal handler.  Read the\n    documentation for the `signal` module for more information.\n    If ``action`` is None, the process will be killed if it is\n    blocked for too long.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def set_blocking_log_threshold(self, seconds):\n    \"\"\"Logs a stack trace if the `IOLoop` is blocked for more than\n    ``s`` seconds.\n\n    Equivalent to ``set_blocking_signal_threshold(seconds,\n    self.log_stack)``\n    \"\"\"\n    self.set_blocking_signal_threshold(seconds, self.log_stack)",
+                            "def log_stack(self, signal, frame):\n    \"\"\"Signal handler to log the stack trace of the current thread.\n\n    For use with `set_blocking_signal_threshold`.\n    \"\"\"\n    gen_log.warning('IOLoop blocked for %f seconds in\\n%s', self._blocking_signal_threshold, ''.join(traceback.format_stack(frame)))",
+                            "def start(self):\n    \"\"\"Starts the I/O loop.\n\n    The loop will run until one of the callbacks calls `stop()`, which\n    will make the loop stop after the current event iteration completes.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def _setup_logging(self):\n    \"\"\"The IOLoop catches and logs exceptions, so it's\n    important that log output be visible.  However, python's\n    default behavior for non-root loggers (prior to python\n    3.2) is to print an unhelpful \"no handlers could be\n    found\" message rather than the actual log entry, so we\n    must explicitly configure logging if we've made it this\n    far without anything.\n\n    This method should be called from start() in subclasses.\n    \"\"\"\n    if not any([logging.getLogger().handlers, logging.getLogger('tornado').handlers, logging.getLogger('tornado.application').handlers]):\n        logging.basicConfig()",
+                            "def stop(self):\n    \"\"\"Stop the I/O loop.\n\n    If the event loop is not currently running, the next call to `start()`\n    will return immediately.\n\n    To use asynchronous methods from otherwise-synchronous code (such as\n    unit tests), you can start and stop the event loop like this::\n\n      ioloop = IOLoop()\n      async_method(ioloop=ioloop, callback=ioloop.stop)\n      ioloop.start()\n\n    ``ioloop.start()`` will return after ``async_method`` has run\n    its callback, whether that callback was invoked before or\n    after ``ioloop.start``.\n\n    Note that even after `stop` has been called, the `IOLoop` is not\n    completely stopped until `IOLoop.start` has also returned.\n    Some work that was scheduled before the call to `stop` may still\n    be run before the `IOLoop` shuts down.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def run_sync(self, func, timeout=None):\n    \"\"\"Starts the `IOLoop`, runs the given function, and stops the loop.\n\n    If the function returns a `.Future`, the `IOLoop` will run\n    until the future is resolved.  If it raises an exception, the\n    `IOLoop` will stop and the exception will be re-raised to the\n    caller.\n\n    The keyword-only argument ``timeout`` may be used to set\n    a maximum duration for the function.  If the timeout expires,\n    a `TimeoutError` is raised.\n\n    This method is useful in conjunction with `tornado.gen.coroutine`\n    to allow asynchronous calls in a ``main()`` function::\n\n        @gen.coroutine\n        def main():\n            # do stuff...\n\n        if __name__ == '__main__':\n            IOLoop.current().run_sync(main)\n    \"\"\"\n    future_cell = [None]\n\n    def run():\n        try:\n            result = func()\n        except Exception:\n            future_cell[0] = TracebackFuture()\n            future_cell[0].set_exc_info(sys.exc_info())\n        else:\n            if is_future(result):\n                future_cell[0] = result\n            else:\n                future_cell[0] = TracebackFuture()\n                future_cell[0].set_result(result)\n        self.add_future(future_cell[0], lambda future: self.stop())\n    self.add_callback(run)\n    if timeout is not None:\n        timeout_handle = self.add_timeout(self.time() + timeout, self.stop)\n    self.start()\n    if timeout is not None:\n        self.remove_timeout(timeout_handle)\n    if not future_cell[0].done():\n        raise TimeoutError('Operation timed out after %s seconds' % timeout)\n    return future_cell[0].result()",
+                            "def time(self):\n    \"\"\"Returns the current time according to the `IOLoop`'s clock.\n\n    The return value is a floating-point number relative to an\n    unspecified time in the past.\n\n    By default, the `IOLoop`'s time function is `time.time`.  However,\n    it may be configured to use e.g. `time.monotonic` instead.\n    Calls to `add_timeout` that pass a number instead of a\n    `datetime.timedelta` should use this function to compute the\n    appropriate time, so they can work no matter what time function\n    is chosen.\n    \"\"\"\n    return time.time()",
+                            "def add_timeout(self, deadline, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` at the time ``deadline`` from the I/O loop.\n\n    Returns an opaque handle that may be passed to\n    `remove_timeout` to cancel.\n\n    ``deadline`` may be a number denoting a time (on the same\n    scale as `IOLoop.time`, normally `time.time`), or a\n    `datetime.timedelta` object for a deadline relative to the\n    current time.  Since Tornado 4.0, `call_later` is a more\n    convenient alternative for the relative case since it does not\n    require a timedelta object.\n\n    Note that it is not safe to call `add_timeout` from other threads.\n    Instead, you must use `add_callback` to transfer control to the\n    `IOLoop`'s thread, and then call `add_timeout` from there.\n\n    Subclasses of IOLoop must implement either `add_timeout` or\n    `call_at`; the default implementations of each will call\n    the other.  `call_at` is usually easier to implement, but\n    subclasses that wish to maintain compatibility with Tornado\n    versions prior to 4.0 must use `add_timeout` instead.\n\n    .. versionchanged:: 4.0\n       Now passes through ``*args`` and ``**kwargs`` to the callback.\n    \"\"\"\n    if isinstance(deadline, numbers.Real):\n        return self.call_at(deadline, callback, *args, **kwargs)\n    elif isinstance(deadline, datetime.timedelta):\n        return self.call_at(self.time() + timedelta_to_seconds(deadline), callback, *args, **kwargs)\n    else:\n        raise TypeError('Unsupported deadline %r' % deadline)",
+                            "def call_later(self, delay, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` after ``delay`` seconds have passed.\n\n    Returns an opaque handle that may be passed to `remove_timeout`\n    to cancel.  Note that unlike the `asyncio` method of the same\n    name, the returned object does not have a ``cancel()`` method.\n\n    See `add_timeout` for comments on thread-safety and subclassing.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    return self.call_at(self.time() + delay, callback, *args, **kwargs)",
+                            "def call_at(self, when, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` at the absolute time designated by ``when``.\n\n    ``when`` must be a number using the same reference point as\n    `IOLoop.time`.\n\n    Returns an opaque handle that may be passed to `remove_timeout`\n    to cancel.  Note that unlike the `asyncio` method of the same\n    name, the returned object does not have a ``cancel()`` method.\n\n    See `add_timeout` for comments on thread-safety and subclassing.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    return self.add_timeout(when, callback, *args, **kwargs)",
+                            "def remove_timeout(self, timeout):\n    \"\"\"Cancels a pending timeout.\n\n    The argument is a handle as returned by `add_timeout`.  It is\n    safe to call `remove_timeout` even if the callback has already\n    been run.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def add_callback(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next I/O loop iteration.\n\n    It is safe to call this method from any thread at any time,\n    except from a signal handler.  Note that this is the **only**\n    method in `IOLoop` that makes this thread-safety guarantee; all\n    other interaction with the `IOLoop` must be done from that\n    `IOLoop`'s thread.  `add_callback()` may be used to transfer\n    control from other threads to the `IOLoop`'s thread.\n\n    To add a callback from a signal handler, see\n    `add_callback_from_signal`.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def add_callback_from_signal(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next I/O loop iteration.\n\n    Safe for use from a Python signal handler; should not be used\n    otherwise.\n\n    Callbacks added with this method will be run without any\n    `.stack_context`, to avoid picking up the context of the function\n    that was interrupted by the signal.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def spawn_callback(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next IOLoop iteration.\n\n    Unlike all other callback-related methods on IOLoop,\n    ``spawn_callback`` does not associate the callback with its caller's\n    ``stack_context``, so it is suitable for fire-and-forget callbacks\n    that should not interfere with the caller.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    with stack_context.NullContext():\n        self.add_callback(callback, *args, **kwargs)",
+                            "def add_future(self, future, callback):\n    \"\"\"Schedules a callback on the ``IOLoop`` when the given\n    `.Future` is finished.\n\n    The callback is invoked with one argument, the\n    `.Future`.\n    \"\"\"\n    assert is_future(future)\n    callback = stack_context.wrap(callback)\n    future.add_done_callback(lambda future: self.add_callback(callback, future))",
+                            "def _run_callback(self, callback):\n    \"\"\"Runs a callback with error handling.\n\n    For use in subclasses.\n    \"\"\"\n    try:\n        ret = callback()\n        if ret is not None and is_future(ret):\n            self.add_future(ret, lambda f: f.result())\n    except Exception:\n        self.handle_callback_exception(callback)",
+                            "def handle_callback_exception(self, callback):\n    \"\"\"This method is called whenever a callback run by the `IOLoop`\n    throws an exception.\n\n    By default simply logs the exception as an error.  Subclasses\n    may override this method to customize reporting of exceptions.\n\n    The exception itself is not passed explicitly, but is available\n    in `sys.exc_info`.\n    \"\"\"\n    app_log.error('Exception in callback %r', callback, exc_info=True)",
+                            "def split_fd(self, fd):\n    \"\"\"Returns an (fd, obj) pair from an ``fd`` parameter.\n\n    We accept both raw file descriptors and file-like objects as\n    input to `add_handler` and related methods.  When a file-like\n    object is passed, we must retain the object itself so we can\n    close it correctly when the `IOLoop` shuts down, but the\n    poller interfaces favor file descriptors (they will accept\n    file-like objects and call ``fileno()`` for you, but they\n    always return the descriptor itself).\n\n    This method is provided for use by `IOLoop` subclasses and should\n    not generally be used by application code.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    try:\n        return (fd.fileno(), fd)\n    except AttributeError:\n        return (fd, fd)",
+                            "def close_fd(self, fd):\n    \"\"\"Utility method to close an ``fd``.\n\n    If ``fd`` is a file-like object, we close it directly; otherwise\n    we use `os.close`.\n\n    This method is provided for use by `IOLoop` subclasses (in\n    implementations of ``IOLoop.close(all_fds=True)`` and should\n    not generally be used by application code.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    try:\n        try:\n            fd.close()\n        except AttributeError:\n            os.close(fd)\n    except OSError:\n        pass",
+                            "def run():\n    try:\n        result = func()\n    except Exception:\n        future_cell[0] = TracebackFuture()\n        future_cell[0].set_exc_info(sys.exc_info())\n    else:\n        if is_future(result):\n            future_cell[0] = result\n        else:\n            future_cell[0] = TracebackFuture()\n            future_cell[0].set_result(result)\n    self.add_future(future_cell[0], lambda future: self.stop())"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
@@ -115,68 +115,64 @@
                             "_current"
                         ],
                         "class_decorators": []
-                    }
+                    },
+                    "variable_values_start": [
+                        {
+                            "varName": "make_current",
+                            "value": "<function IOLoop.make_current at 0x7fb1d50cdc20>",
+                            "varType": "function"
+                        },
+                        {
+                            "varName": "IOLoop.current",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "IOLoop",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.make_current",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "angelic_variable_values_start": [
+                        {
+                            "varName": "make_current",
+                            "value": "<function IOLoop.make_current at 0x7f90c208bb90>",
+                            "varType": "function"
+                        },
+                        {
+                            "varName": "IOLoop.current",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "IOLoop",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.make_current",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ]
                 }
             ],
-            "inscope_functions": [
-                "instance()",
-                "initialized()",
-                "install(self)",
-                "clear_instance()",
-                "current(instance=True)",
-                "make_current(self)",
-                "clear_current()",
-                "configurable_base(cls)",
-                "configurable_default(cls)",
-                "initialize(self, make_current=None)",
-                "close(self, all_fds=False)",
-                "add_handler(self, fd, handler, events)",
-                "update_handler(self, fd, events)",
-                "remove_handler(self, fd)",
-                "set_blocking_signal_threshold(self, seconds, action)",
-                "set_blocking_log_threshold(self, seconds)",
-                "log_stack(self, signal, frame)",
-                "start(self)",
-                "_setup_logging(self)",
-                "stop(self)",
-                "run_sync(self, func, timeout=None)",
-                "time(self)",
-                "add_timeout(self, deadline, callback, *args, **kwargs)",
-                "call_later(self, delay, callback, *args, **kwargs)",
-                "call_at(self, when, callback, *args, **kwargs)",
-                "remove_timeout(self, timeout)",
-                "add_callback(self, callback, *args, **kwargs)",
-                "add_callback_from_signal(self, callback, *args, **kwargs)",
-                "spawn_callback(self, callback, *args, **kwargs)",
-                "add_future(self, future, callback)",
-                "_run_callback(self, callback)",
-                "handle_callback_exception(self, callback)",
-                "split_fd(self, fd)",
-                "close_fd(self, fd)",
-                "initialize(self, impl, time_func=None, **kwargs)",
-                "close(self, all_fds=False)",
-                "add_handler(self, fd, handler, events)",
-                "update_handler(self, fd, events)",
-                "remove_handler(self, fd)",
-                "set_blocking_signal_threshold(self, seconds, action)",
-                "start(self)",
-                "stop(self)",
-                "time(self)",
-                "call_at(self, deadline, callback, *args, **kwargs)",
-                "remove_timeout(self, timeout)",
-                "add_callback(self, callback, *args, **kwargs)",
-                "add_callback_from_signal(self, callback, *args, **kwargs)",
-                "__init__(self, deadline, callback, io_loop)",
-                "__lt__(self, other)",
-                "__le__(self, other)",
-                "__init__(self, callback, callback_time, io_loop=None)",
-                "start(self)",
-                "stop(self)",
-                "is_running(self)",
-                "_run(self)",
-                "_schedule_next(self)",
-                "run()"
-            ],
+            "inscope_functions": [],
             "variables_in_file": {
                 "ImportError": [
                     58,
@@ -2601,9 +2597,9 @@
                 "test_function": "test_force_current",
                 "test_function_code": "    def test_force_current(self):\n        self.io_loop = IOLoop(make_current=True)\n        self.assertIs(self.io_loop, IOLoop.current())\n        with self.assertRaises(RuntimeError):\n            # A second make_current=True construction cannot succeed.\n            IOLoop(make_current=True)\n        # current() was not affected by the failed construction.\n        self.assertIs(self.io_loop, IOLoop.current())",
                 "test_error": "RuntimeError: current IOLoop already exists",
-                "full_test_error": "self = <tornado.test.ioloop_test.TestIOLoopCurrent testMethod=test_force_current>\n\n    def test_force_current(self):\n>       self.io_loop = IOLoop(make_current=True)\n\ntornado/test/ioloop_test.py:443: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/util.py:221: in __new__\n    instance.initialize(*args, **init_kwargs)\ntornado/platform/kqueue.py:91: in initialize\n    super(KQueueIOLoop, self).initialize(impl=_KQueue(), **kwargs)\ntornado/ioloop.py:664: in initialize\n    super(PollIOLoop, self).initialize(**kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <tornado.platform.kqueue.KQueueIOLoop object at 0x7fa8579540d0>\nmake_current = True\n\n    def initialize(self, make_current=None):\n        if make_current is None:\n            if IOLoop.current(instance=False) is None:\n                self.make_current()\n        elif make_current:\n            if IOLoop.current(instance=False) is None:\n>               raise RuntimeError(\"current IOLoop already exists\")\nE               RuntimeError: current IOLoop already exists\n\ntornado/ioloop.py:253: RuntimeError",
+                "full_test_error": "self = <tornado.test.ioloop_test.TestIOLoopCurrent testMethod=test_force_current>\n\n    def test_force_current(self):\n>       self.io_loop = IOLoop(make_current=True)\n\ntornado/test/ioloop_test.py:443: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/util.py:221: in __new__\n    instance.initialize(*args, **init_kwargs)\ntornado/platform/kqueue.py:91: in initialize\n    super(KQueueIOLoop, self).initialize(impl=_KQueue(), **kwargs)\ntornado/ioloop.py:664: in initialize\n    super(PollIOLoop, self).initialize(**kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <tornado.platform.kqueue.KQueueIOLoop object at 0x7fb99efab4d0>\nmake_current = True\n\n    def initialize(self, make_current=None):\n        if make_current is None:\n            if IOLoop.current(instance=False) is None:\n                self.make_current()\n        elif make_current:\n            if IOLoop.current(instance=False) is None:\n>               raise RuntimeError(\"current IOLoop already exists\")\nE               RuntimeError: current IOLoop already exists\n\ntornado/ioloop.py:253: RuntimeError",
                 "traceback": "tornado/util.py:221: in __new__\n    instance.initialize(*args, **init_kwargs)\ntornado/platform/kqueue.py:91: in initialize\n    super(KQueueIOLoop, self).initialize(impl=_KQueue(), **kwargs)\ntornado/ioloop.py:664: in initialize\n    super(PollIOLoop, self).initialize(**kwargs)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <tornado.platform.kqueue.KQueueIOLoop object at 0x7fa8579540d0>\nmake_current = True\n\n    def initialize(self, make_current=None):\n        if make_current is None:\n            if IOLoop.current(instance=False) is None:\n                self.make_current()\n        elif make_current:\n            if IOLoop.current(instance=False) is None:\n>               raise RuntimeError(\"current IOLoop already exists\")\nE               RuntimeError: current IOLoop already exists\n\ntornado/ioloop.py:253: RuntimeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <tornado.platform.kqueue.KQueueIOLoop object at 0x7fb99efab4d0>\nmake_current = True\n\n    def initialize(self, make_current=None):\n        if make_current is None:\n            if IOLoop.current(instance=False) is None:\n                self.make_current()\n        elif make_current:\n            if IOLoop.current(instance=False) is None:\n>               raise RuntimeError(\"current IOLoop already exists\")\nE               RuntimeError: current IOLoop already exists\n\ntornado/ioloop.py:253: RuntimeError",
                 "test_function_decorators": []
             }
         ]

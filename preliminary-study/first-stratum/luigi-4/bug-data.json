@@ -121,78 +121,167 @@
                         "docstring": "Template task for inserting a data set into Redshift from s3.\n\nUsage:\n\n* Subclass and override the required attributes:\n\n  * `host`,\n  * `database`,\n  * `user`,\n  * `password`,\n  * `table`,\n  * `columns`,\n  * `s3_load_path`.\n\n* You can also override the attributes provided by the\n  CredentialsMixin if they are not supplied by your\n  configuration or environment variables.",
                         "constructor_docstring": null,
                         "functions": [
-                            "s3_load_path(self)",
-                            "copy_options(self)",
-                            "prune_table(self)",
-                            "prune_column(self)",
-                            "prune_date(self)",
-                            "table_attributes(self)",
-                            "do_truncate_table(self)",
-                            "do_prune(self)",
-                            "table_type(self)",
-                            "queries(self)",
-                            "truncate_table(self, connection)",
-                            "prune(self, connection)",
-                            "create_table(self, connection)",
-                            "run(self)",
-                            "copy(self, cursor, f)",
-                            "output(self)",
-                            "does_table_exist(self, connection)",
-                            "init_copy(self, connection)",
-                            "post_copy(self, cursor)"
+                            "@abc.abstractmethod\ndef s3_load_path(self):\n    \"\"\"\n    Override to return the load path.\n    \"\"\"\n    return None",
+                            "@abc.abstractproperty\ndef copy_options(self):\n    \"\"\"\n    Add extra copy options, for example:\n\n    * TIMEFORMAT 'auto'\n    * IGNOREHEADER 1\n    * TRUNCATECOLUMNS\n    * IGNOREBLANKLINES\n    * DELIMITER '\t'\n    \"\"\"\n    return ''",
+                            "@property\ndef prune_table(self):\n    \"\"\"\n    Override to set equal to the name of the table which is to be pruned.\n    Intended to be used in conjunction with prune_column and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                            "@property\ndef prune_column(self):\n    \"\"\"\n    Override to set equal to the column of the prune_table which is to be compared\n    Intended to be used in conjunction with prune_table and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                            "@property\ndef prune_date(self):\n    \"\"\"\n    Override to set equal to the date by which prune_column is to be compared\n    Intended to be used in conjunction with prune_table and prune_column\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                            "@property\ndef table_attributes(self):\n    \"\"\"\n    Add extra table attributes, for example:\n\n    DISTSTYLE KEY\n    DISTKEY (MY_FIELD)\n    SORTKEY (MY_FIELD_2, MY_FIELD_3)\n    \"\"\"\n    return ''",
+                            "@property\ndef do_truncate_table(self):\n    \"\"\"\n    Return True if table should be truncated before copying new data in.\n    \"\"\"\n    return False",
+                            "def do_prune(self):\n    \"\"\"\n    Return True if prune_table, prune_column, and prune_date are implemented.\n    If only a subset of prune variables are override, an exception is raised to remind the user to implement all or none.\n    Prune (data newer than prune_date deleted) before copying new data in.\n    \"\"\"\n    if self.prune_table and self.prune_column and self.prune_date:\n        return True\n    elif self.prune_table or self.prune_column or self.prune_date:\n        raise Exception('override zero or all prune variables')\n    else:\n        return False",
+                            "@property\ndef table_type(self):\n    \"\"\"\n    Return table type (i.e. 'temp').\n    \"\"\"\n    return ''",
+                            "@property\ndef queries(self):\n    \"\"\"\n    Override to return a list of queries to be executed in order.\n    \"\"\"\n    return []",
+                            "def truncate_table(self, connection):\n    query = 'truncate %s' % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                            "def prune(self, connection):\n    query = 'delete from %s where %s >= %s' % (self.prune_table, self.prune_column, self.prune_date)\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for name, type in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    elif len(self.columns[0]) == 3:\n        coldefs = ','.join(('{name} {type} ENCODE {encoding}'.format(name=name, type=type, encoding=encoding) for name, type, encoding in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    else:\n        raise ValueError('create_table() found no columns for %r' % self.table)",
+                            "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not self.table:\n        raise Exception('table need to be specified')\n    path = self.s3_load_path()\n    output = self.output()\n    connection = output.connect()\n    cursor = connection.cursor()\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.post_copy(cursor)\n    output.touch(connection)\n    connection.commit()\n    connection.close()",
+                            "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    logger.info('Inserting file: %s', f)\n    colnames = ''\n    if len(self.columns) > 0:\n        colnames = ','.join([x[0] for x in self.columns])\n        colnames = '({})'.format(colnames)\n    cursor.execute(\"\\n         COPY {table} {colnames} from '{source}'\\n         CREDENTIALS '{creds}'\\n         {options}\\n         ;\".format(table=self.table, colnames=colnames, source=f, creds=self._credentials(), options=self.copy_options))",
+                            "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(host=self.host, database=self.database, user=self.user, password=self.password, table=self.table, update_id=self.update_id)",
+                            "def does_table_exist(self, connection):\n    \"\"\"\n    Determine whether the table already exists.\n    \"\"\"\n    if '.' in self.table:\n        query = 'select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1'\n    else:\n        query = 'select 1 as table_exists from pg_table_def where tablename = lower(%s) limit 1'\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query, tuple(self.table.split('.')))\n        result = cursor.fetchone()\n        return bool(result)\n    finally:\n        cursor.close()",
+                            "def init_copy(self, connection):\n    \"\"\"\n    Perform pre-copy sql - such as creating table, truncating, or removing data older than x.\n    \"\"\"\n    if not self.does_table_exist(connection):\n        logger.info('Creating table %s', self.table)\n        connection.reset()\n        self.create_table(connection)\n    if self.do_truncate_table:\n        logger.info('Truncating table %s', self.table)\n        self.truncate_table(connection)\n    if self.do_prune():\n        logger.info('Removing %s older than %s from %s', self.prune_column, self.prune_date, self.prune_table)\n        self.prune(connection)",
+                            "def post_copy(self, cursor):\n    \"\"\"\n    Performs post-copy sql - such as cleansing data, inserting into production table (if copied to temp table), etc.\n    \"\"\"\n    logger.info('Executing post copy queries')\n    for query in self.queries:\n        cursor.execute(query)"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [],
                         "class_decorators": []
-                    }
+                    },
+                    "variable_values_start": [
+                        {
+                            "varName": "logger.info",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "logger",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "f",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "colnames",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.columns",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "x",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "cursor.execute",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "cursor",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._credentials",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.copy_options",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "angelic_variable_values_start": [
+                        {
+                            "varName": "logger.info",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "logger",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "f",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "colnames",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.columns",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "x",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "cursor.execute",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "cursor",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._credentials",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.copy_options",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ]
                 }
             ],
-            "inscope_functions": [
-                "configuration_section(self)",
-                "aws_access_key_id(self)",
-                "aws_secret_access_key(self)",
-                "aws_account_id(self)",
-                "aws_arn_role_name(self)",
-                "aws_session_token(self)",
-                "_get_configuration_attribute(self, attribute)",
-                "_credentials(self)",
-                "s3_load_path(self)",
-                "copy_options(self)",
-                "prune_table(self)",
-                "prune_column(self)",
-                "prune_date(self)",
-                "table_attributes(self)",
-                "do_truncate_table(self)",
-                "do_prune(self)",
-                "table_type(self)",
-                "queries(self)",
-                "truncate_table(self, connection)",
-                "prune(self, connection)",
-                "create_table(self, connection)",
-                "run(self)",
-                "copy(self, cursor, f)",
-                "output(self)",
-                "does_table_exist(self, connection)",
-                "init_copy(self, connection)",
-                "post_copy(self, cursor)",
-                "jsonpath(self)",
-                "copy_json_options(self)",
-                "copy(self, cursor, f)",
-                "run(self)",
-                "host(self)",
-                "database(self)",
-                "user(self)",
-                "password(self)",
-                "update_id(self)",
-                "output(self)",
-                "run(self)",
-                "output(self)",
-                "s3_unload_path(self)",
-                "unload_options(self)",
-                "unload_query(self)",
-                "run(self)",
-                "output(self)"
-            ],
+            "inscope_functions": [],
             "variables_in_file": {
                 "logger": [
                     417,
@@ -1785,9 +1874,9 @@
                 "test_function": "test_s3_copy_with_nonetype_columns",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_once_with(\n            database=task.database,\n            host=task.host,\n            update_id=task.task_id,\n            user=task.user,\n            table=task.table,\n            password=task.password,\n        )\n\n        # To get the proper intendation in the multiline `COPY` statement the\n        # SQL string was copied from redshift.py.\n        mock_cursor.execute.assert_called_with(\"\"\"\n         COPY {table} {colnames} from '{source}'\n         CREDENTIALS '{creds}'\n         {options}\n         ;\"\"\".format(\n            table='dummy_table',\n            colnames='',\n            source='s3://bucket/key',\n            creds='aws_access_key_id=key;aws_secret_access_key=secret',\n            options='')\n        )",
                 "test_error": "TypeError: object of type 'NoneType' has no len()",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4384615920'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4385178720'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4458510512'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4459102848'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "traceback": "luigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4385178720'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4459102848'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "test_function_decorators": [
                     "mock.patch('luigi.contrib.redshift.RedshiftTarget')"
                 ]

@@ -207,50 +207,240 @@
                         "docstring": "Template task for inserting a data set into Redshift from s3.\n\nUsage:\n\n* Subclass and override the required attributes:\n  * `host`,\n  * `database`,\n  * `user`,\n  * `password`,\n  * `table`,\n  * `columns`,\n  * `aws_access_key_id`,\n  * `aws_secret_access_key`,\n  * `s3_load_path`.",
                         "constructor_docstring": null,
                         "functions": [
-                            "s3_load_path(self)",
-                            "aws_access_key_id(self)",
-                            "aws_secret_access_key(self)",
-                            "copy_options(self)",
-                            "table_attributes(self)",
-                            "do_truncate_table(self)",
-                            "truncate_table(self, connection)",
-                            "create_table(self, connection)",
-                            "run(self)",
-                            "copy(self, cursor, f)",
-                            "output(self)",
-                            "does_table_exist(self, connection)"
+                            "@abc.abstractproperty\ndef s3_load_path(self):\n    \"\"\"\n    Override to return the load path.\n    \"\"\"\n    return None",
+                            "@abc.abstractproperty\ndef aws_access_key_id(self):\n    \"\"\"\n    Override to return the key id.\n    \"\"\"\n    return None",
+                            "@abc.abstractproperty\ndef aws_secret_access_key(self):\n    \"\"\"\n    Override to return the secret access key.\n    \"\"\"\n    return None",
+                            "@abc.abstractproperty\ndef copy_options(self):\n    \"\"\"\n    Add extra copy options, for example:\n\n    * TIMEFORMAT 'auto'\n    * IGNOREHEADER 1\n    * TRUNCATECOLUMNS\n    * IGNOREBLANKLINES\n    \"\"\"\n    return ''",
+                            "def table_attributes(self):\n    \"\"\"Add extra table attributes, for example:\n    DISTSTYLE KEY\n    DISTKEY (MY_FIELD)\n    SORTKEY (MY_FIELD_2, MY_FIELD_3)\n    \"\"\"\n    return ''",
+                            "def do_truncate_table(self):\n    \"\"\"\n    Return True if table should be truncated before copying new data in.\n    \"\"\"\n    return False",
+                            "def truncate_table(self, connection):\n    query = 'truncate %s' % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for name, type in self.columns))\n        query = 'CREATE TABLE {table} ({coldefs}) {table_attributes}'.format(table=self.table, coldefs=coldefs, table_attributes=self.table_attributes())\n        connection.cursor().execute(query)",
+                            "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not self.table:\n        raise Exception('table need to be specified')\n    path = self.s3_load_path()\n    connection = self.output().connect()\n    if not self.does_table_exist(connection):\n        logger.info('Creating table %s', self.table)\n        connection.reset()\n        self.create_table(connection)\n    elif self.do_truncate_table():\n        logger.info('Truncating table %s', self.table)\n        self.truncate_table(connection)\n    logger.info('Inserting file: %s', path)\n    cursor = connection.cursor()\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.output().touch(connection)\n    connection.commit()\n    connection.close()",
+                            "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n    \"\"\"\n    cursor.execute(\"\\n         COPY %s from '%s'\\n         CREDENTIALS 'aws_access_key_id=%s;aws_secret_access_key=%s'\\n         delimiter '%s'\\n         %s\\n         ;\" % (self.table, f, self.aws_access_key_id, self.aws_secret_access_key, self.column_separator, self.copy_options))",
+                            "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(host=self.host, database=self.database, user=self.user, password=self.password, table=self.table, update_id=self.update_id())",
+                            "def does_table_exist(self, connection):\n    \"\"\"\n    Determine whether the table already exists.\n    \"\"\"\n    query = 'select 1 as table_exists from pg_table_def where tablename = %s limit 1'\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query, (self.table,))\n        result = cursor.fetchone()\n        return bool(result)\n    finally:\n        cursor.close()"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [],
                         "class_decorators": []
-                    }
+                    },
+                    "variable_values_start": [
+                        {
+                            "varName": "self.table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "path",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.s3_load_path",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connect",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.output",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.does_table_exist",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "logger.info",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "logger",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.reset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.create_table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.do_truncate_table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.truncate_table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "cursor",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.cursor",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.init_copy",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.copy",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "touch",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.commit",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.close",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "angelic_variable_values_start": [
+                        {
+                            "varName": "self.table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "path",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.s3_load_path",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connect",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.output",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.does_table_exist",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "logger.info",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "logger",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.reset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.create_table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.do_truncate_table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.truncate_table",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "cursor",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.cursor",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.init_copy",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.copy",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "touch",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.commit",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "connection.close",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ]
                 }
             ],
-            "inscope_functions": [
-                "s3_load_path(self)",
-                "aws_access_key_id(self)",
-                "aws_secret_access_key(self)",
-                "copy_options(self)",
-                "table_attributes(self)",
-                "do_truncate_table(self)",
-                "truncate_table(self, connection)",
-                "create_table(self, connection)",
-                "run(self)",
-                "copy(self, cursor, f)",
-                "output(self)",
-                "does_table_exist(self, connection)",
-                "jsonpath(self)",
-                "copy_json_options(self)",
-                "copy(self, cursor, f)",
-                "run(self)",
-                "host(self)",
-                "database(self)",
-                "user(self)",
-                "password(self)",
-                "update_id(self)",
-                "output(self)",
-                "run(self)"
-            ],
+            "inscope_functions": [],
             "variables_in_file": {
                 "logger": [
                     35,
@@ -1254,7 +1444,7 @@
                 "test_function": "test_s3_copy_to_table",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_with(database=task.database,\n                                                host=task.host,\n                                                update_id='DummyS3CopyToTable()',\n                                                user=task.user,\n                                                table=task.table,\n                                                password=task.password)\n\n        # Check if the `S3CopyToTable.s3_load_path` class attribute was\n        # successfully referenced in the `S3CopyToTable.run` method, which is\n        # in-turn passed to `S3CopyToTable.copy` and other functions in `run`\n        # (see issue #995).\n        mock_copy.assert_called_with(mock_cursor, task.s3_load_path)\n\n        # Check the SQL query in `S3CopyToTable.does_table_exist`.\n        mock_cursor.execute.assert_called_with(\"select 1 as table_exists \"\n                                               \"from pg_table_def \"\n                                               \"where tablename = %s limit 1\",\n                                               (task.table,))\n\n        return",
                 "test_error": "TypeError: 'str' object is not callable",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4462506384'>\nmock_copy = <MagicMock name='copy' id='4462613408'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n>       task.run()\n\ntest/contrib/redshift_test.py:55: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTable()\n\n    def run(self):\n        \"\"\"\n        If the target table doesn't exist, self.create_table\n        will be called to attempt to create the table.\n        \"\"\"\n        if not (self.table):\n            raise Exception(\"table need to be specified\")\n    \n>       path = self.s3_load_path()\nE       TypeError: 'str' object is not callable\n\nluigi/contrib/redshift.py:166: TypeError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4556915424'>\nmock_copy = <MagicMock name='copy' id='4556984912'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n>       task.run()\n\ntest/contrib/redshift_test.py:55: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTable()\n\n    def run(self):\n        \"\"\"\n        If the target table doesn't exist, self.create_table\n        will be called to attempt to create the table.\n        \"\"\"\n        if not (self.table):\n            raise Exception(\"table need to be specified\")\n    \n>       path = self.s3_load_path()\nE       TypeError: 'str' object is not callable\n\nluigi/contrib/redshift.py:166: TypeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [

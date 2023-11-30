@@ -135,13 +135,13 @@
                         "docstring": null,
                         "constructor_docstring": null,
                         "functions": [
-                            "__init__(self, grammar, convert=None, logger=None)",
-                            "parse_tokens(self, tokens, debug=False)",
-                            "parse_stream_raw(self, stream, debug=False)",
-                            "parse_stream(self, stream, debug=False)",
-                            "parse_file(self, filename, encoding=None, debug=False)",
-                            "parse_string(self, text, debug=False)",
-                            "_partially_consume_prefix(self, prefix, column)"
+                            "def __init__(self, grammar, convert=None, logger=None):\n    self.grammar = grammar\n    if logger is None:\n        logger = logging.getLogger()\n    self.logger = logger\n    self.convert = convert",
+                            "def parse_tokens(self, tokens, debug=False):\n    \"\"\"Parse a series of tokens and return the syntax tree.\"\"\"\n    p = parse.Parser(self.grammar, self.convert)\n    p.setup()\n    lineno = 1\n    column = 0\n    indent_columns = []\n    type = value = start = end = line_text = None\n    prefix = ''\n    for quintuple in tokens:\n        type, value, start, end, line_text = quintuple\n        if start != (lineno, column):\n            assert (lineno, column) <= start, ((lineno, column), start)\n            s_lineno, s_column = start\n            if lineno < s_lineno:\n                prefix += '\\n' * (s_lineno - lineno)\n                lineno = s_lineno\n                column = 0\n            if column < s_column:\n                prefix += line_text[column:s_column]\n                column = s_column\n        if type in (tokenize.COMMENT, tokenize.NL):\n            prefix += value\n            lineno, column = end\n            if value.endswith('\\n'):\n                lineno += 1\n                column = 0\n            continue\n        if type == token.OP:\n            type = grammar.opmap[value]\n        if debug:\n            self.logger.debug('%s %r (prefix=%r)', token.tok_name[type], value, prefix)\n        if type == token.INDENT:\n            indent_columns.append(len(value))\n            _prefix = prefix + value\n            prefix = ''\n            value = ''\n        elif type == token.DEDENT:\n            _indent_col = indent_columns.pop()\n            prefix, _prefix = self._partially_consume_prefix(prefix, _indent_col)\n        if p.addtoken(type, value, (prefix, start)):\n            if debug:\n                self.logger.debug('Stop.')\n            break\n        prefix = ''\n        if type in {token.INDENT, token.DEDENT}:\n            prefix = _prefix\n        lineno, column = end\n        if value.endswith('\\n'):\n            lineno += 1\n            column = 0\n    else:\n        raise parse.ParseError('incomplete input', type, value, (prefix, start))\n    return p.rootnode",
+                            "def parse_stream_raw(self, stream, debug=False):\n    \"\"\"Parse a stream and return the syntax tree.\"\"\"\n    tokens = tokenize.generate_tokens(stream.readline)\n    return self.parse_tokens(tokens, debug)",
+                            "def parse_stream(self, stream, debug=False):\n    \"\"\"Parse a stream and return the syntax tree.\"\"\"\n    return self.parse_stream_raw(stream, debug)",
+                            "def parse_file(self, filename, encoding=None, debug=False):\n    \"\"\"Parse a file and return the syntax tree.\"\"\"\n    with io.open(filename, 'r', encoding=encoding) as stream:\n        return self.parse_stream(stream, debug)",
+                            "def parse_string(self, text, debug=False):\n    \"\"\"Parse a string and return the syntax tree.\"\"\"\n    tokens = tokenize.generate_tokens(io.StringIO(text).readline)\n    return self.parse_tokens(tokens, debug)",
+                            "def _partially_consume_prefix(self, prefix, column):\n    lines = []\n    current_line = ''\n    current_column = 0\n    wait_for_nl = False\n    for char in prefix:\n        current_line += char\n        if wait_for_nl:\n            if char == '\\n':\n                if current_line.strip() and current_column < column:\n                    res = ''.join(lines)\n                    return (res, prefix[len(res):])\n                lines.append(current_line)\n                current_line = ''\n                current_column = 0\n                wait_for_nl = False\n        elif char == ' ':\n            current_column += 1\n        elif char == '\\t':\n            current_column += 4\n        elif char == '\\n':\n            current_column = 0\n        else:\n            wait_for_nl = True\n    return (''.join(lines), current_line)"
                         ],
                         "constructor_variables": [
                             "grammar",
@@ -150,23 +150,348 @@
                         ],
                         "class_level_variables": [],
                         "class_decorators": []
-                    }
+                    },
+                    "variable_values_start": [
+                        {
+                            "varName": "lines",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "current_line",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "current_column",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "wait_for_nl",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "char",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "prefix",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "current_line.strip",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "column",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "res",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lines.append",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "variable_values_end": [
+                        {
+                            "varName": "lines",
+                            "value": "[]",
+                            "varType": "list"
+                        },
+                        {
+                            "varName": "current_line",
+                            "value": "    # comment\\n",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_column",
+                            "value": "4",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "wait_for_nl",
+                            "value": "True",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "char",
+                            "value": "\\n",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "prefix",
+                            "value": "    # comment\\n    ",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_line.strip",
+                            "value": "<built-in method strip of str object at 0x110d84af0>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "column",
+                            "value": "8",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "res",
+                            "value": "",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lines.append",
+                            "value": "<built-in method append of list object at 0x110d72e40>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "lines",
+                            "value": "[]",
+                            "varType": "list"
+                        },
+                        {
+                            "varName": "current_line",
+                            "value": "",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_column",
+                            "value": "0",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "wait_for_nl",
+                            "value": "False",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "char",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "prefix",
+                            "value": "",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_line.strip",
+                            "value": "<built-in method strip of str object at 0x10eab22f0>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "column",
+                            "value": "4",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "res",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lines.append",
+                            "value": "<built-in method append of list object at 0x110d72440>",
+                            "varType": "builtin_function_or_method"
+                        }
+                    ],
+                    "angelic_variable_values_start": [
+                        {
+                            "varName": "lines",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "current_line",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "current_column",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "wait_for_nl",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "char",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "prefix",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "current_line.strip",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "column",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "res",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lines.append",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "angelic_variable_values_end": [
+                        {
+                            "varName": "lines",
+                            "value": "[]",
+                            "varType": "list"
+                        },
+                        {
+                            "varName": "current_line",
+                            "value": "\\t# comment\\n",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_column",
+                            "value": "1",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "wait_for_nl",
+                            "value": "True",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "char",
+                            "value": "\\n",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "prefix",
+                            "value": "\\t# comment\\n\\t",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_line.strip",
+                            "value": "<built-in method strip of str object at 0x10ee87530>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "column",
+                            "value": "2",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "res",
+                            "value": "",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lines.append",
+                            "value": "<built-in method append of list object at 0x10ee5c500>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "lines",
+                            "value": "[]",
+                            "varType": "list"
+                        },
+                        {
+                            "varName": "current_line",
+                            "value": "",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_column",
+                            "value": "0",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "wait_for_nl",
+                            "value": "False",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "char",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "prefix",
+                            "value": "",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "current_line.strip",
+                            "value": "<built-in method strip of str object at 0x10cb322f0>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "column",
+                            "value": "4",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "res",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "join",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lines.append",
+                            "value": "<built-in method append of list object at 0x10eea2f40>",
+                            "varType": "builtin_function_or_method"
+                        }
+                    ]
                 }
             ],
-            "inscope_functions": [
-                "_generate_pickle_name(gt, cache_dir=None)",
-                "load_grammar(gt='Grammar.txt', gp=None, save=True, force=False, logger=None)",
-                "_newer(a, b)",
-                "load_packaged_grammar(package, grammar_source, cache_dir=None)",
-                "main(*args)",
-                "__init__(self, grammar, convert=None, logger=None)",
-                "parse_tokens(self, tokens, debug=False)",
-                "parse_stream_raw(self, stream, debug=False)",
-                "parse_stream(self, stream, debug=False)",
-                "parse_file(self, filename, encoding=None, debug=False)",
-                "parse_string(self, text, debug=False)",
-                "_partially_consume_prefix(self, prefix, column)"
-            ],
+            "inscope_functions": [],
             "variables_in_file": {
                 "__author__": [
                     14

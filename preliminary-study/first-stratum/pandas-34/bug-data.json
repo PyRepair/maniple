@@ -299,111 +299,463 @@
                         "docstring": "Custom groupby class for time-interval grouping.\n\nParameters\n----------\nfreq : pandas date offset or offset alias for identifying bin edges\nclosed : closed end of interval; 'left' or 'right'\nlabel : interval boundary to use for labeling; 'left' or 'right'\nconvention : {'start', 'end', 'e', 's'}\n    If axis is PeriodIndex",
                         "constructor_docstring": null,
                         "functions": [
-                            "__init__(self, freq='Min', closed=None, label=None, how='mean', axis=0, fill_method=None, limit=None, loffset=None, kind=None, convention=None, base=0, **kwargs)",
-                            "_get_resampler(self, obj, kind=None)",
-                            "_get_grouper(self, obj, validate: bool=True)",
-                            "_get_time_bins(self, ax)",
-                            "_adjust_bin_edges(self, binner, ax_values)",
-                            "_get_time_delta_bins(self, ax)",
-                            "_get_time_period_bins(self, ax)",
-                            "_get_period_bins(self, ax)"
+                            "def __init__(self, freq='Min', closed=None, label=None, how='mean', axis=0, fill_method=None, limit=None, loffset=None, kind=None, convention=None, base=0, **kwargs):\n    if label not in {None, 'left', 'right'}:\n        raise ValueError(f'Unsupported value {label} for `label`')\n    if closed not in {None, 'left', 'right'}:\n        raise ValueError(f'Unsupported value {closed} for `closed`')\n    if convention not in {None, 'start', 'end', 'e', 's'}:\n        raise ValueError(f'Unsupported value {convention} for `convention`')\n    freq = to_offset(freq)\n    end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}\n    rule = freq.rule_code\n    if rule in end_types or ('-' in rule and rule[:rule.find('-')] in end_types):\n        if closed is None:\n            closed = 'right'\n        if label is None:\n            label = 'right'\n    else:\n        if closed is None:\n            closed = 'left'\n        if label is None:\n            label = 'left'\n    self.closed = closed\n    self.label = label\n    self.kind = kind\n    self.convention = convention or 'E'\n    self.convention = self.convention.lower()\n    if isinstance(loffset, str):\n        loffset = to_offset(loffset)\n    self.loffset = loffset\n    self.how = how\n    self.fill_method = fill_method\n    self.limit = limit\n    self.base = base\n    kwargs['sort'] = True\n    super().__init__(freq=freq, axis=axis, **kwargs)",
+                            "def _get_resampler(self, obj, kind=None):\n    \"\"\"\n    Return my resampler or raise if we have an invalid axis.\n\n    Parameters\n    ----------\n    obj : input object\n    kind : string, optional\n        'period','timestamp','timedelta' are valid\n\n    Returns\n    -------\n    a Resampler\n\n    Raises\n    ------\n    TypeError if incompatible axis\n\n    \"\"\"\n    self._set_grouper(obj)\n    ax = self.ax\n    if isinstance(ax, DatetimeIndex):\n        return DatetimeIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)\n    elif isinstance(ax, PeriodIndex) or kind == 'period':\n        return PeriodIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)\n    elif isinstance(ax, TimedeltaIndex):\n        return TimedeltaIndexResampler(obj, groupby=self, axis=self.axis)\n    raise TypeError(f\"Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, but got an instance of '{type(ax).__name__}'\")",
+                            "def _get_grouper(self, obj, validate: bool=True):\n    r = self._get_resampler(obj)\n    r._set_binner()\n    return (r.binner, r.grouper, r.obj)",
+                            "def _get_time_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(f'axis must be a DatetimeIndex, but got an instance of {type(ax).__name__}')\n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    first, last = _get_timestamp_range_edges(ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base)\n    binner = labels = date_range(freq=self.freq, start=first, end=last, tz=ax.tz, name=ax.name, ambiguous='infer', nonexistent='shift_forward')\n    ax_values = ax.asi8\n    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)\n    bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=ax.hasnans)\n    if self.closed == 'right':\n        labels = binner\n        if self.label == 'right':\n            labels = labels[1:]\n    elif self.label == 'right':\n        labels = labels[1:]\n    if ax.hasnans:\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n    if len(bins) < len(labels):\n        labels = labels[:len(bins)]\n    return (binner, bins, labels)",
+                            "def _adjust_bin_edges(self, binner, ax_values):\n    if self.freq != 'D' and is_superperiod(self.freq, 'D'):\n        if self.closed == 'right':\n            bin_edges = binner.tz_localize(None)\n            bin_edges = bin_edges + timedelta(1) - Nano(1)\n            bin_edges = bin_edges.tz_localize(binner.tz).asi8\n        else:\n            bin_edges = binner.asi8\n        if bin_edges[-2] > ax_values.max():\n            bin_edges = bin_edges[:-1]\n            binner = binner[:-1]\n    else:\n        bin_edges = binner.asi8\n    return (binner, bin_edges)",
+                            "def _get_time_delta_bins(self, ax):\n    if not isinstance(ax, TimedeltaIndex):\n        raise TypeError(f'axis must be a TimedeltaIndex, but got an instance of {type(ax).__name__}')\n    if not len(ax):\n        binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    start, end = (ax.min(), ax.max())\n    labels = binner = timedelta_range(start=start, end=end, freq=self.freq, name=ax.name)\n    end_stamps = labels + self.freq\n    bins = ax.searchsorted(end_stamps, side='left')\n    if self.base > 0:\n        labels += type(self.freq)(self.base)\n    return (binner, bins, labels)",
+                            "def _get_time_period_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(f'axis must be a DatetimeIndex, but got an instance of {type(ax).__name__}')\n    freq = self.freq\n    if not len(ax):\n        binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)\n        return (binner, [], labels)\n    labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)\n    end_stamps = (labels + freq).asfreq(freq, 's').to_timestamp()\n    if ax.tzinfo:\n        end_stamps = end_stamps.tz_localize(ax.tzinfo)\n    bins = ax.searchsorted(end_stamps, side='left')\n    return (binner, bins, labels)",
+                            "def _get_period_bins(self, ax):\n    if not isinstance(ax, PeriodIndex):\n        raise TypeError(f'axis must be a PeriodIndex, but got an instance of {type(ax).__name__}')\n    memb = ax.asfreq(self.freq, how=self.convention)\n    nat_count = 0\n    if memb.hasnans:\n        nat_count = np.sum(memb._isnan)\n        memb = memb[~memb._isnan]\n    if not len(memb):\n        binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    freq_mult = self.freq.n\n    start = ax.min().asfreq(self.freq, how=self.convention)\n    end = ax.max().asfreq(self.freq, how='end')\n    bin_shift = 0\n    if self.base:\n        p_start, end = _get_period_range_edges(start, end, self.freq, closed=self.closed, base=self.base)\n        start_offset = Period(start, self.freq) - Period(p_start, self.freq)\n        bin_shift = start_offset.n % freq_mult\n        start = p_start\n    labels = binner = period_range(start=start, end=end, freq=self.freq, name=ax.name)\n    i8 = memb.asi8\n    expected_bins_count = len(binner) * freq_mult\n    i8_extend = expected_bins_count - (i8[-1] - i8[0])\n    rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)\n    rng += freq_mult\n    rng -= bin_shift\n    prng = type(memb._data)(rng, dtype=memb.dtype)\n    bins = memb.searchsorted(prng, side='left')\n    if nat_count > 0:\n        bins += nat_count\n        bins = np.insert(bins, 0, nat_count)\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n    return (binner, bins, labels)"
                         ],
                         "constructor_variables": [
-                            "base",
-                            "convention",
                             "limit",
-                            "closed",
-                            "rule",
+                            "base",
                             "kind",
                             "loffset",
-                            "freq",
                             "fill_method",
-                            "label",
+                            "rule",
                             "how",
-                            "end_types"
+                            "end_types",
+                            "label",
+                            "convention",
+                            "closed",
+                            "freq"
                         ],
                         "class_level_variables": [
                             "_attributes"
                         ],
                         "class_decorators": []
-                    }
+                    },
+                    "variable_values_start": [
+                        {
+                            "varName": "ax",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "DatetimeIndex",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "binner",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "labels",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.freq",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.name",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "first",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "last",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "_get_timestamp_range_edges",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.min",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.max",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.closed",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.base",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "date_range",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.tz",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax_values",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.asi8",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "bin_edges",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._adjust_bin_edges",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "bins",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lib.generate_bins_dt64",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lib",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.hasnans",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.label",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "binner.insert",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "NaT",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "labels.insert",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "angelic_variable_values_start": [
+                        {
+                            "varName": "ax",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "DatetimeIndex",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "binner",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "labels",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.freq",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.name",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "first",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "last",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "_get_timestamp_range_edges",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.min",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.max",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.closed",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.base",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "date_range",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.tz",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax_values",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.asi8",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "bin_edges",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._adjust_bin_edges",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "bins",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lib.generate_bins_dt64",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lib",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.hasnans",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.label",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "binner.insert",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "NaT",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "labels.insert",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "angelic_variable_values_end": [
+                        {
+                            "varName": "ax",
+                            "value": "DatetimeIndex(['2018-11-03 08:00:00-04:00', '2018-11-03 09:00:00-04:00',\n               '2018-11-03 10:00:00-04:00', '2018-11-03 11:00:00-04:00',\n               '2018-11-03 12:00:00-04:00', '2018-11-03 13:00:00-04:00',\n               '2018-11-03 14:00:00-04:00', '2018-11-03 15:00:00-04:00',\n               '2018-11-03 16:00:00-04:00', '2018-11-03 17:00:00-04:00',\n               '2018-11-03 18:00:00-04:00', '2018-11-03 19:00:00-04:00',\n               '2018-11-03 20:00:00-04:00', '2018-11-03 21:00:00-04:00',\n               '2018-11-03 22:00:00-04:00', '2018-11-03 23:00:00-04:00',\n               '2018-11-04 00:00:00-04:00', '2018-11-04 00:00:00-05:00',\n               '2018-11-04 01:00:00-05:00', '2018-11-04 02:00:00-05:00',\n               '2018-11-04 03:00:00-05:00', '2018-11-04 04:00:00-05:00',\n               '2018-11-04 05:00:00-05:00', '2018-11-04 06:00:00-05:00',\n               '2018-11-04 07:00:00-05:00', '2018-11-04 08:00:00-05:00',\n               '2018-11-04 09:00:00-05:00', '2018-11-04 10:00:00-05:00',\n               '2018-11-04 11:00:00-05:00', '2018-11-04 12:00:00-05:00',\n               '2018-11-04 13:00:00-05:00', '2018-11-04 14:00:00-05:00',\n               '2018-11-04 15:00:00-05:00', '2018-11-04 16:00:00-05:00',\n               '2018-11-04 17:00:00-05:00', '2018-11-04 18:00:00-05:00',\n               '2018-11-04 19:00:00-05:00', '2018-11-04 20:00:00-05:00',\n               '2018-11-04 21:00:00-05:00', '2018-11-04 22:00:00-05:00',\n               '2018-11-04 23:00:00-05:00', '2018-11-05 00:00:00-05:00',\n               '2018-11-05 01:00:00-05:00', '2018-11-05 02:00:00-05:00',\n               '2018-11-05 03:00:00-05:00', '2018-11-05 04:00:00-05:00',\n               '2018-11-05 05:00:00-05:00', '2018-11-05 06:00:00-05:00',\n               '2018-11-05 07:00:00-05:00'],\n              dtype='datetime64[ns, America/Havana]', freq='H')",
+                            "varType": "DatetimeIndex"
+                        },
+                        {
+                            "varName": "DatetimeIndex",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "binner",
+                            "value": "DatetimeIndex(['2018-11-03 00:00:00-04:00', '2018-11-04 00:00:00-04:00',\n               '2018-11-05 00:00:00-05:00', '2018-11-06 00:00:00-05:00'],\n              dtype='datetime64[ns, America/Havana]', freq='D')",
+                            "varType": "DatetimeIndex"
+                        },
+                        {
+                            "varName": "labels",
+                            "value": "DatetimeIndex(['2018-11-03 00:00:00-04:00', '2018-11-04 00:00:00-04:00',\n               '2018-11-05 00:00:00-05:00'],\n              dtype='datetime64[ns, America/Havana]', freq='D')",
+                            "varType": "DatetimeIndex"
+                        },
+                        {
+                            "varName": "self.freq",
+                            "value": "<Day>",
+                            "varType": "Day"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "TimeGrouper(freq=<Day>, axis=0, sort=True, closed='left', label='left', how='mean', convention='e', base=0)",
+                            "varType": "TimeGrouper"
+                        },
+                        {
+                            "varName": "ax.name",
+                            "value": "None",
+                            "varType": "NoneType"
+                        },
+                        {
+                            "varName": "first",
+                            "value": "Timestamp('2018-11-03 00:00:00-0400', tz='America/Havana')",
+                            "varType": "Timestamp"
+                        },
+                        {
+                            "varName": "last",
+                            "value": "Timestamp('2018-11-06 00:00:00-0500', tz='America/Havana')",
+                            "varType": "Timestamp"
+                        },
+                        {
+                            "varName": "_get_timestamp_range_edges",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.min",
+                            "value": "<bound method DatetimeIndexOpsMixin.min of DatetimeIndex(['2018-11-03 08:00:00-04:00', '2018-11-03 09:00:00-04:00',\n               '2018-11-03 10:00:00-04:00', '2018-11-03 11:00:00-04:00',\n               '2018-11-03 12:00:00-04:00', '2018-11-03 13:00:00-04:00',\n               '2018-11-03 14:00:00-04:00', '2018-11-03 15:00:00-04:00',\n               '2018-11-03 16:00:00-04:00', '2018-11-03 17:00:00-04:00',\n               '2018-11-03 18:00:00-04:00', '2018-11-03 19:00:00-04:00',\n               '2018-11-03 20:00:00-04:00', '2018-11-03 21:00:00-04:00',\n               '2018-11-03 22:00:00-04:00', '2018-11-03 23:00:00-04:00',\n               '2018-11-04 00:00:00-04:00', '2018-11-04 00:00:00-05:00',\n               '2018-11-04 01:00:00-05:00', '2018-11-04 02:00:00-05:00',\n               '2018-11-04 03:00:00-05:00', '2018-11-04 04:00:00-05:00',\n               '2018-11-04 05:00:00-05:00', '2018-11-04 06:00:00-05:00',\n               '2018-11-04 07:00:00-05:00', '2018-11-04 08:00:00-05:00',\n               '2018-11-04 09:00:00-05:00', '2018-11-04 10:00:00-05:00',\n               '2018-11-04 11:00:00-05:00', '2018-11-04 12:00:00-05:00',\n               '2018-11-04 13:00:00-05:00', '2018-11-04 14:00:00-05:00',\n               '2018-11-04 15:00:00-05:00', '2018-11-04 16:00:00-05:00',\n               '2018-11-04 17:00:00-05:00', '2018-11-04 18:00:00-05:00',\n               '2018-11-04 19:00:00-05:00', '2018-11-04 20:00:00-05:00',\n               '2018-11-04 21:00:00-05:00', '2018-11-04 22:00:00-05:00',\n               '2018-11-04 23:00:00-05:00', '2018-11-05 00:00:00-05:00',\n               '2018-11-05 01:00:00-05:00', '2018-11-05 02:00:00-05:00',\n               '2018-11-05 03:00:00-05:00', '2018-11-05 04:00:00-05:00',\n               '2018-11-05 05:00:00-05:00', '2018-11-05 06:00:00-05:00',\n               '2018-11-05 07:00:00-05:00'],\n              dtype='datetime64[ns, America/Havana]', freq='H')>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "ax.max",
+                            "value": "<bound method DatetimeIndexOpsMixin.max of DatetimeIndex(['2018-11-03 08:00:00-04:00', '2018-11-03 09:00:00-04:00',\n               '2018-11-03 10:00:00-04:00', '2018-11-03 11:00:00-04:00',\n               '2018-11-03 12:00:00-04:00', '2018-11-03 13:00:00-04:00',\n               '2018-11-03 14:00:00-04:00', '2018-11-03 15:00:00-04:00',\n               '2018-11-03 16:00:00-04:00', '2018-11-03 17:00:00-04:00',\n               '2018-11-03 18:00:00-04:00', '2018-11-03 19:00:00-04:00',\n               '2018-11-03 20:00:00-04:00', '2018-11-03 21:00:00-04:00',\n               '2018-11-03 22:00:00-04:00', '2018-11-03 23:00:00-04:00',\n               '2018-11-04 00:00:00-04:00', '2018-11-04 00:00:00-05:00',\n               '2018-11-04 01:00:00-05:00', '2018-11-04 02:00:00-05:00',\n               '2018-11-04 03:00:00-05:00', '2018-11-04 04:00:00-05:00',\n               '2018-11-04 05:00:00-05:00', '2018-11-04 06:00:00-05:00',\n               '2018-11-04 07:00:00-05:00', '2018-11-04 08:00:00-05:00',\n               '2018-11-04 09:00:00-05:00', '2018-11-04 10:00:00-05:00',\n               '2018-11-04 11:00:00-05:00', '2018-11-04 12:00:00-05:00',\n               '2018-11-04 13:00:00-05:00', '2018-11-04 14:00:00-05:00',\n               '2018-11-04 15:00:00-05:00', '2018-11-04 16:00:00-05:00',\n               '2018-11-04 17:00:00-05:00', '2018-11-04 18:00:00-05:00',\n               '2018-11-04 19:00:00-05:00', '2018-11-04 20:00:00-05:00',\n               '2018-11-04 21:00:00-05:00', '2018-11-04 22:00:00-05:00',\n               '2018-11-04 23:00:00-05:00', '2018-11-05 00:00:00-05:00',\n               '2018-11-05 01:00:00-05:00', '2018-11-05 02:00:00-05:00',\n               '2018-11-05 03:00:00-05:00', '2018-11-05 04:00:00-05:00',\n               '2018-11-05 05:00:00-05:00', '2018-11-05 06:00:00-05:00',\n               '2018-11-05 07:00:00-05:00'],\n              dtype='datetime64[ns, America/Havana]', freq='H')>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "self.closed",
+                            "value": "left",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "self.base",
+                            "value": "0",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "date_range",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.tz",
+                            "value": "<DstTzInfo 'America/Havana' LMT-1 day, 18:31:00 STD>",
+                            "varType": "America/Havana"
+                        },
+                        {
+                            "varName": "ax_values",
+                            "value": "array([1541246400000000000, 1541250000000000000, 1541253600000000000,\n       1541257200000000000, 1541260800000000000, 1541264400000000000,\n       1541268000000000000, 1541271600000000000, 1541275200000000000,\n       1541278800000000000, 1541282400000000000, 1541286000000000000,\n       1541289600000000000, 1541293200000000000, 1541296800000000000,\n       1541300400000000000, 1541304000000000000, 1541307600000000000,\n       1541311200000000000, 1541314800000000000, 1541318400000000000,\n       1541322000000000000, 1541325600000000000, 1541329200000000000,\n       1541332800000000000, 1541336400000000000, 1541340000000000000,\n       1541343600000000000, 1541347200000000000, 1541350800000000000,\n       1541354400000000000, 1541358000000000000, 1541361600000000000,\n       1541365200000000000, 1541368800000000000, 1541372400000000000,\n       1541376000000000000, 1541379600000000000, 1541383200000000000,\n       1541386800000000000, 1541390400000000000, 1541394000000000000,\n       1541397600000000000, 1541401200000000000, 1541404800000000000,\n       1541408400000000000, 1541412000000000000, 1541415600000000000,\n       1541419200000000000])",
+                            "varType": "ndarray"
+                        },
+                        {
+                            "varName": "ax.asi8",
+                            "value": "array([1541246400000000000, 1541250000000000000, 1541253600000000000,\n       1541257200000000000, 1541260800000000000, 1541264400000000000,\n       1541268000000000000, 1541271600000000000, 1541275200000000000,\n       1541278800000000000, 1541282400000000000, 1541286000000000000,\n       1541289600000000000, 1541293200000000000, 1541296800000000000,\n       1541300400000000000, 1541304000000000000, 1541307600000000000,\n       1541311200000000000, 1541314800000000000, 1541318400000000000,\n       1541322000000000000, 1541325600000000000, 1541329200000000000,\n       1541332800000000000, 1541336400000000000, 1541340000000000000,\n       1541343600000000000, 1541347200000000000, 1541350800000000000,\n       1541354400000000000, 1541358000000000000, 1541361600000000000,\n       1541365200000000000, 1541368800000000000, 1541372400000000000,\n       1541376000000000000, 1541379600000000000, 1541383200000000000,\n       1541386800000000000, 1541390400000000000, 1541394000000000000,\n       1541397600000000000, 1541401200000000000, 1541404800000000000,\n       1541408400000000000, 1541412000000000000, 1541415600000000000,\n       1541419200000000000])",
+                            "varType": "ndarray"
+                        },
+                        {
+                            "varName": "bin_edges",
+                            "value": "array([1541217600000000000, 1541304000000000000, 1541394000000000000,\n       1541480400000000000])",
+                            "varType": "ndarray"
+                        },
+                        {
+                            "varName": "self._adjust_bin_edges",
+                            "value": "<bound method TimeGrouper._adjust_bin_edges of TimeGrouper(freq=<Day>, axis=0, sort=True, closed='left', label='left', how='mean', convention='e', base=0)>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "bins",
+                            "value": "array([16, 41, 49])",
+                            "varType": "ndarray"
+                        },
+                        {
+                            "varName": "lib.generate_bins_dt64",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "lib",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "ax.hasnans",
+                            "value": "False",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "self.label",
+                            "value": "left",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "binner.insert",
+                            "value": "<bound method DatetimeTimedeltaMixin.insert of DatetimeIndex(['2018-11-03 00:00:00-04:00', '2018-11-04 00:00:00-04:00',\n               '2018-11-05 00:00:00-05:00', '2018-11-06 00:00:00-05:00'],\n              dtype='datetime64[ns, America/Havana]', freq='D')>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "NaT",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "labels.insert",
+                            "value": "<bound method DatetimeTimedeltaMixin.insert of DatetimeIndex(['2018-11-03 00:00:00-04:00', '2018-11-04 00:00:00-04:00',\n               '2018-11-05 00:00:00-05:00'],\n              dtype='datetime64[ns, America/Havana]', freq='D')>",
+                            "varType": "method"
+                        }
+                    ]
                 }
             ],
-            "inscope_functions": [
-                "get_resampler(obj, kind=None, **kwds)",
-                "get_resampler_for_grouping(groupby, rule, how=None, fill_method=None, limit=None, kind=None, **kwargs)",
-                "_take_new_index(obj, indexer, new_index, axis=0)",
-                "_get_timestamp_range_edges(first, last, offset, closed='left', base=0)",
-                "_get_period_range_edges(first, last, offset, closed='left', base=0)",
-                "_adjust_dates_anchored(first, last, offset, closed='right', base=0)",
-                "asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None)",
-                "_asfreq_compat(index, freq)",
-                "__init__(self, obj, groupby=None, axis=0, kind=None, **kwargs)",
-                "__str__(self) -> str",
-                "__getattr__(self, attr: str)",
-                "__iter__(self)",
-                "obj(self)",
-                "ax(self)",
-                "_typ(self) -> str",
-                "_from_selection(self) -> bool",
-                "_convert_obj(self, obj)",
-                "_get_binner_for_time(self)",
-                "_set_binner(self)",
-                "_get_binner(self)",
-                "_assure_grouper(self)",
-                "pipe(self, func, *args, **kwargs)",
-                "aggregate(self, func, *args, **kwargs)",
-                "transform(self, arg, *args, **kwargs)",
-                "_downsample(self, f)",
-                "_upsample(self, f, limit=None, fill_value=None)",
-                "_gotitem(self, key, ndim: int, subset=None)",
-                "_groupby_and_aggregate(self, how, grouper=None, *args, **kwargs)",
-                "_apply_loffset(self, result)",
-                "_get_resampler_for_grouping(self, groupby, **kwargs)",
-                "_wrap_result(self, result)",
-                "pad(self, limit=None)",
-                "nearest(self, limit=None)",
-                "backfill(self, limit=None)",
-                "fillna(self, method, limit=None)",
-                "interpolate(self, method='linear', axis=0, limit=None, inplace=False, limit_direction='forward', limit_area=None, downcast=None, **kwargs)",
-                "asfreq(self, fill_value=None)",
-                "std(self, ddof=1, *args, **kwargs)",
-                "var(self, ddof=1, *args, **kwargs)",
-                "size(self)",
-                "count(self)",
-                "quantile(self, q=0.5, **kwargs)",
-                "f(self, _method=method, min_count=0, *args, **kwargs)",
-                "g(self, _method=method, *args, **kwargs)",
-                "h(self, _method=method)",
-                "__init__(self, obj, *args, **kwargs)",
-                "_apply(self, f, grouper=None, *args, **kwargs)",
-                "_resampler_for_grouping(self)",
-                "_get_binner_for_time(self)",
-                "_downsample(self, how, **kwargs)",
-                "_adjust_binner_for_upsample(self, binner)",
-                "_upsample(self, method, limit=None, fill_value=None)",
-                "_wrap_result(self, result)",
-                "_constructor(self)",
-                "_resampler_for_grouping(self)",
-                "_get_binner_for_time(self)",
-                "_convert_obj(self, obj)",
-                "_downsample(self, how, **kwargs)",
-                "_upsample(self, method, limit=None, fill_value=None)",
-                "_constructor(self)",
-                "_resampler_for_grouping(self)",
-                "_get_binner_for_time(self)",
-                "_adjust_binner_for_upsample(self, binner)",
-                "_constructor(self)",
-                "__init__(self, freq='Min', closed=None, label=None, how='mean', axis=0, fill_method=None, limit=None, loffset=None, kind=None, convention=None, base=0, **kwargs)",
-                "_get_resampler(self, obj, kind=None)",
-                "_get_grouper(self, obj, validate: bool=True)",
-                "_get_time_bins(self, ax)",
-                "_adjust_bin_edges(self, binner, ax_values)",
-                "_get_time_delta_bins(self, ax)",
-                "_get_time_period_bins(self, ax)",
-                "_get_period_bins(self, ax)",
-                "func(x)"
-            ],
+            "inscope_functions": [],
             "variables_in_file": {
                 "_shared_docs_kwargs": [
                     34,

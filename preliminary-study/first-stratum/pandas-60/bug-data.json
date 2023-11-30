@@ -226,114 +226,481 @@
                         "docstring": null,
                         "constructor_docstring": null,
                         "functions": [
-                            "count(self)",
-                            "apply(self, func, raw: bool=False, engine: str='cython', engine_kwargs: Optional[Dict]=None, args: Optional[Tuple]=None, kwargs: Optional[Dict]=None)",
-                            "_generate_cython_apply_func(self, args, kwargs, raw, offset, func)",
-                            "sum(self, *args, **kwargs)",
-                            "max(self, *args, **kwargs)",
-                            "min(self, *args, **kwargs)",
-                            "mean(self, *args, **kwargs)",
-                            "median(self, **kwargs)",
-                            "std(self, ddof=1, *args, **kwargs)",
-                            "var(self, ddof=1, *args, **kwargs)",
-                            "skew(self, **kwargs)",
-                            "kurt(self, **kwargs)",
-                            "quantile(self, quantile, interpolation='linear', **kwargs)",
-                            "cov(self, other=None, pairwise=None, ddof=1, **kwargs)",
-                            "corr(self, other=None, pairwise=None, **kwargs)",
-                            "apply_func(values, begin, end, min_periods, raw=raw)",
-                            "zsqrt_func(values, begin, end, min_periods)",
-                            "_get_cov(X, Y)",
-                            "_get_corr(a, b)"
+                            "def count(self):\n    blocks, obj = self._create_blocks()\n    results = []\n    for b in blocks:\n        result = b.notna().astype(int)\n        result = self._constructor(result, window=self._get_window(), min_periods=self.min_periods or 0, center=self.center, axis=self.axis, closed=self.closed).sum()\n        results.append(result)\n    return self._wrap_results(results, blocks, obj)",
+                            "def apply(self, func, raw: bool=False, engine: str='cython', engine_kwargs: Optional[Dict]=None, args: Optional[Tuple]=None, kwargs: Optional[Dict]=None):\n    if args is None:\n        args = ()\n    if kwargs is None:\n        kwargs = {}\n    kwargs.pop('_level', None)\n    kwargs.pop('floor', None)\n    window = self._get_window()\n    offset = calculate_center_offset(window) if self.center else 0\n    if not is_bool(raw):\n        raise ValueError('raw parameter must be `True` or `False`')\n    if engine == 'cython':\n        if engine_kwargs is not None:\n            raise ValueError('cython engine does not accept engine_kwargs')\n        apply_func = self._generate_cython_apply_func(args, kwargs, raw, offset, func)\n    elif engine == 'numba':\n        if raw is False:\n            raise ValueError('raw must be `True` when using the numba engine')\n        if func in self._numba_func_cache:\n            apply_func = self._numba_func_cache[func]\n        else:\n            apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)\n    else:\n        raise ValueError(\"engine must be either 'numba' or 'cython'\")\n    return self._apply(apply_func, center=False, floor=0, name=func, use_numba_cache=engine == 'numba')",
+                            "def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):\n    from pandas import Series\n    window_func = partial(self._get_cython_func_type('roll_generic'), args=args, kwargs=kwargs, raw=raw, offset=offset, func=func)\n\n    def apply_func(values, begin, end, min_periods, raw=raw):\n        if not raw:\n            values = Series(values, index=self.obj.index)\n        return window_func(values, begin, end, min_periods)\n    return apply_func",
+                            "def sum(self, *args, **kwargs):\n    nv.validate_window_func('sum', args, kwargs)\n    window_func = self._get_cython_func_type('roll_sum')\n    kwargs.pop('floor', None)\n    return self._apply(window_func, center=self.center, floor=0, name='sum', **kwargs)",
+                            "def max(self, *args, **kwargs):\n    nv.validate_window_func('max', args, kwargs)\n    window_func = self._get_cython_func_type('roll_max')\n    return self._apply(window_func, center=self.center, name='max', **kwargs)",
+                            "def min(self, *args, **kwargs):\n    nv.validate_window_func('min', args, kwargs)\n    window_func = self._get_cython_func_type('roll_min')\n    return self._apply(window_func, center=self.center, name='min', **kwargs)",
+                            "def mean(self, *args, **kwargs):\n    nv.validate_window_func('mean', args, kwargs)\n    window_func = self._get_cython_func_type('roll_mean')\n    return self._apply(window_func, center=self.center, name='mean', **kwargs)",
+                            "def median(self, **kwargs):\n    window_func = self._get_roll_func('roll_median_c')\n    window_func = partial(window_func, win=self._get_window())\n    return self._apply(window_func, center=self.center, name='median', **kwargs)",
+                            "def std(self, ddof=1, *args, **kwargs):\n    nv.validate_window_func('std', args, kwargs)\n    kwargs.pop('require_min_periods', None)\n    window_func = self._get_cython_func_type('roll_var')\n\n    def zsqrt_func(values, begin, end, min_periods):\n        return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))\n    return self._apply(zsqrt_func, center=self.center, require_min_periods=1, name='std', ddof=ddof, **kwargs)",
+                            "def var(self, ddof=1, *args, **kwargs):\n    nv.validate_window_func('var', args, kwargs)\n    kwargs.pop('require_min_periods', None)\n    window_func = partial(self._get_cython_func_type('roll_var'), ddof=ddof)\n    return self._apply(window_func, center=self.center, require_min_periods=1, name='var', ddof=ddof, **kwargs)",
+                            "def skew(self, **kwargs):\n    window_func = self._get_cython_func_type('roll_skew')\n    kwargs.pop('require_min_periods', None)\n    return self._apply(window_func, center=self.center, require_min_periods=3, name='skew', **kwargs)",
+                            "def kurt(self, **kwargs):\n    window_func = self._get_cython_func_type('roll_kurt')\n    kwargs.pop('require_min_periods', None)\n    return self._apply(window_func, center=self.center, require_min_periods=4, name='kurt', **kwargs)",
+                            "def quantile(self, quantile, interpolation='linear', **kwargs):\n    if quantile == 1.0:\n        window_func = self._get_cython_func_type('roll_max')\n    elif quantile == 0.0:\n        window_func = self._get_cython_func_type('roll_min')\n    else:\n        window_func = partial(self._get_roll_func('roll_quantile'), win=self._get_window(), quantile=quantile, interpolation=interpolation)\n    kwargs['quantile'] = quantile\n    kwargs['interpolation'] = interpolation\n    return self._apply(window_func, center=self.center, name='quantile', **kwargs)",
+                            "def cov(self, other=None, pairwise=None, ddof=1, **kwargs):\n    if other is None:\n        other = self._selected_obj\n        pairwise = True if pairwise is None else pairwise\n    other = self._shallow_copy(other)\n    if self.is_freq_type:\n        window = self.win_freq\n    else:\n        window = self._get_window(other)\n\n    def _get_cov(X, Y):\n        X = X.astype('float64')\n        Y = Y.astype('float64')\n        mean = lambda x: x.rolling(window, self.min_periods, center=self.center).mean(**kwargs)\n        count = (X + Y).rolling(window=window, min_periods=0, center=self.center).count(**kwargs)\n        bias_adj = count / (count - ddof)\n        return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj\n    return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise))",
+                            "def corr(self, other=None, pairwise=None, **kwargs):\n    if other is None:\n        other = self._selected_obj\n        pairwise = True if pairwise is None else pairwise\n    other = self._shallow_copy(other)\n    window = self._get_window(other)\n\n    def _get_corr(a, b):\n        a = a.rolling(window=window, min_periods=self.min_periods, center=self.center)\n        b = b.rolling(window=window, min_periods=self.min_periods, center=self.center)\n        return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))\n    return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise))",
+                            "def apply_func(values, begin, end, min_periods, raw=raw):\n    if not raw:\n        values = Series(values, index=self.obj.index)\n    return window_func(values, begin, end, min_periods)",
+                            "def zsqrt_func(values, begin, end, min_periods):\n    return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))",
+                            "def _get_cov(X, Y):\n    X = X.astype('float64')\n    Y = Y.astype('float64')\n    mean = lambda x: x.rolling(window, self.min_periods, center=self.center).mean(**kwargs)\n    count = (X + Y).rolling(window=window, min_periods=0, center=self.center).count(**kwargs)\n    bias_adj = count / (count - ddof)\n    return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj",
+                            "def _get_corr(a, b):\n    a = a.rolling(window=window, min_periods=self.min_periods, center=self.center)\n    b = b.rolling(window=window, min_periods=self.min_periods, center=self.center)\n    return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [],
                         "class_decorators": []
-                    }
+                    },
+                    "variable_values_start": [
+                        {
+                            "varName": "Optional",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Dict",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Tuple",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "args",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "kwargs",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "kwargs.pop",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "window",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._get_window",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "offset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.center",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "calculate_center_offset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "is_bool",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "raw",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "engine",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "engine_kwargs",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._generate_cython_apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._numba_func_cache",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "generate_numba_apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._apply",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "variable_values_end": [
+                        {
+                            "varName": "Optional",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Dict",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Tuple",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "args",
+                            "value": "()",
+                            "varType": "tuple"
+                        },
+                        {
+                            "varName": "kwargs",
+                            "value": "{}",
+                            "varType": "dict"
+                        },
+                        {
+                            "varName": "kwargs.pop",
+                            "value": "<built-in method pop of dict object at 0x1166645c0>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "window",
+                            "value": "1",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "self._get_window",
+                            "value": "<bound method _Window._get_window of Rolling [window=1,center=False,axis=0]>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "Rolling [window=1,center=False,axis=0]",
+                            "varType": "Rolling"
+                        },
+                        {
+                            "varName": "offset",
+                            "value": "0",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "self.center",
+                            "value": "False",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "calculate_center_offset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "is_bool",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "raw",
+                            "value": "False",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "engine",
+                            "value": "cython",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "engine_kwargs",
+                            "value": "None",
+                            "varType": "NoneType"
+                        },
+                        {
+                            "varName": "apply_func",
+                            "value": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x1166edca0>",
+                            "varType": "function"
+                        },
+                        {
+                            "varName": "self._generate_cython_apply_func",
+                            "value": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "func",
+                            "value": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x1166ed0d0>",
+                            "varType": "function"
+                        },
+                        {
+                            "varName": "self._numba_func_cache",
+                            "value": "{}",
+                            "varType": "dict"
+                        },
+                        {
+                            "varName": "generate_numba_apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._apply",
+                            "value": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>",
+                            "varType": "method"
+                        }
+                    ],
+                    "angelic_variable_values_start": [
+                        {
+                            "varName": "Optional",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Dict",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Tuple",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "args",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "kwargs",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "kwargs.pop",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "window",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._get_window",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "offset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self.center",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "calculate_center_offset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "is_bool",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "raw",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "engine",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "engine_kwargs",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._generate_cython_apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._numba_func_cache",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "generate_numba_apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._apply",
+                            "value": "None",
+                            "varType": "None"
+                        }
+                    ],
+                    "angelic_variable_values_end": [
+                        {
+                            "varName": "Optional",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Dict",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "Tuple",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "args",
+                            "value": "()",
+                            "varType": "tuple"
+                        },
+                        {
+                            "varName": "kwargs",
+                            "value": "{}",
+                            "varType": "dict"
+                        },
+                        {
+                            "varName": "kwargs.pop",
+                            "value": "<built-in method pop of dict object at 0x11a799e40>",
+                            "varType": "builtin_function_or_method"
+                        },
+                        {
+                            "varName": "window",
+                            "value": "1",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "self._get_window",
+                            "value": "<bound method _Window._get_window of Rolling [window=1,center=False,axis=0]>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "self",
+                            "value": "Rolling [window=1,center=False,axis=0]",
+                            "varType": "Rolling"
+                        },
+                        {
+                            "varName": "offset",
+                            "value": "0",
+                            "varType": "int"
+                        },
+                        {
+                            "varName": "self.center",
+                            "value": "False",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "calculate_center_offset",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "is_bool",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "raw",
+                            "value": "False",
+                            "varType": "bool"
+                        },
+                        {
+                            "varName": "engine",
+                            "value": "cython",
+                            "varType": "str"
+                        },
+                        {
+                            "varName": "engine_kwargs",
+                            "value": "None",
+                            "varType": "NoneType"
+                        },
+                        {
+                            "varName": "apply_func",
+                            "value": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11a6ef310>",
+                            "varType": "function"
+                        },
+                        {
+                            "varName": "self._generate_cython_apply_func",
+                            "value": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
+                            "varType": "method"
+                        },
+                        {
+                            "varName": "func",
+                            "value": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11a673ca0>",
+                            "varType": "function"
+                        },
+                        {
+                            "varName": "self._numba_func_cache",
+                            "value": "{}",
+                            "varType": "dict"
+                        },
+                        {
+                            "varName": "generate_numba_apply_func",
+                            "value": "None",
+                            "varType": "None"
+                        },
+                        {
+                            "varName": "self._apply",
+                            "value": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>",
+                            "varType": "method"
+                        }
+                    ]
                 }
             ],
-            "inscope_functions": [
-                "__init__(self, obj, window=None, min_periods: Optional[int]=None, center: Optional[bool]=False, win_type: Optional[str]=None, axis: Axis=0, on: Optional[Union[str, Index]]=None, closed: Optional[str]=None, **kwargs)",
-                "_constructor(self)",
-                "is_datetimelike(self) -> Optional[bool]",
-                "_on(self)",
-                "is_freq_type(self) -> bool",
-                "validate(self) -> None",
-                "_validate_get_window_bounds_signature(window: BaseIndexer) -> None",
-                "_create_blocks(self)",
-                "_gotitem(self, key, ndim, subset=None)",
-                "__getattr__(self, attr: str)",
-                "_dir_additions(self)",
-                "_get_win_type(self, kwargs: Dict)",
-                "_get_window(self, other=None, win_type: Optional[str]=None) -> int",
-                "_window_type(self) -> str",
-                "__repr__(self) -> str",
-                "__iter__(self)",
-                "_prep_values(self, values: Optional[np.ndarray]=None) -> np.ndarray",
-                "_wrap_result(self, result, block=None, obj=None)",
-                "_wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries",
-                "_center_window(self, result, window) -> np.ndarray",
-                "_get_roll_func(self, func_name: str) -> Callable",
-                "_get_cython_func_type(self, func: str) -> Callable",
-                "_get_window_indexer(self, window: int) -> BaseIndexer",
-                "_apply(self, func: Callable, center: bool, require_min_periods: int=0, floor: int=1, is_weighted: bool=False, name: Optional[str]=None, use_numba_cache: bool=False, **kwargs)",
-                "aggregate(self, func, *args, **kwargs)",
-                "validate(self)",
-                "_get_win_type(self, kwargs: Dict) -> Union[str, Tuple]",
-                "_get_window(self, other=None, win_type: Optional[Union[str, Tuple]]=None) -> np.ndarray",
-                "aggregate(self, func, *args, **kwargs)",
-                "sum(self, *args, **kwargs)",
-                "mean(self, *args, **kwargs)",
-                "var(self, ddof=1, *args, **kwargs)",
-                "std(self, ddof=1, *args, **kwargs)",
-                "_constructor(self)",
-                "count(self)",
-                "apply(self, func, raw: bool=False, engine: str='cython', engine_kwargs: Optional[Dict]=None, args: Optional[Tuple]=None, kwargs: Optional[Dict]=None)",
-                "_generate_cython_apply_func(self, args, kwargs, raw, offset, func)",
-                "sum(self, *args, **kwargs)",
-                "max(self, *args, **kwargs)",
-                "min(self, *args, **kwargs)",
-                "mean(self, *args, **kwargs)",
-                "median(self, **kwargs)",
-                "std(self, ddof=1, *args, **kwargs)",
-                "var(self, ddof=1, *args, **kwargs)",
-                "skew(self, **kwargs)",
-                "kurt(self, **kwargs)",
-                "quantile(self, quantile, interpolation='linear', **kwargs)",
-                "cov(self, other=None, pairwise=None, ddof=1, **kwargs)",
-                "corr(self, other=None, pairwise=None, **kwargs)",
-                "is_datetimelike(self) -> bool",
-                "_on(self) -> Index",
-                "validate(self)",
-                "_validate_monotonic(self)",
-                "_validate_freq(self)",
-                "aggregate(self, func, *args, **kwargs)",
-                "count(self)",
-                "apply(self, func, raw=False, engine='cython', engine_kwargs=None, args=None, kwargs=None)",
-                "sum(self, *args, **kwargs)",
-                "max(self, *args, **kwargs)",
-                "min(self, *args, **kwargs)",
-                "mean(self, *args, **kwargs)",
-                "median(self, **kwargs)",
-                "std(self, ddof=1, *args, **kwargs)",
-                "var(self, ddof=1, *args, **kwargs)",
-                "skew(self, **kwargs)",
-                "kurt(self, **kwargs)",
-                "quantile(self, quantile, interpolation='linear', **kwargs)",
-                "cov(self, other=None, pairwise=None, ddof=1, **kwargs)",
-                "corr(self, other=None, pairwise=None, **kwargs)",
-                "_constructor(self)",
-                "_gotitem(self, key, ndim, subset=None)",
-                "_validate_monotonic(self)",
-                "_validate_win_type(win_type, kwargs)",
-                "_pop_args(win_type, arg_names, kwargs)",
-                "apply_func(values, begin, end, min_periods, raw=raw)",
-                "zsqrt_func(values, begin, end, min_periods)",
-                "_get_cov(X, Y)",
-                "_get_corr(a, b)",
-                "calc(x)",
-                "calc(x)"
-            ],
+            "inscope_functions": [],
             "variables_in_file": {
                 "PandasObject": [
                     59
@@ -4343,7 +4710,7 @@
                 "test_function": "test_groupby_rolling",
                 "test_function_code": "    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n\n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n\n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n        tm.assert_series_equal(result, expected)",
                 "test_error": "AssertionError: Series are different  Series values are different (100.0 %) [left]:  [0.0, 0.0, 0.0] [right]: [1.0, 1.0, 1.0]",
-                "full_test_error": "self = <pandas.tests.window.test_grouper.TestGrouperGrouping object at 0x1191d6700>\nexpected_value = 1.0, raw_value = True\n\n    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n    \n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n    \n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n>       tm.assert_series_equal(result, expected)\n\npandas/tests/window/test_grouper.py:210: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [0.0, 0.0, 0.0]\nE   [right]: [1.0, 1.0, 1.0]\n\npandas/_libs/testing.pyx:174: AssertionError",
+                "full_test_error": "self = <pandas.tests.window.test_grouper.TestGrouperGrouping object at 0x119280df0>\nexpected_value = 1.0, raw_value = True\n\n    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n    \n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n    \n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n>       tm.assert_series_equal(result, expected)\n\npandas/tests/window/test_grouper.py:210: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [0.0, 0.0, 0.0]\nE   [right]: [1.0, 1.0, 1.0]\n\npandas/_libs/testing.pyx:174: AssertionError",
                 "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [0.0, 0.0, 0.0]\nE   [right]: [1.0, 1.0, 1.0]\n\npandas/_libs/testing.pyx:174: AssertionError",
                 "test_function_decorators": [
