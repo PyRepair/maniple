@@ -43,5 +43,14 @@ def generate_contextual_diff_with_char_limit(text1, text2, context=1, char_limit
         lines1_truncated, lines2_truncated, lineterm="", n=context
     )
 
+    # Filter out the ---, +++, and @@ lines
+    filtered_diff = [
+        line
+        for line in diff
+        if not (
+            line.startswith("---") or line.startswith("+++") or line.startswith("@@")
+        )
+    ]
+
     # Join the diff lines into a single string
-    return "\n".join(diff)
+    return "\n".join(filtered_diff)
