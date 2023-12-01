@@ -1,7 +1,7 @@
 import argparse
 import os
-from LLMRepair.features_extractor import print_in_red, collect_facts, NotSupportedError
-from LLMRepair.patch_validator import validate_patches
+from features_extractor import print_in_red, collect_facts, NotSupportedError
+from patch_validator import validate_patches
 
 
 def get_bugids_from_output_dir(output_dir: str):
