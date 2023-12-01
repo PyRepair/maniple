@@ -5,7 +5,12 @@ import json
 import re
 from typing import List
 import ast
-from utils import IGNORED_BUGS, print_in_red
+from utils import (
+    IGNORED_BUGS,
+    generate_contextual_diff_with_char_limit,
+    print_in_red,
+    print_in_yellow,
+)
 
 
 def extract_function_with_imports(src: str, func_name: str) -> str:
@@ -194,65 +199,161 @@ class Facts:
         if buggy_function_info["class_data"] is not None:
             self._resolve_class_info(buggy_function_info["class_data"])
 
-        self.facts["2.2.3"] = {"start": [], "end": []}  # value
-        self.facts["2.2.4"] = {"start": [], "end": []}  # type
+        # angelic variables
+        self._resolve_angelic_variables(buggy_function_info)
 
-        if buggy_function_info.get("variable_values_start") is not None:
-            variable_values_start = buggy_function_info["variable_values_start"]
-            if variable_values_start is not None:
-                self.facts["2.2.3"]["start"] = self._resolve_variable_values(
-                    variable_values_start
-                )
-                self.facts["2.2.4"]["start"] = self._resolve_variable_types(
-                    variable_values_start
-                )
+    def _resolve_angelic_variables(self, function_info):
+        self.facts["2.2.3"] = []  # value
+        self.facts["2.2.4"] = []  # type
 
-        if buggy_function_info.get("variable_values_end") is not None:
-            variables_values_end = buggy_function_info["variable_values_end"]
-            if variables_values_end is not None:
-                self.facts["2.2.3"]["end"] = self._resolve_variable_values(
-                    variables_values_end
-                )
-                self.facts["2.2.4"]["end"] = self._resolve_variable_types(
-                    variables_values_end
-                )
+        if (
+            function_info.get("variable_values") is None
+            or function_info.get("angelic_variable_values") is None
+        ):
+            print_in_yellow(
+                "WARNING: variable_values or angelic_variable_values is empty"
+            )
+            return
 
-    @staticmethod
-    def matches_builtin_method(string):
-        pattern = r"<([a-zA-Z\-]+) (?:[^>]+) at 0x[0-9a-f]+>"
-        return bool(re.match(pattern, string))
+        buggy_variables_values = function_info["variable_values"]
+        angelic_variable_values = function_info["angelic_variable_values"]
+        if len(buggy_variables_values) == 0 or len(angelic_variable_values) == 0:
+            print_in_yellow(
+                "WARNING: variable_values or angelic_variable_values is empty"
+            )
+            return
 
-    def _resolve_variable_values(self, variable_values):
-        values = []
-        for var in variable_values:
+        test_cases_containing_variable_values = []
+        test_cases_containing_variable_types = []
+
+        for buggy_IO_tuple, angelic_IO_tuple in zip(
+            buggy_variables_values, angelic_variable_values
+        ):
+            # if the the buggy program crash, the IO tuple will be incomplete and we should ignore it
+            if len(buggy_IO_tuple) < 2 or len(buggy_IO_tuple[1].keys()) == 0:
+                continue
+            if len(angelic_IO_tuple) < 2 or len(angelic_IO_tuple[1].keys()) == 0:
+                continue
+
+            variables_values = {
+                "start": self._resolve_variable_values(
+                    buggy_IO_tuple[0], angelic_IO_tuple[0]
+                ),
+                "end": self._resolve_variable_values(
+                    buggy_IO_tuple[1], angelic_IO_tuple[1]
+                ),
+            }
+            variables_types = {
+                "start": self._resolve_variable_types(
+                    buggy_IO_tuple[0], angelic_IO_tuple[0]
+                ),
+                "end": self._resolve_variable_types(
+                    buggy_IO_tuple[1], angelic_IO_tuple[1]
+                ),
+            }
+
             if (
-                var["value"] != "None"
-                and var["varType"] != "None"
-                and not Facts.matches_builtin_method(var["value"])
+                len(variables_values["start"]) == 0
+                or len(variables_values["end"]) == 0
+                or len(variables_types["start"]) == 0
+                or len(variables_types["end"]) == 0
             ):
-                values.append(
-                    {
-                        "varName": var["varName"],
-                        "value": var["value"],
-                    }
+                continue
+
+            test_cases_containing_variable_values.append(variables_values)
+            test_cases_containing_variable_types.append(variables_types)
+
+        self.facts["2.2.3"] = test_cases_containing_variable_values
+        self.facts["2.2.4"] = test_cases_containing_variable_types
+
+    def _resolve_variable_values(self, buggy_variable_dict, angelic_variable_dict):
+        values = []
+
+        for buggy_variable_item, angelic_variable_item in zip(
+            buggy_variable_dict.items(), angelic_variable_dict.items()
+        ):
+            if buggy_variable_item[0] != angelic_variable_item[0]:
+                print_in_red("FATAL: the variable name does not match")
+
+            varName = buggy_variable_item[0]
+            buggy_variable_record = buggy_variable_item[1]
+            angelic_variable_record = angelic_variable_item[1]
+            buggy_value = buggy_variable_record["variable_value"]
+            ground_truth_value = angelic_variable_record["variable_value"]
+
+            if not (
+                self._does_this_variable_record_contains_non_empty_value(
+                    buggy_variable_record
                 )
+                and self._does_this_2_variable_records_actually_have_changes(
+                    buggy_variable_record, angelic_variable_record
+                )
+            ):
+                continue
+
+            value_diff = generate_contextual_diff_with_char_limit(
+                buggy_value, ground_truth_value
+            )
+            values.append(
+                {"varName": varName, "value": ground_truth_value, "diff": value_diff}
+            )
+
         return values
 
-    def _resolve_variable_types(self, variable_values):
+    def _resolve_variable_types(self, buggy_variable_dict, angelic_variable_dict):
         types = []
-        for var in variable_values:
-            if (
-                var["value"] != "None"
-                and var["varType"] != "None"
-                and not Facts.matches_builtin_method(var["value"])
+
+        for buggy_variable_item, angelic_variable_item in zip(
+            buggy_variable_dict.items(), angelic_variable_dict.items()
+        ):
+            if buggy_variable_item[0] != angelic_variable_item[0]:
+                print_in_red("FATAL: the variable name does not match")
+
+            varName = buggy_variable_item[0]
+            buggy_variable_record = buggy_variable_item[1]
+            angelic_variable_record = angelic_variable_item[1]
+
+            if self._does_this_variable_record_contains_non_empty_value(
+                buggy_variable_record
+            ) and self._does_this_2_variable_records_actually_have_changes(
+                buggy_variable_record, angelic_variable_record
             ):
                 types.append(
                     {
-                        "varName": var["varName"],
-                        "varType": var["varType"],
+                        "varName": varName,
+                        "varType": buggy_variable_record["variable_type"],
                     }
                 )
+
         return types
+
+    @staticmethod
+    def _does_this_2_variable_records_actually_have_changes(
+        buggy_variable_record, angelic_variable_record
+    ):
+        if (
+            buggy_variable_record["variable_value"]
+            == angelic_variable_record["variable_value"]
+            and buggy_variable_record["variable_type"]
+            == angelic_variable_record["variable_type"]
+        ):
+            return False
+        return True
+
+    @staticmethod
+    def _does_this_variable_record_contains_non_empty_value(variable_record):
+        if (
+            variable_record["variable_value"] == "None"
+            or variable_record["variable_type"] == "None"
+            or Facts._matches_builtin_method(variable_record["variable_value"])
+        ):
+            return False
+        return True
+
+    @staticmethod
+    def _matches_builtin_method(string):
+        pattern = r"<([a-zA-Z\-]+) (?:[^>]+) at 0x[0-9a-f]+>"
+        return bool(re.match(pattern, string))
 
     def _resolve_class_info(self, buggy_class_info):
         class_signature = buggy_class_info["signature"]

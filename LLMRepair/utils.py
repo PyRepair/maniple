@@ -10,7 +10,13 @@ def print_in_red(text):
     print(f"{RED}{text}{RESET}")
 
 
-def generate_contextual_diff_with_char_limit(text1, text2, context=3, char_limit=100):
+def print_in_yellow(text):
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
+    print(f"{YELLOW}{text}{RESET}")
+
+
+def generate_contextual_diff_with_char_limit(text1, text2, context=1, char_limit=30):
     """
     Generates a unified diff between two texts, including some context lines,
     but limits the number of characters per line in the context.
