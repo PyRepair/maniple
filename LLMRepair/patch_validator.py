@@ -9,7 +9,7 @@ def validate_patches(bugid: str, output_dir: str):
         print_in_red(f"ERROR: {full_bugdir_path} does not exist")
         return
 
-    subprocess.run(["bgp", "prep", "--bugids", bugid], check=True)
+    # subprocess.run(["bgp", "prep", "--bugids", bugid], check=True)
 
     for filename in os.listdir(full_bugdir_path):
         is_patchfile = "response" in filename and filename.endswith(".json")

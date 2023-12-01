@@ -1,7 +1,7 @@
 import argparse
 import os
-from extractor import print_in_red, collect_facts, NotSupportedError
-from patch_validator import validate_patches
+from LLMRepair.features_extractor import print_in_red, collect_facts, NotSupportedError
+from LLMRepair.patch_validator import validate_patches
 
 
 def get_bugids_from_output_dir(output_dir: str):
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     args_parser.add_argument(
         "command",
         choices=["extract_features", "validate_patches"],
-        help="specify the command to run"
+        help="specify the command to run",
     )
     args_parser.add_argument(
         "--bugids",
