@@ -71,7 +71,7 @@ def extract_function_from_response(src: str, func_name: str) -> str:
             import_statements.append(node)
 
     if not function_node:
-        return "Function not found"
+        return None
 
     # Get the source code of the function's signature
     start_line = function_node.lineno - 1
