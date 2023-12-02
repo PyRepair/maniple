@@ -1,11 +1,12 @@
+import ast
 import os
 import shutil
 import subprocess
 import json
 import re
-from typing import List
-import ast
+from typing import Any, List
 from utils import (
+    FACT_MAP,
     IGNORED_BUGS,
     generate_contextual_diff_with_char_limit,
     print_in_red,
@@ -24,33 +25,18 @@ class Facts:
     process the facts in a way that can be eaily used to construct a prompt
     """
 
-    FACT_MAP = {
-        "1.1.1": "buggy function code",
-        "1.1.2": "buggy function docstring",
-        "1.1.3": "invoked function signature",
-        "1.2.1": "buggy class signature",
-        "1.2.2": "buggy class docstring",
-        "1.2.3": "relevant buggy class method signature",
-        "1.2.4": "invoked method signature",
-        "1.3.1": "relavent function signature",
-        "1.3.2": "buggy file name",
-        "1.3.3": "relevant variables",
-        "1.3.4": "invoked function signature",
-        "1.4.1": "runtime variable type",
-        "1.4.2": "runtime variable value",
-        "2.1.1": "test function code",
-        "2.1.2": "test file name",
-        "2.2.1": "error message",
-        "2.2.2": "stacktrace",
-        "2.2.3": "variable runtime value",
-        "2.2.4": "variable runtime type",
-        "3.1.1": "issue title",
-        "3.1.2": "issue description",
-    }
-
-    def __init__(self, bug_record: dict) -> None:
-        self.facts = dict()
+    def __init__(self, bugid: str, bug_working_directory: str) -> None:
+        self.facts = dict[str, Any]()
+        self.stats = dict[str, List[Any]]()
+        self._bugid = bugid
+        self._bwd = bug_working_directory
         self._variables_in_methods = []
+
+    def _log_stat(self, state_category, state_record):
+        if self.stats.get(state_category) is None:
+            self.stats[state_category] = [state_record]
+        else:
+            self.stats[state_category].append(state_record)
 
     def load_from_json_object(self, bug_record: dict) -> None:
         """
@@ -84,7 +70,7 @@ class Facts:
                 self._resolve_file_info(filename, file_info)
 
     def _resolve_file_info(self, filename, file_info):
-        self.facts["1.3.2"] = filename
+        self.facts["1.3.1"] = filename
 
         if len(file_info["buggy_functions"]) > 1:
             raise NotSupportedError(
@@ -98,31 +84,41 @@ class Facts:
             if self._is_this_func_called(fn):
                 called_in_scope_functions.append(fn)
         if len(called_in_scope_functions) > 0:
-            self.facts["1.3.4"] = called_in_scope_functions
+            self.facts["1.3.2"] = called_in_scope_functions
 
     def _is_this_func_called(self, sig):
         for v in self._variables_in_methods:
             var = v.split(".")[-1]
-            if Facts._extract_function_name(sig) == var:
+            if Facts._extract_single_function_name(sig) == var:
                 return True
         return False
 
-    @staticmethod
-    def _extract_function_name(signature):
+    def _extract_single_function_name(function_code):
         """
-        Extracts and returns the function name from a given function signature string.
+        Extracts and returns the name of a single function from its source code.
 
         Args:
-        signature (str): A string representing the function signature.
+            function_code (str): A string containing the source code of a single function.
 
         Returns:
-        str: The name of the function.
+            str: The name of the function, or an empty string if no function name is found.
         """
-        # Split the signature string at the first opening parenthesis
-        parts = signature.split("(")
-        # The first part is the function name
-        # Stripping to remove any leading or trailing spaces
-        return parts[0].strip()
+
+        class SingleFunctionExtractor(ast.NodeVisitor):
+            def __init__(self):
+                self.name = ""
+
+            def visit_FunctionDef(self, node):
+                if self.name == "":
+                    self.name = node.name
+
+        try:
+            tree = ast.parse(function_code)
+            extractor = SingleFunctionExtractor()
+            extractor.visit(tree)
+            return extractor.name
+        except SyntaxError:
+            return ""  # Return an empty string in case of a syntax error
 
     def _resolve_buggy_function(self, buggy_function_info):
         buggy_function = buggy_function_info["function_code"]
@@ -144,115 +140,132 @@ class Facts:
         # angelic variables
         self._resolve_angelic_variables(buggy_function_info)
 
-    def _resolve_angelic_variables(self, function_info):
-        self.facts["2.2.3"] = []  # value
-        self.facts["2.2.4"] = []  # type
-
-        if (
-            function_info.get("variable_values") is None
-            or function_info.get("angelic_variable_values") is None
-        ):
-            print_in_yellow(
-                "WARNING: variable_values or angelic_variable_values is empty"
-            )
-            return
-
+    def _get_angelic_dynamics_LEGACY(self, function_info):
         buggy_variables_values = function_info["variable_values"]
         angelic_variable_values = function_info["angelic_variable_values"]
-        if len(buggy_variables_values) == 0 or len(angelic_variable_values) == 0:
-            print_in_yellow(
-                "WARNING: variable_values or angelic_variable_values is empty"
-            )
-            return
 
-        test_cases_containing_variable_values = []
-        test_cases_containing_variable_types = []
+        iovals = []
+        iotypes = []
 
-        for buggy_IO_tuple, angelic_IO_tuple in zip(
-            buggy_variables_values, angelic_variable_values
-        ):
+        matched_buggy_variable_indices = set()
+        for angelic_idx, angelic_IO_tuple in enumerate(angelic_variable_values):
+            containEqual = False
+            for buggy_idx, buggy_IO_tuple in enumerate(buggy_variables_values):
+                # if same input got matched, then we can use this pair
+                # we also did a sanity check to make sure the output is not empty and having same keys
+                if (
+                    buggy_IO_tuple[0] == angelic_IO_tuple[0]
+                    and len(buggy_IO_tuple[1].keys()) > 0
+                    and buggy_IO_tuple[1].keys() == angelic_IO_tuple[1].keys()
+                ):
+                    containEqual = True
+                    break
+
+            # if same input got matched, then we can use this pair, otherwise we discard it
+            if not containEqual or buggy_idx in matched_buggy_variable_indices:
+                continue
+
             # if the the buggy program crash, the IO tuple will be incomplete and we should ignore it
             if len(buggy_IO_tuple) < 2 or len(buggy_IO_tuple[1].keys()) == 0:
                 continue
             if len(angelic_IO_tuple) < 2 or len(angelic_IO_tuple[1].keys()) == 0:
                 continue
 
-            values_input, types_input = self._resolve_variable(
-                buggy_IO_tuple[0], angelic_IO_tuple[0], isOutput=False
-            )
-            values_output, types_output = self._resolve_variable(
-                buggy_IO_tuple[1], angelic_IO_tuple[1], isOutput=True
-            )
+            # now we have a pair of buggy and angelic IO tuple
+            # ready to use pair (buggy_IO_tuple and angelic_IO_tuple)
+            # Next step: filter buildin method and None for input
+            i_val = dict()
+            i_type = dict()
+            for varName, varItem in angelic_IO_tuple[0].items():
+                if self._does_this_variable_record_contains_non_empty_value(varItem):
+                    i_val[varName] = {
+                        "variable_value": varItem["variable_value"],
+                    }
+                    i_type[varName] = {
+                        "variable_type": varItem["variable_type"],
+                    }
 
-            if (
-                len(values_input) == 0
-                or len(values_output) == 0
-                or len(types_input) == 0
-                or len(types_output) == 0
-            ):
-                continue
-
-            variables_values = {
-                "start": values_input,
-                "end": values_output,
-            }
-            variables_types = {
-                "start": types_input,
-                "end": types_output,
-            }
-
-            test_cases_containing_variable_values.append(variables_values)
-            test_cases_containing_variable_types.append(variables_types)
-
-        self.facts["2.2.3"] = test_cases_containing_variable_values
-        self.facts["2.2.4"] = test_cases_containing_variable_types
-
-    def _resolve_variable(
-        self, buggy_variable_dict, angelic_variable_dict, isOutput: bool
-    ):
-        values = []
-        types = []
-
-        for buggy_variable_item, angelic_variable_item in zip(
-            buggy_variable_dict.items(), angelic_variable_dict.items()
-        ):
-            if buggy_variable_item[0] != angelic_variable_item[0]:
-                print_in_red("FATAL: the variable name does not match")
-
-            varName = buggy_variable_item[0]
-            buggy_variable_record = buggy_variable_item[1]
-            angelic_variable_record = angelic_variable_item[1]
-            buggy_value = buggy_variable_record["variable_value"]
-            ground_truth_value = angelic_variable_record["variable_value"]
-
-            if not (
-                self._does_this_variable_record_contains_non_empty_value(
-                    buggy_variable_record
-                )
-                or (
-                    isOutput
-                    and not self._does_this_2_variable_records_actually_have_changes(
-                        buggy_variable_record, angelic_variable_record
+            # Next step: work with output
+            # merge buggy_IO_tuple[1] and angelic_IO_tuple[1]
+            # and also filter out None or builtin method
+            # and also generate diff
+            o_val = dict()
+            o_type = dict()
+            for varName, varItem in angelic_IO_tuple[1].items():
+                buggyItem = buggy_IO_tuple[1][varName]
+                if self._does_this_variable_record_contains_non_empty_value(
+                    varItem
+                ) and self._does_this_2_variable_records_actually_have_changes(
+                    buggyItem, varItem
+                ):
+                    buggy_value = buggyItem["variable_value"]
+                    angelic_value = varItem["variable_value"]
+                    value_diff = generate_contextual_diff_with_char_limit(
+                        buggy_value, angelic_value
                     )
-                )
-            ):
+                    o_val[varName] = {
+                        "buggy_value": buggy_value,
+                        "angelic_value": angelic_value,
+                        "diff": value_diff,
+                    }
+                    o_type[varName] = {"variable_type": varItem["variable_type"]}
+
+            if len(i_val.keys()) == 0 or len(o_val.keys()) == 0:
                 continue
 
-            value_diff = generate_contextual_diff_with_char_limit(
-                buggy_value, ground_truth_value
-            )
-            values.append(
-                {"varName": varName, "value": ground_truth_value, "diff": value_diff}
-            )
-
-            types.append(
-                {
-                    "varName": varName,
-                    "varType": angelic_variable_record["variable_type"],
-                }
+            # if the data survive util the last time, then we can add the buggy_idx to the set
+            matched_buggy_variable_indices.add(buggy_idx)
+            self._log_stat(
+                "buggy_angelic_dynamics_pair",
+                (buggy_idx, angelic_idx),
             )
 
-        return (values, types)
+            # now we have target_output and target_input
+            # put them in pair and add to result_set
+            iovals.append((i_val, o_val))
+            iotypes.append((i_type, o_type))
+
+        return (iovals, iotypes)
+
+    def _resolve_dynamics(self, values):
+        iovals = []
+        iotypes = []
+        for I, O in values:
+            ivals = dict()
+            itypes = dict()
+            cond = Facts._does_this_variable_record_contains_non_empty_value
+            for varName, varItem in I.items():
+                if cond(varItem):
+                    ivals[varName] = varItem["variable_value"]
+                    itypes[varName] = varItem["variable_type"]
+            ovals = dict()
+            otypes = dict()
+            for varName, varItem in O.items():
+                if cond(varItem):
+                    ovals[varName] = varItem["variable_value"]
+                    otypes[varName] = varItem["variable_type"]
+            iovals.append((ivals, ovals))
+            iotypes.append((itypes, otypes))
+        return (iovals, iotypes)
+
+    def _resolve_angelic_variables(self, function_info):
+        if (
+            function_info.get("angelic_variable_values") is not None
+            and len(function_info["angelic_variable_values"]) > 0
+        ):
+            ioavals, ioatypes = self._resolve_dynamics(
+                function_info["angelic_variable_values"]
+            )
+            self.facts["2.2.3"] = ioavals
+            self.facts["2.2.4"] = ioatypes
+
+        if (
+            function_info.get("variable_values") is not None
+            and len(function_info["variable_values"]) > 0
+        ):
+            iobvals, iobtypes = self._resolve_dynamics(function_info["variable_values"])
+            self.facts["2.2.5"] = iobvals
+            self.facts["2.2.6"] = iobtypes
 
     @staticmethod
     def _does_this_2_variable_records_actually_have_changes(
@@ -283,14 +296,14 @@ class Facts:
         return bool(re.match(pattern, string))
 
     def _resolve_class_info(self, buggy_class_info):
-        class_signature = buggy_class_info["signature"]
+        class_declearation = buggy_class_info["signature"]
         class_decorators = buggy_class_info["class_decorators"]
 
         if class_decorators is not None and len(class_decorators) > 0:
             for decorator in class_decorators[::-1]:
-                class_signature = "@" + decorator + "\n" + class_signature
+                class_declearation = "@" + decorator + "\n" + class_declearation
 
-        self.facts["1.2.1"] = class_signature
+        self.facts["1.2.1"] = class_declearation
 
         class_docstring = buggy_class_info["docstring"]
         if class_docstring is not None:
@@ -301,7 +314,7 @@ class Facts:
             if self._is_this_func_called(method):
                 used_methods.append(method)
         if len(used_methods) > 0:
-            self.facts["1.2.4"] = used_methods
+            self.facts["1.2.3"] = used_methods
 
     @staticmethod
     def remove_docstring_from_source(function_source):
@@ -352,11 +365,6 @@ class Facts:
         else:
             self.facts["2.1.2"].append(test_file_name)
 
-        if self.facts.get("2.2.1") is None:
-            self.facts["2.2.1"] = []
-        if self.facts.get("2.2.2") is None:
-            self.facts["2.2.2"] = []
-
         full_test_error = test_data["full_test_error"]
         error_stacktrace_chunks = Facts._split_error_message(full_test_error)
 
@@ -376,60 +384,20 @@ class Facts:
                 is_error_message = True
                 full_error_message.append(chunk["content"])
 
-        if self.facts.get("2.2.1") is None:
-            self.facts["2.2.1"] = []
-        else:
-            self.facts["2.2.1"].append(full_error_message)
+        if len(full_error_message) > 0:
+            if self.facts.get("2.2.1") is None:
+                self.facts["2.2.1"] = [full_error_message]
+            else:
+                self.facts["2.2.1"].append(full_error_message)
 
-        if self.facts.get("2.2.2") is None:
-            self.facts["2.2.2"] = []
-        else:
-            self.facts["2.2.2"].append(full_stacktrace)
+        if len(full_stacktrace) > 0:
+            if self.facts.get("2.2.2") is None:
+                self.facts["2.2.2"] = [full_stacktrace]
+            else:
+                self.facts["2.2.2"].append(full_stacktrace)
 
-
-def collect_facts(bugid: str, dir_path: str, flag_overwrite=False):
-    if bugid in IGNORED_BUGS:
-        print_in_red(f"WARNING: {bugid} is ignored")
-        return
-
-    full_bugdir_path = os.path.join(dir_path, "-".join(bugid.split(":")))
-    if not os.path.exists(full_bugdir_path):
-        os.makedirs(full_bugdir_path)
-
-    bug_json_file = os.path.join(full_bugdir_path, "bug-data.json")
-
-    if flag_overwrite or not os.path.exists(bug_json_file):
-        if shutil.which("bgp") is None:
-            print_in_red(
-                """FATAL: bgp command not found. 
-                        Try to install it by following the instruction from 
-                        https://github.com/PyRepair/PyRepair/tree/master/pyr_benchmark_wrangling"""
-            )
-            exit(1)
-
-        subprocess.run(["bgp", "clone", "--bugids", bugid], check=True)
-        console_output = subprocess.run(
-            ["bgp", "extract_features", "--bugids", bugid],
-            capture_output=True,
-            check=True,
-        )
-
-        decoded_string = console_output.stdout.decode("utf-8")
-        json_output = json.loads(decoded_string)
-
-        # write bug-data.json file
-        with open(bug_json_file, "w") as f:
-            json.dump(json_output, f, indent=4)
-
-    else:
-        with open(bug_json_file, "r") as f:
-            json_output = json.load(f)
-
-    bug_record = json_output[bugid]
-    facts = Facts(bug_record)
-    facts.load_from_json_object(bug_record)
-
-    def extract_code_blocks(md_content):
+    @staticmethod
+    def _extract_code_blocks_from_markdown(md_content):
         # Regular expression pattern to match code blocks
         # The pattern looks for triple backticks, optionally followed by an identifier (like python, js, etc.)
         # and then any content until the closing triple backticks, across multiple lines
@@ -440,50 +408,111 @@ def collect_facts(bugid: str, dir_path: str, flag_overwrite=False):
 
         return matches
 
-    write_markdown_files(facts, full_bugdir_path)
+    def load_from_bwd(
+        self, flag_overwrite=False, write_markdown_files=True, write_facts_json=True
+    ):
+        bug_json_file = os.path.join(self._bwd, "bug-data.json")
+        bugid = self._bugid
+        full_bugdir_path = self._bwd
 
-    if os.path.exists(os.path.join(full_bugdir_path, "f3-1-1.md")):
-        with open(os.path.join(full_bugdir_path, "f3-1-1.md"), "r") as f:
-            facts.facts["3.1.1"] = extract_code_blocks(f.read())
+        if flag_overwrite or not os.path.exists(bug_json_file):
+            if shutil.which("bgp") is None:
+                print_in_red(
+                    """FATAL: bgp command not found. 
+                            Try to install it by following the instruction from 
+                            https://github.com/PyRepair/PyRepair/tree/master/pyr_benchmark_wrangling"""
+                )
+                raise NotSupportedError("bgp command not found")
 
-    if os.path.exists(os.path.join(full_bugdir_path, "f3-1-2.md")):
-        with open(os.path.join(full_bugdir_path, "f3-1-2.md"), "r") as f:
-            facts.facts["3.1.2"] = extract_code_blocks(f.read())
+            subprocess.run(["bgp", "clone", "--bugids", bugid], check=True)
+            console_output = subprocess.run(
+                ["bgp", "extract_features", "--bugids", bugid],
+                capture_output=True,
+                check=True,
+            )
 
-    # write facts.json file
-    with open(os.path.join(full_bugdir_path, "facts.json"), "w") as f:
-        json.dump(facts.facts, f, indent=4)
+            decoded_string = console_output.stdout.decode("utf-8")
+            json_output = json.loads(decoded_string)
 
-    print(f"bugid: {bugid}")
-    if facts.facts.get("1.2.4") is None:
-        print(f"method ref num: 0")
-    else:
-        print(f"method ref num: {len(facts.facts['1.2.4'])}")
+            # write bug-data.json file
+            with open(bug_json_file, "w") as f:
+                json.dump(json_output, f, indent=4)
 
-    if facts.facts.get("1.3.4") is None:
-        print(f"in_scope_functions ref num: 0")
-    else:
-        print(f"in_scope_functions ref num: {len(facts.facts['1.3.4'])}")
-
-
-def format_json(obj):
-    formatted_json = json.dumps(obj, indent=4)
-    return formatted_json
-
-
-def write_markdown_files(facts: Facts, output_dir: str):
-    for fact_key, fact_content in facts.facts.items():
-        fact_name = Facts.FACT_MAP[fact_key]
-        if "code" in fact_name:
-            fact_type = "python"
         else:
-            fact_type = "text"
+            with open(bug_json_file, "r") as f:
+                json_output = json.load(f)
 
-        if isinstance(fact_content, list) or isinstance(fact_content, dict):
-            fact_content = format_json(fact_content)
-            fact_type = "json"
-        fact_content = f"```{fact_type}\n{fact_content}\n```\n"
+        bug_record = json_output[bugid]
+        self.load_from_json_object(bug_record)
 
-        filename = "f" + fact_key.replace(".", "-") + ".md"
-        with open(os.path.join(output_dir, filename), "w") as f:
-            f.write(f"""# {fact_name}\n\n{fact_content}""")
+        if write_markdown_files:
+            self._write_markdown_files()
+
+        if os.path.exists(os.path.join(full_bugdir_path, "f3-1-1.md")):
+            with open(os.path.join(full_bugdir_path, "f3-1-1.md"), "r") as f:
+                self.facts["3.1.1"] = Facts._extract_code_blocks_from_markdown(f.read())
+
+        if os.path.exists(os.path.join(full_bugdir_path, "f3-1-2.md")):
+            with open(os.path.join(full_bugdir_path, "f3-1-2.md"), "r") as f:
+                self.facts["3.1.2"] = Facts._extract_code_blocks_from_markdown(f.read())
+
+        if write_facts_json:
+            # write facts.json file
+            with open(os.path.join(full_bugdir_path, "facts.json"), "w") as f:
+                json.dump(self.facts, f, indent=4)
+
+        if self.facts.get("1.2.3") is None:
+            self._log_stat("method_ref_num_pair", (bugid, 0))
+        else:
+            self._log_stat("method_ref_num_pair", (bugid, len(self.facts["1.2.3"])))
+
+        if self.facts.get("1.3.2") is None:
+            self._log_stat("in_scope_func_ref_num_pair", (bugid, 0))
+        else:
+            self._log_stat(
+                "in_scope_func_ref_num_pair", (bugid, len(self.facts["1.3.2"]))
+            )
+
+    def _write_markdown_files(self):
+        def format_json(obj):
+            formatted_json = json.dumps(obj, indent=4)
+            return formatted_json
+
+        for fact_key, fact_content in self.facts.items():
+            fact_name = FACT_MAP[fact_key]
+            if "code" in fact_name:
+                fact_type = "python"
+            else:
+                fact_type = "text"
+
+            if isinstance(fact_content, list) or isinstance(fact_content, dict):
+                fact_content = format_json(fact_content)
+                fact_type = "json"
+            fact_content = f"```{fact_type}\n{fact_content}\n```\n"
+
+            filename = "f" + fact_key.replace(".", "-") + ".md"
+            with open(os.path.join(self._bwd, filename), "w") as f:
+                f.write(f"""# {fact_name}\n\n{fact_content}""")
+
+    def report_stats(self) -> str:
+        """
+        Returns a string containing the statistics of the facts.
+        """
+        stats = f"LOG: {self._bugid}\n"
+        for category, records in self.stats.items():
+            stats += f"{category}:\n"
+            for record in records:
+                stats += f"\t{record}\n"
+        return stats
+
+
+def collect_facts(bugid: str, bwd: str, flag_overwrite=False):
+    if bugid in IGNORED_BUGS:
+        print_in_red(f"WARNING: {bugid} is ignored")
+        return
+
+    facts = Facts(bugid, bwd)
+    facts.load_from_bwd(
+        flag_overwrite=flag_overwrite, write_markdown_files=True, write_facts_json=True
+    )
+    print_in_yellow(facts.report_stats())

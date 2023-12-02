@@ -8,6 +8,12 @@ def validate_patches(bugid: str, output_dir: str):
     if not os.path.exists(full_bugdir_path):
         print_in_red(f"ERROR: {full_bugdir_path} does not exist")
         return
+    
+    # 0 pass test
+    # 1 failed test
+    # 2 invalid fix patch input for run custom patch (also include crash)
+    # 4 run custom patch time out
+    # 404 exteract fix patch = "" (response generation failed to pass parser)
 
     # subprocess.run(["bgp", "prep", "--bugids", bugid], check=True)
 

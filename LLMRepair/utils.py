@@ -4,6 +4,26 @@ import ast
 
 IGNORED_BUGS = ["spacy:2"]
 
+FACT_MAP = {
+    "1.1.1": "buggy function code",
+    "1.1.2": "buggy function docstring",
+    "1.2.1": "buggy class declearation",
+    "1.2.2": "buggy class docstring",
+    "1.2.3": "invoked method signature",
+    "1.3.1": "buggy file name",
+    "1.3.2": "invoked function signature",
+    "2.1.1": "test function code",
+    "2.1.2": "test file name",
+    "2.2.1": "error message",
+    "2.2.2": "stacktrace",
+    "2.2.3": "angelic values",
+    "2.2.4": "angelic types",
+    "2.2.5": "buggy runtime values",
+    "2.2.6": "buggy runtime types",
+    "3.1.1": "issue title",
+    "3.1.2": "issue description",
+}
+
 
 def print_in_red(text):
     RED = "\033[91m"

@@ -1,4 +1,3 @@
-import argparse
 import os
 
 
@@ -10,12 +9,3 @@ def clear_files(path: str):
             if file.startswith("f") and not file.startswith("f3"):
                 # Delete the file
                 os.remove(os.path.join(root, file))
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument(
-        "-p", "--path", type=str, required=True, help="Path to the directory"
-    )
-    args = argparser.parse_args()
-    clear_files(args.path)
