@@ -65,7 +65,6 @@ for bug_dir in first_stratum_path:
                 fix_patch = ""
 
         used_facts = [int(char) for char in response_file_name[:11]]
-        print(response_file_name)
         bitvector = {
             "1.3.2": used_facts[0],
             "1.2.4": used_facts[1],
