@@ -13,64 +13,6 @@ from utils import (
 )
 
 
-def extract_function_with_imports(src: str, func_name: str) -> str:
-    # Parsing the source code into an AST
-    tree = ast.parse(src)
-
-    # Find the function node and import statements
-    function_node = None
-    import_statements = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == func_name:
-            function_node = node
-        elif isinstance(node, (ast.Import, ast.ImportFrom)):
-            import_statements.append(node)
-
-    if not function_node:
-        return "Function not found"
-
-    # Get the source code of the function's signature
-    start_line = function_node.lineno - 1
-    end_line = (
-        function_node.body[0].lineno - 2
-    )  # The line before the function body starts
-    function_signature = "\n".join(src.splitlines()[start_line : end_line + 1])
-
-    # Get the function body
-    function_body_lines = src.splitlines()[
-        function_node.body[0].lineno - 1 : function_node.end_lineno
-    ]
-
-    # Determine the minimum indentation in the function body
-    min_indent = min(
-        (
-            len(line) - len(line.lstrip())
-            for line in function_body_lines
-            if line.strip()
-        ),
-        default=0,
-    )
-
-    indent_spaces = " " * 4
-
-    # Adjust the indentation for the function body
-    function_body = "\n".join(
-        indent_spaces + line[min_indent:] for line in function_body_lines
-    )
-
-    # Extract import statements as source code with appropriate indentation
-    imports_code = "\n".join(
-        indent_spaces + ast.get_source_segment(src, node) for node in import_statements
-    )
-
-    # Combine the function signature, imports, and function body
-    modified_function = (
-        function_signature.lstrip() + "\n" + imports_code + "\n" + function_body
-    )
-
-    return modified_function
-
-
 class NotSupportedError(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -235,30 +177,29 @@ class Facts:
             if len(angelic_IO_tuple) < 2 or len(angelic_IO_tuple[1].keys()) == 0:
                 continue
 
-            variables_values = {
-                "start": self._resolve_variable_values(
-                    buggy_IO_tuple[0], angelic_IO_tuple[0]
-                ),
-                "end": self._resolve_variable_values(
-                    buggy_IO_tuple[1], angelic_IO_tuple[1]
-                ),
-            }
-            variables_types = {
-                "start": self._resolve_variable_types(
-                    buggy_IO_tuple[0], angelic_IO_tuple[0]
-                ),
-                "end": self._resolve_variable_types(
-                    buggy_IO_tuple[1], angelic_IO_tuple[1]
-                ),
-            }
+            values_input, types_input = self._resolve_variable(
+                buggy_IO_tuple[0], angelic_IO_tuple[0], isOutput=False
+            )
+            values_output, types_output = self._resolve_variable(
+                buggy_IO_tuple[1], angelic_IO_tuple[1], isOutput=True
+            )
 
             if (
-                len(variables_values["start"]) == 0
-                or len(variables_values["end"]) == 0
-                or len(variables_types["start"]) == 0
-                or len(variables_types["end"]) == 0
+                len(values_input) == 0
+                or len(values_output) == 0
+                or len(types_input) == 0
+                or len(types_output) == 0
             ):
                 continue
+
+            variables_values = {
+                "start": values_input,
+                "end": values_output,
+            }
+            variables_types = {
+                "start": types_input,
+                "end": types_output,
+            }
 
             test_cases_containing_variable_values.append(variables_values)
             test_cases_containing_variable_types.append(variables_types)
@@ -266,8 +207,11 @@ class Facts:
         self.facts["2.2.3"] = test_cases_containing_variable_values
         self.facts["2.2.4"] = test_cases_containing_variable_types
 
-    def _resolve_variable_values(self, buggy_variable_dict, angelic_variable_dict):
+    def _resolve_variable(
+        self, buggy_variable_dict, angelic_variable_dict, isOutput: bool
+    ):
         values = []
+        types = []
 
         for buggy_variable_item, angelic_variable_item in zip(
             buggy_variable_dict.items(), angelic_variable_dict.items()
@@ -285,8 +229,11 @@ class Facts:
                 self._does_this_variable_record_contains_non_empty_value(
                     buggy_variable_record
                 )
-                and self._does_this_2_variable_records_actually_have_changes(
-                    buggy_variable_record, angelic_variable_record
+                or (
+                    isOutput
+                    and not self._does_this_2_variable_records_actually_have_changes(
+                        buggy_variable_record, angelic_variable_record
+                    )
                 )
             ):
                 continue
@@ -298,34 +245,14 @@ class Facts:
                 {"varName": varName, "value": ground_truth_value, "diff": value_diff}
             )
 
-        return values
+            types.append(
+                {
+                    "varName": varName,
+                    "varType": angelic_variable_record["variable_type"],
+                }
+            )
 
-    def _resolve_variable_types(self, buggy_variable_dict, angelic_variable_dict):
-        types = []
-
-        for buggy_variable_item, angelic_variable_item in zip(
-            buggy_variable_dict.items(), angelic_variable_dict.items()
-        ):
-            if buggy_variable_item[0] != angelic_variable_item[0]:
-                print_in_red("FATAL: the variable name does not match")
-
-            varName = buggy_variable_item[0]
-            buggy_variable_record = buggy_variable_item[1]
-            angelic_variable_record = angelic_variable_item[1]
-
-            if self._does_this_variable_record_contains_non_empty_value(
-                buggy_variable_record
-            ) and self._does_this_2_variable_records_actually_have_changes(
-                buggy_variable_record, angelic_variable_record
-            ):
-                types.append(
-                    {
-                        "varName": varName,
-                        "varType": buggy_variable_record["variable_type"],
-                    }
-                )
-
-        return types
+        return (values, types)
 
     @staticmethod
     def _does_this_2_variable_records_actually_have_changes(
