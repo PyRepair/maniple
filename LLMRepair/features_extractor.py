@@ -80,7 +80,7 @@ class Facts:
             self._resolve_buggy_function(buggy_function_info)
 
         called_in_scope_functions = []
-        in_scope_functions = file_info["in_scope_functions"]
+        in_scope_functions = file_info["inscope_functions"]
         in_scope_function_signatures = file_info["inscope_function_signatures"]
         for idx, fn in enumerate(in_scope_functions):
             if self._is_this_func_called(fn):
