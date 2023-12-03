@@ -79,6 +79,24 @@
                         "docstring": null,
                         "constructor_docstring": null,
                         "functions": [
+                            "def _get_overridden_aliases(self):\n    overridden = os.environ.get('THEFUCK_OVERRIDDEN_ALIASES', os.environ.get('TF_OVERRIDDEN_ALIASES', ''))\n    default = {'cd', 'grep', 'ls', 'man', 'open'}\n    for alias in overridden.split(','):\n        default.add(alias.strip())\n    return default",
+                            "def app_alias(self, alias_name):\n    if settings.alter_history:\n        alter_history = '    builtin history delete --exact --case-sensitive -- $fucked_up_command\\n    builtin history merge ^ /dev/null\\n'\n    else:\n        alter_history = ''\n    return 'function {0} -d \"Correct your previous console command\"\\n  set -l fucked_up_command $history[1]\\n  env TF_SHELL=fish TF_ALIAS={0} PYTHONIOENCODING=utf-8 thefuck $fucked_up_command | read -l unfucked_command\\n  if [ \"$unfucked_command\" != \"\" ]\\n    eval $unfucked_command\\n{1}  end\\nend'.format(alias_name, alter_history)",
+                            "def get_aliases(self):\n    overridden = self._get_overridden_aliases()\n    functions = _get_functions(overridden)\n    raw_aliases = _get_aliases(overridden)\n    functions.update(raw_aliases)\n    return functions",
+                            "def _expand_aliases(self, command_script):\n    aliases = self.get_aliases()\n    binary = command_script.split(' ')[0]\n    if binary in aliases and aliases[binary] != binary:\n        return command_script.replace(binary, aliases[binary], 1)\n    elif binary in aliases:\n        return u'fish -ic \"{}\"'.format(command_script.replace('\"', '\\\\\"'))\n    else:\n        return command_script",
+                            "def _get_history_file_name(self):\n    return os.path.expanduser('~/.config/fish/fish_history')",
+                            "def _get_history_line(self, command_script):\n    return u'- cmd: {}\\n   when: {}\\n'.format(command_script, int(time()))",
+                            "def _script_from_history(self, line):\n    if '- cmd: ' in line:\n        return line.split('- cmd: ', 1)[1]\n    else:\n        return ''",
+                            "def and_(self, *commands):\n    return u'; and '.join(commands)",
+                            "def or_(self, *commands):\n    return u'; or '.join(commands)",
+                            "def how_to_configure(self):\n    return self._create_shell_configuration(content=u'thefuck --alias | source', path='~/.config/fish/config.fish', reload='fish')",
+                            "def info(self):\n    \"\"\"Returns the name and version of the current shell\"\"\"\n    proc = Popen(['fish', '-c', 'echo $FISH_VERSION'], stdout=PIPE, stderr=DEVNULL)\n    version = proc.stdout.read().decode('utf-8').strip()\n    return u'Fish Shell {}'.format(version)",
+                            "def put_to_history(self, command):\n    try:\n        return self._put_to_history(command)\n    except IOError:\n        logs.exception(\"Can't update history\", sys.exc_info())",
+                            "def _put_to_history(self, command_script):\n    \"\"\"Puts command script to shell history.\"\"\"\n    history_file_name = self._get_history_file_name()\n    if os.path.isfile(history_file_name):\n        with open(history_file_name, 'a') as history:\n            entry = self._get_history_line(command_script)\n            if six.PY2:\n                history.write(entry.encode('utf-8'))\n            else:\n                history.write(entry)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
                             "_get_overridden_aliases(self)",
                             "app_alias(self, alias_name)",
                             "get_aliases(self)",
@@ -92,14 +110,188 @@
                             "info(self)",
                             "put_to_history(self, command)",
                             "_put_to_history(self, command_script)"
-                        ],
-                        "constructor_variables": [],
-                        "class_level_variables": [],
-                        "class_decorators": []
-                    }
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "proc": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Popen": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "PIPE": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "DEVNULL": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "version": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "strip": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "decode": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "proc.stdout.read": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "proc.stdout": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                }
+                            },
+                            {
+                                "proc": {
+                                    "variable_value": "<MagicMock name='Popen()' id='140571869438864'>",
+                                    "variable_type": "MagicMock"
+                                },
+                                "Popen": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "PIPE": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "DEVNULL": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "version": {
+                                    "variable_value": "fish, version 3.5.9",
+                                    "variable_type": "str"
+                                },
+                                "strip": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "decode": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "proc.stdout.read": {
+                                    "variable_value": "<MagicMock name='Popen().stdout.read' id='140571869486480'>",
+                                    "variable_type": "MagicMock"
+                                },
+                                "proc.stdout": {
+                                    "variable_value": "<MagicMock name='Popen().stdout' id='140571869456144'>",
+                                    "variable_type": "MagicMock"
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "proc": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Popen": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "PIPE": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "DEVNULL": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "version": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "split": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "decode": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "proc.stdout.read": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "proc.stdout": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                }
+                            },
+                            {
+                                "proc": {
+                                    "variable_value": "<MagicMock name='Popen()' id='140398250008784'>",
+                                    "variable_type": "MagicMock"
+                                },
+                                "Popen": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "PIPE": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "DEVNULL": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "version": {
+                                    "variable_value": "3.5.9",
+                                    "variable_type": "str"
+                                },
+                                "split": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "decode": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "proc.stdout.read": {
+                                    "variable_value": "<MagicMock name='Popen().stdout.read' id='140398249768528'>",
+                                    "variable_type": "MagicMock"
+                                },
+                                "proc.stdout": {
+                                    "variable_value": "<MagicMock name='Popen().stdout' id='140398249991568'>",
+                                    "variable_type": "MagicMock"
+                                }
+                            }
+                        ]
+                    ]
                 }
             ],
             "inscope_functions": [
+                "@cache('~/.config/fish/config.fish', '~/.config/fish/functions')\ndef _get_functions(overridden):\n    proc = Popen(['fish', '-ic', 'functions'], stdout=PIPE, stderr=DEVNULL)\n    functions = proc.stdout.read().decode('utf-8').strip().split('\\n')\n    return {func: func for func in functions if func not in overridden}",
+                "@cache('~/.config/fish/config.fish')\ndef _get_aliases(overridden):\n    aliases = {}\n    proc = Popen(['fish', '-ic', 'alias'], stdout=PIPE, stderr=DEVNULL)\n    alias_out = proc.stdout.read().decode('utf-8').strip()\n    if not alias_out:\n        return aliases\n    for alias in alias_out.split('\\n'):\n        for separator in (' ', '='):\n            split_alias = alias.replace('alias ', '', 1).split(separator, 1)\n            if len(split_alias) == 2:\n                name, value = split_alias\n                break\n        else:\n            continue\n        if name not in overridden:\n            aliases[name] = value\n    return aliases",
+                "def _get_overridden_aliases(self):\n    overridden = os.environ.get('THEFUCK_OVERRIDDEN_ALIASES',\n                                os.environ.get('TF_OVERRIDDEN_ALIASES', ''))\n    default = {'cd', 'grep', 'ls', 'man', 'open'}\n    for alias in overridden.split(','):\n        default.add(alias.strip())\n    return default",
+                "def app_alias(self, alias_name):\n    if settings.alter_history:\n        alter_history = ('    builtin history delete --exact'\n                         ' --case-sensitive -- $fucked_up_command\\n'\n                         '    builtin history merge ^ /dev/null\\n')\n    else:\n        alter_history = ''\n    # It is VERY important to have the variables declared WITHIN the alias\n    return ('function {0} -d \"Correct your previous console command\"\\n'\n            '  set -l fucked_up_command $history[1]\\n'\n            '  env TF_SHELL=fish TF_ALIAS={0} PYTHONIOENCODING=utf-8'\n            ' thefuck $fucked_up_command | read -l unfucked_command\\n'\n            '  if [ \"$unfucked_command\" != \"\" ]\\n'\n            '    eval $unfucked_command\\n{1}'\n            '  end\\n'\n            'end').format(alias_name, alter_history)",
+                "def get_aliases(self):\n    overridden = self._get_overridden_aliases()\n    functions = _get_functions(overridden)\n    raw_aliases = _get_aliases(overridden)\n    functions.update(raw_aliases)\n    return functions",
+                "def _expand_aliases(self, command_script):\n    aliases = self.get_aliases()\n    binary = command_script.split(' ')[0]\n    if binary in aliases and aliases[binary] != binary:\n        return command_script.replace(binary, aliases[binary], 1)\n    elif binary in aliases:\n        return u'fish -ic \"{}\"'.format(command_script.replace('\"', r'\\\"'))\n    else:\n        return command_script",
+                "def _get_history_file_name(self):\n    return os.path.expanduser('~/.config/fish/fish_history')",
+                "def _get_history_line(self, command_script):\n    return u'- cmd: {}\\n   when: {}\\n'.format(command_script, int(time()))",
+                "def _script_from_history(self, line):\n    if '- cmd: ' in line:\n        return line.split('- cmd: ', 1)[1]\n    else:\n        return ''",
+                "def and_(self, *commands):\n    return u'; and '.join(commands)",
+                "def or_(self, *commands):\n    return u'; or '.join(commands)",
+                "def how_to_configure(self):\n    return self._create_shell_configuration(\n        content=u\"thefuck --alias | source\",\n        path='~/.config/fish/config.fish',\n        reload='fish')",
+                "def info(self):\n    \"\"\"Returns the name and version of the current shell\"\"\"\n    proc = Popen(['fish', '-c', 'echo $FISH_VERSION'],\n                 stdout=PIPE, stderr=DEVNULL)\n    version = proc.stdout.read().decode('utf-8').strip()\n    return u'Fish Shell {}'.format(version)",
+                "def put_to_history(self, command):\n    try:\n        return self._put_to_history(command)\n    except IOError:\n        logs.exception(\"Can't update history\", sys.exc_info())",
+                "def _put_to_history(self, command_script):\n    \"\"\"Puts command script to shell history.\"\"\"\n    history_file_name = self._get_history_file_name()\n    if os.path.isfile(history_file_name):\n        with open(history_file_name, 'a') as history:\n            entry = self._get_history_line(command_script)\n            if six.PY2:\n                history.write(entry.encode('utf-8'))\n            else:\n                history.write(entry)"
+            ],
+            "inscope_function_signatures": [
                 "_get_functions(overridden)",
                 "_get_aliases(overridden)",
                 "_get_overridden_aliases(self)",
@@ -735,7 +927,7 @@
                 "test_function": "test_info",
                 "test_function_code": "    def test_info(self, shell, Popen):\n        Popen.return_value.stdout.read.side_effect = [b'fish, version 3.5.9\\n']\n        assert shell.info() == 'Fish Shell 3.5.9'\n        assert Popen.call_args[0][0] == ['fish', '--version']",
                 "test_error": "AssertionError: assert 'Fish Shell f...version 3.5.9' == 'Fish Shell 3.5.9'   - Fish Shell fish, version 3.5.9   + Fish Shell 3.5.9",
-                "full_test_error": "self = <tests.shells.test_fish.TestFish object at 0x7fda47c6d390>\nshell = <thefuck.shells.fish.Fish object at 0x7fda47cbf950>\nPopen = <MagicMock name='Popen' id='140575484363280'>\n\n    def test_info(self, shell, Popen):\n        Popen.return_value.stdout.read.side_effect = [b'fish, version 3.5.9\\n']\n>       assert shell.info() == 'Fish Shell 3.5.9'\nE       AssertionError: assert 'Fish Shell f...version 3.5.9' == 'Fish Shell 3.5.9'\nE         - Fish Shell fish, version 3.5.9\nE         + Fish Shell 3.5.9\n\ntests/shells/test_fish.py:118: AssertionError",
+                "full_test_error": "self = <tests.shells.test_fish.TestFish object at 0x7fd9bce43b10>\nshell = <thefuck.shells.fish.Fish object at 0x7fd9bcdbe3d0>\nPopen = <MagicMock name='Popen' id='140573153546064'>\n\n    def test_info(self, shell, Popen):\n        Popen.return_value.stdout.read.side_effect = [b'fish, version 3.5.9\\n']\n>       assert shell.info() == 'Fish Shell 3.5.9'\nE       AssertionError: assert 'Fish Shell f...version 3.5.9' == 'Fish Shell 3.5.9'\nE         - Fish Shell fish, version 3.5.9\nE         + Fish Shell 3.5.9\n\ntests/shells/test_fish.py:118: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

@@ -11,7 +11,19 @@
                     "variables": {},
                     "filtered_variables": {},
                     "diff_line_number": 21,
-                    "class_data": null
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
                 },
                 {
                     "function_name": "get_indexer",
@@ -445,6 +457,94 @@
                         "docstring": null,
                         "constructor_docstring": null,
                         "functions": [
+                            "def __new__(cls, data, closed=None, dtype=None, copy=False, name=None, verify_integrity=True):\n    if name is None and hasattr(data, 'name'):\n        name = data.name\n    with rewrite_exception('IntervalArray', cls.__name__):\n        array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype, verify_integrity=verify_integrity)\n    return cls._simple_new(array, name)",
+                            "@classmethod\ndef _simple_new(cls, array, name, closed=None):\n    \"\"\"\n    Construct from an IntervalArray\n\n    Parameters\n    ----------\n    array : IntervalArray\n    name : str\n        Attached as result.name\n    closed : Any\n        Ignored.\n    \"\"\"\n    result = IntervalMixin.__new__(cls)\n    result._data = array\n    result.name = name\n    result._reset_identity()\n    return result",
+                            "@classmethod\n@Appender(_interval_shared_docs['from_breaks'] % dict(klass='IntervalIndex', examples=textwrap.dedent(\"        Examples\\n        --------\\n        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])\\n        IntervalIndex([(0, 1], (1, 2], (2, 3]],\\n                      closed='right',\\n                      dtype='interval[int64]')\\n        \")))\ndef from_breaks(cls, breaks, closed='right', name=None, copy=False, dtype=None):\n    with rewrite_exception('IntervalArray', cls.__name__):\n        array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy, dtype=dtype)\n    return cls._simple_new(array, name=name)",
+                            "@classmethod\n@Appender(_interval_shared_docs['from_arrays'] % dict(klass='IntervalIndex', examples=textwrap.dedent(\"        Examples\\n        --------\\n        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])\\n        IntervalIndex([(0, 1], (1, 2], (2, 3]],\\n                      closed='right',\\n                      dtype='interval[int64]')\\n        \")))\ndef from_arrays(cls, left, right, closed='right', name=None, copy=False, dtype=None):\n    with rewrite_exception('IntervalArray', cls.__name__):\n        array = IntervalArray.from_arrays(left, right, closed, copy=copy, dtype=dtype)\n    return cls._simple_new(array, name=name)",
+                            "@classmethod\n@Appender(_interval_shared_docs['from_tuples'] % dict(klass='IntervalIndex', examples=textwrap.dedent(\"        Examples\\n        --------\\n        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])\\n        IntervalIndex([(0, 1], (1, 2]],\\n                       closed='right',\\n                       dtype='interval[int64]')\\n        \")))\ndef from_tuples(cls, data, closed='right', name=None, copy=False, dtype=None):\n    with rewrite_exception('IntervalArray', cls.__name__):\n        arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)\n    return cls._simple_new(arr, name=name)",
+                            "@Appender(_index_shared_docs['_shallow_copy'])\ndef _shallow_copy(self, left=None, right=None, **kwargs):\n    result = self._data._shallow_copy(left=left, right=right)\n    attributes = self._get_attributes_dict()\n    attributes.update(kwargs)\n    return self._simple_new(result, **attributes)",
+                            "@cache_readonly\ndef _isnan(self):\n    \"\"\"Return a mask indicating if each value is NA\"\"\"\n    if self._mask is None:\n        self._mask = isna(self.left)\n    return self._mask",
+                            "@cache_readonly\ndef _engine(self):\n    left = self._maybe_convert_i8(self.left)\n    right = self._maybe_convert_i8(self.right)\n    return IntervalTree(left, right, closed=self.closed)",
+                            "def __contains__(self, key) -> bool:\n    \"\"\"\n    return a boolean if this key is IN the index\n    We *only* accept an Interval\n\n    Parameters\n    ----------\n    key : Interval\n\n    Returns\n    -------\n    boolean\n    \"\"\"\n    if not isinstance(key, Interval):\n        return False\n    try:\n        self.get_loc(key)\n        return True\n    except KeyError:\n        return False",
+                            "@Appender(_interval_shared_docs['to_tuples'] % dict(return_type='Index', examples=\"\\n        Examples\\n        --------\\n        >>> idx = pd.IntervalIndex.from_arrays([0, np.nan, 2], [1, np.nan, 3])\\n        >>> idx.to_tuples()\\n        Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')\\n        >>> idx.to_tuples(na_tuple=False)\\n        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')\\n        \"))\ndef to_tuples(self, na_tuple=True):\n    tuples = self._data.to_tuples(na_tuple=na_tuple)\n    return Index(tuples)",
+                            "@cache_readonly\ndef _multiindex(self):\n    return MultiIndex.from_arrays([self.left, self.right], names=['left', 'right'])",
+                            "@property\ndef left(self):\n    \"\"\"\n    Return the left endpoints of each Interval in the IntervalIndex as\n    an Index.\n    \"\"\"\n    return self._data._left",
+                            "@property\ndef right(self):\n    \"\"\"\n    Return the right endpoints of each Interval in the IntervalIndex as\n    an Index.\n    \"\"\"\n    return self._data._right",
+                            "@property\ndef closed(self):\n    \"\"\"\n    Whether the intervals are closed on the left-side, right-side, both or\n    neither.\n    \"\"\"\n    return self._data._closed",
+                            "@Appender(_interval_shared_docs['set_closed'] % dict(klass='IntervalIndex', examples=textwrap.dedent(\"        Examples\\n        --------\\n        >>> index = pd.interval_range(0, 3)\\n        >>> index\\n        IntervalIndex([(0, 1], (1, 2], (2, 3]],\\n                      closed='right',\\n                      dtype='interval[int64]')\\n        >>> index.set_closed('both')\\n        IntervalIndex([[0, 1], [1, 2], [2, 3]],\\n                      closed='both',\\n                      dtype='interval[int64]')\\n        \")))\ndef set_closed(self, closed):\n    if closed not in _VALID_CLOSED:\n        msg = \"invalid option for 'closed': {closed}\"\n        raise ValueError(msg.format(closed=closed))\n    array = self._data.set_closed(closed)\n    return self._simple_new(array, self.name)",
+                            "@property\ndef length(self):\n    \"\"\"\n    Return an Index with entries denoting the length of each Interval in\n    the IntervalIndex.\n    \"\"\"\n    return self._data.length",
+                            "@property\ndef size(self):\n    return self._data.size",
+                            "def __len__(self) -> int:\n    return len(self.left)",
+                            "@cache_readonly\ndef values(self):\n    \"\"\"\n    Return the IntervalIndex's data as an IntervalArray.\n    \"\"\"\n    return self._data",
+                            "@cache_readonly\ndef _values(self):\n    return self._data",
+                            "@cache_readonly\ndef _ndarray_values(self) -> np.ndarray:\n    return np.array(self._data)",
+                            "def __array__(self, result=None):\n    \"\"\" the array interface, return my values \"\"\"\n    return self._ndarray_values",
+                            "def __array_wrap__(self, result, context=None):\n    return result",
+                            "def __reduce__(self):\n    d = dict(left=self.left, right=self.right)\n    d.update(self._get_attributes_dict())\n    return (_new_IntervalIndex, (type(self), d), None)",
+                            "@Appender(_index_shared_docs['copy'])\ndef copy(self, deep=False, name=None):\n    array = self._data\n    if deep:\n        array = array.copy()\n    attributes = self._get_attributes_dict()\n    if name is not None:\n        attributes.update(name=name)\n    return self._simple_new(array, **attributes)",
+                            "@Appender(_index_shared_docs['astype'])\ndef astype(self, dtype, copy=True):\n    with rewrite_exception('IntervalArray', type(self).__name__):\n        new_values = self.values.astype(dtype, copy=copy)\n    if is_interval_dtype(new_values):\n        return self._shallow_copy(new_values.left, new_values.right)\n    return super().astype(dtype, copy=copy)",
+                            "@cache_readonly\ndef dtype(self):\n    \"\"\"Return the dtype object of the underlying data\"\"\"\n    return self._data.dtype",
+                            "@property\ndef inferred_type(self) -> str:\n    \"\"\"Return a string of the type inferred from the values\"\"\"\n    return 'interval'",
+                            "@Appender(Index.memory_usage.__doc__)\ndef memory_usage(self, deep: bool=False) -> int:\n    return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)",
+                            "@cache_readonly\ndef mid(self):\n    \"\"\"\n    Return the midpoint of each Interval in the IntervalIndex as an Index.\n    \"\"\"\n    return self._data.mid",
+                            "@cache_readonly\ndef is_monotonic(self) -> bool:\n    \"\"\"\n    Return True if the IntervalIndex is monotonic increasing (only equal or\n    increasing values), else False\n    \"\"\"\n    return self.is_monotonic_increasing",
+                            "@cache_readonly\ndef is_monotonic_increasing(self) -> bool:\n    \"\"\"\n    Return True if the IntervalIndex is monotonic increasing (only equal or\n    increasing values), else False\n    \"\"\"\n    return self._engine.is_monotonic_increasing",
+                            "@cache_readonly\ndef is_monotonic_decreasing(self) -> bool:\n    \"\"\"\n    Return True if the IntervalIndex is monotonic decreasing (only equal or\n    decreasing values), else False\n    \"\"\"\n    return self[::-1].is_monotonic_increasing",
+                            "@cache_readonly\ndef is_unique(self):\n    \"\"\"\n    Return True if the IntervalIndex contains unique elements, else False\n    \"\"\"\n    left = self.left\n    right = self.right\n    if self.isna().sum() > 1:\n        return False\n    if left.is_unique or right.is_unique:\n        return True\n    seen_pairs = set()\n    check_idx = np.where(left.duplicated(keep=False))[0]\n    for idx in check_idx:\n        pair = (left[idx], right[idx])\n        if pair in seen_pairs:\n            return False\n        seen_pairs.add(pair)\n    return True",
+                            "@cache_readonly\n@Appender(_interval_shared_docs['is_non_overlapping_monotonic'] % _index_doc_kwargs)\ndef is_non_overlapping_monotonic(self):\n    return self._data.is_non_overlapping_monotonic",
+                            "@property\ndef is_overlapping(self):\n    \"\"\"\n    Return True if the IntervalIndex has overlapping intervals, else False.\n\n    Two intervals overlap if they share a common point, including closed\n    endpoints. Intervals that only have an open endpoint in common do not\n    overlap.\n\n    .. versionadded:: 0.24.0\n\n    Returns\n    -------\n    bool\n        Boolean indicating if the IntervalIndex has overlapping intervals.\n\n    See Also\n    --------\n    Interval.overlaps : Check whether two Interval objects overlap.\n    IntervalIndex.overlaps : Check an IntervalIndex elementwise for\n        overlaps.\n\n    Examples\n    --------\n    >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])\n    >>> index\n    IntervalIndex([(0, 2], (1, 3], (4, 5]],\n          closed='right',\n          dtype='interval[int64]')\n    >>> index.is_overlapping\n    True\n\n    Intervals that share closed endpoints overlap:\n\n    >>> index = pd.interval_range(0, 3, closed='both')\n    >>> index\n    IntervalIndex([[0, 1], [1, 2], [2, 3]],\n          closed='both',\n          dtype='interval[int64]')\n    >>> index.is_overlapping\n    True\n\n    Intervals that only have an open endpoint in common do not overlap:\n\n    >>> index = pd.interval_range(0, 3, closed='left')\n    >>> index\n    IntervalIndex([[0, 1), [1, 2), [2, 3)],\n          closed='left',\n          dtype='interval[int64]')\n    >>> index.is_overlapping\n    False\n    \"\"\"\n    return self._engine.is_overlapping",
+                            "@Appender(_index_shared_docs['_convert_scalar_indexer'])\ndef _convert_scalar_indexer(self, key, kind=None):\n    if kind == 'iloc':\n        return super()._convert_scalar_indexer(key, kind=kind)\n    return key",
+                            "def _maybe_cast_slice_bound(self, label, side, kind):\n    return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)",
+                            "@Appender(_index_shared_docs['_convert_list_indexer'])\ndef _convert_list_indexer(self, keyarr, kind=None):\n    \"\"\"\n    we are passed a list-like indexer. Return the\n    indexer for matching intervals.\n    \"\"\"\n    locs = self.get_indexer_for(keyarr)\n    if (locs == -1).any():\n        raise KeyError\n    return locs",
+                            "def _maybe_cast_indexed(self, key):\n    \"\"\"\n    we need to cast the key, which could be a scalar\n    or an array-like to the type of our subtype\n    \"\"\"\n    if isinstance(key, IntervalIndex):\n        return key\n    subtype = self.dtype.subtype\n    if is_float_dtype(subtype):\n        if is_integer(key):\n            key = float(key)\n        elif isinstance(key, (np.ndarray, Index)):\n            key = key.astype('float64')\n    elif is_integer_dtype(subtype):\n        if is_integer(key):\n            key = int(key)\n    return key",
+                            "def _can_reindex(self, indexer: np.ndarray) -> None:\n    \"\"\"\n    Check if we are allowing reindexing with this particular indexer.\n\n    Parameters\n    ----------\n    indexer : an integer indexer\n\n    Raises\n    ------\n    ValueError if its a duplicate axis\n    \"\"\"\n    if self.is_overlapping and len(indexer):\n        raise ValueError('cannot reindex from an overlapping axis')",
+                            "def _needs_i8_conversion(self, key):\n    \"\"\"\n    Check if a given key needs i8 conversion. Conversion is necessary for\n    Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An\n    Interval-like requires conversion if it's endpoints are one of the\n    aforementioned types.\n\n    Assumes that any list-like data has already been cast to an Index.\n\n    Parameters\n    ----------\n    key : scalar or Index-like\n        The key that should be checked for i8 conversion\n\n    Returns\n    -------\n    boolean\n    \"\"\"\n    if is_interval_dtype(key) or isinstance(key, Interval):\n        return self._needs_i8_conversion(key.left)\n    i8_types = (Timestamp, Timedelta, DatetimeIndex, TimedeltaIndex)\n    return isinstance(key, i8_types)",
+                            "def _maybe_convert_i8(self, key):\n    \"\"\"\n    Maybe convert a given key to it's equivalent i8 value(s). Used as a\n    preprocessing step prior to IntervalTree queries (self._engine), which\n    expects numeric data.\n\n    Parameters\n    ----------\n    key : scalar or list-like\n        The key that should maybe be converted to i8.\n\n    Returns\n    -------\n    key: scalar or list-like\n        The original key if no conversion occurred, int if converted scalar,\n        Int64Index if converted list-like.\n    \"\"\"\n    original = key\n    if is_list_like(key):\n        key = ensure_index(key)\n    if not self._needs_i8_conversion(key):\n        return original\n    scalar = is_scalar(key)\n    if is_interval_dtype(key) or isinstance(key, Interval):\n        left = self._maybe_convert_i8(key.left)\n        right = self._maybe_convert_i8(key.right)\n        constructor = Interval if scalar else IntervalIndex.from_arrays\n        return constructor(left, right, closed=self.closed)\n    if scalar:\n        key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)\n    else:\n        key_dtype, key_i8 = (key.dtype, Index(key.asi8))\n        if key.hasnans:\n            key_i8 = key_i8.where(~key._isnan)\n    subtype = self.dtype.subtype\n    msg = 'Cannot index an IntervalIndex of subtype {subtype} with values of dtype {other}'\n    if not is_dtype_equal(subtype, key_dtype):\n        raise ValueError(msg.format(subtype=subtype, other=key_dtype))\n    return key_i8",
+                            "def _check_method(self, method):\n    if method is None:\n        return\n    if method in ['bfill', 'backfill', 'pad', 'ffill', 'nearest']:\n        msg = 'method {method} not yet implemented for IntervalIndex'\n        raise NotImplementedError(msg.format(method=method))\n    raise ValueError('Invalid fill method')",
+                            "def _searchsorted_monotonic(self, label, side, exclude_label=False):\n    if not self.is_non_overlapping_monotonic:\n        raise KeyError('can only get slices from an IntervalIndex if bounds are non-overlapping and all monotonic increasing or decreasing')\n    if isinstance(label, IntervalMixin):\n        msg = 'Interval objects are not currently supported'\n        raise NotImplementedError(msg)\n    if side == 'left' and self.left.is_monotonic_increasing or (side == 'right' and (not self.left.is_monotonic_increasing)):\n        sub_idx = self.right\n        if self.open_right or exclude_label:\n            label = _get_next_label(label)\n    else:\n        sub_idx = self.left\n        if self.open_left or exclude_label:\n            label = _get_prev_label(label)\n    return sub_idx._searchsorted_monotonic(label, side)",
+                            "def _find_non_overlapping_monotonic_bounds(self, key):\n    if isinstance(key, IntervalMixin):\n        start = self._searchsorted_monotonic(key.left, 'left', exclude_label=key.open_left)\n        stop = self._searchsorted_monotonic(key.right, 'right', exclude_label=key.open_right)\n    elif isinstance(key, slice):\n        start, stop = (key.start, key.stop)\n        if (key.step or 1) != 1:\n            raise NotImplementedError('cannot slice with a slice step')\n        if start is None:\n            start = 0\n        else:\n            start = self._searchsorted_monotonic(start, 'left')\n        if stop is None:\n            stop = len(self)\n        else:\n            stop = self._searchsorted_monotonic(stop, 'right')\n    else:\n        start = self._searchsorted_monotonic(key, 'left')\n        stop = self._searchsorted_monotonic(key, 'right')\n    return (start, stop)",
+                            "def get_loc(self, key: Any, method: Optional[str]=None, tolerance=None) -> Union[int, slice, np.ndarray]:\n    \"\"\"\n    Get integer location, slice or boolean mask for requested label.\n\n    Parameters\n    ----------\n    key : label\n    method : {None}, optional\n        * default: matches where the label is within an interval only.\n\n    Returns\n    -------\n    loc : int if unique index, slice if monotonic index, else mask\n\n    Examples\n    --------\n    >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)\n    >>> index = pd.IntervalIndex([i1, i2])\n    >>> index.get_loc(1)\n    0\n\n    You can also supply a point inside an interval.\n\n    >>> index.get_loc(1.5)\n    1\n\n    If a label is in several intervals, you get the locations of all the\n    relevant intervals.\n\n    >>> i3 = pd.Interval(0, 2)\n    >>> overlapping_index = pd.IntervalIndex([i1, i2, i3])\n    >>> overlapping_index.get_loc(0.5)\n    array([ True, False,  True])\n\n    Only exact matches will be returned if an interval is provided.\n\n    >>> index.get_loc(pd.Interval(0, 1))\n    0\n    \"\"\"\n    self._check_method(method)\n    if is_list_like(key):\n        raise KeyError(key)\n    if isinstance(key, Interval):\n        if self.closed != key.closed:\n            raise KeyError(key)\n        mask = (self.left == key.left) & (self.right == key.right)\n    else:\n        op_left = le if self.closed_left else lt\n        op_right = le if self.closed_right else lt\n        try:\n            mask = op_left(self.left, key) & op_right(key, self.right)\n        except TypeError:\n            raise KeyError(key)\n    matches = mask.sum()\n    if matches == 0:\n        raise KeyError(key)\n    elif matches == 1:\n        return mask.argmax()\n    return lib.maybe_booleans_to_slice(mask.view('u1'))",
+                            "@Substitution(**dict(_index_doc_kwargs, **{'raises_section': textwrap.dedent('\\n        Raises\\n        ------\\n        NotImplementedError\\n            If any method argument other than the default of\\n            None is specified as these are not yet implemented.\\n        ')}))\n@Appender(_index_shared_docs['get_indexer'])\ndef get_indexer(self, target: AnyArrayLike, method: Optional[str]=None, limit: Optional[int]=None, tolerance: Optional[Any]=None) -> np.ndarray:\n    self._check_method(method)\n    if self.is_overlapping:\n        msg = 'cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique'\n        raise InvalidIndexError(msg)\n    target_as_index = ensure_index(target)\n    if isinstance(target_as_index, IntervalIndex):\n        if self.equals(target_as_index):\n            return np.arange(len(self), dtype='intp')\n        common_subtype = find_common_type([self.dtype.subtype, target_as_index.dtype.subtype])\n        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):\n            return np.repeat(np.intp(-1), len(target_as_index))\n        left_indexer = self.left.get_indexer(target_as_index.left)\n        right_indexer = self.right.get_indexer(target_as_index.right)\n        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)\n    elif not is_object_dtype(target_as_index):\n        target_as_index = self._maybe_convert_i8(target_as_index)\n        indexer = self._engine.get_indexer(target_as_index.values)\n    else:\n        indexer = []\n        for key in target_as_index:\n            try:\n                loc = self.get_loc(key)\n            except KeyError:\n                loc = -1\n            indexer.append(loc)\n    return ensure_platform_int(indexer)",
+                            "@Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)\ndef get_indexer_non_unique(self, target: AnyArrayLike) -> Tuple[np.ndarray, np.ndarray]:\n    target_as_index = ensure_index(target)\n    if isinstance(target_as_index, IntervalIndex):\n        common_subtype = find_common_type([self.dtype.subtype, target_as_index.dtype.subtype])\n        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):\n            return (np.repeat(-1, len(target_as_index)), np.arange(len(target_as_index)))\n    if is_object_dtype(target_as_index) or isinstance(target_as_index, IntervalIndex):\n        indexer, missing = ([], [])\n        for i, key in enumerate(target_as_index):\n            try:\n                locs = self.get_loc(key)\n                if isinstance(locs, slice):\n                    locs = np.arange(locs.start, locs.stop, locs.step, dtype='intp')\n                locs = np.array(locs, ndmin=1)\n            except KeyError:\n                missing.append(i)\n                locs = np.array([-1])\n            indexer.append(locs)\n        indexer = np.concatenate(indexer)\n    else:\n        target_as_index = self._maybe_convert_i8(target_as_index)\n        indexer, missing = self._engine.get_indexer_non_unique(target_as_index.values)\n    return (ensure_platform_int(indexer), ensure_platform_int(missing))",
+                            "def get_indexer_for(self, target: AnyArrayLike, **kwargs) -> np.ndarray:\n    \"\"\"\n    Guaranteed return of an indexer even when overlapping.\n\n    This dispatches to get_indexer or get_indexer_non_unique\n    as appropriate.\n\n    Returns\n    -------\n    numpy.ndarray\n        List of indices.\n    \"\"\"\n    if self.is_overlapping:\n        return self.get_indexer_non_unique(target)[0]\n    return self.get_indexer(target, **kwargs)",
+                            "@Appender(_index_shared_docs['get_value'] % _index_doc_kwargs)\ndef get_value(self, series: ABCSeries, key: Any) -> Any:\n    if com.is_bool_indexer(key):\n        loc = key\n    elif is_list_like(key):\n        if self.is_overlapping:\n            loc, missing = self.get_indexer_non_unique(key)\n            if len(missing):\n                raise KeyError\n        else:\n            loc = self.get_indexer(key)\n    elif isinstance(key, slice):\n        if not (key.step is None or key.step == 1):\n            raise ValueError('cannot support not-default step in a slice')\n        loc = self._convert_slice_indexer(key, kind='getitem')\n    else:\n        loc = self.get_loc(key)\n    return series.iloc[loc]",
+                            "@Appender(_index_shared_docs['where'])\ndef where(self, cond, other=None):\n    if other is None:\n        other = self._na_value\n    values = np.where(cond, self.values, other)\n    return self._shallow_copy(values)",
+                            "def delete(self, loc):\n    \"\"\"\n    Return a new IntervalIndex with passed location(-s) deleted\n\n    Returns\n    -------\n    new_index : IntervalIndex\n    \"\"\"\n    new_left = self.left.delete(loc)\n    new_right = self.right.delete(loc)\n    return self._shallow_copy(new_left, new_right)",
+                            "def insert(self, loc, item):\n    \"\"\"\n    Return a new IntervalIndex inserting new item at location. Follows\n    Python list.append semantics for negative values.  Only Interval\n    objects and NA can be inserted into an IntervalIndex\n\n    Parameters\n    ----------\n    loc : int\n    item : object\n\n    Returns\n    -------\n    new_index : IntervalIndex\n    \"\"\"\n    if isinstance(item, Interval):\n        if item.closed != self.closed:\n            raise ValueError('inserted item must be closed on the same side as the index')\n        left_insert = item.left\n        right_insert = item.right\n    elif is_scalar(item) and isna(item):\n        left_insert = right_insert = item\n    else:\n        raise ValueError('can only insert Interval objects and NA into an IntervalIndex')\n    new_left = self.left.insert(loc, left_insert)\n    new_right = self.right.insert(loc, right_insert)\n    return self._shallow_copy(new_left, new_right)",
+                            "def _concat_same_dtype(self, to_concat, name):\n    \"\"\"\n    assert that we all have the same .closed\n    we allow a 0-len index here as well\n    \"\"\"\n    if not len({i.closed for i in to_concat if len(i)}) == 1:\n        msg = 'can only append two IntervalIndex objects that are closed on the same side'\n        raise ValueError(msg)\n    return super()._concat_same_dtype(to_concat, name)",
+                            "@Appender(_index_shared_docs['take'] % _index_doc_kwargs)\ndef take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):\n    result = self._data.take(indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs)\n    attributes = self._get_attributes_dict()\n    return self._simple_new(result, **attributes)",
+                            "def __getitem__(self, value):\n    result = self._data[value]\n    if isinstance(result, IntervalArray):\n        return self._shallow_copy(result)\n    else:\n        return result",
+                            "def _format_with_header(self, header, **kwargs):\n    return header + list(self._format_native_types(**kwargs))",
+                            "def _format_native_types(self, na_rep='NaN', quoting=None, **kwargs):\n    return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)",
+                            "def _format_data(self, name=None):\n    n = len(self)\n    max_seq_items = min((get_option('display.max_seq_items') or n) // 10, 10)\n    formatter = str\n    if n == 0:\n        summary = '[]'\n    elif n == 1:\n        first = formatter(self[0])\n        summary = '[{first}]'.format(first=first)\n    elif n == 2:\n        first = formatter(self[0])\n        last = formatter(self[-1])\n        summary = '[{first}, {last}]'.format(first=first, last=last)\n    elif n > max_seq_items:\n        n = min(max_seq_items // 2, 10)\n        head = [formatter(x) for x in self[:n]]\n        tail = [formatter(x) for x in self[-n:]]\n        summary = '[{head} ... {tail}]'.format(head=', '.join(head), tail=', '.join(tail))\n    else:\n        tail = [formatter(x) for x in self]\n        summary = '[{tail}]'.format(tail=', '.join(tail))\n    return summary + ',' + self._format_space()",
+                            "def _format_attrs(self):\n    attrs = [('closed', repr(self.closed))]\n    if self.name is not None:\n        attrs.append(('name', default_pprint(self.name)))\n    attrs.append(('dtype', \"'{dtype}'\".format(dtype=self.dtype)))\n    return attrs",
+                            "def _format_space(self):\n    space = ' ' * (len(type(self).__name__) + 1)\n    return '\\n{space}'.format(space=space)",
+                            "def argsort(self, *args, **kwargs):\n    return np.lexsort((self.right, self.left))",
+                            "def equals(self, other) -> bool:\n    \"\"\"\n    Determines if two IntervalIndex objects contain the same elements\n    \"\"\"\n    if self.is_(other):\n        return True\n    if not isinstance(other, IntervalIndex):\n        if not is_interval_dtype(other):\n            return False\n        other = Index(getattr(other, '.values', other))\n    return self.left.equals(other.left) and self.right.equals(other.right) and (self.closed == other.closed)",
+                            "@Appender(_interval_shared_docs['contains'] % dict(klass='IntervalIndex', examples=textwrap.dedent(\"        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])\\n        >>> intervals\\n        IntervalIndex([(0, 1], (1, 3], (2, 4]],\\n                  closed='right',\\n                  dtype='interval[int64]')\\n        >>> intervals.contains(0.5)\\n        array([ True, False, False])\\n        \")))\ndef contains(self, other):\n    return self._data.contains(other)",
+                            "@Appender(_interval_shared_docs['overlaps'] % dict(klass='IntervalIndex', examples=textwrap.dedent(\"        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])\\n        >>> intervals\\n        IntervalIndex([(0, 1], (1, 3], (2, 4]],\\n              closed='right',\\n              dtype='interval[int64]')\\n        \")))\ndef overlaps(self, other):\n    return self._data.overlaps(other)",
+                            "@Appender(_index_shared_docs['intersection'])\n@SetopCheck(op_name='intersection')\ndef intersection(self, other: 'IntervalIndex', sort: bool=False) -> 'IntervalIndex':\n    if self.left.is_unique and self.right.is_unique:\n        taken = self._intersection_unique(other)\n    elif other.left.is_unique and other.right.is_unique and (self.isna().sum() <= 1):\n        taken = other._intersection_unique(self)\n    else:\n        taken = self._intersection_non_unique(other)\n    if sort is None:\n        taken = taken.sort_values()\n    return taken",
+                            "def _intersection_unique(self, other: 'IntervalIndex') -> 'IntervalIndex':\n    \"\"\"\n    Used when the IntervalIndex does not have any common endpoint,\n    no mater left or right.\n    Return the intersection with another IntervalIndex.\n\n    Parameters\n    ----------\n    other : IntervalIndex\n\n    Returns\n    -------\n    taken : IntervalIndex\n    \"\"\"\n    lindexer = self.left.get_indexer(other.left)\n    rindexer = self.right.get_indexer(other.right)\n    match = (lindexer == rindexer) & (lindexer != -1)\n    indexer = lindexer.take(match.nonzero()[0])\n    return self.take(indexer)",
+                            "def _intersection_non_unique(self, other: 'IntervalIndex') -> 'IntervalIndex':\n    \"\"\"\n    Used when the IntervalIndex does have some common endpoints,\n    on either sides.\n    Return the intersection with another IntervalIndex.\n\n    Parameters\n    ----------\n    other : IntervalIndex\n\n    Returns\n    -------\n    taken : IntervalIndex\n    \"\"\"\n    mask = np.zeros(len(self), dtype=bool)\n    if self.hasnans and other.hasnans:\n        first_nan_loc = np.arange(len(self))[self.isna()][0]\n        mask[first_nan_loc] = True\n    other_tups = set(zip(other.left, other.right))\n    for i, tup in enumerate(zip(self.left, self.right)):\n        if tup in other_tups:\n            mask[i] = True\n    return self[mask]",
+                            "def _setop(op_name: str, sort=None):\n\n    @SetopCheck(op_name=op_name)\n    def func(self, other, sort=sort):\n        result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)\n        result_name = get_op_result_name(self, other)\n        if result.empty:\n            result = result.values.astype(self.dtype.subtype)\n        else:\n            result = result.values\n        return type(self).from_tuples(result, closed=self.closed, name=result_name)\n    return func",
+                            "@property\ndef is_all_dates(self) -> bool:\n    \"\"\"\n    This is False even when left/right contain datetime-like objects,\n    as the check is done on the Interval itself\n    \"\"\"\n    return False",
+                            "@SetopCheck(op_name=op_name)\ndef func(self, other, sort=sort):\n    result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)\n    result_name = get_op_result_name(self, other)\n    if result.empty:\n        result = result.values.astype(self.dtype.subtype)\n    else:\n        result = result.values\n    return type(self).from_tuples(result, closed=self.closed, name=result_name)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_typ",
+                            "_comparables",
+                            "_attributes",
+                            "_defer_to_indexing",
+                            "_mask",
+                            "union",
+                            "difference",
+                            "symmetric_difference"
+                        ],
+                        "class_decorators": [
+                            "Appender(_interval_shared_docs['class'] % dict(klass='IntervalIndex', summary='Immutable index of intervals that are closed on the same side.', name=_index_doc_kwargs['name'], versionadded='0.20.0', extra_attributes='is_overlapping\\nvalues\\n', extra_methods='', examples=textwrap.dedent(\"    Examples\\n    --------\\n    A new ``IntervalIndex`` is typically constructed using\\n    :func:`interval_range`:\\n\\n    >>> pd.interval_range(start=0, end=5)\\n    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],\\n                  closed='right',\\n                  dtype='interval[int64]')\\n\\n    It may also be constructed using one of the constructor\\n    methods: :meth:`IntervalIndex.from_arrays`,\\n    :meth:`IntervalIndex.from_breaks`, and :meth:`IntervalIndex.from_tuples`.\\n\\n    See further examples in the doc strings of ``interval_range`` and the\\n    mentioned constructor methods.\\n    \")))"
+                        ],
+                        "function_signatures": [
                             "__new__(cls, data, closed=None, dtype=None, copy=False, name=None, verify_integrity=True)",
                             "_simple_new(cls, array, name, closed=None)",
                             "from_breaks(cls, breaks, closed='right', name=None, copy=False, dtype=None)",
@@ -517,25 +617,1276 @@
                             "_setop(op_name: str, sort=None)",
                             "is_all_dates(self) -> bool",
                             "func(self, other, sort=sort)"
-                        ],
-                        "constructor_variables": [],
-                        "class_level_variables": [
-                            "_typ",
-                            "_comparables",
-                            "_attributes",
-                            "_defer_to_indexing",
-                            "_mask",
-                            "union",
-                            "difference",
-                            "symmetric_difference"
-                        ],
-                        "class_decorators": [
-                            "Appender(_interval_shared_docs['class'] % dict(klass='IntervalIndex', summary='Immutable index of intervals that are closed on the same side.', name=_index_doc_kwargs['name'], versionadded='0.20.0', extra_attributes='is_overlapping\\nvalues\\n', extra_methods='', examples=textwrap.dedent(\"    Examples\\n    --------\\n    A new ``IntervalIndex`` is typically constructed using\\n    :func:`interval_range`:\\n\\n    >>> pd.interval_range(start=0, end=5)\\n    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],\\n                  closed='right',\\n                  dtype='interval[int64]')\\n\\n    It may also be constructed using one of the constructor\\n    methods: :meth:`IntervalIndex.from_arrays`,\\n    :meth:`IntervalIndex.from_breaks`, and :meth:`IntervalIndex.from_tuples`.\\n\\n    See further examples in the doc strings of ``interval_range`` and the\\n    mentioned constructor methods.\\n    \")))"
                         ]
-                    }
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "AnyArrayLike": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Optional": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Any": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._check_method": {
+                                    "variable_value": "<bound method IntervalIndex._check_method of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "method": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.is_overlapping": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool"
+                                },
+                                "msg": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "InvalidIndexError": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "ensure_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target": {
+                                    "variable_value": "CategoricalIndex([(0, 1], (1, 2]], categories=[(0, 1], (1, 2]], ordered=False, dtype='category')",
+                                    "variable_type": "CategoricalIndex"
+                                },
+                                "IntervalIndex": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method IntervalIndex.equals of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "np.arange": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "common_subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "find_common_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.dtype": {
+                                    "variable_value": "interval[int64]",
+                                    "variable_type": "IntervalDtype"
+                                },
+                                "target_as_index.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index.dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.closed": {
+                                    "variable_value": "right",
+                                    "variable_type": "str"
+                                },
+                                "target_as_index.closed": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.repeat": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.intp": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "left_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.left.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.left": {
+                                    "variable_value": "Int64Index([0, 1], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.left": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "right_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.right.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.right": {
+                                    "variable_value": "Int64Index([1, 2], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.right": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.where": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._maybe_convert_i8": {
+                                    "variable_value": "<bound method IntervalIndex._maybe_convert_i8 of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self._engine.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self._engine": {
+                                    "variable_value": "<IntervalTree[int64,right]: 2 elements>",
+                                    "variable_type": "IntervalTree"
+                                },
+                                "target_as_index.values": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "key": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "loc": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_loc": {
+                                    "variable_value": "<bound method IntervalIndex.get_loc of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "indexer.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "ensure_platform_int": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Substitution": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_doc_kwargs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap.dedent": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Appender": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_shared_docs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.ndarray": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "AnyArrayLike": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Optional": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Any": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._check_method": {
+                                    "variable_value": "<bound method IntervalIndex._check_method of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "method": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.is_overlapping": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool"
+                                },
+                                "msg": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "InvalidIndexError": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "ensure_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "IntervalIndex": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method IntervalIndex.equals of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "np.arange": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "common_subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "find_common_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.dtype": {
+                                    "variable_value": "interval[int64]",
+                                    "variable_type": "IntervalDtype"
+                                },
+                                "target_as_index.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index.dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.closed": {
+                                    "variable_value": "right",
+                                    "variable_type": "str"
+                                },
+                                "target_as_index.closed": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.repeat": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.intp": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "left_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.left.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.left": {
+                                    "variable_value": "Int64Index([0, 1], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.left": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "right_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.right.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.right": {
+                                    "variable_value": "Int64Index([1, 2], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.right": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.where": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "is_categorical": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "categories_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_indexer": {
+                                    "variable_value": "<bound method IntervalIndex.get_indexer of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "target_as_index.categories": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "take_1d": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index.codes": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._maybe_convert_i8": {
+                                    "variable_value": "<bound method IntervalIndex._maybe_convert_i8 of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self._engine.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self._engine": {
+                                    "variable_value": "<IntervalTree[int64,right]: 2 elements>",
+                                    "variable_type": "IntervalTree"
+                                },
+                                "target_as_index.values": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "key": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "loc": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_loc": {
+                                    "variable_value": "<bound method IntervalIndex.get_loc of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "indexer.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "ensure_platform_int": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Substitution": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_doc_kwargs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap.dedent": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Appender": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_shared_docs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.ndarray": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                }
+                            },
+                            {
+                                "AnyArrayLike": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Optional": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Any": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._check_method": {
+                                    "variable_value": "<bound method IntervalIndex._check_method of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "method": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.is_overlapping": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool"
+                                },
+                                "msg": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "InvalidIndexError": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "ensure_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "IntervalIndex": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method IntervalIndex.equals of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "np.arange": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "common_subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "find_common_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.dtype": {
+                                    "variable_value": "interval[int64]",
+                                    "variable_type": "IntervalDtype"
+                                },
+                                "target_as_index.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "target_as_index.dtype": {
+                                    "variable_value": "interval[int64]",
+                                    "variable_type": "IntervalDtype"
+                                },
+                                "self.closed": {
+                                    "variable_value": "right",
+                                    "variable_type": "str"
+                                },
+                                "target_as_index.closed": {
+                                    "variable_value": "right",
+                                    "variable_type": "str"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.repeat": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.intp": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "left_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.left.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.left": {
+                                    "variable_value": "Int64Index([0, 1], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.left": {
+                                    "variable_value": "Int64Index([0, 1], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "right_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.right.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.right": {
+                                    "variable_value": "Int64Index([1, 2], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.right": {
+                                    "variable_value": "Int64Index([1, 2], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.where": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "is_categorical": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "categories_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_indexer": {
+                                    "variable_value": "<bound method IntervalIndex.get_indexer of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "target_as_index.categories": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "take_1d": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index.codes": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self._maybe_convert_i8": {
+                                    "variable_value": "<bound method IntervalIndex._maybe_convert_i8 of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self._engine.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self._engine": {
+                                    "variable_value": "<IntervalTree[int64,right]: 2 elements>",
+                                    "variable_type": "IntervalTree"
+                                },
+                                "target_as_index.values": {
+                                    "variable_value": "<IntervalArray>\n[(0, 1], (1, 2]]\nLength: 2, closed: right, dtype: interval[int64]",
+                                    "variable_type": "IntervalArray"
+                                },
+                                "key": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "loc": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_loc": {
+                                    "variable_value": "<bound method IntervalIndex.get_loc of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "indexer.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "ensure_platform_int": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Substitution": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_doc_kwargs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap.dedent": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Appender": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_shared_docs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.ndarray": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "AnyArrayLike": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Optional": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Any": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._check_method": {
+                                    "variable_value": "<bound method IntervalIndex._check_method of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "method": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.is_overlapping": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool"
+                                },
+                                "msg": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "InvalidIndexError": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "ensure_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "IntervalIndex": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method IntervalIndex.equals of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "np.arange": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "common_subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "find_common_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.dtype": {
+                                    "variable_value": "interval[int64]",
+                                    "variable_type": "IntervalDtype"
+                                },
+                                "target_as_index.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index.dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.closed": {
+                                    "variable_value": "right",
+                                    "variable_type": "str"
+                                },
+                                "target_as_index.closed": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.repeat": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.intp": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "left_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.left.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.left": {
+                                    "variable_value": "Int64Index([0, 1], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.left": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "right_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.right.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.right": {
+                                    "variable_value": "Int64Index([1, 2], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.right": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.where": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "is_categorical": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "categories_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_indexer": {
+                                    "variable_value": "<bound method IntervalIndex.get_indexer of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "target_as_index.categories": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "take_1d": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index.codes": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._maybe_convert_i8": {
+                                    "variable_value": "<bound method IntervalIndex._maybe_convert_i8 of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self._engine.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self._engine": {
+                                    "variable_value": "<IntervalTree[int64,right]: 2 elements>",
+                                    "variable_type": "IntervalTree"
+                                },
+                                "target_as_index.values": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "key": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "loc": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_loc": {
+                                    "variable_value": "<bound method IntervalIndex.get_loc of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "indexer.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "ensure_platform_int": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Substitution": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_doc_kwargs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap.dedent": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Appender": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_shared_docs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.ndarray": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                }
+                            },
+                            {
+                                "AnyArrayLike": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Optional": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Any": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self._check_method": {
+                                    "variable_value": "<bound method IntervalIndex._check_method of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "method": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.is_overlapping": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool"
+                                },
+                                "msg": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "InvalidIndexError": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index": {
+                                    "variable_value": "CategoricalIndex([(0, 1], (1, 2]], categories=[(0, 1], (1, 2]], ordered=False, dtype='category')",
+                                    "variable_type": "CategoricalIndex"
+                                },
+                                "ensure_index": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target": {
+                                    "variable_value": "CategoricalIndex([(0, 1], (1, 2]], categories=[(0, 1], (1, 2]], ordered=False, dtype='category')",
+                                    "variable_type": "CategoricalIndex"
+                                },
+                                "IntervalIndex": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method IntervalIndex.equals of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "np.arange": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "common_subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "find_common_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.dtype": {
+                                    "variable_value": "interval[int64]",
+                                    "variable_type": "IntervalDtype"
+                                },
+                                "target_as_index.dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "target_as_index.dtype": {
+                                    "variable_value": "CategoricalDtype(categories=[(0, 1], (1, 2]],\n              ordered=False)",
+                                    "variable_type": "CategoricalDtype"
+                                },
+                                "self.closed": {
+                                    "variable_value": "right",
+                                    "variable_type": "str"
+                                },
+                                "target_as_index.closed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.repeat": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.intp": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "left_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.left.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.left": {
+                                    "variable_value": "Int64Index([0, 1], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.left": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "right_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.right.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self.right": {
+                                    "variable_value": "Int64Index([1, 2], dtype='int64')",
+                                    "variable_type": "Int64Index"
+                                },
+                                "target_as_index.right": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "indexer": {
+                                    "variable_value": "array([0, 1])",
+                                    "variable_type": "ndarray"
+                                },
+                                "np.where": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "is_categorical": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "categories_indexer": {
+                                    "variable_value": "array([0, 1])",
+                                    "variable_type": "ndarray"
+                                },
+                                "self.get_indexer": {
+                                    "variable_value": "<bound method IntervalIndex.get_indexer of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "target_as_index.categories": {
+                                    "variable_value": "IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')",
+                                    "variable_type": "IntervalIndex"
+                                },
+                                "take_1d": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "target_as_index.codes": {
+                                    "variable_value": "array([0, 1], dtype=int8)",
+                                    "variable_type": "ndarray"
+                                },
+                                "self._maybe_convert_i8": {
+                                    "variable_value": "<bound method IntervalIndex._maybe_convert_i8 of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "self._engine.get_indexer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "self._engine": {
+                                    "variable_value": "<IntervalTree[int64,right]: 2 elements>",
+                                    "variable_type": "IntervalTree"
+                                },
+                                "target_as_index.values": {
+                                    "variable_value": "[(0, 1], (1, 2]]\nCategories (2, interval[int64]): [(0, 1], (1, 2]]",
+                                    "variable_type": "Categorical"
+                                },
+                                "key": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "loc": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "self.get_loc": {
+                                    "variable_value": "<bound method IntervalIndex.get_loc of IntervalIndex([(0, 1], (1, 2]],\n              closed='right',\n              dtype='interval[int64]')>",
+                                    "variable_type": "method"
+                                },
+                                "indexer.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "ensure_platform_int": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Substitution": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_doc_kwargs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap.dedent": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "textwrap": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Appender": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "_index_shared_docs": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "np.ndarray": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                }
+                            }
+                        ],
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
                 }
             ],
             "inscope_functions": [
+                "def _get_next_label(label):\n    dtype = getattr(label, \"dtype\", type(label))\n    if isinstance(label, (Timestamp, Timedelta)):\n        dtype = \"datetime64\"\n    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):\n        return label + np.timedelta64(1, \"ns\")\n    elif is_integer_dtype(dtype):\n        return label + 1\n    elif is_float_dtype(dtype):\n        return np.nextafter(label, np.infty)\n    else:\n        raise TypeError(f\"cannot determine next label for type {repr(type(label))}\")",
+                "def _get_prev_label(label):\n    dtype = getattr(label, \"dtype\", type(label))\n    if isinstance(label, (Timestamp, Timedelta)):\n        dtype = \"datetime64\"\n    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):\n        return label - np.timedelta64(1, \"ns\")\n    elif is_integer_dtype(dtype):\n        return label - 1\n    elif is_float_dtype(dtype):\n        return np.nextafter(label, -np.infty)\n    else:\n        raise TypeError(f\"cannot determine next label for type {repr(type(label))}\")",
+                "def _get_interval_closed_bounds(interval):\n    \"\"\"\n    Given an Interval or IntervalIndex, return the corresponding interval with\n    closed bounds.\n    \"\"\"\n    left, right = interval.left, interval.right\n    if interval.open_left:\n        left = _get_next_label(left)\n    if interval.open_right:\n        right = _get_prev_label(right)\n    return left, right",
+                "def _new_IntervalIndex(cls, d):\n    \"\"\"\n    This is called upon unpickling, rather than the default which doesn't have\n    arguments and breaks __new__.\n    \"\"\"\n    return cls.from_arrays(**d)",
+                "def _is_valid_endpoint(endpoint) -> bool:\n    \"\"\"helper for interval_range to check if start/end are valid types\"\"\"\n    return any(\n        [\n            is_number(endpoint),\n            isinstance(endpoint, Timestamp),\n            isinstance(endpoint, Timedelta),\n            endpoint is None,\n        ]\n    )",
+                "def _is_type_compatible(a, b) -> bool:\n    \"\"\"helper for interval_range to check type compat of start/end/freq\"\"\"\n    is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))\n    is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))\n    return (\n        (is_number(a) and is_number(b))\n        or (is_ts_compat(a) and is_ts_compat(b))\n        or (is_td_compat(a) and is_td_compat(b))\n        or com.any_none(a, b)\n    )",
+                "def interval_range(\n    start=None, end=None, periods=None, freq=None, name=None, closed=\"right\"\n):\n    \"\"\"\n    Return a fixed frequency IntervalIndex.\n\n    Parameters\n    ----------\n    start : numeric or datetime-like, default None\n        Left bound for generating intervals.\n    end : numeric or datetime-like, default None\n        Right bound for generating intervals.\n    periods : int, default None\n        Number of periods to generate.\n    freq : numeric, str, or DateOffset, default None\n        The length of each interval. Must be consistent with the type of start\n        and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1\n        for numeric and 'D' for datetime-like.\n    name : str, default None\n        Name of the resulting IntervalIndex.\n    closed : {'left', 'right', 'both', 'neither'}, default 'right'\n        Whether the intervals are closed on the left-side, right-side, both\n        or neither.\n\n    Returns\n    -------\n    IntervalIndex\n\n    See Also\n    --------\n    IntervalIndex : An Index of intervals that are all closed on the same side.\n\n    Notes\n    -----\n    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,\n    exactly three must be specified. If ``freq`` is omitted, the resulting\n    ``IntervalIndex`` will have ``periods`` linearly spaced elements between\n    ``start`` and ``end``, inclusively.\n\n    To learn more about datetime-like frequency strings, please see `this link\n    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.\n\n    Examples\n    --------\n    Numeric ``start`` and  ``end`` is supported.\n\n    >>> pd.interval_range(start=0, end=5)\n    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],\n                  closed='right', dtype='interval[int64]')\n\n    Additionally, datetime-like input is also supported.\n\n    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),\n    ...                   end=pd.Timestamp('2017-01-04'))\n    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],\n                   (2017-01-03, 2017-01-04]],\n                  closed='right', dtype='interval[datetime64[ns]]')\n\n    The ``freq`` parameter specifies the frequency between the left and right.\n    endpoints of the individual intervals within the ``IntervalIndex``.  For\n    numeric ``start`` and ``end``, the frequency must also be numeric.\n\n    >>> pd.interval_range(start=0, periods=4, freq=1.5)\n    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],\n                  closed='right', dtype='interval[float64]')\n\n    Similarly, for datetime-like ``start`` and ``end``, the frequency must be\n    convertible to a DateOffset.\n\n    >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),\n    ...                   periods=3, freq='MS')\n    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],\n                   (2017-03-01, 2017-04-01]],\n                  closed='right', dtype='interval[datetime64[ns]]')\n\n    Specify ``start``, ``end``, and ``periods``; the frequency is generated\n    automatically (linearly spaced).\n\n    >>> pd.interval_range(start=0, end=6, periods=4)\n    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],\n              closed='right',\n              dtype='interval[float64]')\n\n    The ``closed`` parameter specifies which endpoints of the individual\n    intervals within the ``IntervalIndex`` are closed.\n\n    >>> pd.interval_range(end=5, periods=4, closed='both')\n    IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],\n                  closed='both', dtype='interval[int64]')\n    \"\"\"\n    start = com.maybe_box_datetimelike(start)\n    end = com.maybe_box_datetimelike(end)\n    endpoint = start if start is not None else end\n\n    if freq is None and com.any_none(periods, start, end):\n        freq = 1 if is_number(endpoint) else \"D\"\n\n    if com.count_not_none(start, end, periods, freq) != 3:\n        raise ValueError(\n            \"Of the four parameters: start, end, periods, and \"\n            \"freq, exactly three must be specified\"\n        )\n\n    if not _is_valid_endpoint(start):\n        msg = \"start must be numeric or datetime-like, got {start}\"\n        raise ValueError(msg.format(start=start))\n    elif not _is_valid_endpoint(end):\n        msg = \"end must be numeric or datetime-like, got {end}\"\n        raise ValueError(msg.format(end=end))\n\n    if is_float(periods):\n        periods = int(periods)\n    elif not is_integer(periods) and periods is not None:\n        msg = \"periods must be a number, got {periods}\"\n        raise TypeError(msg.format(periods=periods))\n\n    if freq is not None and not is_number(freq):\n        try:\n            freq = to_offset(freq)\n        except ValueError:\n            raise ValueError(\n                \"freq must be numeric or convertible to \"\n                \"DateOffset, got {freq}\".format(freq=freq)\n            )\n\n    # verify type compatibility\n    if not all(\n        [\n            _is_type_compatible(start, end),\n            _is_type_compatible(start, freq),\n            _is_type_compatible(end, freq),\n        ]\n    ):\n        raise TypeError(\"start, end, freq need to be type compatible\")\n\n    # +1 to convert interval count to breaks count (n breaks = n-1 intervals)\n    if periods is not None:\n        periods += 1\n\n    if is_number(endpoint):\n        # force consistency between start/end/freq (lower end if freq skips it)\n        if com.all_not_none(start, end, freq):\n            end -= (end - start) % freq\n\n        # compute the period/start/end if unspecified (at most one)\n        if periods is None:\n            periods = int((end - start) // freq) + 1\n        elif start is None:\n            start = end - (periods - 1) * freq\n        elif end is None:\n            end = start + (periods - 1) * freq\n\n        breaks = np.linspace(start, end, periods)\n        if all(is_integer(x) for x in com.not_none(start, end, freq)):\n            # np.linspace always produces float output\n            breaks = maybe_downcast_to_dtype(breaks, \"int64\")\n    else:\n        # delegate to the appropriate range function\n        if isinstance(endpoint, Timestamp):\n            range_func = date_range\n        else:\n            range_func = timedelta_range\n\n        breaks = range_func(start=start, end=end, periods=periods, freq=freq)\n\n    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)",
+                "def __init__(self, op_name):\n    self.op_name = op_name",
+                "def __call__(self, setop):\n    def func(intvidx_self, other, sort=False):\n        intvidx_self._assert_can_do_setop(other)\n        other = ensure_index(other)\n\n        if not isinstance(other, IntervalIndex):\n            result = getattr(intvidx_self.astype(object), self.op_name)(other)\n            if self.op_name in (\"difference\",):\n                result = result.astype(intvidx_self.dtype)\n            return result\n        elif intvidx_self.closed != other.closed:\n            msg = (\n                \"can only do set operations between two IntervalIndex \"\n                \"objects that are closed on the same side\"\n            )\n            raise ValueError(msg)\n\n        # GH 19016: ensure set op will not return a prohibited dtype\n        subtypes = [intvidx_self.dtype.subtype, other.dtype.subtype]\n        common_subtype = find_common_type(subtypes)\n        if is_object_dtype(common_subtype):\n            msg = (\n                \"can only do {op} between two IntervalIndex \"\n                \"objects that have compatible dtypes\"\n            )\n            raise TypeError(msg.format(op=self.op_name))\n\n        return setop(intvidx_self, other, sort)\n\n    return func",
+                "def __new__(\n    cls, data, closed=None, dtype=None, copy=False, name=None, verify_integrity=True\n):\n\n    if name is None and hasattr(data, \"name\"):\n        name = data.name\n\n    with rewrite_exception(\"IntervalArray\", cls.__name__):\n        array = IntervalArray(\n            data,\n            closed=closed,\n            copy=copy,\n            dtype=dtype,\n            verify_integrity=verify_integrity,\n        )\n\n    return cls._simple_new(array, name)",
+                "@classmethod\ndef _simple_new(cls, array, name, closed=None):\n    \"\"\"\n    Construct from an IntervalArray\n\n    Parameters\n    ----------\n    array : IntervalArray\n    name : str\n        Attached as result.name\n    closed : Any\n        Ignored.\n    \"\"\"\n    result = IntervalMixin.__new__(cls)\n    result._data = array\n    result.name = name\n    result._reset_identity()\n    return result",
+                "@classmethod\n@Appender(\n    _interval_shared_docs[\"from_breaks\"]\n    % dict(\n        klass=\"IntervalIndex\",\n        examples=textwrap.dedent(\n            \"\"\"\\\n    Examples\n    --------\n    >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])\n    IntervalIndex([(0, 1], (1, 2], (2, 3]],\n                  closed='right',\n                  dtype='interval[int64]')\n    \"\"\"\n        ),\n    )\n)\ndef from_breaks(cls, breaks, closed=\"right\", name=None, copy=False, dtype=None):\n    with rewrite_exception(\"IntervalArray\", cls.__name__):\n        array = IntervalArray.from_breaks(\n            breaks, closed=closed, copy=copy, dtype=dtype\n        )\n    return cls._simple_new(array, name=name)",
+                "@classmethod\n@Appender(\n    _interval_shared_docs[\"from_arrays\"]\n    % dict(\n        klass=\"IntervalIndex\",\n        examples=textwrap.dedent(\n            \"\"\"\\\n    Examples\n    --------\n    >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])\n    IntervalIndex([(0, 1], (1, 2], (2, 3]],\n                  closed='right',\n                  dtype='interval[int64]')\n    \"\"\"\n        ),\n    )\n)\ndef from_arrays(\n    cls, left, right, closed=\"right\", name=None, copy=False, dtype=None\n):\n    with rewrite_exception(\"IntervalArray\", cls.__name__):\n        array = IntervalArray.from_arrays(\n            left, right, closed, copy=copy, dtype=dtype\n        )\n    return cls._simple_new(array, name=name)",
+                "@classmethod\n@Appender(\n    _interval_shared_docs[\"from_tuples\"]\n    % dict(\n        klass=\"IntervalIndex\",\n        examples=textwrap.dedent(\n            \"\"\"\\\n    Examples\n    --------\n    >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])\n    IntervalIndex([(0, 1], (1, 2]],\n                   closed='right',\n                   dtype='interval[int64]')\n    \"\"\"\n        ),\n    )\n)\ndef from_tuples(cls, data, closed=\"right\", name=None, copy=False, dtype=None):\n    with rewrite_exception(\"IntervalArray\", cls.__name__):\n        arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)\n    return cls._simple_new(arr, name=name)",
+                "@Appender(_index_shared_docs[\"_shallow_copy\"])\ndef _shallow_copy(self, left=None, right=None, **kwargs):\n    result = self._data._shallow_copy(left=left, right=right)\n    attributes = self._get_attributes_dict()\n    attributes.update(kwargs)\n    return self._simple_new(result, **attributes)",
+                "@cache_readonly\ndef _isnan(self):\n    \"\"\"Return a mask indicating if each value is NA\"\"\"\n    if self._mask is None:\n        self._mask = isna(self.left)\n    return self._mask",
+                "@cache_readonly\ndef _engine(self):\n    left = self._maybe_convert_i8(self.left)\n    right = self._maybe_convert_i8(self.right)\n    return IntervalTree(left, right, closed=self.closed)",
+                "def __contains__(self, key) -> bool:\n    \"\"\"\n    return a boolean if this key is IN the index\n    We *only* accept an Interval\n\n    Parameters\n    ----------\n    key : Interval\n\n    Returns\n    -------\n    boolean\n    \"\"\"\n    if not isinstance(key, Interval):\n        return False\n\n    try:\n        self.get_loc(key)\n        return True\n    except KeyError:\n        return False",
+                "@Appender(\n    _interval_shared_docs[\"to_tuples\"]\n    % dict(\n        return_type=\"Index\",\n        examples=\"\"\"\n    Examples\n    --------\n    >>> idx = pd.IntervalIndex.from_arrays([0, np.nan, 2], [1, np.nan, 3])\n    >>> idx.to_tuples()\n    Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')\n    >>> idx.to_tuples(na_tuple=False)\n    Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')\n    \"\"\",\n    )\n)\ndef to_tuples(self, na_tuple=True):\n    tuples = self._data.to_tuples(na_tuple=na_tuple)\n    return Index(tuples)",
+                "@cache_readonly\ndef _multiindex(self):\n    return MultiIndex.from_arrays([self.left, self.right], names=[\"left\", \"right\"])",
+                "@property\ndef left(self):\n    \"\"\"\n    Return the left endpoints of each Interval in the IntervalIndex as\n    an Index.\n    \"\"\"\n    return self._data._left",
+                "@property\ndef right(self):\n    \"\"\"\n    Return the right endpoints of each Interval in the IntervalIndex as\n    an Index.\n    \"\"\"\n    return self._data._right",
+                "@property\ndef closed(self):\n    \"\"\"\n    Whether the intervals are closed on the left-side, right-side, both or\n    neither.\n    \"\"\"\n    return self._data._closed",
+                "@Appender(\n    _interval_shared_docs[\"set_closed\"]\n    % dict(\n        klass=\"IntervalIndex\",\n        examples=textwrap.dedent(\n            \"\"\"\\\n    Examples\n    --------\n    >>> index = pd.interval_range(0, 3)\n    >>> index\n    IntervalIndex([(0, 1], (1, 2], (2, 3]],\n                  closed='right',\n                  dtype='interval[int64]')\n    >>> index.set_closed('both')\n    IntervalIndex([[0, 1], [1, 2], [2, 3]],\n                  closed='both',\n                  dtype='interval[int64]')\n    \"\"\"\n        ),\n    )\n)\ndef set_closed(self, closed):\n    if closed not in _VALID_CLOSED:\n        msg = \"invalid option for 'closed': {closed}\"\n        raise ValueError(msg.format(closed=closed))\n\n    # return self._shallow_copy(closed=closed)\n    array = self._data.set_closed(closed)\n    return self._simple_new(array, self.name)",
+                "@property\ndef length(self):\n    \"\"\"\n    Return an Index with entries denoting the length of each Interval in\n    the IntervalIndex.\n    \"\"\"\n    return self._data.length",
+                "@property\ndef size(self):\n    # Avoid materializing ndarray[Interval]\n    return self._data.size",
+                "def __len__(self) -> int:\n    return len(self.left)",
+                "@cache_readonly\ndef values(self):\n    \"\"\"\n    Return the IntervalIndex's data as an IntervalArray.\n    \"\"\"\n    return self._data",
+                "@cache_readonly\ndef _values(self):\n    return self._data",
+                "@cache_readonly\ndef _ndarray_values(self) -> np.ndarray:\n    return np.array(self._data)",
+                "def __array__(self, result=None):\n    \"\"\" the array interface, return my values \"\"\"\n    return self._ndarray_values",
+                "def __array_wrap__(self, result, context=None):\n    # we don't want the superclass implementation\n    return result",
+                "def __reduce__(self):\n    d = dict(left=self.left, right=self.right)\n    d.update(self._get_attributes_dict())\n    return _new_IntervalIndex, (type(self), d), None",
+                "@Appender(_index_shared_docs[\"copy\"])\ndef copy(self, deep=False, name=None):\n    array = self._data\n    if deep:\n        array = array.copy()\n    attributes = self._get_attributes_dict()\n    if name is not None:\n        attributes.update(name=name)\n\n    return self._simple_new(array, **attributes)",
+                "@Appender(_index_shared_docs[\"astype\"])\ndef astype(self, dtype, copy=True):\n    with rewrite_exception(\"IntervalArray\", type(self).__name__):\n        new_values = self.values.astype(dtype, copy=copy)\n    if is_interval_dtype(new_values):\n        return self._shallow_copy(new_values.left, new_values.right)\n    return super().astype(dtype, copy=copy)",
+                "@cache_readonly\ndef dtype(self):\n    \"\"\"Return the dtype object of the underlying data\"\"\"\n    return self._data.dtype",
+                "@property\ndef inferred_type(self) -> str:\n    \"\"\"Return a string of the type inferred from the values\"\"\"\n    return \"interval\"",
+                "@Appender(Index.memory_usage.__doc__)\ndef memory_usage(self, deep: bool = False) -> int:\n    # we don't use an explicit engine\n    # so return the bytes here\n    return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)",
+                "@cache_readonly\ndef mid(self):\n    \"\"\"\n    Return the midpoint of each Interval in the IntervalIndex as an Index.\n    \"\"\"\n    return self._data.mid",
+                "@cache_readonly\ndef is_monotonic(self) -> bool:\n    \"\"\"\n    Return True if the IntervalIndex is monotonic increasing (only equal or\n    increasing values), else False\n    \"\"\"\n    return self.is_monotonic_increasing",
+                "@cache_readonly\ndef is_monotonic_increasing(self) -> bool:\n    \"\"\"\n    Return True if the IntervalIndex is monotonic increasing (only equal or\n    increasing values), else False\n    \"\"\"\n    return self._engine.is_monotonic_increasing",
+                "@cache_readonly\ndef is_monotonic_decreasing(self) -> bool:\n    \"\"\"\n    Return True if the IntervalIndex is monotonic decreasing (only equal or\n    decreasing values), else False\n    \"\"\"\n    return self[::-1].is_monotonic_increasing",
+                "@cache_readonly\ndef is_unique(self):\n    \"\"\"\n    Return True if the IntervalIndex contains unique elements, else False\n    \"\"\"\n    left = self.left\n    right = self.right\n\n    if self.isna().sum() > 1:\n        return False\n\n    if left.is_unique or right.is_unique:\n        return True\n\n    seen_pairs = set()\n    check_idx = np.where(left.duplicated(keep=False))[0]\n    for idx in check_idx:\n        pair = (left[idx], right[idx])\n        if pair in seen_pairs:\n            return False\n        seen_pairs.add(pair)\n\n    return True",
+                "@cache_readonly\n@Appender(_interval_shared_docs[\"is_non_overlapping_monotonic\"] % _index_doc_kwargs)\ndef is_non_overlapping_monotonic(self):\n    return self._data.is_non_overlapping_monotonic",
+                "@property\ndef is_overlapping(self):\n    \"\"\"\n    Return True if the IntervalIndex has overlapping intervals, else False.\n\n    Two intervals overlap if they share a common point, including closed\n    endpoints. Intervals that only have an open endpoint in common do not\n    overlap.\n\n    .. versionadded:: 0.24.0\n\n    Returns\n    -------\n    bool\n        Boolean indicating if the IntervalIndex has overlapping intervals.\n\n    See Also\n    --------\n    Interval.overlaps : Check whether two Interval objects overlap.\n    IntervalIndex.overlaps : Check an IntervalIndex elementwise for\n        overlaps.\n\n    Examples\n    --------\n    >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])\n    >>> index\n    IntervalIndex([(0, 2], (1, 3], (4, 5]],\n          closed='right',\n          dtype='interval[int64]')\n    >>> index.is_overlapping\n    True\n\n    Intervals that share closed endpoints overlap:\n\n    >>> index = pd.interval_range(0, 3, closed='both')\n    >>> index\n    IntervalIndex([[0, 1], [1, 2], [2, 3]],\n          closed='both',\n          dtype='interval[int64]')\n    >>> index.is_overlapping\n    True\n\n    Intervals that only have an open endpoint in common do not overlap:\n\n    >>> index = pd.interval_range(0, 3, closed='left')\n    >>> index\n    IntervalIndex([[0, 1), [1, 2), [2, 3)],\n          closed='left',\n          dtype='interval[int64]')\n    >>> index.is_overlapping\n    False\n    \"\"\"\n    # GH 23309\n    return self._engine.is_overlapping",
+                "@Appender(_index_shared_docs[\"_convert_scalar_indexer\"])\ndef _convert_scalar_indexer(self, key, kind=None):\n    if kind == \"iloc\":\n        return super()._convert_scalar_indexer(key, kind=kind)\n    return key",
+                "def _maybe_cast_slice_bound(self, label, side, kind):\n    return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)",
+                "@Appender(_index_shared_docs[\"_convert_list_indexer\"])\ndef _convert_list_indexer(self, keyarr, kind=None):\n    \"\"\"\n    we are passed a list-like indexer. Return the\n    indexer for matching intervals.\n    \"\"\"\n    locs = self.get_indexer_for(keyarr)\n\n    # we have missing values\n    if (locs == -1).any():\n        raise KeyError\n\n    return locs",
+                "def _maybe_cast_indexed(self, key):\n    \"\"\"\n    we need to cast the key, which could be a scalar\n    or an array-like to the type of our subtype\n    \"\"\"\n    if isinstance(key, IntervalIndex):\n        return key\n\n    subtype = self.dtype.subtype\n    if is_float_dtype(subtype):\n        if is_integer(key):\n            key = float(key)\n        elif isinstance(key, (np.ndarray, Index)):\n            key = key.astype(\"float64\")\n    elif is_integer_dtype(subtype):\n        if is_integer(key):\n            key = int(key)\n\n    return key",
+                "def _can_reindex(self, indexer: np.ndarray) -> None:\n    \"\"\"\n    Check if we are allowing reindexing with this particular indexer.\n\n    Parameters\n    ----------\n    indexer : an integer indexer\n\n    Raises\n    ------\n    ValueError if its a duplicate axis\n    \"\"\"\n\n    # trying to reindex on an axis with duplicates\n    if self.is_overlapping and len(indexer):\n        raise ValueError(\"cannot reindex from an overlapping axis\")",
+                "def _needs_i8_conversion(self, key):\n    \"\"\"\n    Check if a given key needs i8 conversion. Conversion is necessary for\n    Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An\n    Interval-like requires conversion if it's endpoints are one of the\n    aforementioned types.\n\n    Assumes that any list-like data has already been cast to an Index.\n\n    Parameters\n    ----------\n    key : scalar or Index-like\n        The key that should be checked for i8 conversion\n\n    Returns\n    -------\n    boolean\n    \"\"\"\n    if is_interval_dtype(key) or isinstance(key, Interval):\n        return self._needs_i8_conversion(key.left)\n\n    i8_types = (Timestamp, Timedelta, DatetimeIndex, TimedeltaIndex)\n    return isinstance(key, i8_types)",
+                "def _maybe_convert_i8(self, key):\n    \"\"\"\n    Maybe convert a given key to it's equivalent i8 value(s). Used as a\n    preprocessing step prior to IntervalTree queries (self._engine), which\n    expects numeric data.\n\n    Parameters\n    ----------\n    key : scalar or list-like\n        The key that should maybe be converted to i8.\n\n    Returns\n    -------\n    key: scalar or list-like\n        The original key if no conversion occurred, int if converted scalar,\n        Int64Index if converted list-like.\n    \"\"\"\n    original = key\n    if is_list_like(key):\n        key = ensure_index(key)\n\n    if not self._needs_i8_conversion(key):\n        return original\n\n    scalar = is_scalar(key)\n    if is_interval_dtype(key) or isinstance(key, Interval):\n        # convert left/right and reconstruct\n        left = self._maybe_convert_i8(key.left)\n        right = self._maybe_convert_i8(key.right)\n        constructor = Interval if scalar else IntervalIndex.from_arrays\n        return constructor(left, right, closed=self.closed)\n\n    if scalar:\n        # Timestamp/Timedelta\n        key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)\n    else:\n        # DatetimeIndex/TimedeltaIndex\n        key_dtype, key_i8 = key.dtype, Index(key.asi8)\n        if key.hasnans:\n            # convert NaT from it's i8 value to np.nan so it's not viewed\n            # as a valid value, maybe causing errors (e.g. is_overlapping)\n            key_i8 = key_i8.where(~key._isnan)\n\n    # ensure consistency with IntervalIndex subtype\n    subtype = self.dtype.subtype\n    msg = (\n        \"Cannot index an IntervalIndex of subtype {subtype} with \"\n        \"values of dtype {other}\"\n    )\n    if not is_dtype_equal(subtype, key_dtype):\n        raise ValueError(msg.format(subtype=subtype, other=key_dtype))\n\n    return key_i8",
+                "def _check_method(self, method):\n    if method is None:\n        return\n\n    if method in [\"bfill\", \"backfill\", \"pad\", \"ffill\", \"nearest\"]:\n        msg = \"method {method} not yet implemented for IntervalIndex\"\n        raise NotImplementedError(msg.format(method=method))\n\n    raise ValueError(\"Invalid fill method\")",
+                "def _searchsorted_monotonic(self, label, side, exclude_label=False):\n    if not self.is_non_overlapping_monotonic:\n        raise KeyError(\n            \"can only get slices from an IntervalIndex if \"\n            \"bounds are non-overlapping and all monotonic \"\n            \"increasing or decreasing\"\n        )\n\n    if isinstance(label, IntervalMixin):\n        msg = \"Interval objects are not currently supported\"\n        raise NotImplementedError(msg)\n\n    # GH 20921: \"not is_monotonic_increasing\" for the second condition\n    # instead of \"is_monotonic_decreasing\" to account for single element\n    # indexes being both increasing and decreasing\n    if (side == \"left\" and self.left.is_monotonic_increasing) or (\n        side == \"right\" and not self.left.is_monotonic_increasing\n    ):\n        sub_idx = self.right\n        if self.open_right or exclude_label:\n            label = _get_next_label(label)\n    else:\n        sub_idx = self.left\n        if self.open_left or exclude_label:\n            label = _get_prev_label(label)\n\n    return sub_idx._searchsorted_monotonic(label, side)",
+                "def _find_non_overlapping_monotonic_bounds(self, key):\n    if isinstance(key, IntervalMixin):\n        start = self._searchsorted_monotonic(\n            key.left, \"left\", exclude_label=key.open_left\n        )\n        stop = self._searchsorted_monotonic(\n            key.right, \"right\", exclude_label=key.open_right\n        )\n    elif isinstance(key, slice):\n        # slice\n        start, stop = key.start, key.stop\n        if (key.step or 1) != 1:\n            raise NotImplementedError(\"cannot slice with a slice step\")\n        if start is None:\n            start = 0\n        else:\n            start = self._searchsorted_monotonic(start, \"left\")\n        if stop is None:\n            stop = len(self)\n        else:\n            stop = self._searchsorted_monotonic(stop, \"right\")\n    else:\n        # scalar or index-like\n\n        start = self._searchsorted_monotonic(key, \"left\")\n        stop = self._searchsorted_monotonic(key, \"right\")\n    return start, stop",
+                "def get_loc(\n    self, key: Any, method: Optional[str] = None, tolerance=None\n) -> Union[int, slice, np.ndarray]:\n    \"\"\"\n    Get integer location, slice or boolean mask for requested label.\n\n    Parameters\n    ----------\n    key : label\n    method : {None}, optional\n        * default: matches where the label is within an interval only.\n\n    Returns\n    -------\n    loc : int if unique index, slice if monotonic index, else mask\n\n    Examples\n    --------\n    >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)\n    >>> index = pd.IntervalIndex([i1, i2])\n    >>> index.get_loc(1)\n    0\n\n    You can also supply a point inside an interval.\n\n    >>> index.get_loc(1.5)\n    1\n\n    If a label is in several intervals, you get the locations of all the\n    relevant intervals.\n\n    >>> i3 = pd.Interval(0, 2)\n    >>> overlapping_index = pd.IntervalIndex([i1, i2, i3])\n    >>> overlapping_index.get_loc(0.5)\n    array([ True, False,  True])\n\n    Only exact matches will be returned if an interval is provided.\n\n    >>> index.get_loc(pd.Interval(0, 1))\n    0\n    \"\"\"\n    self._check_method(method)\n\n    # list-like are invalid labels for II but in some cases may work, e.g\n    # single element array of comparable type, so guard against them early\n    if is_list_like(key):\n        raise KeyError(key)\n\n    if isinstance(key, Interval):\n        if self.closed != key.closed:\n            raise KeyError(key)\n        mask = (self.left == key.left) & (self.right == key.right)\n    else:\n        # assume scalar\n        op_left = le if self.closed_left else lt\n        op_right = le if self.closed_right else lt\n        try:\n            mask = op_left(self.left, key) & op_right(key, self.right)\n        except TypeError:\n            # scalar is not comparable to II subtype --> invalid label\n            raise KeyError(key)\n\n    matches = mask.sum()\n    if matches == 0:\n        raise KeyError(key)\n    elif matches == 1:\n        return mask.argmax()\n    return lib.maybe_booleans_to_slice(mask.view(\"u1\"))",
+                "@Substitution(\n    **dict(\n        _index_doc_kwargs,\n        **{\n            \"raises_section\": textwrap.dedent(\n                \"\"\"\n    Raises\n    ------\n    NotImplementedError\n        If any method argument other than the default of\n        None is specified as these are not yet implemented.\n    \"\"\"\n            )\n        },\n    )\n)\n@Appender(_index_shared_docs[\"get_indexer\"])\ndef get_indexer(\n    self,\n    target: AnyArrayLike,\n    method: Optional[str] = None,\n    limit: Optional[int] = None,\n    tolerance: Optional[Any] = None,\n) -> np.ndarray:\n\n    self._check_method(method)\n\n    if self.is_overlapping:\n        msg = (\n            \"cannot handle overlapping indices; use \"\n            \"IntervalIndex.get_indexer_non_unique\"\n        )\n        raise InvalidIndexError(msg)\n\n    target_as_index = ensure_index(target)\n\n    if isinstance(target_as_index, IntervalIndex):\n        # equal indexes -> 1:1 positional match\n        if self.equals(target_as_index):\n            return np.arange(len(self), dtype=\"intp\")\n\n        # different closed or incompatible subtype -> no matches\n        common_subtype = find_common_type(\n            [self.dtype.subtype, target_as_index.dtype.subtype]\n        )\n        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):\n            return np.repeat(np.intp(-1), len(target_as_index))\n\n        # non-overlapping -> at most one match per interval in target_as_index\n        # want exact matches -> need both left/right to match, so defer to\n        # left/right get_indexer, compare elementwise, equality -> match\n        left_indexer = self.left.get_indexer(target_as_index.left)\n        right_indexer = self.right.get_indexer(target_as_index.right)\n        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)\n    elif not is_object_dtype(target_as_index):\n        # homogeneous scalar index: use IntervalTree\n        target_as_index = self._maybe_convert_i8(target_as_index)\n        indexer = self._engine.get_indexer(target_as_index.values)\n    else:\n        # heterogeneous scalar index: defer elementwise to get_loc\n        # (non-overlapping so get_loc guarantees scalar of KeyError)\n        indexer = []\n        for key in target_as_index:\n            try:\n                loc = self.get_loc(key)\n            except KeyError:\n                loc = -1\n            indexer.append(loc)\n\n    return ensure_platform_int(indexer)",
+                "@Appender(_index_shared_docs[\"get_indexer_non_unique\"] % _index_doc_kwargs)\ndef get_indexer_non_unique(\n    self, target: AnyArrayLike\n) -> Tuple[np.ndarray, np.ndarray]:\n    target_as_index = ensure_index(target)\n\n    # check that target_as_index IntervalIndex is compatible\n    if isinstance(target_as_index, IntervalIndex):\n        common_subtype = find_common_type(\n            [self.dtype.subtype, target_as_index.dtype.subtype]\n        )\n        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):\n            # different closed or incompatible subtype -> no matches\n            return (\n                np.repeat(-1, len(target_as_index)),\n                np.arange(len(target_as_index)),\n            )\n\n    if is_object_dtype(target_as_index) or isinstance(\n        target_as_index, IntervalIndex\n    ):\n        # target_as_index might contain intervals: defer elementwise to get_loc\n        indexer, missing = [], []\n        for i, key in enumerate(target_as_index):\n            try:\n                locs = self.get_loc(key)\n                if isinstance(locs, slice):\n                    locs = np.arange(locs.start, locs.stop, locs.step, dtype=\"intp\")\n                locs = np.array(locs, ndmin=1)\n            except KeyError:\n                missing.append(i)\n                locs = np.array([-1])\n            indexer.append(locs)\n        indexer = np.concatenate(indexer)\n    else:\n        target_as_index = self._maybe_convert_i8(target_as_index)\n        indexer, missing = self._engine.get_indexer_non_unique(\n            target_as_index.values\n        )\n\n    return ensure_platform_int(indexer), ensure_platform_int(missing)",
+                "def get_indexer_for(self, target: AnyArrayLike, **kwargs) -> np.ndarray:\n    \"\"\"\n    Guaranteed return of an indexer even when overlapping.\n\n    This dispatches to get_indexer or get_indexer_non_unique\n    as appropriate.\n\n    Returns\n    -------\n    numpy.ndarray\n        List of indices.\n    \"\"\"\n    if self.is_overlapping:\n        return self.get_indexer_non_unique(target)[0]\n    return self.get_indexer(target, **kwargs)",
+                "@Appender(_index_shared_docs[\"get_value\"] % _index_doc_kwargs)\ndef get_value(self, series: ABCSeries, key: Any) -> Any:\n\n    if com.is_bool_indexer(key):\n        loc = key\n    elif is_list_like(key):\n        if self.is_overlapping:\n            loc, missing = self.get_indexer_non_unique(key)\n            if len(missing):\n                raise KeyError\n        else:\n            loc = self.get_indexer(key)\n    elif isinstance(key, slice):\n        if not (key.step is None or key.step == 1):\n            raise ValueError(\"cannot support not-default step in a slice\")\n        loc = self._convert_slice_indexer(key, kind=\"getitem\")\n    else:\n        loc = self.get_loc(key)\n    return series.iloc[loc]",
+                "@Appender(_index_shared_docs[\"where\"])\ndef where(self, cond, other=None):\n    if other is None:\n        other = self._na_value\n    values = np.where(cond, self.values, other)\n    return self._shallow_copy(values)",
+                "def delete(self, loc):\n    \"\"\"\n    Return a new IntervalIndex with passed location(-s) deleted\n\n    Returns\n    -------\n    new_index : IntervalIndex\n    \"\"\"\n    new_left = self.left.delete(loc)\n    new_right = self.right.delete(loc)\n    return self._shallow_copy(new_left, new_right)",
+                "def insert(self, loc, item):\n    \"\"\"\n    Return a new IntervalIndex inserting new item at location. Follows\n    Python list.append semantics for negative values.  Only Interval\n    objects and NA can be inserted into an IntervalIndex\n\n    Parameters\n    ----------\n    loc : int\n    item : object\n\n    Returns\n    -------\n    new_index : IntervalIndex\n    \"\"\"\n    if isinstance(item, Interval):\n        if item.closed != self.closed:\n            raise ValueError(\n                \"inserted item must be closed on the same side as the index\"\n            )\n        left_insert = item.left\n        right_insert = item.right\n    elif is_scalar(item) and isna(item):\n        # GH 18295\n        left_insert = right_insert = item\n    else:\n        raise ValueError(\n            \"can only insert Interval objects and NA into an IntervalIndex\"\n        )\n\n    new_left = self.left.insert(loc, left_insert)\n    new_right = self.right.insert(loc, right_insert)\n    return self._shallow_copy(new_left, new_right)",
+                "def _concat_same_dtype(self, to_concat, name):\n    \"\"\"\n    assert that we all have the same .closed\n    we allow a 0-len index here as well\n    \"\"\"\n    if not len({i.closed for i in to_concat if len(i)}) == 1:\n        msg = (\n            \"can only append two IntervalIndex objects \"\n            \"that are closed on the same side\"\n        )\n        raise ValueError(msg)\n    return super()._concat_same_dtype(to_concat, name)",
+                "@Appender(_index_shared_docs[\"take\"] % _index_doc_kwargs)\ndef take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):\n    result = self._data.take(\n        indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs\n    )\n    attributes = self._get_attributes_dict()\n    return self._simple_new(result, **attributes)",
+                "def __getitem__(self, value):\n    result = self._data[value]\n    if isinstance(result, IntervalArray):\n        return self._shallow_copy(result)\n    else:\n        # scalar\n        return result",
+                "def _format_with_header(self, header, **kwargs):\n    return header + list(self._format_native_types(**kwargs))",
+                "def _format_native_types(self, na_rep=\"NaN\", quoting=None, **kwargs):\n    # GH 28210: use base method but with different default na_rep\n    return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)",
+                "def _format_data(self, name=None):\n\n    # TODO: integrate with categorical and make generic\n    # name argument is unused here; just for compat with base / categorical\n    n = len(self)\n    max_seq_items = min((get_option(\"display.max_seq_items\") or n) // 10, 10)\n\n    formatter = str\n\n    if n == 0:\n        summary = \"[]\"\n    elif n == 1:\n        first = formatter(self[0])\n        summary = \"[{first}]\".format(first=first)\n    elif n == 2:\n        first = formatter(self[0])\n        last = formatter(self[-1])\n        summary = \"[{first}, {last}]\".format(first=first, last=last)\n    else:\n\n        if n > max_seq_items:\n            n = min(max_seq_items // 2, 10)\n            head = [formatter(x) for x in self[:n]]\n            tail = [formatter(x) for x in self[-n:]]\n            summary = \"[{head} ... {tail}]\".format(\n                head=\", \".join(head), tail=\", \".join(tail)\n            )\n        else:\n            tail = [formatter(x) for x in self]\n            summary = \"[{tail}]\".format(tail=\", \".join(tail))\n\n    return summary + \",\" + self._format_space()",
+                "def _format_attrs(self):\n    attrs = [(\"closed\", repr(self.closed))]\n    if self.name is not None:\n        attrs.append((\"name\", default_pprint(self.name)))\n    attrs.append((\"dtype\", \"'{dtype}'\".format(dtype=self.dtype)))\n    return attrs",
+                "def _format_space(self):\n    space = \" \" * (len(type(self).__name__) + 1)\n    return \"\\n{space}\".format(space=space)",
+                "def argsort(self, *args, **kwargs):\n    return np.lexsort((self.right, self.left))",
+                "def equals(self, other) -> bool:\n    \"\"\"\n    Determines if two IntervalIndex objects contain the same elements\n    \"\"\"\n    if self.is_(other):\n        return True\n\n    # if we can coerce to an II\n    # then we can compare\n    if not isinstance(other, IntervalIndex):\n        if not is_interval_dtype(other):\n            return False\n        other = Index(getattr(other, \".values\", other))\n\n    return (\n        self.left.equals(other.left)\n        and self.right.equals(other.right)\n        and self.closed == other.closed\n    )",
+                "@Appender(\n    _interval_shared_docs[\"contains\"]\n    % dict(\n        klass=\"IntervalIndex\",\n        examples=textwrap.dedent(\n            \"\"\"\\\n    >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])\n    >>> intervals\n    IntervalIndex([(0, 1], (1, 3], (2, 4]],\n              closed='right',\n              dtype='interval[int64]')\n    >>> intervals.contains(0.5)\n    array([ True, False, False])\n    \"\"\"\n        ),\n    )\n)\ndef contains(self, other):\n    return self._data.contains(other)",
+                "@Appender(\n    _interval_shared_docs[\"overlaps\"]\n    % dict(\n        klass=\"IntervalIndex\",\n        examples=textwrap.dedent(\n            \"\"\"\\\n    >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])\n    >>> intervals\n    IntervalIndex([(0, 1], (1, 3], (2, 4]],\n          closed='right',\n          dtype='interval[int64]')\n    \"\"\"\n        ),\n    )\n)\ndef overlaps(self, other):\n    return self._data.overlaps(other)",
+                "@Appender(_index_shared_docs[\"intersection\"])\n@SetopCheck(op_name=\"intersection\")\ndef intersection(\n    self, other: \"IntervalIndex\", sort: bool = False\n) -> \"IntervalIndex\":\n    if self.left.is_unique and self.right.is_unique:\n        taken = self._intersection_unique(other)\n    elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:\n        # Swap other/self if other is unique and self does not have\n        # multiple NaNs\n        taken = other._intersection_unique(self)\n    else:\n        # duplicates\n        taken = self._intersection_non_unique(other)\n\n    if sort is None:\n        taken = taken.sort_values()\n\n    return taken",
+                "def _intersection_unique(self, other: \"IntervalIndex\") -> \"IntervalIndex\":\n    \"\"\"\n    Used when the IntervalIndex does not have any common endpoint,\n    no mater left or right.\n    Return the intersection with another IntervalIndex.\n\n    Parameters\n    ----------\n    other : IntervalIndex\n\n    Returns\n    -------\n    taken : IntervalIndex\n    \"\"\"\n    lindexer = self.left.get_indexer(other.left)\n    rindexer = self.right.get_indexer(other.right)\n\n    match = (lindexer == rindexer) & (lindexer != -1)\n    indexer = lindexer.take(match.nonzero()[0])\n\n    return self.take(indexer)",
+                "def _intersection_non_unique(self, other: \"IntervalIndex\") -> \"IntervalIndex\":\n    \"\"\"\n    Used when the IntervalIndex does have some common endpoints,\n    on either sides.\n    Return the intersection with another IntervalIndex.\n\n    Parameters\n    ----------\n    other : IntervalIndex\n\n    Returns\n    -------\n    taken : IntervalIndex\n    \"\"\"\n    mask = np.zeros(len(self), dtype=bool)\n\n    if self.hasnans and other.hasnans:\n        first_nan_loc = np.arange(len(self))[self.isna()][0]\n        mask[first_nan_loc] = True\n\n    other_tups = set(zip(other.left, other.right))\n    for i, tup in enumerate(zip(self.left, self.right)):\n        if tup in other_tups:\n            mask[i] = True\n\n    return self[mask]",
+                "def _setop(op_name: str, sort=None):\n    @SetopCheck(op_name=op_name)\n    def func(self, other, sort=sort):\n        result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)\n        result_name = get_op_result_name(self, other)\n\n        # GH 19101: ensure empty results have correct dtype\n        if result.empty:\n            result = result.values.astype(self.dtype.subtype)\n        else:\n            result = result.values\n\n        return type(self).from_tuples(result, closed=self.closed, name=result_name)\n\n    return func",
+                "@property\ndef is_all_dates(self) -> bool:\n    \"\"\"\n    This is False even when left/right contain datetime-like objects,\n    as the check is done on the Interval itself\n    \"\"\"\n    return False",
+                "def func(intvidx_self, other, sort=False):\n    intvidx_self._assert_can_do_setop(other)\n    other = ensure_index(other)\n\n    if not isinstance(other, IntervalIndex):\n        result = getattr(intvidx_self.astype(object), self.op_name)(other)\n        if self.op_name in (\"difference\",):\n            result = result.astype(intvidx_self.dtype)\n        return result\n    elif intvidx_self.closed != other.closed:\n        msg = (\n            \"can only do set operations between two IntervalIndex \"\n            \"objects that are closed on the same side\"\n        )\n        raise ValueError(msg)\n\n    # GH 19016: ensure set op will not return a prohibited dtype\n    subtypes = [intvidx_self.dtype.subtype, other.dtype.subtype]\n    common_subtype = find_common_type(subtypes)\n    if is_object_dtype(common_subtype):\n        msg = (\n            \"can only do {op} between two IntervalIndex \"\n            \"objects that have compatible dtypes\"\n        )\n        raise TypeError(msg.format(op=self.op_name))\n\n    return setop(intvidx_self, other, sort)",
+                "@SetopCheck(op_name=op_name)\ndef func(self, other, sort=sort):\n    result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)\n    result_name = get_op_result_name(self, other)\n\n    # GH 19101: ensure empty results have correct dtype\n    if result.empty:\n        result = result.values.astype(self.dtype.subtype)\n    else:\n        result = result.values\n\n    return type(self).from_tuples(result, closed=self.closed, name=result_name)"
+            ],
+            "inscope_function_signatures": [
                 "_get_next_label(label)",
                 "_get_prev_label(label)",
                 "_get_interval_closed_bounds(interval)",
@@ -5222,6 +6573,24 @@
         "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/pandas/pandas/tests/indexes/interval/test_indexing.py": {
             "buggy_functions": [],
             "inscope_functions": [
+                "@pytest.mark.parametrize(\"side\", [\"right\", \"left\", \"both\", \"neither\"])\ndef test_get_loc_interval(self, closed, side):\n\n    idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)\n\n    for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:\n        # if get_loc is supplied an interval, it should only search\n        # for exact matches, not overlaps or covers, else KeyError.\n        msg = re.escape(\n            \"Interval({bound[0]}, {bound[1]}, closed='{side}')\".format(\n                bound=bound, side=side\n            )\n        )\n        if closed == side:\n            if bound == [0, 1]:\n                assert idx.get_loc(Interval(0, 1, closed=side)) == 0\n            elif bound == [2, 3]:\n                assert idx.get_loc(Interval(2, 3, closed=side)) == 1\n            else:\n                with pytest.raises(KeyError, match=msg):\n                    idx.get_loc(Interval(*bound, closed=side))\n        else:\n            with pytest.raises(KeyError, match=msg):\n                idx.get_loc(Interval(*bound, closed=side))",
+                "@pytest.mark.parametrize(\"scalar\", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])\ndef test_get_loc_scalar(self, closed, scalar):\n\n    # correct = {side: {query: answer}}.\n    # If query is not in the dict, that query should raise a KeyError\n    correct = {\n        \"right\": {0.5: 0, 1: 0, 2.5: 1, 3: 1},\n        \"left\": {0: 0, 0.5: 0, 2: 1, 2.5: 1},\n        \"both\": {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},\n        \"neither\": {0.5: 0, 2.5: 1},\n    }\n\n    idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)\n\n    # if get_loc is supplied a scalar, it should return the index of\n    # the interval which contains the scalar, or KeyError.\n    if scalar in correct[closed].keys():\n        assert idx.get_loc(scalar) == correct[closed][scalar]\n    else:\n        with pytest.raises(KeyError, match=str(scalar)):\n            idx.get_loc(scalar)",
+                "@pytest.mark.parametrize(\"scalar\", [-1, 0, 0.5, 3, 4.5, 5, 6])\ndef test_get_loc_length_one_scalar(self, scalar, closed):\n    # GH 20921\n    index = IntervalIndex.from_tuples([(0, 5)], closed=closed)\n    if scalar in index[0]:\n        result = index.get_loc(scalar)\n        assert result == 0\n    else:\n        with pytest.raises(KeyError, match=str(scalar)):\n            index.get_loc(scalar)",
+                "@pytest.mark.parametrize(\"other_closed\", [\"left\", \"right\", \"both\", \"neither\"])\n@pytest.mark.parametrize(\"left, right\", [(0, 5), (-1, 4), (-1, 6), (6, 7)])\ndef test_get_loc_length_one_interval(self, left, right, closed, other_closed):\n    # GH 20921\n    index = IntervalIndex.from_tuples([(0, 5)], closed=closed)\n    interval = Interval(left, right, closed=other_closed)\n    if interval == index[0]:\n        result = index.get_loc(interval)\n        assert result == 0\n    else:\n        with pytest.raises(\n            KeyError,\n            match=re.escape(\n                \"Interval({left}, {right}, closed='{other_closed}')\".format(\n                    left=left, right=right, other_closed=other_closed\n                )\n            ),\n        ):\n            index.get_loc(interval)",
+                "@pytest.mark.parametrize(\n    \"breaks\",\n    [\n        date_range(\"20180101\", periods=4),\n        date_range(\"20180101\", periods=4, tz=\"US/Eastern\"),\n        timedelta_range(\"0 days\", periods=4),\n    ],\n    ids=lambda x: str(x.dtype),\n)\ndef test_get_loc_datetimelike_nonoverlapping(self, breaks):\n    # GH 20636\n    # nonoverlapping = IntervalIndex method and no i8 conversion\n    index = IntervalIndex.from_breaks(breaks)\n\n    value = index[0].mid\n    result = index.get_loc(value)\n    expected = 0\n    assert result == expected\n\n    interval = Interval(index[0].left, index[0].right)\n    result = index.get_loc(interval)\n    expected = 0\n    assert result == expected",
+                "@pytest.mark.parametrize(\n    \"arrays\",\n    [\n        (date_range(\"20180101\", periods=4), date_range(\"20180103\", periods=4)),\n        (\n            date_range(\"20180101\", periods=4, tz=\"US/Eastern\"),\n            date_range(\"20180103\", periods=4, tz=\"US/Eastern\"),\n        ),\n        (\n            timedelta_range(\"0 days\", periods=4),\n            timedelta_range(\"2 days\", periods=4),\n        ),\n    ],\n    ids=lambda x: str(x[0].dtype),\n)\ndef test_get_loc_datetimelike_overlapping(self, arrays):\n    # GH 20636\n    index = IntervalIndex.from_arrays(*arrays)\n\n    value = index[0].mid + Timedelta(\"12 hours\")\n    result = index.get_loc(value)\n    expected = slice(0, 2, None)\n    assert result == expected\n\n    interval = Interval(index[0].left, index[0].right)\n    result = index.get_loc(interval)\n    expected = 0\n    assert result == expected",
+                "@pytest.mark.parametrize(\n    \"values\",\n    [\n        date_range(\"2018-01-04\", periods=4, freq=\"-1D\"),\n        date_range(\"2018-01-04\", periods=4, freq=\"-1D\", tz=\"US/Eastern\"),\n        timedelta_range(\"3 days\", periods=4, freq=\"-1D\"),\n        np.arange(3.0, -1.0, -1.0),\n        np.arange(3, -1, -1),\n    ],\n    ids=lambda x: str(x.dtype),\n)\ndef test_get_loc_decreasing(self, values):\n    # GH 25860\n    index = IntervalIndex.from_arrays(values[1:], values[:-1])\n    result = index.get_loc(index[0])\n    expected = 0\n    assert result == expected",
+                "@pytest.mark.parametrize(\n    \"query, expected\",\n    [\n        ([Interval(2, 4, closed=\"right\")], [1]),\n        ([Interval(2, 4, closed=\"left\")], [-1]),\n        ([Interval(2, 4, closed=\"both\")], [-1]),\n        ([Interval(2, 4, closed=\"neither\")], [-1]),\n        ([Interval(1, 4, closed=\"right\")], [-1]),\n        ([Interval(0, 4, closed=\"right\")], [-1]),\n        ([Interval(0.5, 1.5, closed=\"right\")], [-1]),\n        ([Interval(2, 4, closed=\"right\"), Interval(0, 1, closed=\"right\")], [1, -1]),\n        ([Interval(2, 4, closed=\"right\"), Interval(2, 4, closed=\"right\")], [1, 1]),\n        ([Interval(5, 7, closed=\"right\"), Interval(2, 4, closed=\"right\")], [2, 1]),\n        ([Interval(2, 4, closed=\"right\"), Interval(2, 4, closed=\"left\")], [1, -1]),\n    ],\n)\ndef test_get_indexer_with_interval(self, query, expected):\n\n    tuples = [(0, 2), (2, 4), (5, 7)]\n    index = IntervalIndex.from_tuples(tuples, closed=\"right\")\n\n    result = index.get_indexer(query)\n    expected = np.array(expected, dtype=\"intp\")\n    tm.assert_numpy_array_equal(result, expected)",
+                "@pytest.mark.parametrize(\n    \"query, expected\",\n    [\n        ([-0.5], [-1]),\n        ([0], [-1]),\n        ([0.5], [0]),\n        ([1], [0]),\n        ([1.5], [1]),\n        ([2], [1]),\n        ([2.5], [-1]),\n        ([3], [-1]),\n        ([3.5], [2]),\n        ([4], [2]),\n        ([4.5], [-1]),\n        ([1, 2], [0, 1]),\n        ([1, 2, 3], [0, 1, -1]),\n        ([1, 2, 3, 4], [0, 1, -1, 2]),\n        ([1, 2, 3, 4, 2], [0, 1, -1, 2, 1]),\n    ],\n)\ndef test_get_indexer_with_int_and_float(self, query, expected):\n\n    tuples = [(0, 1), (1, 2), (3, 4)]\n    index = IntervalIndex.from_tuples(tuples, closed=\"right\")\n\n    result = index.get_indexer(query)\n    expected = np.array(expected, dtype=\"intp\")\n    tm.assert_numpy_array_equal(result, expected)",
+                "@pytest.mark.parametrize(\"item\", [[3], np.arange(0.5, 5, 0.5)])\ndef test_get_indexer_length_one(self, item, closed):\n    # GH 17284\n    index = IntervalIndex.from_tuples([(0, 5)], closed=closed)\n    result = index.get_indexer(item)\n    expected = np.array([0] * len(item), dtype=\"intp\")\n    tm.assert_numpy_array_equal(result, expected)",
+                "@pytest.mark.parametrize(\"size\", [1, 5])\ndef test_get_indexer_length_one_interval(self, size, closed):\n    # GH 17284\n    index = IntervalIndex.from_tuples([(0, 5)], closed=closed)\n    result = index.get_indexer([Interval(0, 5, closed)] * size)\n    expected = np.array([0] * size, dtype=\"intp\")\n    tm.assert_numpy_array_equal(result, expected)",
+                "@pytest.mark.parametrize(\n    \"tuples, closed\",\n    [\n        ([(0, 2), (1, 3), (3, 4)], \"neither\"),\n        ([(0, 5), (1, 4), (6, 7)], \"left\"),\n        ([(0, 1), (0, 1), (1, 2)], \"right\"),\n        ([(0, 1), (2, 3), (3, 4)], \"both\"),\n    ],\n)\ndef test_get_indexer_errors(self, tuples, closed):\n    # IntervalIndex needs non-overlapping for uniqueness when querying\n    index = IntervalIndex.from_tuples(tuples, closed=closed)\n\n    msg = (\n        \"cannot handle overlapping indices; use \"\n        \"IntervalIndex.get_indexer_non_unique\"\n    )\n    with pytest.raises(InvalidIndexError, match=msg):\n        index.get_indexer([0, 2])",
+                "@pytest.mark.parametrize(\n    \"query, expected\",\n    [\n        ([-0.5], ([-1], [0])),\n        ([0], ([0], [])),\n        ([0.5], ([0], [])),\n        ([1], ([0, 1], [])),\n        ([1.5], ([0, 1], [])),\n        ([2], ([0, 1, 2], [])),\n        ([2.5], ([1, 2], [])),\n        ([3], ([2], [])),\n        ([3.5], ([2], [])),\n        ([4], ([-1], [0])),\n        ([4.5], ([-1], [0])),\n        ([1, 2], ([0, 1, 0, 1, 2], [])),\n        ([1, 2, 3], ([0, 1, 0, 1, 2, 2], [])),\n        ([1, 2, 3, 4], ([0, 1, 0, 1, 2, 2, -1], [3])),\n        ([1, 2, 3, 4, 2], ([0, 1, 0, 1, 2, 2, -1, 0, 1, 2], [3])),\n    ],\n)\ndef test_get_indexer_non_unique_with_int_and_float(self, query, expected):\n\n    tuples = [(0, 2.5), (1, 3), (2, 4)]\n    index = IntervalIndex.from_tuples(tuples, closed=\"left\")\n\n    result_indexer, result_missing = index.get_indexer_non_unique(query)\n    expected_indexer = np.array(expected[0], dtype=\"intp\")\n    expected_missing = np.array(expected[1], dtype=\"intp\")\n\n    tm.assert_numpy_array_equal(result_indexer, expected_indexer)\n    tm.assert_numpy_array_equal(result_missing, expected_missing)",
+                "def test_slice_locs_with_interval(self):\n\n    # increasing monotonically\n    index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])\n\n    assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)\n    assert index.slice_locs(start=Interval(0, 2)) == (0, 3)\n    assert index.slice_locs(end=Interval(2, 4)) == (0, 3)\n    assert index.slice_locs(end=Interval(0, 2)) == (0, 1)\n    assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 1)\n\n    # decreasing monotonically\n    index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])\n\n    assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (2, 1)\n    assert index.slice_locs(start=Interval(0, 2)) == (2, 3)\n    assert index.slice_locs(end=Interval(2, 4)) == (0, 1)\n    assert index.slice_locs(end=Interval(0, 2)) == (0, 3)\n    assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 3)\n\n    # sorted duplicates\n    index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])\n\n    assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)\n    assert index.slice_locs(start=Interval(0, 2)) == (0, 3)\n    assert index.slice_locs(end=Interval(2, 4)) == (0, 3)\n    assert index.slice_locs(end=Interval(0, 2)) == (0, 2)\n    assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)\n\n    # unsorted duplicates\n    index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])\n\n    with pytest.raises(\n        KeyError,\n        match=re.escape(\n            '\"Cannot get left slice bound for non-unique label:'\n            \" Interval(0, 2, closed='right')\\\"\"\n        ),\n    ):\n        index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))\n\n    with pytest.raises(\n        KeyError,\n        match=re.escape(\n            '\"Cannot get left slice bound for non-unique label:'\n            \" Interval(0, 2, closed='right')\\\"\"\n        ),\n    ):\n        index.slice_locs(start=Interval(0, 2))\n\n    assert index.slice_locs(end=Interval(2, 4)) == (0, 2)\n\n    with pytest.raises(\n        KeyError,\n        match=re.escape(\n            '\"Cannot get right slice bound for non-unique label:'\n            \" Interval(0, 2, closed='right')\\\"\"\n        ),\n    ):\n        index.slice_locs(end=Interval(0, 2))\n\n    with pytest.raises(\n        KeyError,\n        match=re.escape(\n            '\"Cannot get right slice bound for non-unique label:'\n            \" Interval(0, 2, closed='right')\\\"\"\n        ),\n    ):\n        index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))\n\n    # another unsorted duplicates\n    index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])\n\n    assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)\n    assert index.slice_locs(start=Interval(0, 2)) == (0, 4)\n    assert index.slice_locs(end=Interval(2, 4)) == (0, 3)\n    assert index.slice_locs(end=Interval(0, 2)) == (0, 2)\n    assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)",
+                "def test_slice_locs_with_ints_and_floats_succeeds(self):\n\n    # increasing non-overlapping\n    index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])\n\n    assert index.slice_locs(0, 1) == (0, 1)\n    assert index.slice_locs(0, 2) == (0, 2)\n    assert index.slice_locs(0, 3) == (0, 2)\n    assert index.slice_locs(3, 1) == (2, 1)\n    assert index.slice_locs(3, 4) == (2, 3)\n    assert index.slice_locs(0, 4) == (0, 3)\n\n    # decreasing non-overlapping\n    index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])\n    assert index.slice_locs(0, 1) == (3, 3)\n    assert index.slice_locs(0, 2) == (3, 2)\n    assert index.slice_locs(0, 3) == (3, 1)\n    assert index.slice_locs(3, 1) == (1, 3)\n    assert index.slice_locs(3, 4) == (1, 1)\n    assert index.slice_locs(0, 4) == (3, 1)",
+                "@pytest.mark.parametrize(\"query\", [[0, 1], [0, 2], [0, 3], [0, 4]])\n@pytest.mark.parametrize(\n    \"tuples\",\n    [\n        [(0, 2), (1, 3), (2, 4)],\n        [(2, 4), (1, 3), (0, 2)],\n        [(0, 2), (0, 2), (2, 4)],\n        [(0, 2), (2, 4), (0, 2)],\n        [(0, 2), (0, 2), (2, 4), (1, 3)],\n    ],\n)\ndef test_slice_locs_with_ints_and_floats_errors(self, tuples, query):\n    start, stop = query\n    index = IntervalIndex.from_tuples(tuples)\n    with pytest.raises(\n        KeyError,\n        match=(\n            \"'can only get slices from an IntervalIndex if bounds are\"\n            \" non-overlapping and all monotonic increasing or decreasing'\"\n        ),\n    ):\n        index.slice_locs(start, stop)"
+            ],
+            "inscope_function_signatures": [
                 "test_get_loc_interval(self, closed, side)",
                 "test_get_loc_scalar(self, closed, scalar)",
                 "test_get_loc_length_one_scalar(self, scalar, closed)",
@@ -6509,7 +7878,7 @@
                 "test_function": "test_round_interval_category_columns",
                 "test_function_code": "    def test_round_interval_category_columns(self):\n        # GH 30063\n        columns = pd.CategoricalIndex(pd.interval_range(0, 2))\n        df = DataFrame([[0.66, 1.1], [0.3, 0.25]], columns=columns)\n\n        result = df.round()\n        expected = DataFrame([[1.0, 1.0], [0.0, 0.0]], columns=columns)\n        tm.assert_frame_equal(result, expected)",
                 "test_error": "TypeError: No matching signature found",
-                "full_test_error": "self = <pandas.tests.frame.test_analytics.TestDataFrameAnalytics object at 0x118fc9e20>\n\n    def test_round_interval_category_columns(self):\n        # GH 30063\n        columns = pd.CategoricalIndex(pd.interval_range(0, 2))\n        df = DataFrame([[0.66, 1.1], [0.3, 0.25]], columns=columns)\n    \n>       result = df.round()\n\npandas/tests/frame/test_analytics.py:2280: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/frame.py:7127: in round\n    return self._constructor(\npandas/core/frame.py:416: in __init__\n    mgr = self._init_mgr(\npandas/core/generic.py:219: in _init_mgr\n    mgr = mgr.reindex_axis(\npandas/core/internals/managers.py:1186: in reindex_axis\n    new_index, indexer = self.axes[axis].reindex(\npandas/core/indexes/base.py:3200: in reindex\n    indexer = self.get_indexer(\npandas/core/indexes/interval.py:964: in get_indexer\n    indexer = self._engine.get_indexer(target_as_index.values)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   def get_indexer(self, scalar_t[:] target):\nE   TypeError: No matching signature found\n\npandas/_libs/intervaltree.pxi:154: TypeError",
+                "full_test_error": "self = <pandas.tests.frame.test_analytics.TestDataFrameAnalytics object at 0x120f55b20>\n\n    def test_round_interval_category_columns(self):\n        # GH 30063\n        columns = pd.CategoricalIndex(pd.interval_range(0, 2))\n        df = DataFrame([[0.66, 1.1], [0.3, 0.25]], columns=columns)\n    \n>       result = df.round()\n\npandas/tests/frame/test_analytics.py:2280: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/frame.py:7127: in round\n    return self._constructor(\npandas/core/frame.py:416: in __init__\n    mgr = self._init_mgr(\npandas/core/generic.py:219: in _init_mgr\n    mgr = mgr.reindex_axis(\npandas/core/internals/managers.py:1186: in reindex_axis\n    new_index, indexer = self.axes[axis].reindex(\npandas/core/indexes/base.py:3200: in reindex\n    indexer = self.get_indexer(\npandas/core/indexes/interval.py:964: in get_indexer\n    indexer = self._engine.get_indexer(target_as_index.values)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   def get_indexer(self, scalar_t[:] target):\nE   TypeError: No matching signature found\n\npandas/_libs/intervaltree.pxi:154: TypeError",
                 "traceback": "pandas/core/frame.py:7127: in round\n    return self._constructor(\npandas/core/frame.py:416: in __init__\n    mgr = self._init_mgr(\npandas/core/generic.py:219: in _init_mgr\n    mgr = mgr.reindex_axis(\npandas/core/internals/managers.py:1186: in reindex_axis\n    new_index, indexer = self.axes[axis].reindex(\npandas/core/indexes/base.py:3200: in reindex\n    indexer = self.get_indexer(\npandas/core/indexes/interval.py:964: in get_indexer\n    indexer = self._engine.get_indexer(target_as_index.values)",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   def get_indexer(self, scalar_t[:] target):\nE   TypeError: No matching signature found\n\npandas/_libs/intervaltree.pxi:154: TypeError",
                 "test_function_decorators": []

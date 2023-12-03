@@ -152,6 +152,45 @@
                         "docstring": "Abstract pipeline that implement the image thumbnail generation logic\n\n    ",
                         "constructor_docstring": null,
                         "functions": [
+                            "def __init__(self, store_uri, download_func=None, settings=None):\n    super(ImagesPipeline, self).__init__(store_uri, settings=settings, download_func=download_func)\n    if isinstance(settings, dict) or settings is None:\n        settings = Settings(settings)\n    resolve = functools.partial(self._key_for_pipe, base_class_name='ImagesPipeline', settings=settings)\n    self.expires = settings.getint(resolve('IMAGES_EXPIRES'), self.EXPIRES)\n    if not hasattr(self, 'IMAGES_RESULT_FIELD'):\n        self.IMAGES_RESULT_FIELD = self.DEFAULT_IMAGES_RESULT_FIELD\n    if not hasattr(self, 'IMAGES_URLS_FIELD'):\n        self.IMAGES_URLS_FIELD = self.DEFAULT_IMAGES_URLS_FIELD\n    self.images_urls_field = settings.get(resolve('IMAGES_URLS_FIELD'), self.IMAGES_URLS_FIELD)\n    self.images_result_field = settings.get(resolve('IMAGES_RESULT_FIELD'), self.IMAGES_RESULT_FIELD)\n    self.min_width = settings.getint(resolve('IMAGES_MIN_WIDTH'), self.MIN_WIDTH)\n    self.min_height = settings.getint(resolve('IMAGES_MIN_HEIGHT'), self.MIN_HEIGHT)\n    self.thumbs = settings.get(resolve('IMAGES_THUMBS'), self.THUMBS)",
+                            "@classmethod\ndef from_settings(cls, settings):\n    s3store = cls.STORE_SCHEMES['s3']\n    s3store.AWS_ACCESS_KEY_ID = settings['AWS_ACCESS_KEY_ID']\n    s3store.AWS_SECRET_ACCESS_KEY = settings['AWS_SECRET_ACCESS_KEY']\n    s3store.POLICY = settings['IMAGES_STORE_S3_ACL']\n    store_uri = settings['IMAGES_STORE']\n    return cls(store_uri, settings=settings)",
+                            "def file_downloaded(self, response, request, info):\n    return self.image_downloaded(response, request, info)",
+                            "def image_downloaded(self, response, request, info):\n    checksum = None\n    for path, image, buf in self.get_images(response, request, info):\n        if checksum is None:\n            buf.seek(0)\n            checksum = md5sum(buf)\n        width, height = image.size\n        self.store.persist_file(path, buf, info, meta={'width': width, 'height': height}, headers={'Content-Type': 'image/jpeg'})\n    return checksum",
+                            "def get_images(self, response, request, info):\n    path = self.file_path(request, response=response, info=info)\n    orig_image = Image.open(BytesIO(response.body))\n    width, height = orig_image.size\n    if width < self.min_width or height < self.min_height:\n        raise ImageException('Image too small (%dx%d < %dx%d)' % (width, height, self.min_width, self.min_height))\n    image, buf = self.convert_image(orig_image)\n    yield (path, image, buf)\n    for thumb_id, size in six.iteritems(self.thumbs):\n        thumb_path = self.thumb_path(request, thumb_id, response=response, info=info)\n        thumb_image, thumb_buf = self.convert_image(image, size)\n        yield (thumb_path, thumb_image, thumb_buf)",
+                            "def convert_image(self, image, size=None):\n    if image.format == 'PNG' and image.mode == 'RGBA':\n        background = Image.new('RGBA', image.size, (255, 255, 255))\n        background.paste(image, image)\n        image = background.convert('RGB')\n    elif image.mode != 'RGB':\n        image = image.convert('RGB')\n    if size:\n        image = image.copy()\n        image.thumbnail(size, Image.ANTIALIAS)\n    buf = BytesIO()\n    image.save(buf, 'JPEG')\n    return (image, buf)",
+                            "def get_media_requests(self, item, info):\n    return [Request(x) for x in item.get(self.images_urls_field, [])]",
+                            "def item_completed(self, results, item, info):\n    if isinstance(item, dict) or self.images_result_field in item.fields:\n        item[self.images_result_field] = [x for ok, x in results if ok]\n    return item",
+                            "def file_path(self, request, response=None, info=None):\n\n    def _warn():\n        from scrapy.exceptions import ScrapyDeprecationWarning\n        import warnings\n        warnings.warn('ImagesPipeline.image_key(url) and file_key(url) methods are deprecated, please use file_path(request, response=None, info=None) instead', category=ScrapyDeprecationWarning, stacklevel=1)\n    if not isinstance(request, Request):\n        _warn()\n        url = request\n    else:\n        url = request.url\n    if not hasattr(self.file_key, '_base'):\n        _warn()\n        return self.file_key(url)\n    elif not hasattr(self.image_key, '_base'):\n        _warn()\n        return self.image_key(url)\n    image_guid = hashlib.sha1(to_bytes(url)).hexdigest()\n    return 'full/%s.jpg' % image_guid",
+                            "def thumb_path(self, request, thumb_id, response=None, info=None):\n\n    def _warn():\n        from scrapy.exceptions import ScrapyDeprecationWarning\n        import warnings\n        warnings.warn('ImagesPipeline.thumb_key(url) method is deprecated, please use thumb_path(request, thumb_id, response=None, info=None) instead', category=ScrapyDeprecationWarning, stacklevel=1)\n    if not isinstance(request, Request):\n        _warn()\n        url = request\n    else:\n        url = request.url\n    if not hasattr(self.thumb_key, '_base'):\n        _warn()\n        return self.thumb_key(url, thumb_id)\n    thumb_guid = hashlib.sha1(to_bytes(url)).hexdigest()\n    return 'thumbs/%s/%s.jpg' % (thumb_id, thumb_guid)",
+                            "def file_key(self, url):\n    return self.image_key(url)",
+                            "def image_key(self, url):\n    return self.file_path(url)",
+                            "def thumb_key(self, url, thumb_id):\n    return self.thumb_path(url, thumb_id)",
+                            "def _warn():\n    from scrapy.exceptions import ScrapyDeprecationWarning\n    import warnings\n    warnings.warn('ImagesPipeline.image_key(url) and file_key(url) methods are deprecated, please use file_path(request, response=None, info=None) instead', category=ScrapyDeprecationWarning, stacklevel=1)",
+                            "def _warn():\n    from scrapy.exceptions import ScrapyDeprecationWarning\n    import warnings\n    warnings.warn('ImagesPipeline.thumb_key(url) method is deprecated, please use thumb_path(request, thumb_id, response=None, info=None) instead', category=ScrapyDeprecationWarning, stacklevel=1)"
+                        ],
+                        "constructor_variables": [
+                            "resolve",
+                            "IMAGES_RESULT_FIELD",
+                            "min_height",
+                            "expires",
+                            "IMAGES_URLS_FIELD",
+                            "settings",
+                            "thumbs",
+                            "images_urls_field",
+                            "images_result_field",
+                            "min_width"
+                        ],
+                        "class_level_variables": [
+                            "MEDIA_NAME",
+                            "MIN_WIDTH",
+                            "MIN_HEIGHT",
+                            "EXPIRES",
+                            "THUMBS",
+                            "DEFAULT_IMAGES_URLS_FIELD",
+                            "DEFAULT_IMAGES_RESULT_FIELD"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
                             "__init__(self, store_uri, download_func=None, settings=None)",
                             "from_settings(cls, settings)",
                             "file_downloaded(self, response, request, info)",
@@ -167,33 +206,1168 @@
                             "thumb_key(self, url, thumb_id)",
                             "_warn()",
                             "_warn()"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "JPEG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>",
+                                    "variable_type": "JpegImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "JPEG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>",
+                                    "variable_type": "JpegImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10c953ae0>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                }
+                            }
                         ],
-                        "constructor_variables": [
-                            "resolve",
-                            "settings",
-                            "images_urls_field",
-                            "min_width",
-                            "min_height",
-                            "expires",
-                            "images_result_field",
-                            "IMAGES_URLS_FIELD",
-                            "IMAGES_RESULT_FIELD",
-                            "thumbs"
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "JPEG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>",
+                                    "variable_type": "JpegImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "(10, 25)",
+                                    "variable_type": "tuple"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10C8DED30>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGB size=10x10 at 0x10CA1CDC0>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(10, 10)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGB size=10x10 at 0x10CA1CDC0>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "(10, 25)",
+                                    "variable_type": "tuple"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=RGB size=10x10 at 0x10CA1CDC0>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=RGB size=10x10 at 0x10CA1CDC0>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10c953f40>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=RGB size=10x10 at 0x10CA1CDC0>>",
+                                    "variable_type": "method"
+                                }
+                            }
                         ],
-                        "class_level_variables": [
-                            "MEDIA_NAME",
-                            "MIN_WIDTH",
-                            "MIN_HEIGHT",
-                            "EXPIRES",
-                            "THUMBS",
-                            "DEFAULT_IMAGES_URLS_FIELD",
-                            "DEFAULT_IMAGES_RESULT_FIELD"
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "PNG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10CA222B0>",
+                                    "variable_type": "PngImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGBA",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10CA222B0>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10CA222B0>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10CA222B0>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10CA222B0>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGB size=100x100 at 0x10CA227C0>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGBA size=100x100 at 0x10CA22790>",
+                                    "variable_type": "Image"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "<bound method Image.paste of <PIL.Image.Image image mode=RGBA size=100x100 at 0x10CA22790>>",
+                                    "variable_type": "method"
+                                },
+                                "background.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGBA size=100x100 at 0x10CA22790>>",
+                                    "variable_type": "method"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA227C0>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA227C0>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA227C0>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10c953a40>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA227C0>>",
+                                    "variable_type": "method"
+                                }
+                            }
                         ],
-                        "class_decorators": []
-                    }
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=P size=100x100 at 0x10CA22760>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "P",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=P size=100x100 at 0x10CA22760>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=P size=100x100 at 0x10CA22760>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=P size=100x100 at 0x10CA22760>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=P size=100x100 at 0x10CA22760>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGB size=100x100 at 0x10CA2D100>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA2D100>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA2D100>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA2D100>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10c9539a0>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=RGB size=100x100 at 0x10CA2D100>>",
+                                    "variable_type": "method"
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "JPEG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>",
+                                    "variable_type": "JpegImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "JPEG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>",
+                                    "variable_type": "JpegImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10ef17bd0>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "JPEG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>",
+                                    "variable_type": "JpegImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "(10, 25)",
+                                    "variable_type": "tuple"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x10EE9FC70>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGB size=10x10 at 0x10EFE2850>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(10, 10)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGB size=10x10 at 0x10EFE2850>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "(10, 25)",
+                                    "variable_type": "tuple"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=RGB size=10x10 at 0x10EFE2850>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=RGB size=10x10 at 0x10EFE2850>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10ef17e00>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=RGB size=10x10 at 0x10EFE2850>>",
+                                    "variable_type": "method"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "PNG",
+                                    "variable_type": "str"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10EFE2D00>",
+                                    "variable_type": "PngImageFile"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGBA",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10EFE2D00>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10EFE2D00>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10EFE2D00>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x10EFE2D00>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE20D0>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGBA size=100x100 at 0x10EFE2A30>",
+                                    "variable_type": "Image"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "<bound method Image.paste of <PIL.Image.Image image mode=RGBA size=100x100 at 0x10EFE2A30>>",
+                                    "variable_type": "method"
+                                },
+                                "background.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGBA size=100x100 at 0x10EFE2A30>>",
+                                    "variable_type": "method"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE20D0>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE20D0>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE20D0>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10ed6c360>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE20D0>>",
+                                    "variable_type": "method"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=P size=100x100 at 0x10EFE2CD0>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "P",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "background.convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=P size=100x100 at 0x10EFE2CD0>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=P size=100x100 at 0x10EFE2CD0>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=P size=100x100 at 0x10EFE2CD0>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=P size=100x100 at 0x10EFE2CD0>>",
+                                    "variable_type": "method"
+                                }
+                            },
+                            {
+                                "image.format": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE23D0>",
+                                    "variable_type": "Image"
+                                },
+                                "image.mode": {
+                                    "variable_value": "RGB",
+                                    "variable_type": "str"
+                                },
+                                "background": {
+                                    "variable_value": "<PIL.Image.Image image mode=RGBA size=100x100 at 0x10EFE2340>",
+                                    "variable_type": "Image"
+                                },
+                                "Image.new": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "Image": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.size": {
+                                    "variable_value": "(100, 100)",
+                                    "variable_type": "tuple"
+                                },
+                                "background.paste": {
+                                    "variable_value": "<bound method Image.paste of <PIL.Image.Image image mode=RGBA size=100x100 at 0x10EFE2340>>",
+                                    "variable_type": "method"
+                                },
+                                "background.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGBA size=100x100 at 0x10EFE2340>>",
+                                    "variable_type": "method"
+                                },
+                                "image.convert": {
+                                    "variable_value": "<bound method Image.convert of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE23D0>>",
+                                    "variable_type": "method"
+                                },
+                                "size": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "image.copy": {
+                                    "variable_value": "<bound method Image.copy of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE23D0>>",
+                                    "variable_type": "method"
+                                },
+                                "image.thumbnail": {
+                                    "variable_value": "<bound method Image.thumbnail of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE23D0>>",
+                                    "variable_type": "method"
+                                },
+                                "Image.ANTIALIAS": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "buf": {
+                                    "variable_value": "<_io.BytesIO object at 0x10ef17bd0>",
+                                    "variable_type": "BytesIO"
+                                },
+                                "BytesIO": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "image.save": {
+                                    "variable_value": "<bound method Image.save of <PIL.Image.Image image mode=RGB size=100x100 at 0x10EFE23D0>>",
+                                    "variable_type": "method"
+                                }
+                            }
+                        ]
+                    ]
                 }
             ],
             "inscope_functions": [
+                "def __init__(self, store_uri, download_func=None, settings=None):\n    super(ImagesPipeline, self).__init__(store_uri, settings=settings,\n                                         download_func=download_func)\n\n    if isinstance(settings, dict) or settings is None:\n        settings = Settings(settings)\n\n    resolve = functools.partial(self._key_for_pipe,\n                                base_class_name=\"ImagesPipeline\",\n                                settings=settings)\n    self.expires = settings.getint(\n        resolve(\"IMAGES_EXPIRES\"), self.EXPIRES\n    )\n\n    if not hasattr(self, \"IMAGES_RESULT_FIELD\"):\n        self.IMAGES_RESULT_FIELD = self.DEFAULT_IMAGES_RESULT_FIELD\n    if not hasattr(self, \"IMAGES_URLS_FIELD\"):\n        self.IMAGES_URLS_FIELD = self.DEFAULT_IMAGES_URLS_FIELD\n\n    self.images_urls_field = settings.get(\n        resolve('IMAGES_URLS_FIELD'),\n        self.IMAGES_URLS_FIELD\n    )\n    self.images_result_field = settings.get(\n        resolve('IMAGES_RESULT_FIELD'),\n        self.IMAGES_RESULT_FIELD\n    )\n    self.min_width = settings.getint(\n        resolve('IMAGES_MIN_WIDTH'), self.MIN_WIDTH\n    )\n    self.min_height = settings.getint(\n        resolve('IMAGES_MIN_HEIGHT'), self.MIN_HEIGHT\n    )\n    self.thumbs = settings.get(\n        resolve('IMAGES_THUMBS'), self.THUMBS\n    )",
+                "@classmethod\ndef from_settings(cls, settings):\n    s3store = cls.STORE_SCHEMES['s3']\n    s3store.AWS_ACCESS_KEY_ID = settings['AWS_ACCESS_KEY_ID']\n    s3store.AWS_SECRET_ACCESS_KEY = settings['AWS_SECRET_ACCESS_KEY']\n    s3store.POLICY = settings['IMAGES_STORE_S3_ACL']\n\n    store_uri = settings['IMAGES_STORE']\n    return cls(store_uri, settings=settings)",
+                "def file_downloaded(self, response, request, info):\n    return self.image_downloaded(response, request, info)",
+                "def image_downloaded(self, response, request, info):\n    checksum = None\n    for path, image, buf in self.get_images(response, request, info):\n        if checksum is None:\n            buf.seek(0)\n            checksum = md5sum(buf)\n        width, height = image.size\n        self.store.persist_file(\n            path, buf, info,\n            meta={'width': width, 'height': height},\n            headers={'Content-Type': 'image/jpeg'})\n    return checksum",
+                "def get_images(self, response, request, info):\n    path = self.file_path(request, response=response, info=info)\n    orig_image = Image.open(BytesIO(response.body))\n\n    width, height = orig_image.size\n    if width < self.min_width or height < self.min_height:\n        raise ImageException(\"Image too small (%dx%d < %dx%d)\" %\n                             (width, height, self.min_width, self.min_height))\n\n    image, buf = self.convert_image(orig_image)\n    yield path, image, buf\n\n    for thumb_id, size in six.iteritems(self.thumbs):\n        thumb_path = self.thumb_path(request, thumb_id, response=response, info=info)\n        thumb_image, thumb_buf = self.convert_image(image, size)\n        yield thumb_path, thumb_image, thumb_buf",
+                "def convert_image(self, image, size=None):\n    if image.format == 'PNG' and image.mode == 'RGBA':\n        background = Image.new('RGBA', image.size, (255, 255, 255))\n        background.paste(image, image)\n        image = background.convert('RGB')\n    elif image.mode != 'RGB':\n        image = image.convert('RGB')\n\n    if size:\n        image = image.copy()\n        image.thumbnail(size, Image.ANTIALIAS)\n\n    buf = BytesIO()\n    image.save(buf, 'JPEG')\n    return image, buf",
+                "def get_media_requests(self, item, info):\n    return [Request(x) for x in item.get(self.images_urls_field, [])]",
+                "def item_completed(self, results, item, info):\n    if isinstance(item, dict) or self.images_result_field in item.fields:\n        item[self.images_result_field] = [x for ok, x in results if ok]\n    return item",
+                "def file_path(self, request, response=None, info=None):\n    ## start of deprecation warning block (can be removed in the future)\n    def _warn():\n        from scrapy.exceptions import ScrapyDeprecationWarning\n        import warnings\n        warnings.warn('ImagesPipeline.image_key(url) and file_key(url) methods are deprecated, '\n                      'please use file_path(request, response=None, info=None) instead',\n                      category=ScrapyDeprecationWarning, stacklevel=1)\n\n    # check if called from image_key or file_key with url as first argument\n    if not isinstance(request, Request):\n        _warn()\n        url = request\n    else:\n        url = request.url\n\n    # detect if file_key() or image_key() methods have been overridden\n    if not hasattr(self.file_key, '_base'):\n        _warn()\n        return self.file_key(url)\n    elif not hasattr(self.image_key, '_base'):\n        _warn()\n        return self.image_key(url)\n    ## end of deprecation warning block\n\n    image_guid = hashlib.sha1(to_bytes(url)).hexdigest()  # change to request.url after deprecation\n    return 'full/%s.jpg' % (image_guid)",
+                "def thumb_path(self, request, thumb_id, response=None, info=None):\n    ## start of deprecation warning block (can be removed in the future)\n    def _warn():\n        from scrapy.exceptions import ScrapyDeprecationWarning\n        import warnings\n        warnings.warn('ImagesPipeline.thumb_key(url) method is deprecated, please use '\n                      'thumb_path(request, thumb_id, response=None, info=None) instead',\n                      category=ScrapyDeprecationWarning, stacklevel=1)\n\n    # check if called from thumb_key with url as first argument\n    if not isinstance(request, Request):\n        _warn()\n        url = request\n    else:\n        url = request.url\n\n    # detect if thumb_key() method has been overridden\n    if not hasattr(self.thumb_key, '_base'):\n        _warn()\n        return self.thumb_key(url, thumb_id)\n    ## end of deprecation warning block\n\n    thumb_guid = hashlib.sha1(to_bytes(url)).hexdigest()  # change to request.url after deprecation\n    return 'thumbs/%s/%s.jpg' % (thumb_id, thumb_guid)",
+                "def file_key(self, url):\n    return self.image_key(url)",
+                "def image_key(self, url):\n    return self.file_path(url)",
+                "def thumb_key(self, url, thumb_id):\n    return self.thumb_path(url, thumb_id)",
+                "def _warn():\n    from scrapy.exceptions import ScrapyDeprecationWarning\n    import warnings\n    warnings.warn('ImagesPipeline.image_key(url) and file_key(url) methods are deprecated, '\n                  'please use file_path(request, response=None, info=None) instead',\n                  category=ScrapyDeprecationWarning, stacklevel=1)",
+                "def _warn():\n    from scrapy.exceptions import ScrapyDeprecationWarning\n    import warnings\n    warnings.warn('ImagesPipeline.thumb_key(url) method is deprecated, please use '\n                  'thumb_path(request, thumb_id, response=None, info=None) instead',\n                  category=ScrapyDeprecationWarning, stacklevel=1)"
+            ],
+            "inscope_function_signatures": [
                 "__init__(self, store_uri, download_func=None, settings=None)",
                 "from_settings(cls, settings)",
                 "file_downloaded(self, response, request, info)",

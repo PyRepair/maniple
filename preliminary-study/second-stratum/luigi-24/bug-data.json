@@ -67,6 +67,47 @@
                         "docstring": "Template task for running a Spark job\n\nSupports running jobs on Spark local, standalone, Mesos or Yarn\n\nSee http://spark.apache.org/docs/latest/submitting-applications.html\nfor more information",
                         "constructor_docstring": null,
                         "functions": [
+                            "def app_options(self):\n    \"\"\"\n    Subclass this method to map your task parameters to the app's arguments\n\n    \"\"\"\n    return []",
+                            "@property\ndef spark_submit(self):\n    return configuration.get_config().get('spark', 'spark-submit', 'spark-submit')",
+                            "@property\ndef master(self):\n    return configuration.get_config().get('spark', 'master', None)",
+                            "@property\ndef deploy_mode(self):\n    return configuration.get_config().get('spark', 'deploy-mode', None)",
+                            "@property\ndef jars(self):\n    return self._list_config(configuration.get_config().get('spark', 'jars', None))",
+                            "@property\ndef py_files(self):\n    return self._list_config(configuration.get_config().get('spark', 'py-files', None))",
+                            "@property\ndef files(self):\n    return self._list_config(configuration.get_config().get('spark', 'files', None))",
+                            "@property\ndef conf(self):\n    return self._dict_config(configuration.get_config().get('spark', 'conf', None))",
+                            "@property\ndef properties_file(self):\n    return configuration.get_config().get('spark', 'properties-file', None)",
+                            "@property\ndef driver_memory(self):\n    return configuration.get_config().get('spark', 'driver-memory', None)",
+                            "@property\ndef driver_java_options(self):\n    return configuration.get_config().get('spark', 'driver-java-options', None)",
+                            "@property\ndef driver_library_path(self):\n    return configuration.get_config().get('spark', 'driver-library-path', None)",
+                            "@property\ndef driver_class_path(self):\n    return configuration.get_config().get('spark', 'driver-class-path', None)",
+                            "@property\ndef executor_memory(self):\n    return configuration.get_config().get('spark', 'executor-memory', None)",
+                            "@property\ndef driver_cores(self):\n    return configuration.get_config().get('spark', 'driver-cores', None)",
+                            "@property\ndef supervise(self):\n    return bool(configuration.get_config().get('spark', 'supervise', False))",
+                            "@property\ndef total_executor_cores(self):\n    return configuration.get_config().get('spark', 'total-executor-cores', None)",
+                            "@property\ndef executor_cores(self):\n    return configuration.get_config().get('spark', 'executor-cores', None)",
+                            "@property\ndef queue(self):\n    return configuration.get_config().get('spark', 'queue', None)",
+                            "@property\ndef num_executors(self):\n    return configuration.get_config().get('spark', 'num-executors', None)",
+                            "@property\ndef archives(self):\n    return self._list_config(configuration.get_config().get('spark', 'archives', None))",
+                            "@property\ndef hadoop_conf_dir(self):\n    return configuration.get_config().get('spark', 'hadoop-conf-dir', None)",
+                            "def get_environment(self):\n    env = os.environ.copy()\n    hadoop_conf_dir = self.hadoop_conf_dir\n    if hadoop_conf_dir:\n        env['HADOOP_CONF_DIR'] = hadoop_conf_dir\n    return env",
+                            "def spark_command(self):\n    command = [self.spark_submit]\n    command += self._text_arg('--master', self.master)\n    command += self._text_arg('--deploy-mode', self.deploy_mode)\n    command += self._text_arg('--name', self.name)\n    command += self._text_arg('--class', self.entry_class)\n    command += self._list_arg('--jars', self.jars)\n    command += self._list_arg('--py-files', self.py_files)\n    command += self._list_arg('--files', self.files)\n    command += self._list_arg('--archives', self.archives)\n    command += self._dict_arg('--conf', self.conf)\n    command += self._text_arg('--properties-file', self.properties_file)\n    command += self._text_arg('--driver-memory', self.driver_memory)\n    command += self._text_arg('--driver-java-options', self.driver_java_options)\n    command += self._text_arg('--driver-library-path', self.driver_library_path)\n    command += self._text_arg('--driver-class-path', self.driver_class_path)\n    command += self._text_arg('--executor-memory', self.executor_memory)\n    command += self._text_arg('--driver-cores', self.driver_cores)\n    command += self._flag_arg('--supervise', self.supervise)\n    command += self._text_arg('--total-executor-cores', self.total_executor_cores)\n    command += self._text_arg('--executor-cores', self.executor_cores)\n    command += self._text_arg('--queue', self.queue)\n    command += self._text_arg('--num-executors', self.num_executors)\n    return command",
+                            "def app_command(self):\n    if not self.app:\n        raise NotImplementedError('subclass should define an app (.jar or .py file)')\n    return [self.app] + self.app_options()",
+                            "def run(self):\n    args = list(map(str, self.spark_command() + self.app_command()))\n    logger.info('Running: %s', repr(args))\n    tmp_stdout, tmp_stderr = (tempfile.TemporaryFile(), tempfile.TemporaryFile())\n    proc = subprocess.Popen(args, stdout=tmp_stdout, stderr=tmp_stderr, env=self.get_environment(), close_fds=True, universal_newlines=True)\n    try:\n        with SparkRunContext(proc):\n            proc.wait()\n        tmp_stdout.seek(0)\n        stdout = ''.join(map(lambda s: s.decode('utf-8'), tmp_stdout.readlines()))\n        logger.info('Spark job stdout:\\n{0}'.format(stdout))\n        if proc.returncode != 0:\n            tmp_stderr.seek(0)\n            stderr = ''.join(map(lambda s: s.decode('utf-8'), tmp_stderr.readlines()))\n            raise SparkJobError('Spark job failed {0}'.format(repr(args)), out=stdout, err=stderr)\n    finally:\n        tmp_stderr.close()\n        tmp_stdout.close()",
+                            "def _list_config(self, config):\n    if config and isinstance(config, six.string_types):\n        return list(map(lambda x: x.strip(), config.split(',')))",
+                            "def _dict_config(self, config):\n    if config and isinstance(config, six.string_types):\n        return dict(map(lambda i: i.split('='), config.split('|')))",
+                            "def _text_arg(self, name, value):\n    if value:\n        return [name, value]\n    return []",
+                            "def _list_arg(self, name, value):\n    if value and isinstance(value, (list, tuple)):\n        return [name, ','.join(value)]\n    return []",
+                            "def _dict_arg(self, name, value):\n    command = []\n    if value and isinstance(value, dict):\n        for prop, value in value.items():\n            command += [name, '\"{0}={1}\"'.format(prop, value)]\n    return command",
+                            "def _flag_arg(self, name, value):\n    if value:\n        return [name]\n    return []"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "name",
+                            "entry_class",
+                            "app"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
                             "app_options(self)",
                             "spark_submit(self)",
                             "master(self)",
@@ -99,18 +140,183 @@
                             "_list_arg(self, name, value)",
                             "_dict_arg(self, name, value)",
                             "_flag_arg(self, name, value)"
-                        ],
-                        "constructor_variables": [],
-                        "class_level_variables": [
-                            "name",
-                            "entry_class",
-                            "app"
-                        ],
-                        "class_decorators": []
-                    }
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "command": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "value": {
+                                    "variable_value": "{'Prop': 'Value'}",
+                                    "variable_type": "dict"
+                                },
+                                "prop": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "value.items": {
+                                    "variable_value": "<built-in method items of dict object at 0x105196580>",
+                                    "variable_type": "builtin_function_or_method"
+                                },
+                                "name": {
+                                    "variable_value": "--conf",
+                                    "variable_type": "str"
+                                }
+                            },
+                            {
+                                "command": {
+                                    "variable_value": "['--conf', '\"Prop=Value\"']",
+                                    "variable_type": "list"
+                                },
+                                "value": {
+                                    "variable_value": "Value",
+                                    "variable_type": "str"
+                                },
+                                "prop": {
+                                    "variable_value": "Prop",
+                                    "variable_type": "str"
+                                },
+                                "value.items": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "name": {
+                                    "variable_value": "--conf",
+                                    "variable_type": "str"
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "command": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "value": {
+                                    "variable_value": "{'Prop': 'Value'}",
+                                    "variable_type": "dict"
+                                },
+                                "prop": {
+                                    "variable_value": "None",
+                                    "variable_type": "None"
+                                },
+                                "value.items": {
+                                    "variable_value": "<built-in method items of dict object at 0x112992c00>",
+                                    "variable_type": "builtin_function_or_method"
+                                },
+                                "name": {
+                                    "variable_value": "--conf",
+                                    "variable_type": "str"
+                                }
+                            },
+                            {
+                                "command": {
+                                    "variable_value": "['--conf', 'Prop=Value']",
+                                    "variable_type": "list"
+                                },
+                                "value": {
+                                    "variable_value": "Value",
+                                    "variable_type": "str"
+                                },
+                                "prop": {
+                                    "variable_value": "Prop",
+                                    "variable_type": "str"
+                                },
+                                "value.items": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType"
+                                },
+                                "name": {
+                                    "variable_value": "--conf",
+                                    "variable_type": "str"
+                                }
+                            }
+                        ]
+                    ]
                 }
             ],
             "inscope_functions": [
+                "def __init__(self, proc):\n    self.proc = proc",
+                "def __enter__(self):\n    self.__old_signal = signal.getsignal(signal.SIGTERM)\n    signal.signal(signal.SIGTERM, self.kill_job)\n    return self",
+                "def __exit__(self, exc_type, exc_val, exc_tb):\n    if exc_type is KeyboardInterrupt:\n        self.kill_job()\n    signal.signal(signal.SIGTERM, self.__old_signal)",
+                "def kill_job(self, captured_signal=None, stack_frame=None):\n    self.proc.kill()\n    if captured_signal is not None:\n        # adding 128 gives the exit code corresponding to a signal\n        sys.exit(128 + captured_signal)",
+                "def __init__(self, message, out=None, err=None):\n    super(SparkJobError, self).__init__(message, out, err)\n    self.message = message\n    self.out = out\n    self.err = err",
+                "def __str__(self):\n    info = self.message\n    if self.out:\n        info += \"\\nSTDOUT: \" + str(self.out)\n    if self.err:\n        info += \"\\nSTDERR: \" + str(self.err)\n    return info",
+                "def app_options(self):\n    \"\"\"\n    Subclass this method to map your task parameters to the app's arguments\n\n    \"\"\"\n    return []",
+                "@property\ndef spark_submit(self):\n    return configuration.get_config().get('spark', 'spark-submit', 'spark-submit')",
+                "@property\ndef master(self):\n    return configuration.get_config().get(\"spark\", \"master\", None)",
+                "@property\ndef deploy_mode(self):\n    return configuration.get_config().get(\"spark\", \"deploy-mode\", None)",
+                "@property\ndef jars(self):\n    return self._list_config(configuration.get_config().get(\"spark\", \"jars\", None))",
+                "@property\ndef py_files(self):\n    return self._list_config(configuration.get_config().get(\"spark\", \"py-files\", None))",
+                "@property\ndef files(self):\n    return self._list_config(configuration.get_config().get(\"spark\", \"files\", None))",
+                "@property\ndef conf(self):\n    return self._dict_config(configuration.get_config().get(\"spark\", \"conf\", None))",
+                "@property\ndef properties_file(self):\n    return configuration.get_config().get(\"spark\", \"properties-file\", None)",
+                "@property\ndef driver_memory(self):\n    return configuration.get_config().get(\"spark\", \"driver-memory\", None)",
+                "@property\ndef driver_java_options(self):\n    return configuration.get_config().get(\"spark\", \"driver-java-options\", None)",
+                "@property\ndef driver_library_path(self):\n    return configuration.get_config().get(\"spark\", \"driver-library-path\", None)",
+                "@property\ndef driver_class_path(self):\n    return configuration.get_config().get(\"spark\", \"driver-class-path\", None)",
+                "@property\ndef executor_memory(self):\n    return configuration.get_config().get(\"spark\", \"executor-memory\", None)",
+                "@property\ndef driver_cores(self):\n    return configuration.get_config().get(\"spark\", \"driver-cores\", None)",
+                "@property\ndef supervise(self):\n    return bool(configuration.get_config().get(\"spark\", \"supervise\", False))",
+                "@property\ndef total_executor_cores(self):\n    return configuration.get_config().get(\"spark\", \"total-executor-cores\", None)",
+                "@property\ndef executor_cores(self):\n    return configuration.get_config().get(\"spark\", \"executor-cores\", None)",
+                "@property\ndef queue(self):\n    return configuration.get_config().get(\"spark\", \"queue\", None)",
+                "@property\ndef num_executors(self):\n    return configuration.get_config().get(\"spark\", \"num-executors\", None)",
+                "@property\ndef archives(self):\n    return self._list_config(configuration.get_config().get(\"spark\", \"archives\", None))",
+                "@property\ndef hadoop_conf_dir(self):\n    return configuration.get_config().get(\"spark\", \"hadoop-conf-dir\", None)",
+                "def get_environment(self):\n    env = os.environ.copy()\n    hadoop_conf_dir = self.hadoop_conf_dir\n    if hadoop_conf_dir:\n        env['HADOOP_CONF_DIR'] = hadoop_conf_dir\n    return env",
+                "def spark_command(self):\n    command = [self.spark_submit]\n    command += self._text_arg('--master', self.master)\n    command += self._text_arg('--deploy-mode', self.deploy_mode)\n    command += self._text_arg('--name', self.name)\n    command += self._text_arg('--class', self.entry_class)\n    command += self._list_arg('--jars', self.jars)\n    command += self._list_arg('--py-files', self.py_files)\n    command += self._list_arg('--files', self.files)\n    command += self._list_arg('--archives', self.archives)\n    command += self._dict_arg('--conf', self.conf)\n    command += self._text_arg('--properties-file', self.properties_file)\n    command += self._text_arg('--driver-memory', self.driver_memory)\n    command += self._text_arg('--driver-java-options', self.driver_java_options)\n    command += self._text_arg('--driver-library-path', self.driver_library_path)\n    command += self._text_arg('--driver-class-path', self.driver_class_path)\n    command += self._text_arg('--executor-memory', self.executor_memory)\n    command += self._text_arg('--driver-cores', self.driver_cores)\n    command += self._flag_arg('--supervise', self.supervise)\n    command += self._text_arg('--total-executor-cores', self.total_executor_cores)\n    command += self._text_arg('--executor-cores', self.executor_cores)\n    command += self._text_arg('--queue', self.queue)\n    command += self._text_arg('--num-executors', self.num_executors)\n    return command",
+                "def app_command(self):\n    if not self.app:\n        raise NotImplementedError(\"subclass should define an app (.jar or .py file)\")\n    return [self.app] + self.app_options()",
+                "def run(self):\n    args = list(map(str, self.spark_command() + self.app_command()))\n    logger.info('Running: %s', repr(args))\n    tmp_stdout, tmp_stderr = tempfile.TemporaryFile(), tempfile.TemporaryFile()\n    proc = subprocess.Popen(args, stdout=tmp_stdout, stderr=tmp_stderr,\n                            env=self.get_environment(), close_fds=True,\n                            universal_newlines=True)\n    try:\n        with SparkRunContext(proc):\n            proc.wait()\n        tmp_stdout.seek(0)\n        stdout = \"\".join(map(lambda s: s.decode('utf-8'), tmp_stdout.readlines()))\n        logger.info(\"Spark job stdout:\\n{0}\".format(stdout))\n        if proc.returncode != 0:\n            tmp_stderr.seek(0)\n            stderr = \"\".join(map(lambda s: s.decode('utf-8'), tmp_stderr.readlines()))\n            raise SparkJobError('Spark job failed {0}'.format(repr(args)), out=stdout, err=stderr)\n    finally:\n        tmp_stderr.close()\n        tmp_stdout.close()",
+                "def _list_config(self, config):\n    if config and isinstance(config, six.string_types):\n        return list(map(lambda x: x.strip(), config.split(',')))",
+                "def _dict_config(self, config):\n    if config and isinstance(config, six.string_types):\n        return dict(map(lambda i: i.split('='), config.split('|')))",
+                "def _text_arg(self, name, value):\n    if value:\n        return [name, value]\n    return []",
+                "def _list_arg(self, name, value):\n    if value and isinstance(value, (list, tuple)):\n        return [name, ','.join(value)]\n    return []",
+                "def _dict_arg(self, name, value):\n    command = []\n    if value and isinstance(value, dict):\n        for prop, value in value.items():\n            command += [name, '\"{0}={1}\"'.format(prop, value)]\n    return command",
+                "def _flag_arg(self, name, value):\n    if value:\n        return [name]\n    return []",
+                "@property\ndef name(self):\n    return self.__class__.__name__",
+                "@property\ndef py_packages(self):\n    packages = configuration.get_config().get('spark', 'py-packages', None)\n    if packages:\n        return map(lambda s: s.strip(), packages.split(','))",
+                "def setup(self, conf):\n    \"\"\"\n    Called by the pyspark_runner with a SparkConf instance that will be used to instantiate the SparkContext\n\n    :param conf: SparkConf\n    \"\"\"",
+                "def setup_remote(self, sc):\n    self._setup_packages(sc)",
+                "def main(self, sc, *args):\n    \"\"\"\n    Called by the pyspark_runner with a SparkContext and any arguments returned by ``app_options()``\n\n    :param sc: SparkContext\n    :param args: arguments list\n    \"\"\"\n    raise NotImplementedError(\"subclass should define a main method\")",
+                "def app_command(self):\n    return [self.app, self.run_pickle] + self.app_options()",
+                "def run(self):\n    self.run_path = tempfile.mkdtemp(prefix=self.name)\n    self.run_pickle = os.path.join(self.run_path, '.'.join([self.name.replace(' ', '_'), 'pickle']))\n    with open(self.run_pickle, 'wb') as fd:\n        self._dump(fd)\n    try:\n        super(PySparkTask, self).run()\n    finally:\n        shutil.rmtree(self.run_path)",
+                "def _dump(self, fd):\n    if self.__module__ == '__main__':\n        d = pickle.dumps(self)\n        module_name = os.path.basename(sys.argv[0]).rsplit('.', 1)[0]\n        d = d.replace(b'(c__main__', \"(c\" + module_name)\n        fd.write(d)\n    else:\n        pickle.dump(self, fd)",
+                "def _setup_packages(self, sc):\n    \"\"\"\n    This method compresses and uploads packages to the cluster\n\n    \"\"\"\n    packages = self.py_packages\n    if not packages:\n        return\n    for package in packages:\n        mod = importlib.import_module(package)\n        try:\n            mod_path = mod.__path__[0]\n        except AttributeError:\n            mod_path = mod.__file__\n        tar_path = os.path.join(self.run_path, package + '.tar.gz')\n        tar = tarfile.open(tar_path, \"w:gz\")\n        tar.add(mod_path, os.path.basename(mod_path))\n        tar.close()\n        sc.addPyFile(tar_path)",
+                "def requires_local(self):\n    \"\"\"\n    Default impl - override this method if you need any local input to be accessible in init().\n\n    \"\"\"\n    return []",
+                "def requires_hadoop(self):\n    return self.requires()  # default impl",
+                "def input_local(self):\n    return luigi.task.getpaths(self.requires_local())",
+                "def input(self):\n    return luigi.task.getpaths(self.requires())",
+                "def deps(self):\n    # Overrides the default implementation\n    return luigi.task.flatten(self.requires_hadoop()) + luigi.task.flatten(self.requires_local())",
+                "def jar(self):\n    raise NotImplementedError(\"subclass should define jar containing job_class\")",
+                "def job_class(self):\n    raise NotImplementedError(\"subclass should define Spark job_class\")",
+                "def job_args(self):\n    return []",
+                "def output(self):\n    raise NotImplementedError(\"subclass should define HDFS output path\")",
+                "def run(self):\n    warnings.warn(\"The use of SparkJob is deprecated. Please use SparkSubmitTask or PySparkTask.\", stacklevel=2)\n    original_output_path = self.output().path\n    path_no_slash = original_output_path[:-2] if original_output_path.endswith('/*') else original_output_path\n    path_no_slash = original_output_path[:-1] if original_output_path[-1] == '/' else path_no_slash\n    tmp_output = luigi.contrib.hdfs.HdfsTarget(path_no_slash + '-luigi-tmp-%09d' % random.randrange(0, 1e10))\n\n    args = ['org.apache.spark.deploy.yarn.Client']\n    args += ['--jar', self.jar()]\n    args += ['--class', self.job_class()]\n\n    for a in self.job_args():\n        if a == self.output().path:\n            # pass temporary output path to job args\n            logger.info('Using temp path: %s for path %s', tmp_output.path, original_output_path)\n            args += ['--args', tmp_output.path]\n        else:\n            args += ['--args', str(a)]\n\n    if self.spark_workers is not None:\n        args += ['--num-workers', self.spark_workers]\n\n    if self.spark_master_memory is not None:\n        args += ['--master-memory', self.spark_master_memory]\n\n    if self.spark_worker_memory is not None:\n        args += ['--worker-memory', self.spark_worker_memory]\n\n    queue = self.queue\n    if queue is not None:\n        args += ['--queue', queue]\n\n    env = os.environ.copy()\n    env['SPARK_JAR'] = configuration.get_config().get('spark', 'spark-jar')\n    env['HADOOP_CONF_DIR'] = configuration.get_config().get('spark', 'hadoop-conf-dir')\n    env['MASTER'] = 'yarn-client'\n    spark_class = configuration.get_config().get('spark', 'spark-class')\n\n    temp_stderr = tempfile.TemporaryFile()\n    logger.info('Running: %s %s', spark_class, ' '.join(args))\n    proc = subprocess.Popen([spark_class] + args, stdout=subprocess.PIPE,\n                            stderr=temp_stderr, env=env, close_fds=True)\n\n    return_code, final_state, app_id = self.track_progress(proc)\n    if return_code == 0 and final_state != 'FAILED':\n        tmp_output.move(path_no_slash)\n    elif final_state == 'FAILED':\n        raise SparkJobError('Spark job failed: see yarn logs for %s' % app_id)\n    else:\n        temp_stderr.seek(0)\n        errors = \"\".join((x.decode('utf8') for x in temp_stderr.readlines()))\n        logger.error(errors)\n        raise SparkJobError('Spark job failed', err=errors)",
+                "def track_progress(self, proc):\n    # The Spark client currently outputs a multiline status to stdout every second\n    # while the application is running.  This instead captures status data and updates\n    # a single line of output until the application finishes.\n    app_id = None\n    app_status = 'N/A'\n    url = 'N/A'\n    final_state = None\n    start = time.time()\n    with SparkRunContext(proc) as context:\n        while proc.poll() is None:\n            s = proc.stdout.readline().decode('utf8')\n            app_id_s = re.compile('application identifier: (\\w+)').search(s)\n            if app_id_s:\n                app_id = app_id_s.group(1)\n                context.app_id = app_id\n            app_status_s = re.compile('yarnAppState: (\\w+)').search(s)\n            if app_status_s:\n                app_status = app_status_s.group(1)\n            url_s = re.compile('appTrackingUrl: (.+)').search(s)\n            if url_s:\n                url = url_s.group(1)\n            final_state_s = re.compile('distributedFinalState: (\\w+)').search(s)\n            if final_state_s:\n                final_state = final_state_s.group(1)\n            if not app_id:\n                logger.info(s.strip())\n            else:\n                elapsed_mins, elapsed_secs = divmod(datetime.timedelta(seconds=time.time() - start).seconds, 60)\n                status = '[%0d:%02d] Status: %s Tracking: %s' % (elapsed_mins, elapsed_secs, app_status, url)\n                sys.stdout.write(\"\\r\\x1b[K\" + status)\n                sys.stdout.flush()\n    logger.info(proc.communicate()[0])\n    return proc.returncode, final_state, app_id",
+                "@property\ndef master(self):\n    return configuration.get_config().get(\"spark\", \"master\", \"yarn-client\")",
+                "def output(self):\n    raise NotImplementedError(\"subclass should define an output target\")",
+                "def spark_options(self):\n    return []",
+                "def dependency_jars(self):\n    return []",
+                "def job_args(self):\n    return []",
+                "@property\ndef jars(self):\n    return self.dependency_jars()",
+                "def app_options(self):\n    return self.job_args()",
+                "def spark_command(self):\n    return super(Spark1xBackwardCompat, self).spark_command() + self.spark_options()",
+                "def job_class(self):\n    raise NotImplementedError(\"subclass should define Spark job_class\")",
+                "def jar(self):\n    raise NotImplementedError(\"subclass should define jar containing job_class\")",
+                "@property\ndef entry_class(self):\n    return self.job_class()",
+                "@property\ndef app(self):\n    return self.jar()",
+                "def run(self):\n    warnings.warn(\"The use of Spark1xJob is deprecated. Please use SparkSubmitTask or PySparkTask.\", stacklevel=2)\n    return super(Spark1xJob, self).run()",
+                "def program(self):\n    raise NotImplementedError(\"subclass should define Spark .py file\")",
+                "@property\ndef app(self):\n    return self.program()",
+                "def run(self):\n    warnings.warn(\"The use of PySpark1xJob is deprecated. Please use SparkSubmitTask or PySparkTask.\", stacklevel=2)\n    return super(PySpark1xJob, self).run()"
+            ],
+            "inscope_function_signatures": [
                 "__init__(self, proc)",
                 "__enter__(self)",
                 "__exit__(self, exc_type, exc_val, exc_tb)",
@@ -2700,7 +2906,7 @@
                 "test_function": "test_run",
                 "test_function_code": "    @with_config({'spark': {'spark-submit': ss, 'master': \"yarn-client\", 'hadoop-conf-dir': 'path'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_run(self, proc):\n        setup_run_process(proc)\n        job = TestSparkSubmitTask()\n        job.run()\n\n        self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',\n                          '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',\n                          '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',\n                          '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',\n                          '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',\n                          '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',\n                          '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])",
                 "test_error": "AssertionError: Lists differ: ['ss-[240 chars]f', '\"Prop=Value\"', '--properties-file', 'conf[346 chars]rg2'] != ['ss-[240 chars]f', 'Prop=Value', '--properties-file', 'conf/s[344 chars]rg2']  First differing element 18: '\"Prop=Value\"' 'Prop=Value'  Diff is 812 characters long. Set self.maxDiff to None to see it.",
-                "full_test_error": "self = <contrib.spark_test.SparkSubmitTaskTest testMethod=test_run>\nproc = <MagicMock name='Popen' id='4568257200'>\n\n    @with_config({'spark': {'spark-submit': ss, 'master': \"yarn-client\", 'hadoop-conf-dir': 'path'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_run(self, proc):\n        setup_run_process(proc)\n        job = TestSparkSubmitTask()\n        job.run()\n    \n>       self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',\n                          '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',\n                          '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',\n                          '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',\n                          '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',\n                          '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',\n                          '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])\nE       AssertionError: Lists differ: ['ss-[240 chars]f', '\"Prop=Value\"', '--properties-file', 'conf[346 chars]rg2'] != ['ss-[240 chars]f', 'Prop=Value', '--properties-file', 'conf/s[344 chars]rg2']\nE       \nE       First differing element 18:\nE       '\"Prop=Value\"'\nE       'Prop=Value'\nE       \nE       Diff is 812 characters long. Set self.maxDiff to None to see it.\n\ntest/contrib/spark_test.py:149: AssertionError",
+                "full_test_error": "self = <contrib.spark_test.SparkSubmitTaskTest testMethod=test_run>\nproc = <MagicMock name='Popen' id='4444283184'>\n\n    @with_config({'spark': {'spark-submit': ss, 'master': \"yarn-client\", 'hadoop-conf-dir': 'path'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_run(self, proc):\n        setup_run_process(proc)\n        job = TestSparkSubmitTask()\n        job.run()\n    \n>       self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',\n                          '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',\n                          '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',\n                          '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',\n                          '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',\n                          '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',\n                          '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])\nE       AssertionError: Lists differ: ['ss-[240 chars]f', '\"Prop=Value\"', '--properties-file', 'conf[346 chars]rg2'] != ['ss-[240 chars]f', 'Prop=Value', '--properties-file', 'conf/s[344 chars]rg2']\nE       \nE       First differing element 18:\nE       '\"Prop=Value\"'\nE       'Prop=Value'\nE       \nE       Diff is 812 characters long. Set self.maxDiff to None to see it.\n\ntest/contrib/spark_test.py:149: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [
