@@ -151,14 +151,22 @@
                             "def log(self, request, spider):\n    if self.debug:\n        msg = 'Filtered duplicate request: %(request)s'\n        self.logger.debug(msg, {'request': request}, extra={'spider': spider})\n    elif self.logdupes:\n        msg = 'Filtered duplicate request: %(request)s - no more duplicates will be shown (see DUPEFILTER_DEBUG to show all duplicates)'\n        self.logger.debug(msg, {'request': request}, extra={'spider': spider})\n        self.logdupes = False\n    spider.crawler.stats.inc_value('dupefilter/filtered', spider=spider)"
                         ],
                         "constructor_variables": [
-                            "debug",
-                            "fingerprints",
-                            "logdupes",
                             "file",
+                            "fingerprints",
+                            "debug",
+                            "logdupes",
                             "logger"
                         ],
                         "class_level_variables": [],
-                        "class_decorators": []
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, path=None, debug=False)",
+                            "from_settings(cls, settings)",
+                            "request_seen(self, request)",
+                            "request_fingerprint(self, request)",
+                            "close(self, reason)",
+                            "log(self, request, spider)"
+                        ]
                     },
                     "variable_values": [
                         [
@@ -168,7 +176,7 @@
                                     "variable_type": "NoneType"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.dupefilters.RFPDupeFilter object at 0x10d0904f0>",
+                                    "variable_value": "<scrapy.dupefilters.RFPDupeFilter object at 0x10b5f8460>",
                                     "variable_type": "RFPDupeFilter"
                                 },
                                 "self.fingerprints": {
@@ -200,7 +208,7 @@
                                     "variable_type": "None"
                                 },
                                 "path": {
-                                    "variable_value": "/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp5fgp_gza",
+                                    "variable_value": "/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp9qh4mei1",
                                     "variable_type": "str"
                                 },
                                 "os.path.join": {
@@ -239,7 +247,7 @@
                                     "variable_type": "NoneType"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.dupefilters.RFPDupeFilter object at 0x10c09e430>",
+                                    "variable_value": "<scrapy.dupefilters.RFPDupeFilter object at 0x1046b4430>",
                                     "variable_type": "RFPDupeFilter"
                                 },
                                 "self.fingerprints": {
@@ -271,7 +279,7 @@
                                     "variable_type": "None"
                                 },
                                 "path": {
-                                    "variable_value": "/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp61a8s9i1",
+                                    "variable_value": "/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp6cxvsfdo",
                                     "variable_type": "str"
                                 },
                                 "os.path.join": {
@@ -308,7 +316,32 @@
                     ]
                 }
             ],
-            "inscope_functions": [],
+            "inscope_functions": [
+                "@classmethod\ndef from_settings(cls, settings):\n    return cls()",
+                "def request_seen(self, request):\n    return False",
+                "def open(self):  # can return deferred\n    pass",
+                "def close(self, reason):  # can return a deferred\n    pass",
+                "def log(self, request, spider):  # log that a request has been filtered\n    pass",
+                "def __init__(self, path=None, debug=False):\n    self.file = None\n    self.fingerprints = set()\n    self.logdupes = True\n    self.debug = debug\n    self.logger = logging.getLogger(__name__)\n    if path:\n        self.file = open(os.path.join(path, 'requests.seen'), 'a+')\n        self.fingerprints.update(x.rstrip() for x in self.file)",
+                "@classmethod\ndef from_settings(cls, settings):\n    debug = settings.getbool('DUPEFILTER_DEBUG')\n    return cls(job_dir(settings), debug)",
+                "def request_seen(self, request):\n    fp = self.request_fingerprint(request)\n    if fp in self.fingerprints:\n        return True\n    self.fingerprints.add(fp)\n    if self.file:\n        self.file.write(fp + os.linesep)",
+                "def request_fingerprint(self, request):\n    return request_fingerprint(request)",
+                "def close(self, reason):\n    if self.file:\n        self.file.close()",
+                "def log(self, request, spider):\n    if self.debug:\n        msg = \"Filtered duplicate request: %(request)s\"\n        self.logger.debug(msg, {'request': request}, extra={'spider': spider})\n    elif self.logdupes:\n        msg = (\"Filtered duplicate request: %(request)s\"\n               \" - no more duplicates will be shown\"\n               \" (see DUPEFILTER_DEBUG to show all duplicates)\")\n        self.logger.debug(msg, {'request': request}, extra={'spider': spider})\n        self.logdupes = False\n\n    spider.crawler.stats.inc_value('dupefilter/filtered', spider=spider)"
+            ],
+            "inscope_function_signatures": [
+                "from_settings(cls, settings)",
+                "request_seen(self, request)",
+                "open(self)",
+                "close(self, reason)",
+                "log(self, request, spider)",
+                "__init__(self, path=None, debug=False)",
+                "from_settings(cls, settings)",
+                "request_seen(self, request)",
+                "request_fingerprint(self, request)",
+                "close(self, reason)",
+                "log(self, request, spider)"
+            ],
             "variables_in_file": {
                 "object": [
                     9

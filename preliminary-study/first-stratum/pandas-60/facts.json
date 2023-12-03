@@ -3,8 +3,8 @@
     "1.1.1": "def apply(\n    self,\n    func,\n    raw: bool = False,\n    engine: str = \"cython\",\n    engine_kwargs: Optional[Dict] = None,\n    args: Optional[Tuple] = None,\n    kwargs: Optional[Dict] = None,\n):\n    if args is None:\n        args = ()\n    if kwargs is None:\n        kwargs = {}\n    kwargs.pop(\"_level\", None)\n    kwargs.pop(\"floor\", None)\n    window = self._get_window()\n    offset = calculate_center_offset(window) if self.center else 0\n    if not is_bool(raw):\n        raise ValueError(\"raw parameter must be `True` or `False`\")\n\n    if engine == \"cython\":\n        if engine_kwargs is not None:\n            raise ValueError(\"cython engine does not accept engine_kwargs\")\n        apply_func = self._generate_cython_apply_func(\n            args, kwargs, raw, offset, func\n        )\n    elif engine == \"numba\":\n        if raw is False:\n            raise ValueError(\"raw must be `True` when using the numba engine\")\n        if func in self._numba_func_cache:\n            # Return an already compiled version of roll_apply if available\n            apply_func = self._numba_func_cache[func]\n        else:\n            apply_func = generate_numba_apply_func(\n                args, kwargs, func, engine_kwargs\n            )\n    else:\n        raise ValueError(\"engine must be either 'numba' or 'cython'\")\n\n    # TODO: Why do we always pass center=False?\n    # name=func for WindowGroupByMixin._apply\n    return self._apply(\n        apply_func,\n        center=False,\n        floor=0,\n        name=func,\n        use_numba_cache=engine == \"numba\",\n    )\n",
     "1.2.1": "class _Rolling_and_Expanding(_Rolling)",
     "1.2.3": [
-        "def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):\n    from pandas import Series\n    window_func = partial(self._get_cython_func_type('roll_generic'), args=args, kwargs=kwargs, raw=raw, offset=offset, func=func)\n\n    def apply_func(values, begin, end, min_periods, raw=raw):\n        if not raw:\n            values = Series(values, index=self.obj.index)\n        return window_func(values, begin, end, min_periods)\n    return apply_func",
-        "def apply_func(values, begin, end, min_periods, raw=raw):\n    if not raw:\n        values = Series(values, index=self.obj.index)\n    return window_func(values, begin, end, min_periods)"
+        "_generate_cython_apply_func(self, args, kwargs, raw, offset, func)",
+        "apply_func(values, begin, end, min_periods, raw=raw)"
     ],
     "2.2.3": [
         [
@@ -15,7 +15,7 @@
                 "raw": "True",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x1234bf160>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11cae6160>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             },
@@ -29,9 +29,9 @@
                 "self.center": "False",
                 "raw": "True",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x12337fca0>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11c9a5ca0>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x1234bf160>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11cae6160>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             }
@@ -44,7 +44,7 @@
                 "raw": "True",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x1234bf160>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11cae6160>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             },
@@ -58,9 +58,9 @@
                 "self.center": "False",
                 "raw": "True",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x1234bfc10>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11cae6c10>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x1234bf160>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11cae6160>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             }
@@ -73,7 +73,7 @@
                 "raw": "False",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x12337fca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11c9a5ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             },
@@ -87,9 +87,9 @@
                 "self.center": "False",
                 "raw": "False",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x1234bf430>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11cae6430>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x12337fca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11c9a5ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             }
@@ -102,7 +102,7 @@
                 "raw": "False",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x12337fca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11c9a5ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             },
@@ -116,9 +116,9 @@
                 "self.center": "False",
                 "raw": "False",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x12345e670>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11ca85670>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x12337fca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11c9a5ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             }
@@ -251,7 +251,7 @@
                 "raw": "True",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117b28ca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e163ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             },
@@ -265,9 +265,9 @@
                 "self.center": "False",
                 "raw": "True",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11794a550>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11df85550>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117b28ca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e163ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             }
@@ -280,7 +280,7 @@
                 "raw": "False",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117b28ca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e163ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             },
@@ -294,9 +294,9 @@
                 "self.center": "False",
                 "raw": "False",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x117b7b8b0>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11e1b68b0>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117b28ca0>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e163ca0>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             }
@@ -309,7 +309,7 @@
                 "raw": "False",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117bce040>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e209040>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             },
@@ -323,9 +323,9 @@
                 "self.center": "False",
                 "raw": "False",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x117bcef70>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11e209f70>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of RollingGroupby [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117bce040>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e209040>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method WindowGroupByMixin._apply of RollingGroupby [window=1,center=False,axis=0]>"
             }
@@ -338,7 +338,7 @@
                 "raw": "False",
                 "engine": "cython",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117bce040>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e209040>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             },
@@ -352,9 +352,9 @@
                 "self.center": "False",
                 "raw": "False",
                 "engine": "cython",
-                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x117be0e50>",
+                "apply_func": "<function _Rolling_and_Expanding._generate_cython_apply_func.<locals>.apply_func at 0x11e21ce50>",
                 "self._generate_cython_apply_func": "<bound method _Rolling_and_Expanding._generate_cython_apply_func of Rolling [window=1,center=False,axis=0]>",
-                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x117bce040>",
+                "func": "<function TestGrouperGrouping.test_groupby_rolling.<locals>.foo at 0x11e209040>",
                 "self._numba_func_cache": "{}",
                 "self._apply": "<bound method _Window._apply of Rolling [window=1,center=False,axis=0]>"
             }
@@ -478,6 +478,13 @@
             }
         ]
     ],
+    "1.3.2": [
+        "_get_window(self, other=None, win_type: Optional[str]=None) -> int",
+        "_apply(self, func: Callable, center: bool, require_min_periods: int=0, floor: int=1, is_weighted: bool=False, name: Optional[str]=None, use_numba_cache: bool=False, **kwargs)",
+        "_get_window(self, other=None, win_type: Optional[Union[str, Tuple]]=None) -> np.ndarray",
+        "_generate_cython_apply_func(self, args, kwargs, raw, offset, func)",
+        "apply_func(values, begin, end, min_periods, raw=raw)"
+    ],
     "2.1.1": [
         "    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n\n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n\n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n        tm.assert_series_equal(result, expected)"
     ],
@@ -491,7 +498,7 @@
     ],
     "2.2.2": [
         [
-            "self = <pandas.tests.window.test_grouper.TestGrouperGrouping object at 0x120925df0>\nexpected_value = 1.0, raw_value = True\n\n    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n    \n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n    \n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n>       tm.assert_series_equal(result, expected)\n\npandas/tests/window/test_grouper.py:210: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)",
+            "self = <pandas.tests.window.test_grouper.TestGrouperGrouping object at 0x117264850>\nexpected_value = 1.0, raw_value = True\n\n    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n    \n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n    \n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n>       tm.assert_series_equal(result, expected)\n\npandas/tests/window/test_grouper.py:210: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)",
             "\npandas/_libs/testing.pyx:174: AssertionError"
         ]
     ],

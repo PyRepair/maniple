@@ -4,10 +4,10 @@
     "1.2.1": "class BlockManager(PandasObject)",
     "1.2.2": "Core internal data structure to implement DataFrame, Series, etc.\n\nManage a bunch of labeled 2D mixed-type ndarrays. Essentially it's a\nlightweight blocked set of labeled data to be manipulated by the DataFrame\npublic API class\n\nAttributes\n----------\nshape\nndim\naxes\nvalues\nitems\n\nMethods\n-------\nset_axis(axis, new_labels)\ncopy(deep=True)\n\nget_dtype_counts\nget_ftype_counts\nget_dtypes\nget_ftypes\n\napply(func, axes, block_filter_fn)\n\nget_bool_data\nget_numeric_data\n\nget_slice(slice_like, axis)\nget(label)\niget(loc)\n\ntake(indexer, axis)\nreindex_axis(new_labels, axis)\nreindex_indexer(new_labels, indexer, axis)\n\ndelete(label)\ninsert(loc, label, value)\nset(label, value)\n\nParameters\n----------\n\n\nNotes\n-----\nThis is *not* a public API class",
     "1.2.3": [
-        "def as_array(self, transpose=False, items=None):\n    \"\"\"Convert the blockmanager data into an numpy array.\n\n    Parameters\n    ----------\n    transpose : boolean, default False\n        If True, transpose the return array\n    items : list of strings or None\n        Names of block items that will be included in the returned\n        array. ``None`` means that all block items will be used\n\n    Returns\n    -------\n    arr : ndarray\n    \"\"\"\n    if len(self.blocks) == 0:\n        arr = np.empty(self.shape, dtype=float)\n        return arr.transpose() if transpose else arr\n    if items is not None:\n        mgr = self.reindex_axis(items, axis=0)\n    else:\n        mgr = self\n    if self._is_single_block and mgr.blocks[0].is_datetimetz:\n        arr = mgr.blocks[0].get_values(dtype=object)\n    elif self._is_single_block or not self.is_mixed_type:\n        arr = np.asarray(mgr.blocks[0].get_values())\n    else:\n        arr = mgr._interleave()\n    return arr.transpose() if transpose else arr",
-        "def _consolidate_inplace(self):\n    if not self.is_consolidated():\n        self.blocks = tuple(_consolidate(self.blocks))\n        self._is_consolidated = True\n        self._known_consolidated = True\n        self._rebuild_blknos_and_blklocs()",
-        "def equals(self, other):\n    self_axes, other_axes = (self.axes, other.axes)\n    if len(self_axes) != len(other_axes):\n        return False\n    if not all((ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes))):\n        return False\n    self._consolidate_inplace()\n    other._consolidate_inplace()\n    if len(self.blocks) != len(other.blocks):\n        return False\n\n    def canonicalize(block):\n        return (block.dtype.name, block.mgr_locs.as_array.tolist())\n    self_blocks = sorted(self.blocks, key=canonicalize)\n    other_blocks = sorted(other.blocks, key=canonicalize)\n    return all((block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)))",
-        "def canonicalize(block):\n    return (block.dtype.name, block.mgr_locs.as_array.tolist())"
+        "as_array(self, transpose=False, items=None)",
+        "_consolidate_inplace(self)",
+        "equals(self, other)",
+        "canonicalize(block)"
     ],
     "2.2.3": [
         [
@@ -35,7 +35,7 @@
                 "block.mgr_locs": "BlockPlacement(slice(0, 1, 1))",
                 "block": "IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64",
                 "block.dtype": "dtype('int64')",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11af05ca0>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d71cca0>",
                 "block.equals": "<bound method Block.equals of IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64>"
             }
         ],
@@ -64,7 +64,7 @@
                 "block.mgr_locs": "BlockPlacement(slice(1, 2, 1))",
                 "block": "ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object",
                 "block.dtype": "dtype('O')",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11af05ca0>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d71cca0>",
                 "block.equals": "<bound method Block.equals of ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object>"
             }
         ],
@@ -94,7 +94,7 @@
                 "block": "IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64",
                 "block.dtype": "dtype('int64')",
                 "self_blocks": "[IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object]",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11af05ca0>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d71cca0>",
                 "block.equals": "<bound method Block.equals of IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64>"
             }
         ],
@@ -124,7 +124,7 @@
                 "block": "ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object",
                 "block.dtype": "dtype('O')",
                 "self_blocks": "[IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object]",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11af05ca0>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d71cca0>",
                 "block.equals": "<bound method Block.equals of ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object>"
             }
         ],
@@ -151,7 +151,7 @@
                 "self.blocks": "(IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object)",
                 "other.blocks": "(IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64, ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object)",
                 "self_blocks": "[IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object]",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11af05ca0>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d71cca0>",
                 "other_blocks": "[ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object, IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64]"
             }
         ]
@@ -329,7 +329,7 @@
                 "block.dtype": "dtype('int64')",
                 "block": "IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64",
                 "block.mgr_locs": "BlockPlacement(slice(0, 1, 1))",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x117c5bc10>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d456c10>",
                 "block.equals": "<bound method Block.equals of IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64>"
             }
         ],
@@ -358,7 +358,7 @@
                 "block.dtype": "dtype('O')",
                 "block": "ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object",
                 "block.mgr_locs": "BlockPlacement(slice(1, 2, 1))",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x117c5bc10>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d456c10>",
                 "block.equals": "<bound method Block.equals of ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object>"
             }
         ],
@@ -388,7 +388,7 @@
                 "block": "IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64",
                 "block.mgr_locs": "BlockPlacement(slice(1, 2, 1))",
                 "self_blocks": "[IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object]",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x117c5bc10>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d456c10>",
                 "block.equals": "<bound method Block.equals of IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64>"
             }
         ],
@@ -418,7 +418,7 @@
                 "block": "ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object",
                 "block.mgr_locs": "BlockPlacement(slice(0, 1, 1))",
                 "self_blocks": "[IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object]",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x117c5bc10>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d456c10>",
                 "block.equals": "<bound method Block.equals of ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object>"
             }
         ],
@@ -445,7 +445,7 @@
                 "self.blocks": "(IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object)",
                 "other.blocks": "(IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64, ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object)",
                 "self_blocks": "[IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object]",
-                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x117c5bc10>",
+                "canonicalize": "<function BlockManager.equals.<locals>.canonicalize at 0x11d456c10>",
                 "other_blocks": "[IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64, ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object]"
             }
         ]
@@ -596,6 +596,14 @@
                 "other_blocks": "list"
             }
         ]
+    ],
+    "1.3.2": [
+        "as_array(self, transpose=False, items=None)",
+        "_consolidate_inplace(self)",
+        "equals(self, other)",
+        "dtype(self)",
+        "_consolidate_inplace(self)",
+        "canonicalize(block)"
     ],
     "2.1.1": [
         "def test_dataframe_not_equal():\n    # see GH28839\n    df1 = pd.DataFrame({\"a\": [1, 2], \"b\": [\"s\", \"d\"]})\n    df2 = pd.DataFrame({\"a\": [\"s\", \"d\"], \"b\": [1, 2]})\n    assert df1.equals(df2) is False"

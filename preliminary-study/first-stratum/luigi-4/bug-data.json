@@ -143,7 +143,28 @@
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [],
-                        "class_decorators": []
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "s3_load_path(self)",
+                            "copy_options(self)",
+                            "prune_table(self)",
+                            "prune_column(self)",
+                            "prune_date(self)",
+                            "table_attributes(self)",
+                            "do_truncate_table(self)",
+                            "do_prune(self)",
+                            "table_type(self)",
+                            "queries(self)",
+                            "truncate_table(self, connection)",
+                            "prune(self, connection)",
+                            "create_table(self, connection)",
+                            "run(self)",
+                            "copy(self, cursor, f)",
+                            "output(self)",
+                            "does_table_exist(self, connection)",
+                            "init_copy(self, connection)",
+                            "post_copy(self, cursor)"
+                        ]
                     },
                     "variable_values": [
                         [
@@ -181,11 +202,11 @@
                                     "variable_type": "None"
                                 },
                                 "cursor.execute": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4557120224'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4519388112'>",
                                     "variable_type": "MagicMock"
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4557107888'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4519375776'>",
                                     "variable_type": "MagicMock"
                                 },
                                 "self.table": {
@@ -240,11 +261,11 @@
                                     "variable_type": "None"
                                 },
                                 "cursor.execute": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4515672992'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4509324384'>",
                                     "variable_type": "MagicMock"
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4515660656'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4509312048'>",
                                     "variable_type": "MagicMock"
                                 },
                                 "self.table": {
@@ -265,7 +286,98 @@
                     ]
                 }
             ],
-            "inscope_functions": [],
+            "inscope_functions": [
+                "@property\ndef configuration_section(self):\n    \"\"\"\n    Override to change the configuration section used\n    to obtain default credentials.\n    \"\"\"\n    return 'redshift'",
+                "@property\ndef aws_access_key_id(self):\n    \"\"\"\n    Override to return the key id.\n    \"\"\"\n    return self._get_configuration_attribute('aws_access_key_id')",
+                "@property\ndef aws_secret_access_key(self):\n    \"\"\"\n    Override to return the secret access key.\n    \"\"\"\n    return self._get_configuration_attribute('aws_secret_access_key')",
+                "@property\ndef aws_account_id(self):\n    \"\"\"\n    Override to return the account id.\n    \"\"\"\n    return self._get_configuration_attribute('aws_account_id')",
+                "@property\ndef aws_arn_role_name(self):\n    \"\"\"\n    Override to return the arn role name.\n    \"\"\"\n    return self._get_configuration_attribute('aws_arn_role_name')",
+                "@property\ndef aws_session_token(self):\n    \"\"\"\n    Override to return the session token.\n    \"\"\"\n    return self._get_configuration_attribute('aws_session_token')",
+                "def _get_configuration_attribute(self, attribute):\n    config = luigi.configuration.get_config()\n\n    value = config.get(self.configuration_section, attribute, default=None)\n\n    if not value:\n        value = os.environ.get(attribute.upper(), None)\n\n    return value",
+                "def _credentials(self):\n    \"\"\"\n    Return a credential string for the provided task. If no valid\n    credentials are set, raise a NotImplementedError.\n    \"\"\"\n\n    if self.aws_account_id and self.aws_arn_role_name:\n        return 'aws_iam_role=arn:aws:iam::{id}:role/{role}'.format(\n            id=self.aws_account_id,\n            role=self.aws_arn_role_name\n        )\n    elif self.aws_access_key_id and self.aws_secret_access_key:\n        return 'aws_access_key_id={key};aws_secret_access_key={secret}{opt}'.format(\n            key=self.aws_access_key_id,\n            secret=self.aws_secret_access_key,\n            opt=';token={}'.format(self.aws_session_token) if self.aws_session_token else ''\n        )\n    else:\n        raise NotImplementedError(\"Missing Credentials. \"\n                                  \"Ensure one of the pairs of auth args below are set \"\n                                  \"in a configuration file, environment variables or by \"\n                                  \"being overridden in the task: \"\n                                  \"'aws_access_key_id' AND 'aws_secret_access_key' OR \"\n                                  \"'aws_account_id' AND 'aws_arn_role_name'\")",
+                "@abc.abstractmethod\ndef s3_load_path(self):\n    \"\"\"\n    Override to return the load path.\n    \"\"\"\n    return None",
+                "@abc.abstractproperty\ndef copy_options(self):\n    \"\"\"\n    Add extra copy options, for example:\n\n    * TIMEFORMAT 'auto'\n    * IGNOREHEADER 1\n    * TRUNCATECOLUMNS\n    * IGNOREBLANKLINES\n    * DELIMITER '\\t'\n    \"\"\"\n    return ''",
+                "@property\ndef prune_table(self):\n    \"\"\"\n    Override to set equal to the name of the table which is to be pruned.\n    Intended to be used in conjunction with prune_column and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                "@property\ndef prune_column(self):\n    \"\"\"\n    Override to set equal to the column of the prune_table which is to be compared\n    Intended to be used in conjunction with prune_table and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                "@property\ndef prune_date(self):\n    \"\"\"\n    Override to set equal to the date by which prune_column is to be compared\n    Intended to be used in conjunction with prune_table and prune_column\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                "@property\ndef table_attributes(self):\n    \"\"\"\n    Add extra table attributes, for example:\n\n    DISTSTYLE KEY\n    DISTKEY (MY_FIELD)\n    SORTKEY (MY_FIELD_2, MY_FIELD_3)\n    \"\"\"\n    return ''",
+                "@property\ndef do_truncate_table(self):\n    \"\"\"\n    Return True if table should be truncated before copying new data in.\n    \"\"\"\n    return False",
+                "def do_prune(self):\n    \"\"\"\n    Return True if prune_table, prune_column, and prune_date are implemented.\n    If only a subset of prune variables are override, an exception is raised to remind the user to implement all or none.\n    Prune (data newer than prune_date deleted) before copying new data in.\n    \"\"\"\n    if self.prune_table and self.prune_column and self.prune_date:\n        return True\n    elif self.prune_table or self.prune_column or self.prune_date:\n        raise Exception('override zero or all prune variables')\n    else:\n        return False",
+                "@property\ndef table_type(self):\n    \"\"\"\n    Return table type (i.e. 'temp').\n    \"\"\"\n    return ''",
+                "@property\ndef queries(self):\n    \"\"\"\n    Override to return a list of queries to be executed in order.\n    \"\"\"\n    return []",
+                "def truncate_table(self, connection):\n    query = \"truncate %s\" % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                "def prune(self, connection):\n    query = \"delete from %s where %s >= %s\" % (self.prune_table, self.prune_column, self.prune_date)\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        # only names of columns specified, no types\n        raise NotImplementedError(\"create_table() not implemented \"\n                                  \"for %r and columns types not \"\n                                  \"specified\" % self.table)\n    elif len(self.columns[0]) == 2:\n        # if columns is specified as (name, type) tuples\n        coldefs = ','.join(\n            '{name} {type}'.format(\n                name=name,\n                type=type) for name, type in self.columns\n        )\n        query = (\"CREATE {type} TABLE \"\n                 \"{table} ({coldefs}) \"\n                 \"{table_attributes}\").format(\n            type=self.table_type,\n            table=self.table,\n            coldefs=coldefs,\n            table_attributes=self.table_attributes)\n\n        connection.cursor().execute(query)\n    elif len(self.columns[0]) == 3:\n        # if columns is specified as (name, type, encoding) tuples\n        # possible column encodings: https://docs.aws.amazon.com/redshift/latest/dg/c_Compression_encodings.html\n        coldefs = ','.join(\n            '{name} {type} ENCODE {encoding}'.format(\n                name=name,\n                type=type,\n                encoding=encoding) for name, type, encoding in self.columns\n        )\n        query = (\"CREATE {type} TABLE \"\n                 \"{table} ({coldefs}) \"\n                 \"{table_attributes}\").format(\n            type=self.table_type,\n            table=self.table,\n            coldefs=coldefs,\n            table_attributes=self.table_attributes)\n\n        connection.cursor().execute(query)\n    else:\n        raise ValueError(\"create_table() found no columns for %r\"\n                         % self.table)",
+                "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not (self.table):\n        raise Exception(\"table need to be specified\")\n\n    path = self.s3_load_path()\n    output = self.output()\n    connection = output.connect()\n    cursor = connection.cursor()\n\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.post_copy(cursor)\n\n    # update marker table\n    output.touch(connection)\n    connection.commit()\n\n    # commit and clean up\n    connection.close()",
+                "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    logger.info(\"Inserting file: %s\", f)\n    colnames = ''\n    if len(self.columns) > 0:\n        colnames = \",\".join([x[0] for x in self.columns])\n        colnames = '({})'.format(colnames)\n\n    cursor.execute(\"\"\"\n     COPY {table} {colnames} from '{source}'\n     CREDENTIALS '{creds}'\n     {options}\n     ;\"\"\".format(\n        table=self.table,\n        colnames=colnames,\n        source=f,\n        creds=self._credentials(),\n        options=self.copy_options)\n    )",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.table,\n        update_id=self.update_id)",
+                "def does_table_exist(self, connection):\n    \"\"\"\n    Determine whether the table already exists.\n    \"\"\"\n\n    if '.' in self.table:\n        query = (\"select 1 as table_exists \"\n                 \"from information_schema.tables \"\n                 \"where table_schema = lower(%s) and table_name = lower(%s) limit 1\")\n    else:\n        query = (\"select 1 as table_exists \"\n                 \"from pg_table_def \"\n                 \"where tablename = lower(%s) limit 1\")\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query, tuple(self.table.split('.')))\n        result = cursor.fetchone()\n        return bool(result)\n    finally:\n        cursor.close()",
+                "def init_copy(self, connection):\n    \"\"\"\n    Perform pre-copy sql - such as creating table, truncating, or removing data older than x.\n    \"\"\"\n    if not self.does_table_exist(connection):\n        logger.info(\"Creating table %s\", self.table)\n        connection.reset()\n        self.create_table(connection)\n\n    if self.do_truncate_table:\n        logger.info(\"Truncating table %s\", self.table)\n        self.truncate_table(connection)\n\n    if self.do_prune():\n        logger.info(\"Removing %s older than %s from %s\", self.prune_column, self.prune_date, self.prune_table)\n        self.prune(connection)",
+                "def post_copy(self, cursor):\n    \"\"\"\n    Performs post-copy sql - such as cleansing data, inserting into production table (if copied to temp table), etc.\n    \"\"\"\n    logger.info('Executing post copy queries')\n    for query in self.queries:\n        cursor.execute(query)",
+                "@abc.abstractproperty\ndef jsonpath(self):\n    \"\"\"\n    Override the jsonpath schema location for the table.\n    \"\"\"\n    return ''",
+                "@abc.abstractproperty\ndef copy_json_options(self):\n    \"\"\"\n    Add extra copy options, for example:\n\n    * GZIP\n    * LZOP\n    \"\"\"\n    return ''",
+                "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying JSON from s3 into redshift.\n    \"\"\"\n\n    logger.info(\"Inserting file: %s\", f)\n    cursor.execute(\"\"\"\n     COPY %s from '%s'\n     CREDENTIALS '%s'\n     JSON AS '%s' %s\n     %s\n     ;\"\"\" % (self.table, f, self._credentials(),\n             self.jsonpath, self.copy_json_options, self.copy_options))",
+                "def run(self):\n    entries = []\n    for folder_path in self.folder_paths:\n        s3 = S3Target(folder_path)\n        client = s3.fs\n        for file_name in client.list(s3.path):\n            entries.append({\n                'url': '%s/%s' % (folder_path, file_name),\n                'mandatory': True\n            })\n    manifest = {'entries': entries}\n    target = self.output().open('w')\n    dump = json.dumps(manifest)\n    if not self.text_target:\n        dump = dump.encode('utf8')\n    target.write(dump)\n    target.close()",
+                "@abc.abstractproperty\ndef host(self):\n    return None",
+                "@abc.abstractproperty\ndef database(self):\n    return None",
+                "@abc.abstractproperty\ndef user(self):\n    return None",
+                "@abc.abstractproperty\ndef password(self):\n    return None",
+                "@property\ndef update_id(self):\n    \"\"\"\n    This update id will be a unique identifier\n    for this insert on this table.\n    \"\"\"\n    return self.task_id",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    # uses class name as a meta-table\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.__class__.__name__,\n        update_id=self.update_id)",
+                "def run(self):\n    \"\"\"\n    Kill any open Redshift sessions for the given database.\n    \"\"\"\n    connection = self.output().connect()\n    # kill any sessions other than ours and\n    # internal Redshift sessions (rdsdb)\n    query = (\"select pg_terminate_backend(process) \"\n             \"from STV_SESSIONS \"\n             \"where db_name=%s \"\n             \"and user_name != 'rdsdb' \"\n             \"and process != pg_backend_pid()\")\n    cursor = connection.cursor()\n    logger.info('Killing all open Redshift sessions for database: %s', self.database)\n    try:\n        cursor.execute(query, (self.database,))\n        cursor.close()\n        connection.commit()\n    except psycopg2.DatabaseError as e:\n        if e.message and 'EOF' in e.message:\n            # sometimes this operation kills the current session.\n            # rebuild the connection. Need to pause for 30-60 seconds\n            # before Redshift will allow us back in.\n            connection.close()\n            logger.info('Pausing %s seconds for Redshift to reset connection', self.connection_reset_wait_seconds)\n            time.sleep(self.connection_reset_wait_seconds)\n            logger.info('Reconnecting to Redshift')\n            connection = self.output().connect()\n        else:\n            raise\n\n    try:\n        self.output().touch(connection)\n        connection.commit()\n    finally:\n        connection.close()\n\n    logger.info('Done killing all open Redshift sessions for database: %s', self.database)",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the executed query.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.table,\n        update_id=self.update_id\n    )",
+                "@property\ndef s3_unload_path(self):\n    \"\"\"\n    Override to return the load path.\n    \"\"\"\n    return ''",
+                "@property\ndef unload_options(self):\n    \"\"\"\n    Add extra or override default unload options:\n    \"\"\"\n    return \"DELIMITER '|' ADDQUOTES GZIP ALLOWOVERWRITE PARALLEL ON\"",
+                "@property\ndef unload_query(self):\n    \"\"\"\n    Default UNLOAD command\n    \"\"\"\n    return (\"UNLOAD ( '{query}' ) TO '{s3_unload_path}' \"\n            \"credentials '{credentials}' \"\n            \"{unload_options};\")",
+                "def run(self):\n    connection = self.output().connect()\n    cursor = connection.cursor()\n\n    unload_query = self.unload_query.format(\n        query=self.query().replace(\"'\", r\"\\'\"),\n        s3_unload_path=self.s3_unload_path,\n        unload_options=self.unload_options,\n        credentials=self._credentials())\n\n    logger.info('Executing unload query from task: {name}'.format(name=self.__class__))\n\n    cursor = connection.cursor()\n    cursor.execute(unload_query)\n    logger.info(cursor.statusmessage)\n\n    # Update marker table\n    self.output().touch(connection)\n    # commit and close connection\n    connection.commit()\n    connection.close()",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the executed query.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.table,\n        update_id=self.update_id\n    )"
+            ],
+            "inscope_function_signatures": [
+                "configuration_section(self)",
+                "aws_access_key_id(self)",
+                "aws_secret_access_key(self)",
+                "aws_account_id(self)",
+                "aws_arn_role_name(self)",
+                "aws_session_token(self)",
+                "_get_configuration_attribute(self, attribute)",
+                "_credentials(self)",
+                "s3_load_path(self)",
+                "copy_options(self)",
+                "prune_table(self)",
+                "prune_column(self)",
+                "prune_date(self)",
+                "table_attributes(self)",
+                "do_truncate_table(self)",
+                "do_prune(self)",
+                "table_type(self)",
+                "queries(self)",
+                "truncate_table(self, connection)",
+                "prune(self, connection)",
+                "create_table(self, connection)",
+                "run(self)",
+                "copy(self, cursor, f)",
+                "output(self)",
+                "does_table_exist(self, connection)",
+                "init_copy(self, connection)",
+                "post_copy(self, cursor)",
+                "jsonpath(self)",
+                "copy_json_options(self)",
+                "copy(self, cursor, f)",
+                "run(self)",
+                "host(self)",
+                "database(self)",
+                "user(self)",
+                "password(self)",
+                "update_id(self)",
+                "output(self)",
+                "run(self)",
+                "output(self)",
+                "s3_unload_path(self)",
+                "unload_options(self)",
+                "unload_query(self)",
+                "run(self)",
+                "output(self)"
+            ],
             "variables_in_file": {
                 "logger": [
                     417,
@@ -1858,9 +1970,9 @@
                 "test_function": "test_s3_copy_with_nonetype_columns",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_once_with(\n            database=task.database,\n            host=task.host,\n            update_id=task.task_id,\n            user=task.user,\n            table=task.table,\n            password=task.password,\n        )\n\n        # To get the proper intendation in the multiline `COPY` statement the\n        # SQL string was copied from redshift.py.\n        mock_cursor.execute.assert_called_with(\"\"\"\n         COPY {table} {colnames} from '{source}'\n         CREDENTIALS '{creds}'\n         {options}\n         ;\"\"\".format(\n            table='dummy_table',\n            colnames='',\n            source='s3://bucket/key',\n            creds='aws_access_key_id=key;aws_secret_access_key=secret',\n            options='')\n        )",
                 "test_error": "TypeError: object of type 'NoneType' has no len()",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4555073664'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4555641520'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4552341632'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4552934064'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "traceback": "luigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4555641520'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4552934064'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "test_function_decorators": [
                     "mock.patch('luigi.contrib.redshift.RedshiftTarget')"
                 ]
