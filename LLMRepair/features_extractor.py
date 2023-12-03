@@ -429,11 +429,19 @@ class Facts:
                 raise NotSupportedError("bgp command not found")
 
             subprocess.run(["bgp", "clone", "--bugids", bugid], check=True)
-            console_output = subprocess.run(
-                ["bgp", "extract_features", "--bugids", bugid],
-                capture_output=True,
-                check=True,
-            )
+
+            try:
+                console_output = subprocess.run(
+                    ["bgp", "extract_features", "--bugids", bugid],
+                    capture_output=True,
+                    check=True,
+                )
+            except subprocess.CalledProcessError as e:
+                print_in_red(
+                    f"FATAL: bgp extract_features failed with error code {e.returncode}"
+                    + f"\nThis is likely due to network issues when downloading the bug {bugid}"
+                )
+                raise NotSupportedError("bgp extract_features failed")
 
             decoded_string = console_output.stdout.decode("utf-8")
             json_output = json.loads(decoded_string)
