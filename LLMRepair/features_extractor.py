@@ -80,9 +80,11 @@ class Facts:
             self._resolve_buggy_function(buggy_function_info)
 
         called_in_scope_functions = []
-        for fn in file_info["inscope_functions"]:
+        in_scope_functions = file_info["in_scope_functions"]
+        in_scope_function_signatures = file_info["inscope_function_signatures"]
+        for idx, fn in enumerate(in_scope_functions):
             if self._is_this_func_called(fn):
-                called_in_scope_functions.append(fn)
+                called_in_scope_functions.append(in_scope_function_signatures[idx])
         if len(called_in_scope_functions) > 0:
             self.facts["1.3.2"] = called_in_scope_functions
 
@@ -310,9 +312,11 @@ class Facts:
             self.facts["1.2.2"] = class_docstring
 
         used_methods = []
-        for method in buggy_class_info["functions"]:
+        method_signatures = buggy_class_info["function_signatures"]
+        methods = buggy_class_info["functions"]
+        for idx, method in enumerate(methods):
             if self._is_this_func_called(method):
-                used_methods.append(method)
+                used_methods.append(method_signatures[idx])
         if len(used_methods) > 0:
             self.facts["1.2.3"] = used_methods
 
