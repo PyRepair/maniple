@@ -92,11 +92,11 @@ class PromptGenerator:
                 self.prompt = self.prompt + f"{variable}, "
 
                 if self.bitvector["2.2.5"] == 1 and self.bitvector["2.2.6"] == 1:
-                    self.prompt = self.prompt + f"value: `{variable_value}`, type: {variable_type}"
+                    self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
                 elif self.bitvector["2.2.5"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`"
                 elif self.bitvector["2.2.6"] == 1:
-                    self.prompt = self.prompt + f"type: {variable_type}"
+                    self.prompt = self.prompt + f"type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
 
@@ -124,11 +124,11 @@ class PromptGenerator:
                     self.prompt = self.prompt + f"{variable}, "
 
                     if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
-                        self.prompt = self.prompt + f"value: `{variable_value}`, type: {variable_type}"
+                        self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
                     elif self.bitvector["2.2.3"] == 1:
                         self.prompt = self.prompt + f"value: `{variable_value}`"
                     elif self.bitvector["2.2.4"] == 1:
-                        self.prompt = self.prompt + f"type: {variable_type}"
+                        self.prompt = self.prompt + f"type: `{variable_type}`"
 
                     self.prompt = self.prompt + "\n\n"
 
@@ -175,11 +175,11 @@ class PromptGenerator:
                 self.prompt = self.prompt + f"{variable}, "
 
                 if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
-                    self.prompt = self.prompt + f"value: `{variable_value}`, type: {variable_type}"
+                    self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
                 elif self.bitvector["2.2.3"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`"
                 elif self.bitvector["2.2.4"] == 1:
-                    self.prompt = self.prompt + f"type: {variable_type}"
+                    self.prompt = self.prompt + f"type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
 
@@ -202,11 +202,11 @@ class PromptGenerator:
                 self.prompt = self.prompt + f"{variable}, "
 
                 if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
-                    self.prompt = self.prompt + f"expected value: `{variable_value}`, type: {variable_type}"
+                    self.prompt = self.prompt + f"expected value: `{variable_value}`, type: `{variable_type}`"
                 elif self.bitvector["2.2.3"] == 1:
                     self.prompt = self.prompt + f"expected value: `{variable_value}`"
                 elif self.bitvector["2.2.4"] == 1:
-                    self.prompt = self.prompt + f"expected type: {variable_type}"
+                    self.prompt = self.prompt + f"expected type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
 
