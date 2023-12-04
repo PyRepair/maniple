@@ -4,9 +4,10 @@ import os.path
 import time
 import re
 
+import openai
+import tiktoken
 from openai import OpenAI
-from typing import List
-
+from typing import List, Optional
 
 client = OpenAI(api_key="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")
 
@@ -14,7 +15,7 @@ client = OpenAI(api_key="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")
 class PromptGenerator:
     def __init__(self, facts: dict, facts_bitvector: dict, output_dir: str, remove_not_exist_facts) -> None:
         self.facts: dict = facts
-        self.bitvector: dict = facts_bitvector
+        self.bitvector: dict = facts_bitvector.copy()
         self.output_dir: str = output_dir
         with open("prompt_template.json", "r") as template_file:
             self.template: dict = json.load(template_file)
@@ -25,11 +26,12 @@ class PromptGenerator:
             user_dir: str = list(bug_data)[0]
             self.buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]
 
-        if remove_not_exist_facts == 1:
-            self.remove_not_exist_facts()
+        self.remove_not_exist_facts = remove_not_exist_facts
 
-    def remove_not_exist_facts(self):
-        pass
+        self.actual_bitvector = facts_bitvector.copy()
+        for key in self.bitvector.keys():
+            if self.bitvector[key] == 1 and self.facts[key] is None:
+                self.actual_bitvector[key] = 0
 
     def generate_prompt(self):
         self.prompt: str = self.template["preface"]
@@ -58,7 +60,8 @@ class PromptGenerator:
         variable_runtime_value_test_cases: list = self.facts["2.2.5"]
         variable_runtime_type_test_cases: list = self.facts["2.2.6"]
 
-        if len(variable_runtime_value_test_cases) == 0 and self.bitvector["2.2.5"] == 0 and self.bitvector["2.2.6"] == 0:
+        if len(variable_runtime_value_test_cases) == 0 and self.bitvector["2.2.5"] == 0 and self.bitvector[
+            "2.2.6"] == 0:
             return
 
         self.prompt = self.prompt + "# Variable runtime "
@@ -141,7 +144,8 @@ class PromptGenerator:
         variable_angelic_value_test_cases: list = self.facts["2.2.3"]
         variable_angelic_type_test_cases: list = self.facts["2.2.4"]
 
-        if len(variable_angelic_value_test_cases) == 0 and self.bitvector["2.2.3"] == 0 and self.bitvector["2.2.4"] == 0:
+        if len(variable_angelic_value_test_cases) == 0 and self.bitvector["2.2.3"] == 0 and self.bitvector[
+            "2.2.4"] == 0:
             return
 
         self.prompt = self.prompt + "# Expected variable "
@@ -325,7 +329,8 @@ class PromptGenerator:
             buggy_functions: List[str] = self.facts["1.2.3"]
             for function_index in range(len(buggy_functions)):
                 self.prompt = self.prompt + indent + self.template["1.2.3"]
-                self.prompt = self.prompt + indent + "def " + buggy_functions[function_index] + ":\n" + indent + "    " + omitted_code + "\n"
+                self.prompt = self.prompt + indent + "def " + buggy_functions[
+                    function_index] + ":\n" + indent + "    " + omitted_code + "\n"
                 self.prompt = self.prompt + indent + "    pass"
                 self.add_newline_between_sections()
 
@@ -362,11 +367,20 @@ class PromptGenerator:
             output_file.write(self.prompt)
 
     def get_response_from_gpt(self, repeat_count: int, gpt_model: str):
-        for count in range(repeat_count):
-            response_file_name = ""
+        bitvector_flatten = ""
+        if self.remove_not_exist_facts:
+            for value in self.actual_bitvector.values():
+                bitvector_flatten = bitvector_flatten + str(value)
+        else:
             for value in self.bitvector.values():
-                response_file_name = response_file_name + str(value)
-            response_file_name += "response(" + str(count) + ").md"
+                bitvector_flatten = bitvector_flatten + str(value)
+
+        buggy_function_length = len(self.facts["1.1.1"])
+        if self.bitvector["1.1.2"] == 1:
+            buggy_function_length += len(self.facts["1.1.2"])
+
+        for count in range(repeat_count):
+            response_file_name = bitvector_flatten + "response(" + str(count) + ").md"
 
             if os.path.exists(os.path.join(self.output_dir, response_file_name)):
                 print(f"{response_file_name} already exists in directory {self.output_dir}")
@@ -376,24 +390,35 @@ class PromptGenerator:
                 try:
                     response: str = ""
                     max_generation_count = 5
-                    while max_generation_count > 0:
-                        chat_completion = client.chat.completions.create(
-                            model=gpt_model,
-                            messages=[
-                                {"role": "user", "content": self.prompt}
-                            ]
-                        )
+                    max_conversation_count = 5
 
-                        response = chat_completion.choices[0].message.content
+                    messages = [{"role": "user", "content": self.prompt}]
+                    while max_generation_count > 0 and max_conversation_count > 0:
+                        response = create_query(messages, gpt_model)
 
-                        if contain_valid_fix_patch(response, self.buggy_function_name):
-                            break
-                        else:
+                        fix_patch = contain_valid_fix_patch(response, self.buggy_function_name)
+
+                        # if the output doesn't contain fix patch in code block
+                        if fix_patch is None:
                             time.sleep(3)
-                            response = chat_completion.choices[0].message.content
                             max_generation_count -= 1
+                            messages = [{"role": "user", "content": self.prompt}]
+                            continue
 
-                    if max_generation_count == 0:
+                        # if the fix patch is omitted
+                        if len(fix_patch) < 0.6 * buggy_function_length:
+                            max_conversation_count -= 1
+                            messages = [
+                                {"role": "user", "content": self.prompt},
+                                {"role": "assistant", "content": response},
+                                {"role": "user", "content": "Print the full code of the fixed function"},
+                            ]
+                            continue
+
+                        # we have complete fixed function in code block
+                        break
+
+                    if max_generation_count == 0 or max_conversation_count == 0:
                         print(f"write response error to file {response_file_name} in directory {self.output_dir}")
                     else:
                         print(f"write response to file {response_file_name} in directory {self.output_dir}")
@@ -407,22 +432,51 @@ class PromptGenerator:
                         output_file.write(error_str)
                     print(f"write response error to file {response_file_name} in directory {self.output_dir}")
 
-    # used to check if there is ```python ``` code tag in the response
-    # and the code block must contain buggy function name to ensure gpt is not interrupted
+
+class QueryException(Exception):
+    pass
 
 
-def contain_valid_fix_patch(response: str, buggy_function_name: str) -> bool:
+def num_tokens_from_string(string: str, encoding_name: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
+
+def create_query(messages: list, gpt_model: str) -> str:
+    for message in messages:
+        num_tokens = num_tokens_from_string(message["content"], "cl100k_base")
+        if num_tokens > 16385:
+            raise QueryException(f"{num_tokens} exceed maximum 16385 token size")
+
+    retry_max_count = 10
+    while retry_max_count > 0:
+        try:
+            chat_completion = client.chat.completions.create(
+                model=gpt_model,
+                messages=messages
+            )
+            return chat_completion.choices[0].message.content
+
+        except openai.RateLimitError as rate_limit_error:
+            time.sleep(15)
+            retry_max_count -= 1
+
+    raise QueryException("Tried 10 times OpenAI rate limit query")
+
+
+# used to check if there is ```python ``` code tag in the response
+# and the code block must contain buggy function name to ensure gpt is not interrupted
+def contain_valid_fix_patch(response: str, buggy_function_name: str) -> Optional[str]:
     code_block_pattern = r'```(?:python)?(.*?)```'
     code_blocks = re.findall(code_block_pattern, response, re.DOTALL)
 
-    if buggy_function_name == "" and len(code_blocks) > 0:
-        return True
-
     for code_block in code_blocks:
         if ("def " + buggy_function_name) in code_block:
-            return True
+            return code_block
 
-    return False
+    return None
 
 
 if __name__ == "__main__":
@@ -448,7 +502,8 @@ if __name__ == "__main__":
                     bug_facts = json.load(input_file)
 
                 try:
-                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir), remove_not_exist_facts)
+                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir),
+                                                       remove_not_exist_facts)
                     prompt_generator.generate_prompt()
                     prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
                     print(f"generate prompt for {bug_dir}")
