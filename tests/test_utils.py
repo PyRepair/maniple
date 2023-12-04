@@ -65,3 +65,33 @@ def _partially_consume_prefix(self, prefix, column):
 
     result = extract_function_from_response(input_code, "_partially_consume_prefix")
     assert result.strip() == expected_output.strip()
+
+
+def test_extract_function_from_pure_function_file():
+    input_code = """
+def pivot(data: "DataFrame", index=None, columns, values) -> "DataFrame":
+    if columns is None:
+        raise TypeError("pivot() missing 1 required argument: 'columns'")
+
+    if values is None:
+        cols = [columns] if index is None else [index, columns]
+        append = index is None
+        indexed = data.set_index(cols, append=append)
+    else:
+        if index is None:
+            index = data.index
+        else:
+            index = data[index]
+        index = MultiIndex.from_arrays([index, data[columns]])
+
+        if is_list_like(values) and not isinstance(values, tuple):
+            # Exclude tuple because it is seen as a single column name
+            indexed = data._constructor(
+                data[values].values, index=index, columns=values
+            )
+        else:
+            indexed = data._constructor_sliced(data[values].values, index=index)
+    return indexed.unstack(columns)
+"""
+    with pytest.raises(SyntaxError):
+        extract_function_from_response(input_code, "pivot")
