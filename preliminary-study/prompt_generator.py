@@ -4,7 +4,6 @@ import os.path
 import time
 import re
 
-import openai
 from openai import OpenAI
 from typing import List
 
@@ -13,7 +12,7 @@ client = OpenAI(api_key="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")
 
 
 class PromptGenerator:
-    def __init__(self, facts: dict, facts_bitvector: dict, output_dir: str) -> None:
+    def __init__(self, facts: dict, facts_bitvector: dict, output_dir: str, remove_not_exist_facts) -> None:
         self.facts: dict = facts
         self.bitvector: dict = facts_bitvector
         self.output_dir: str = output_dir
@@ -25,6 +24,12 @@ class PromptGenerator:
             bug_data: dict = next(iter(json.load(bug_data_file).values()))
             user_dir: str = list(bug_data)[0]
             self.buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]
+
+        if remove_not_exist_facts == 1:
+            self.remove_not_exist_facts()
+
+    def remove_not_exist_facts(self):
+        pass
 
     def generate_prompt(self):
         self.prompt: str = self.template["preface"]
@@ -367,6 +372,7 @@ class PromptGenerator:
                 print(f"{response_file_name} already exists in directory {self.output_dir}")
 
             else:
+
                 try:
                     response: str = ""
                     max_generation_count = 5
@@ -380,7 +386,7 @@ class PromptGenerator:
 
                         response = chat_completion.choices[0].message.content
 
-                        if self.contain_valid_fix_patch(response, self.buggy_function_name):
+                        if contain_valid_fix_patch(response, self.buggy_function_name):
                             break
                         else:
                             time.sleep(3)
@@ -396,27 +402,32 @@ class PromptGenerator:
                         output_file.write(response)
 
                 except Exception as error:
+                    error_str = str(error)
                     with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
-                        output_file.write(str(error))
+                        output_file.write(error_str)
                     print(f"write response error to file {response_file_name} in directory {self.output_dir}")
 
     # used to check if there is ```python ``` code tag in the response
     # and the code block must contain buggy function name to ensure gpt is not interrupted
-    @staticmethod
-    def contain_valid_fix_patch(response: str, buggy_function_name: str) -> bool:
-        code_block_pattern = r'```(?:python)?(.*?)```'
-        code_blocks = re.findall(code_block_pattern, response, re.DOTALL)
 
-        for code_block in code_blocks:
-            if ("def " + buggy_function_name) in code_block:
-                return True
 
-        return False
+def contain_valid_fix_patch(response: str, buggy_function_name: str) -> bool:
+    code_block_pattern = r'```(?:python)?(.*?)```'
+    code_blocks = re.findall(code_block_pattern, response, re.DOTALL)
+
+    if buggy_function_name == "" and len(code_blocks) > 0:
+        return True
+
+    for code_block in code_blocks:
+        if ("def " + buggy_function_name) in code_block:
+            return True
+
+    return False
 
 
 if __name__ == "__main__":
     stratum = "first-stratum"
-    null_check = 0
+    remove_not_exist_facts = 0
 
     stratum_path = os.listdir(stratum)
 
@@ -437,9 +448,9 @@ if __name__ == "__main__":
                     bug_facts = json.load(input_file)
 
                 try:
-                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir))
+                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir), remove_not_exist_facts)
                     prompt_generator.generate_prompt()
-                    # prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
+                    prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
                     print(f"generate prompt for {bug_dir}")
                 except KeyError as e:
                     print(f"{bug_dir}: buggy function code are not available, not supported")
