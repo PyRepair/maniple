@@ -64,19 +64,25 @@ for bug_dir in first_stratum_path:
                     f"{bug_dir}/{response_file_name} doesn't contain valid fix patch, default treat it as incorrect")
                 fix_patch = ""
 
-        used_facts = [int(char) for char in response_file_name[:11]]
+        used_facts = [int(char) for char in response_file_name[:17]]
         bitvector = {
-            "1.3.2": used_facts[0],
-            "1.2.4": used_facts[1],
+            "1.3.1": used_facts[0],
+            "1.3.2": used_facts[1],
             "1.2.1": used_facts[2],
-            "1.3.4": used_facts[3],
-            "2.1.1": used_facts[4],
-            "2.1.2": used_facts[5],
-            "2.2.1": used_facts[6],
-            "2.2.2": used_facts[7],
-            "3.1.1": used_facts[8],
-            "3.1.2": used_facts[9],
-            "cot": used_facts[10]
+            "1.2.2": used_facts[3],
+            "1.2.3": used_facts[4],
+            "1.1.2": used_facts[5],
+            "2.2.3": used_facts[6],
+            "2.2.4": used_facts[7],
+            "2.2.5": used_facts[8],
+            "2.2.6": used_facts[9],
+            "2.1.1": used_facts[10],
+            "2.1.2": used_facts[11],
+            "2.2.1": used_facts[12],
+            "2.2.2": used_facts[13],
+            "3.1.1": used_facts[14],
+            "3.1.2": used_facts[15],
+            "cot": used_facts[16]
         }
 
         prefix = project_name + "/"
