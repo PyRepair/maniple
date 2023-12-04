@@ -1,5 +1,7 @@
 import difflib
 import ast
+import tokenize
+from io import StringIO
 
 
 IGNORED_BUGS = ["spacy:2"]
@@ -35,6 +37,35 @@ def print_in_yellow(text):
     YELLOW = "\033[93m"
     RESET = "\033[0m"
     print(f"{YELLOW}{text}{RESET}")
+
+
+def remove_comments_and_docstrings(source):
+    """
+    Remove comments and docstrings from a Python source code string and also remove all new lines.
+    """
+    clean_code = ""
+    last_token_type = (
+        tokenize.INDENT
+    )  # Initialize with a token type that won't be in conflict with STRING or COMMENT
+    token_stream = tokenize.generate_tokens(StringIO(source).readline)
+
+    for token_type, token_string, _, _, _ in token_stream:
+        # Skip comments, docstrings, and newlines
+        if (
+            token_type == tokenize.COMMENT
+            or (token_type == tokenize.STRING and last_token_type == tokenize.INDENT)
+            or token_type == tokenize.NEWLINE
+        ):
+            continue
+
+        clean_code += token_string
+        last_token_type = token_type
+
+    return clean_code.strip()
+
+
+def estimate_function_code_length(src: str) -> int:
+    return len(remove_comments_and_docstrings(src))
 
 
 def generate_contextual_diff_with_char_limit(text1, text2, context=1, char_limit=30):

@@ -325,11 +325,11 @@ class Facts:
 
     @staticmethod
     def remove_docstring_from_source(function_source):
-        # Regex to match docstrings: Triple quotes (either """ or ''')
-        # followed by any characters (non-greedy) and then triple quotes again
+        # Regex to match docstrings under a function or method definition
+        # The pattern looks for 'def' followed by any characters (non-greedy) up to the first triple quote
         # The re.DOTALL flag allows the dot (.) to match newlines as well
-        pattern = r"\"\"\".*?\"\"\"|\'\'\'.*?\'\'\'"
-        return re.sub(pattern, "", function_source, flags=re.DOTALL)
+        pattern = r"(def\s.*?:\s*?\n\s*?)\"\"\".*?\"\"\"|\'\'\'.*?\'\'\'"
+        return re.sub(pattern, r"\1", function_source, flags=re.DOTALL)
 
     @staticmethod
     def _split_error_message(error_message) -> List[dict]:
