@@ -13,7 +13,7 @@ def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
 
     if flag_overwrite:
         try:
-            print_in_yellow(f"Preprocessing {bugid} before submitting patches...")
+            print_in_yellow(f"Preparing {bugid} before submitting patches...")
             subprocess.run(["bgp", "prep", "--bugids", bugid], check=True)
         except subprocess.CalledProcessError as e:
             print_in_red(e.stderr.decode("utf-8"))

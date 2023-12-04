@@ -47,7 +47,7 @@ if __name__ == "__main__":
     flag_overwrite = args.overwrite
     if flag_overwrite:
         print_in_red("WARNING: Deleting existing prepped environments...")
-        subprocess.run(["rm", "-rf", "~/.abw/BugsInPy_Dir/envs"])
+        subprocess.run(["rm", "-rf", "~/.abw/BugsInPy_Dir/envs"], check=True)
 
     for bugid in bugids:
         bwd = os.path.join(args.database_path, "-".join(bugid.split(":")))
