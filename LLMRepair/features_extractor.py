@@ -255,7 +255,7 @@ class Facts:
 
     def _resolve_angelic_variables(self, function_info):
         if (
-            function_info.get("angelic_variable_values") is not None
+            function_info["angelic_variable_values"] is not None
             and len(function_info["angelic_variable_values"]) > 0
         ):
             ioavals, ioatypes = self._resolve_dynamics(
@@ -265,7 +265,7 @@ class Facts:
             self.facts["2.2.4"] = ioatypes
 
         if (
-            function_info.get("variable_values") is not None
+            function_info["variable_values"] is not None
             and len(function_info["variable_values"]) > 0
         ):
             iobvals, iobtypes = self._resolve_dynamics(function_info["variable_values"])
@@ -361,13 +361,13 @@ class Facts:
 
     def _resolve_test_data(self, test_data):
         test_function_code = test_data["test_function_code"]
-        if self.facts.get("2.1.1") is None:
+        if self.facts["2.1.1"] is None:
             self.facts["2.1.1"] = [test_function_code]
         else:
             self.facts["2.1.1"].append(test_function_code)
 
         test_file_name = test_data["test_path"]
-        if self.facts.get("2.1.2") is None:
+        if self.facts["2.1.2"] is None:
             self.facts["2.1.2"] = [test_file_name]
         else:
             self.facts["2.1.2"].append(test_file_name)
@@ -392,13 +392,13 @@ class Facts:
                 full_error_message.append(chunk["content"])
 
         if len(full_error_message) > 0:
-            if self.facts.get("2.2.1") is None:
+            if self.facts["2.2.1"] is None:
                 self.facts["2.2.1"] = [full_error_message]
             else:
                 self.facts["2.2.1"].append(full_error_message)
 
         if len(full_stacktrace) > 0:
-            if self.facts.get("2.2.2") is None:
+            if self.facts["2.2.2"] is None:
                 self.facts["2.2.2"] = [full_stacktrace]
             else:
                 self.facts["2.2.2"].append(full_stacktrace)
@@ -476,12 +476,12 @@ class Facts:
             with open(os.path.join(full_bugdir_path, "facts.json"), "w") as f:
                 json.dump(self.facts, f, indent=4)
 
-        if self.facts.get("1.2.3") is None:
+        if self.facts["1.2.3"] is None:
             self._log_stat("method_ref_num_pair", (bugid, 0))
         else:
             self._log_stat("method_ref_num_pair", (bugid, len(self.facts["1.2.3"])))
 
-        if self.facts.get("1.3.2") is None:
+        if self.facts["1.3.2"] is None:
             self._log_stat("in_scope_func_ref_num_pair", (bugid, 0))
         else:
             self._log_stat(
@@ -494,6 +494,9 @@ class Facts:
             return formatted_json
 
         for fact_key, fact_content in self.facts.items():
+            if fact_content is None:
+                continue
+
             fact_name = FACT_MAP[fact_key]
             if "code" in fact_name:
                 fact_type = "python"
