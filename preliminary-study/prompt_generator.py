@@ -92,9 +92,9 @@ class PromptGenerator:
                 self.prompt = self.prompt + f"{variable}, "
 
                 if self.bitvector["2.2.5"] == 1 and self.bitvector["2.2.6"] == 1:
-                    self.prompt = self.prompt + f"value: {variable_value}, type: {variable_type}"
+                    self.prompt = self.prompt + f"value: `{variable_value}`, type: {variable_type}"
                 elif self.bitvector["2.2.5"] == 1:
-                    self.prompt = self.prompt + f"value: {variable_value}"
+                    self.prompt = self.prompt + f"value: `{variable_value}`"
                 elif self.bitvector["2.2.6"] == 1:
                     self.prompt = self.prompt + f"type: {variable_type}"
 
@@ -124,9 +124,9 @@ class PromptGenerator:
                     self.prompt = self.prompt + f"{variable}, "
 
                     if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
-                        self.prompt = self.prompt + f"value: {variable_value}, type: {variable_type}"
+                        self.prompt = self.prompt + f"value: `{variable_value}`, type: {variable_type}"
                     elif self.bitvector["2.2.3"] == 1:
-                        self.prompt = self.prompt + f"value: {variable_value}"
+                        self.prompt = self.prompt + f"value: `{variable_value}`"
                     elif self.bitvector["2.2.4"] == 1:
                         self.prompt = self.prompt + f"type: {variable_type}"
 
@@ -175,11 +175,11 @@ class PromptGenerator:
                 self.prompt = self.prompt + f"{variable}, "
 
                 if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
-                    self.prompt = self.prompt + f"expected value: {variable_value}, type: {variable_type}"
+                    self.prompt = self.prompt + f"value: `{variable_value}`, type: {variable_type}"
                 elif self.bitvector["2.2.3"] == 1:
-                    self.prompt = self.prompt + f"expected value: {variable_value}"
+                    self.prompt = self.prompt + f"value: `{variable_value}`"
                 elif self.bitvector["2.2.4"] == 1:
-                    self.prompt = self.prompt + f"expected type: {variable_type}"
+                    self.prompt = self.prompt + f"type: {variable_type}"
 
                 self.prompt = self.prompt + "\n\n"
 
@@ -202,9 +202,9 @@ class PromptGenerator:
                 self.prompt = self.prompt + f"{variable}, "
 
                 if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
-                    self.prompt = self.prompt + f"expected value: {variable_value}, type: {variable_type}"
+                    self.prompt = self.prompt + f"expected value: `{variable_value}`, type: {variable_type}"
                 elif self.bitvector["2.2.3"] == 1:
-                    self.prompt = self.prompt + f"expected value: {variable_value}"
+                    self.prompt = self.prompt + f"expected value: `{variable_value}`"
                 elif self.bitvector["2.2.4"] == 1:
                     self.prompt = self.prompt + f"expected type: {variable_type}"
 
@@ -305,10 +305,10 @@ class PromptGenerator:
                 self.prompt = self.prompt + "    \"\"\"\n"
                 for doc in class_docs.split('\n'):
                     self.prompt = self.prompt + "    " + doc + "\n"
-                self.prompt = self.prompt + "    \"\"\"\n\n"
+                self.prompt = self.prompt + "    \"\"\""
+                self.add_newline_between_sections()
 
             self.prompt = self.prompt + "    " + omitted_code + "\n"
-            self.prompt = self.prompt + "    pass"
             self.add_newline_between_sections()
 
         if (not has_function_in_file) and (not has_class_declaration):
@@ -367,41 +367,51 @@ class PromptGenerator:
                 print(f"{response_file_name} already exists in directory {self.output_dir}")
 
             else:
-                with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
-                    try:
-                        max_generation_count = 5
-                        while max_generation_count > 0:
-                            chat_completion = client.chat.completions.create(
-                                model=gpt_model,
-                                messages=[
-                                    {"role": "user", "content": self.prompt}
-                                ]
-                            )
+                try:
+                    response: str = ""
+                    max_generation_count = 5
+                    while max_generation_count > 0:
+                        chat_completion = client.chat.completions.create(
+                            model=gpt_model,
+                            messages=[
+                                {"role": "user", "content": self.prompt}
+                            ]
+                        )
 
+                        response = chat_completion.choices[0].message.content
+
+                        if self.contain_valid_fix_patch(response, self.buggy_function_name):
+                            break
+                        else:
+                            time.sleep(3)
                             response = chat_completion.choices[0].message.content
+                            max_generation_count -= 1
 
-                            if self.contain_valid_fix_patch(response):
-                                break
-                            else:
-                                time.sleep(3)
-                                response = chat_completion.choices[0].message.content
-                                max_generation_count -= 1
-
-                        output_file.write(response)
-                        print(f"write response to file {response_file_name} in directory {self.output_dir}")
-                    except Exception as e:
-                        output_file.write(str(e))
+                    if max_generation_count == 0:
                         print(f"write response error to file {response_file_name} in directory {self.output_dir}")
+                    else:
+                        print(f"write response to file {response_file_name} in directory {self.output_dir}")
+
+                    with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
+                        output_file.write(response)
+
+                except Exception as error:
+                    with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
+                        output_file.write(str(error))
+                    print(f"write response error to file {response_file_name} in directory {self.output_dir}")
 
     # used to check if there is ```python ``` code tag in the response
+    # and the code block must contain buggy function name to ensure gpt is not interrupted
     @staticmethod
-    def contain_valid_fix_patch(response: str) -> bool:
+    def contain_valid_fix_patch(response: str, buggy_function_name: str) -> bool:
         code_block_pattern = r'```(?:python)?(.*?)```'
         code_blocks = re.findall(code_block_pattern, response, re.DOTALL)
-        if len(code_blocks) == 0:
-            return False
-        else:
-            return True
+
+        for code_block in code_blocks:
+            if ("def " + buggy_function_name) in code_block:
+                return True
+
+        return False
 
 
 if __name__ == "__main__":
