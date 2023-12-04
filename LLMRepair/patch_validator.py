@@ -1,17 +1,23 @@
 import json
 import os
 import subprocess
-from utils import print_in_red
+from utils import print_in_red, print_in_yellow
 
 
-def validate_patches(bugid: str, bwd: str):
+def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
     # 0 pass test
     # 1 failed test
     # 2 invalid fix patch input for run custom patch (also include crash)
     # 4 run custom patch time out
     # 404 exteract fix patch = "" (response generation failed to pass parser)
 
-    # subprocess.run(["bgp", "prep", "--bugids", bugid], check=True)
+    if flag_overwrite:
+        try:
+            print_in_yellow(f"Preprocessing {bugid} before submitting patches...")
+            subprocess.run(["bgp", "prep", "--bugids", bugid], check=True)
+        except subprocess.CalledProcessError as e:
+            print_in_red(e.stderr.decode("utf-8"))
+            return
 
     for filename in os.listdir(bwd):
         is_patchfile = "response" in filename and filename.endswith(".json")
@@ -24,8 +30,6 @@ def validate_patches(bugid: str, bwd: str):
             bwd,
             filename.replace("response", "log").replace(".json", ".txt"),
         )
-
-        # subprocess.run(["bgp", "checkout_buggy", "--bugids", bugid], check=True)
 
         try:
             subprocess.run(

@@ -1,5 +1,6 @@
 import argparse
 import os
+import subprocess
 from utils import print_in_red
 from cleaner import clear_files
 from features_extractor import collect_facts, NotSupportedError
@@ -43,6 +44,11 @@ if __name__ == "__main__":
     if bugids is None:
         bugids = get_bugids_from_database_path(args.database_path)
 
+    flag_overwrite = args.overwrite
+    if flag_overwrite:
+        print_in_red("WARNING: Deleting existing prepped environments...")
+        subprocess.run(["rm", "-rf", "~/.abw/BugsInPy_Dir/envs"])
+
     for bugid in bugids:
         bwd = os.path.join(args.database_path, "-".join(bugid.split(":")))
         if not os.path.exists(bwd):
@@ -50,9 +56,9 @@ if __name__ == "__main__":
 
         try:
             if args.command == "extract_features":
-                collect_facts(bugid, bwd, flag_overwrite=args.overwrite)
+                collect_facts(bugid, bwd, flag_overwrite)
             elif args.command == "validate_patches":
-                validate_patches(bugid, bwd)
+                validate_patches(bugid, bwd, flag_overwrite)
             elif args.command == "clean":
                 clear_files(bwd)
 
