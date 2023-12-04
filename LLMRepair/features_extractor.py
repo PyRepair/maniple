@@ -32,6 +32,9 @@ class Facts:
         self._bwd = bug_working_directory
         self._variables_in_methods = []
 
+        for key in FACT_MAP.keys():
+            self.facts[key] = None
+
     def _log_stat(self, state_category, state_record):
         if self.stats.get(state_category) is None:
             self.stats[state_category] = [state_record]
