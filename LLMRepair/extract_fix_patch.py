@@ -1,7 +1,16 @@
 import json
 import os
 import re
+import sys
+
 from utils import extract_function_from_response
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+another_folder_path = os.path.join(parent_dir, 'preliminary-study')
+sys.path.append("..")
+
+
 
 
 def get_code_blocks(raw_response: str) -> list[str]:
@@ -31,7 +40,7 @@ for bug_dir in first_stratum_path:
             response = response_file.read()
             code_blocks = get_code_blocks(response)
 
-        fix_patch = ""
+        fix_patch = None
         if len(code_blocks) > 1:
             buggy_function_signature = ""
             for statement in buggy_function_code.split('\n'):
@@ -46,13 +55,10 @@ for bug_dir in first_stratum_path:
                     fix_patch = code_block
                     break
 
-        elif len(code_blocks) == 0:
-            fix_patch = ""
-
-        else:
+        elif len(code_blocks) == 1:
             fix_patch = code_blocks[0]
 
-        if fix_patch != "":
+        if fix_patch is not None:
             try:
                 fix_patch = extract_function_from_response(fix_patch, buggy_function_name)
 
@@ -60,9 +66,11 @@ for bug_dir in first_stratum_path:
                     fix_patch = ""
 
             except SyntaxError:
-                print(
-                    f"{bug_dir}/{response_file_name} doesn't contain valid fix patch, default treat it as incorrect")
+                print(f"{bug_dir}/{response_file_name} doesn't contain valid fix patch, default treat it as incorrect")
                 fix_patch = ""
+
+        else:
+            print(f"{bug_dir}/{response_file_name} doesn't have a response, default treat it as incorrect")
 
         used_facts = [int(char) for char in response_file_name[:17]]
         bitvector = {
