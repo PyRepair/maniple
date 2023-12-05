@@ -75,11 +75,17 @@ class Facts:
     def _resolve_file_info(self, filename, file_info):
         self.facts["1.3.1"] = filename
 
-        if len(file_info["buggy_functions"]) > 1:
+        buggy_functions = []
+        for bg_fn_info in file_info["buggy_functions"]:
+            if bg_fn_info["function_code"] is not None:
+                buggy_functions.append(bg_fn_info)
+
+        if len(buggy_functions) > 1:
             raise NotSupportedError(
                 "multiple buggy functions are not supported at the moment"
             )
-        for buggy_function_info in file_info["buggy_functions"]:
+
+        for buggy_function_info in buggy_functions:
             self._resolve_buggy_function(buggy_function_info)
 
         called_in_scope_functions = []
