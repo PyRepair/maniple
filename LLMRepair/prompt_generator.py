@@ -384,7 +384,7 @@ class PromptGenerator:
                 prompt_file_name = prompt_file_name + str(value)
 
         prompt_file_name += "prompt.md"
-        with open(os.path.join(self.output_dir, prompt_file_name), "w") as output_file:
+        with open(os.path.join(self.output_dir, prompt_file_name), "w", encoding='utf-8') as output_file:
             output_file.write(self.prompt)
 
     def get_response_from_gpt(self, repeat_count: int, gpt_model: str):
@@ -402,9 +402,9 @@ class PromptGenerator:
         for count in range(repeat_count):
             response_md_file_name = bitvector_flatten + "response(" + str(count) + ").md"
 
-            # if os.path.exists(os.path.join(self.output_dir, response_md_file_name)):
-            #     print(f"{response_md_file_name} already exists in directory {self.output_dir}")
-            #     continue
+            if os.path.exists(os.path.join(self.output_dir, response_md_file_name)):
+                print(f"{response_md_file_name} already exists in directory {self.output_dir}")
+                continue
 
             try:
                 self.max_generation_count = 5
@@ -513,7 +513,7 @@ def contain_valid_fix_patch(response: str, buggy_function_name: str) -> Optional
 
 
 if __name__ == "__main__":
-    stratum = os.path.join("..", "preliminary-study", "first-stratum")
+    stratum = os.path.join("..", "preliminary-study", "second-stratum")
     remove_not_exist_facts = 0
 
     stratum_path = os.listdir(stratum)
@@ -533,10 +533,14 @@ if __name__ == "__main__":
                 with open(facts_path, "r") as input_file:
                     bug_facts = json.load(input_file)
 
+                if bug_facts["1.1.1"] is None:
+                    print_in_red(f"{bug_dir}: not single function fix, not supported")
+                    continue
+
+                print(f"generate prompt for {bug_dir}")
                 prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir), remove_not_exist_facts)
                 prompt_generator.generate_prompt()
                 prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
-                print(f"generate prompt for {bug_dir}")
 
             else:
-                print(f"{bug_dir}: multi function fix, not supported")
+                print_in_red(f"{bug_dir}: not single function fix, not supported")
