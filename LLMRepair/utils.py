@@ -52,6 +52,11 @@ def remove_comments_and_docstrings(source):
         r"(\'\'\'(.*?)\'\'\'|\"\"\"(.*?)\"\"\")", "", source, flags=re.DOTALL
     )
 
+    # Remove import lines
+    source = re.sub(
+        r"^\s*(import .*|from .* import .*)\s*$", "", source, flags=re.MULTILINE
+    )
+
     # Remove new lines
     source = re.sub(r"\n+", " ", source)
 

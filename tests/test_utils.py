@@ -120,6 +120,10 @@ def test_remove_comments_and_docstrings():
             "input": '"""Module level docstring"""\n\nx = 10\ny = 20 # Variables',
             "expected": "x = 10 y = 20",
         },
+        {
+            "input": "from a import b\nimport c\n\n# This is a comment\nprint('Hello, world!')",
+            "expected": "print('Hello, world!')",
+        }
     ]
 
     # Test each case
