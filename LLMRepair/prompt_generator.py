@@ -435,11 +435,11 @@ class PromptGenerator:
             except Exception as error:
                 error_str = ""
                 if self.max_generation_count == 0:
-                    print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} 
-                                          exceed max generation count"))
+                    print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} "
+                                          f"exceed max generation count"))
                 elif self.max_conversation_count == 0:
-                    print_in_yellow(f"{self.output_dir}/{response_md_file_name} 
-                                    exceed max conversation count")
+                    print_in_yellow(f"{self.output_dir}/{response_md_file_name} "
+                                    f"exceed max conversation count")
                 else:
                     error_str = str(error)
                     print_in_red(error_str)
@@ -486,7 +486,7 @@ def create_query(messages: list, gpt_model: str) -> str:
                 model=gpt_model,
                 messages=messages
             )
-            finish_reason = chat_completion.choices[0]["finish_reason"]
+            finish_reason = chat_completion.choices[0].finish_reason
             if finish_reason != "stop":
                 print_in_yellow(f"retrying due to not stop, finish reason: {finish_reason}")
                 
