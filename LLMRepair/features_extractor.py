@@ -11,6 +11,7 @@ from utils import (
     generate_contextual_diff_with_char_limit,
     print_in_red,
     print_in_yellow,
+    run_command,
 )
 
 
@@ -437,10 +438,10 @@ class Facts:
                 )
                 raise NotSupportedError("bgp command not found")
 
-            subprocess.run(["bgp", "clone", "--bugids", bugid], check=True)
+            run_command(["bgp", "clone", "--bugids", bugid], check=True)
 
             try:
-                console_output = subprocess.run(
+                console_output = run_command(
                     ["bgp", "extract_features", "--bugids", bugid],
                     capture_output=True,
                     check=True,

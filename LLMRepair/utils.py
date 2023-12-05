@@ -1,7 +1,13 @@
 import difflib
 import ast
 import re
-from io import StringIO
+import subprocess
+from typing import List
+
+
+FLAG_USE_DOCKER = True
+
+DOCKER_CONTAINER_NAME = "pyr:lite"
 
 
 IGNORED_BUGS = ["spacy:2"]
@@ -163,3 +169,12 @@ def extract_function_from_response(src: str, func_name: str) -> str:
     )
 
     return modified_function
+
+
+def run_command(command: List[str], check=False, capture_output=False):
+    if FLAG_USE_DOCKER:
+        docker_cmds = ["docker", "run", "-it", "--rm", DOCKER_CONTAINER_NAME]
+        docker_cmds.extend(command)
+        return subprocess.run(docker_cmds, check=check, capture_output=capture_output)
+    else:
+        return subprocess.run(command, check=check, capture_output=capture_output)

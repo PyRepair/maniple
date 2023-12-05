@@ -1,6 +1,6 @@
 import argparse
 import os
-import shutil
+import utils
 from utils import print_in_red
 from cleaner import clear_features, clear_logs, clear_prompts
 from features_extractor import collect_facts, NotSupportedError
@@ -37,15 +37,24 @@ if __name__ == "__main__":
         help="specify a list of bugids to collect facts, like `pandas:30,scikit-learn:1`",
     )
     args_parser.add_argument(
-        "-p", "--database-path", required=True, help="specify the path to bug database"
+        "-p",
+        "--database-path",
+        type=str,
+        required=True,
+        help="specify the path to bug database",
     )
     args_parser.add_argument(
-        "--delete-cache",
+        "--prep",
+        help="whether to re-prep the environment",
         action="store_true",
         default=False,
-        help="delete the cache before collecting facts",
     )
-    args_parser.add_argument("--overwrite", action="store_true", default=False)
+    args_parser.add_argument(
+        "--use-docker",
+        help="whether to use docker to run the commands",
+        action="store_true",
+        default=False,
+    )
     args = args_parser.parse_args()
 
     if args.database_path is None:
@@ -56,18 +65,9 @@ if __name__ == "__main__":
     if bugids is None:
         bugids = get_bugids_from_database_path(args.database_path)
 
-    flag_overwrite = args.overwrite
-    flag_delete_cache = args.delete_cache
-
-    if flag_delete_cache:
-        HOME_DIR = os.path.expanduser("~")
-        BGP_CACHE_DIR = os.path.join(HOME_DIR, ".abw", "BugsInPy_Dir", "envs")
-        print_in_red(
-            f"WARNING: Deleting existing prepped environments "
-            f"stored in {BGP_CACHE_DIR} ..."
-        )
-        if os.path.exists(BGP_CACHE_DIR):
-            shutil.rmtree(BGP_CACHE_DIR, ignore_errors=False)
+    flag_prep = args.prep
+    if args.use_docker:
+        utils.FLAG_USE_DOCKER = True
 
     for bugid in bugids:
         bwd = os.path.join(args.database_path, "-".join(bugid.split(":")))
@@ -76,9 +76,9 @@ if __name__ == "__main__":
 
         try:
             if args.command == "extract_features":
-                collect_facts(bugid, bwd, flag_overwrite)
+                collect_facts(bugid, bwd, flag_prep)
             elif args.command == "validate_patches":
-                validate_patches(bugid, bwd, flag_overwrite)
+                validate_patches(bugid, bwd, flag_prep)
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":

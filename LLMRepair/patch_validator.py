@@ -1,7 +1,7 @@
 import json
 import os
 import subprocess
-from utils import print_in_red, print_in_yellow
+from utils import print_in_red, print_in_yellow, run_command
 
 
 def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
@@ -21,7 +21,7 @@ def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
     if flag_overwrite:
         try:
             print_in_yellow(f"Preparing {bugid} before submitting patches...")
-            subprocess.run(["bgp", "prep", "--bugids", bugid], check=True)
+            run_command(["bgp", "prep", "--bugids", bugid, "--reinstall"], check=True)
         except subprocess.CalledProcessError as e:
             print_in_red(e.stderr.decode("utf-8"))
             return
@@ -57,7 +57,7 @@ def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
         error_log_path = os.path.join(bwd, log_file_name)
 
         try:
-            subprocess.run(
+            run_command(
                 ["run_custom_patch", patchfile_path, "--output-file", result_file_path],
                 check=True,
                 capture_output=True,
