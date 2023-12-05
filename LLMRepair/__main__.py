@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import subprocess
 from utils import print_in_red
 from cleaner import clear_files
@@ -46,8 +47,14 @@ if __name__ == "__main__":
 
     flag_overwrite = args.overwrite
     if flag_overwrite:
-        print_in_red("WARNING: Deleting existing prepped environments...")
-        subprocess.run(["rm", "-rf", "~/.abw/BugsInPy_Dir/envs"], check=True)
+        HOME_DIR = os.path.expanduser("~")
+        BGP_CACHE_DIR = os.path.join(HOME_DIR, ".abw", "BugsInPy_Dir", "envs")
+        print_in_red(
+            f"WARNING: Deleting existing prepped environments "
+            f"stored in {BGP_CACHE_DIR} ..."
+        )
+        if os.path.exists(BGP_CACHE_DIR):
+            shutil.rmtree(BGP_CACHE_DIR, ignore_errors=False)
 
     for bugid in bugids:
         bwd = os.path.join(args.database_path, "-".join(bugid.split(":")))
