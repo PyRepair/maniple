@@ -43,6 +43,9 @@ class PromptGenerator:
             if self.bitvector[key] == 1 and self.facts[key] is None:
                 self.actual_bitvector[key] = 0
 
+        self.max_generation_count = 5
+        self.max_conversation_count = 5
+
     def generate_prompt(self):
         self.prompt: str = self.template["preface"]
         self.add_newline_between_sections()
@@ -404,55 +407,56 @@ class PromptGenerator:
             #     continue
 
             try:
+                self.max_generation_count = 5
+                self.max_conversation_count = 5
                 messages = [{"role": "user", "content": self.prompt}]
-                valid_response = None
 
-                max_generation_count = 4
-                response = create_query(messages, gpt_model)
-                while (((fix_patch := contain_valid_fix_patch(response, self.buggy_function_name)) is not None)
-                       and max_generation_count > 0):
-
-                    response = create_query(messages, gpt_model)
-                    time.sleep(3)
-                    max_generation_count -= 1
+                response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
 
                 conversation_response = response
-                max_conversation_count = 5
-                if fix_patch is not None:
-                    messages = [
-                        {"role": "user", "content": self.prompt},
-                        {"role": "assistant", "content": response},
-                        {"role": "user", "content": "Print the full code of the fixed function"},
-                    ]
 
-                    while (estimate_function_code_length(fix_patch) < 0.7 * buggy_function_length
-                           and max_conversation_count > 0):
-                        # if the fix patch is omitted
+                messages = [
+                    {"role": "user", "content": self.prompt},
+                    {"role": "assistant", "content": response},
+                    {"role": "user", "content": "Print the full code of the fixed function"},
+                ]
 
-                        conversation_response = create_query(messages, gpt_model)
-                        fix_patch = contain_valid_fix_patch(conversation_response, self.buggy_function_name)
-                        max_conversation_count -= 1
+                while (estimate_function_code_length(fix_patch) < 0.6 * buggy_function_length
+                       and self.max_conversation_count > 0):
+                    # if the fix patch is omitted
 
-                if max_generation_count == 0:
-                    print_in_yellow(print(f"{response_md_file_name} in directory {self.output_dir} exceed max generation count"))
-                elif max_conversation_count == 0:
-                    print_in_yellow(f"{response_md_file_name} in directory {self.output_dir} exceed max conversation count, write omitted code")
-                else:
-                    print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
+                    conversation_response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
+                    self.max_conversation_count -= 1
 
+                print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
                 with open(os.path.join(self.output_dir, response_md_file_name), "w") as output_file:
-                    if valid_response is not None:
-                        output_file.write(conversation_response)
-                    else:
-                        output_file.write("")
+                    output_file.write(conversation_response)
 
             except Exception as error:
-                error_str = str(error)
+                error_str = ""
+                if self.max_generation_count == 0:
+                    print_in_yellow(print(f"{response_md_file_name} in directory {self.output_dir} exceed max generation count"))
+                elif self.max_conversation_count == 0:
+                    print_in_yellow(f"{response_md_file_name} in directory {self.output_dir} exceed max conversation count, write omitted code")
+                else:
+                    error_str = str(error)
+                    print_in_red(error_str)
+
                 with open(os.path.join(self.output_dir, response_md_file_name), "w") as output_file:
                     output_file.write(error_str)
 
-                print_in_red(error_str)
                 print(f"write response error to file {response_md_file_name} in directory {self.output_dir}")
+
+    def get_response_with_valid_patch(self, messages: list, gpt_model: str):
+        while self.max_generation_count > 0:
+            response = create_query(messages, gpt_model)
+            fix_patch = contain_valid_fix_patch(response, self.buggy_function_name)
+            if fix_patch is not None:
+                return response, fix_patch
+
+            self.max_generation_count -= 1
+
+        raise QueryException("exceed max generation count")
 
 
 class QueryException(Exception):
@@ -475,6 +479,7 @@ def create_query(messages: list, gpt_model: str) -> str:
     retry_max_count = 10
     while retry_max_count > 0:
         try:
+            time.sleep(3)
             chat_completion = client.chat.completions.create(
                 model=gpt_model,
                 messages=messages
