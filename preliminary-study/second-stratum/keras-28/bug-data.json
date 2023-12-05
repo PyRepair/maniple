@@ -3,41 +3,6 @@
         "/Users/jerry/.abw/BugsInPy_Dir/BugsInPy_Cloned_Repos/keras/keras/preprocessing/sequence.py": {
             "buggy_functions": [
                 {
-                    "function_name": null,
-                    "function_code": null,
-                    "decorators": [],
-                    "docstring": null,
-                    "start_line": null,
-                    "variables": {},
-                    "filtered_variables": {},
-                    "diff_line_number": 328,
-                    "class_data": {
-                        "signature": "class TimeseriesGenerator(Sequence)",
-                        "docstring": "Utility class for generating batches of temporal data.\n\nThis class takes in a sequence of data-points gathered at\nequal intervals, along with time series parameters such as\nstride, length of history, etc., to produce batches for\ntraining/validation.\n\n# Arguments\n    data: Indexable generator (such as list or Numpy array)\n        containing consecutive data points (timesteps).\n        The data should be at 2D, and axis 0 is expected\n        to be the time dimension.\n    targets: Targets corresponding to timesteps in `data`.\n        It should have same length as `data`.\n    length: Length of the output sequences (in number of timesteps).\n    sampling_rate: Period between successive individual timesteps\n        within sequences. For rate `r`, timesteps\n        `data[i]`, `data[i-r]`, ... `data[i - length]`\n        are used for create a sample sequence.\n    stride: Period between successive output sequences.\n        For stride `s`, consecutive output samples would\n        be centered around `data[i]`, `data[i+s]`, `data[i+2*s]`, etc.\n    start_index, end_index: Data points earlier than `start_index`\n        or later than `end_index` will not be used in the output sequences.\n        This is useful to reserve part of the data for test or validation.\n    shuffle: Whether to shuffle output samples,\n        or instead draw them in chronological order.\n    reverse: Boolean: if `true`, timesteps in each output sample will be\n        in reverse chronological order.\n    batch_size: Number of timeseries samples in each batch\n        (except maybe the last one).\n\n# Returns\n    A [Sequence](/utils/#sequence) instance.\n\n# Examples\n\n```python\nfrom keras.preprocessing.sequence import TimeseriesGenerator\nimport numpy as np\n\ndata = np.array([[i] for i in range(50)])\ntargets = np.array([[i] for i in range(50)])\n\ndata_gen = TimeseriesGenerator(data, targets,\n                               length=10, sampling_rate=2,\n                               batch_size=2)\nassert len(data_gen) == 20\n\nbatch_0 = data_gen[0]\nx, y = batch_0\nassert np.array_equal(x,\n                      np.array([[[0], [2], [4], [6], [8]],\n                                [[1], [3], [5], [7], [9]]]))\nassert np.array_equal(y,\n                      np.array([[10], [11]]))\n```",
-                        "constructor_docstring": null,
-                        "functions": [
-                            "__init__(self, data, targets, length, sampling_rate=1, stride=1, start_index=0, end_index=None, shuffle=False, reverse=False, batch_size=128)",
-                            "__len__(self)",
-                            "_empty_batch(self, num_rows)",
-                            "__getitem__(self, index)"
-                        ],
-                        "constructor_variables": [
-                            "shuffle",
-                            "targets",
-                            "stride",
-                            "length",
-                            "end_index",
-                            "reverse",
-                            "batch_size",
-                            "start_index",
-                            "data",
-                            "sampling_rate"
-                        ],
-                        "class_level_variables": [],
-                        "class_decorators": []
-                    }
-                },
-                {
                     "function_name": "__len__",
                     "function_code": "def __len__(self):\n    return int(np.ceil(\n        (self.end_index - self.start_index) /\n        (self.batch_size * self.stride)))\n",
                     "decorators": [],
@@ -100,26 +65,38 @@
                         "docstring": "Utility class for generating batches of temporal data.\n\nThis class takes in a sequence of data-points gathered at\nequal intervals, along with time series parameters such as\nstride, length of history, etc., to produce batches for\ntraining/validation.\n\n# Arguments\n    data: Indexable generator (such as list or Numpy array)\n        containing consecutive data points (timesteps).\n        The data should be at 2D, and axis 0 is expected\n        to be the time dimension.\n    targets: Targets corresponding to timesteps in `data`.\n        It should have same length as `data`.\n    length: Length of the output sequences (in number of timesteps).\n    sampling_rate: Period between successive individual timesteps\n        within sequences. For rate `r`, timesteps\n        `data[i]`, `data[i-r]`, ... `data[i - length]`\n        are used for create a sample sequence.\n    stride: Period between successive output sequences.\n        For stride `s`, consecutive output samples would\n        be centered around `data[i]`, `data[i+s]`, `data[i+2*s]`, etc.\n    start_index, end_index: Data points earlier than `start_index`\n        or later than `end_index` will not be used in the output sequences.\n        This is useful to reserve part of the data for test or validation.\n    shuffle: Whether to shuffle output samples,\n        or instead draw them in chronological order.\n    reverse: Boolean: if `true`, timesteps in each output sample will be\n        in reverse chronological order.\n    batch_size: Number of timeseries samples in each batch\n        (except maybe the last one).\n\n# Returns\n    A [Sequence](/utils/#sequence) instance.\n\n# Examples\n\n```python\nfrom keras.preprocessing.sequence import TimeseriesGenerator\nimport numpy as np\n\ndata = np.array([[i] for i in range(50)])\ntargets = np.array([[i] for i in range(50)])\n\ndata_gen = TimeseriesGenerator(data, targets,\n                               length=10, sampling_rate=2,\n                               batch_size=2)\nassert len(data_gen) == 20\n\nbatch_0 = data_gen[0]\nx, y = batch_0\nassert np.array_equal(x,\n                      np.array([[[0], [2], [4], [6], [8]],\n                                [[1], [3], [5], [7], [9]]]))\nassert np.array_equal(y,\n                      np.array([[10], [11]]))\n```",
                         "constructor_docstring": null,
                         "functions": [
+                            "def __init__(self, data, targets, length, sampling_rate=1, stride=1, start_index=0, end_index=None, shuffle=False, reverse=False, batch_size=128):\n    self.data = data\n    self.targets = targets\n    self.length = length\n    self.sampling_rate = sampling_rate\n    self.stride = stride\n    self.start_index = start_index + length\n    if end_index is None:\n        end_index = len(data) - 1\n    self.end_index = end_index\n    self.shuffle = shuffle\n    self.reverse = reverse\n    self.batch_size = batch_size",
+                            "def __len__(self):\n    return int(np.ceil((self.end_index - self.start_index) / (self.batch_size * self.stride)))",
+                            "def _empty_batch(self, num_rows):\n    samples_shape = [num_rows, self.length // self.sampling_rate]\n    samples_shape.extend(self.data.shape[1:])\n    targets_shape = [num_rows]\n    targets_shape.extend(self.targets.shape[1:])\n    return (np.empty(samples_shape), np.empty(targets_shape))",
+                            "def __getitem__(self, index):\n    if self.shuffle:\n        rows = np.random.randint(self.start_index, self.end_index, size=self.batch_size)\n    else:\n        i = self.start_index + self.batch_size * self.stride * index\n        rows = np.arange(i, min(i + self.batch_size * self.stride, self.end_index), self.stride)\n    samples, targets = self._empty_batch(len(rows))\n    for j, row in enumerate(rows):\n        indices = range(rows[j] - self.length, rows[j], self.sampling_rate)\n        samples[j] = self.data[indices]\n        targets[j] = self.targets[rows[j]]\n    if self.reverse:\n        return (samples[:, ::-1, ...], targets)\n    return (samples, targets)"
+                        ],
+                        "constructor_variables": [
+                            "data",
+                            "stride",
+                            "reverse",
+                            "batch_size",
+                            "length",
+                            "shuffle",
+                            "end_index",
+                            "sampling_rate",
+                            "targets",
+                            "start_index"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
                             "__init__(self, data, targets, length, sampling_rate=1, stride=1, start_index=0, end_index=None, shuffle=False, reverse=False, batch_size=128)",
                             "__len__(self)",
                             "_empty_batch(self, num_rows)",
                             "__getitem__(self, index)"
-                        ],
-                        "constructor_variables": [
-                            "shuffle",
-                            "targets",
-                            "stride",
-                            "length",
-                            "end_index",
-                            "reverse",
-                            "batch_size",
-                            "start_index",
-                            "data",
-                            "sampling_rate"
-                        ],
-                        "class_level_variables": [],
-                        "class_decorators": []
-                    }
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
                 },
                 {
                     "function_name": "__getitem__",
@@ -355,29 +332,57 @@
                         "docstring": "Utility class for generating batches of temporal data.\n\nThis class takes in a sequence of data-points gathered at\nequal intervals, along with time series parameters such as\nstride, length of history, etc., to produce batches for\ntraining/validation.\n\n# Arguments\n    data: Indexable generator (such as list or Numpy array)\n        containing consecutive data points (timesteps).\n        The data should be at 2D, and axis 0 is expected\n        to be the time dimension.\n    targets: Targets corresponding to timesteps in `data`.\n        It should have same length as `data`.\n    length: Length of the output sequences (in number of timesteps).\n    sampling_rate: Period between successive individual timesteps\n        within sequences. For rate `r`, timesteps\n        `data[i]`, `data[i-r]`, ... `data[i - length]`\n        are used for create a sample sequence.\n    stride: Period between successive output sequences.\n        For stride `s`, consecutive output samples would\n        be centered around `data[i]`, `data[i+s]`, `data[i+2*s]`, etc.\n    start_index, end_index: Data points earlier than `start_index`\n        or later than `end_index` will not be used in the output sequences.\n        This is useful to reserve part of the data for test or validation.\n    shuffle: Whether to shuffle output samples,\n        or instead draw them in chronological order.\n    reverse: Boolean: if `true`, timesteps in each output sample will be\n        in reverse chronological order.\n    batch_size: Number of timeseries samples in each batch\n        (except maybe the last one).\n\n# Returns\n    A [Sequence](/utils/#sequence) instance.\n\n# Examples\n\n```python\nfrom keras.preprocessing.sequence import TimeseriesGenerator\nimport numpy as np\n\ndata = np.array([[i] for i in range(50)])\ntargets = np.array([[i] for i in range(50)])\n\ndata_gen = TimeseriesGenerator(data, targets,\n                               length=10, sampling_rate=2,\n                               batch_size=2)\nassert len(data_gen) == 20\n\nbatch_0 = data_gen[0]\nx, y = batch_0\nassert np.array_equal(x,\n                      np.array([[[0], [2], [4], [6], [8]],\n                                [[1], [3], [5], [7], [9]]]))\nassert np.array_equal(y,\n                      np.array([[10], [11]]))\n```",
                         "constructor_docstring": null,
                         "functions": [
+                            "def __init__(self, data, targets, length, sampling_rate=1, stride=1, start_index=0, end_index=None, shuffle=False, reverse=False, batch_size=128):\n    self.data = data\n    self.targets = targets\n    self.length = length\n    self.sampling_rate = sampling_rate\n    self.stride = stride\n    self.start_index = start_index + length\n    if end_index is None:\n        end_index = len(data) - 1\n    self.end_index = end_index\n    self.shuffle = shuffle\n    self.reverse = reverse\n    self.batch_size = batch_size",
+                            "def __len__(self):\n    return int(np.ceil((self.end_index - self.start_index) / (self.batch_size * self.stride)))",
+                            "def _empty_batch(self, num_rows):\n    samples_shape = [num_rows, self.length // self.sampling_rate]\n    samples_shape.extend(self.data.shape[1:])\n    targets_shape = [num_rows]\n    targets_shape.extend(self.targets.shape[1:])\n    return (np.empty(samples_shape), np.empty(targets_shape))",
+                            "def __getitem__(self, index):\n    if self.shuffle:\n        rows = np.random.randint(self.start_index, self.end_index, size=self.batch_size)\n    else:\n        i = self.start_index + self.batch_size * self.stride * index\n        rows = np.arange(i, min(i + self.batch_size * self.stride, self.end_index), self.stride)\n    samples, targets = self._empty_batch(len(rows))\n    for j, row in enumerate(rows):\n        indices = range(rows[j] - self.length, rows[j], self.sampling_rate)\n        samples[j] = self.data[indices]\n        targets[j] = self.targets[rows[j]]\n    if self.reverse:\n        return (samples[:, ::-1, ...], targets)\n    return (samples, targets)"
+                        ],
+                        "constructor_variables": [
+                            "data",
+                            "stride",
+                            "reverse",
+                            "batch_size",
+                            "length",
+                            "shuffle",
+                            "end_index",
+                            "sampling_rate",
+                            "targets",
+                            "start_index"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
                             "__init__(self, data, targets, length, sampling_rate=1, stride=1, start_index=0, end_index=None, shuffle=False, reverse=False, batch_size=128)",
                             "__len__(self)",
                             "_empty_batch(self, num_rows)",
                             "__getitem__(self, index)"
-                        ],
-                        "constructor_variables": [
-                            "shuffle",
-                            "targets",
-                            "stride",
-                            "length",
-                            "end_index",
-                            "reverse",
-                            "batch_size",
-                            "start_index",
-                            "data",
-                            "sampling_rate"
-                        ],
-                        "class_level_variables": [],
-                        "class_decorators": []
-                    }
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
                 }
             ],
             "inscope_functions": [
+                "def pad_sequences(sequences, maxlen=None, dtype='int32',\n                  padding='pre', truncating='pre', value=0.):\n    \"\"\"Pads sequences to the same length.\n\n    This function transforms a list of\n    `num_samples` sequences (lists of integers)\n    into a 2D Numpy array of shape `(num_samples, num_timesteps)`.\n    `num_timesteps` is either the `maxlen` argument if provided,\n    or the length of the longest sequence otherwise.\n\n    Sequences that are shorter than `num_timesteps`\n    are padded with `value` at the end.\n\n    Sequences longer than `num_timesteps` are truncated\n    so that they fit the desired length.\n    The position where padding or truncation happens is determined by\n    the arguments `padding` and `truncating`, respectively.\n\n    Pre-padding is the default.\n\n    # Arguments\n        sequences: List of lists, where each element is a sequence.\n        maxlen: Int, maximum length of all sequences.\n        dtype: Type of the output sequences.\n        padding: String, 'pre' or 'post':\n            pad either before or after each sequence.\n        truncating: String, 'pre' or 'post':\n            remove values from sequences larger than\n            `maxlen`, either at the beginning or at the end of the sequences.\n        value: Float, padding value.\n\n    # Returns\n        x: Numpy array with shape `(len(sequences), maxlen)`\n\n    # Raises\n        ValueError: In case of invalid values for `truncating` or `padding`,\n            or in case of invalid shape for a `sequences` entry.\n    \"\"\"\n    if not hasattr(sequences, '__len__'):\n        raise ValueError('`sequences` must be iterable.')\n    lengths = []\n    for x in sequences:\n        if not hasattr(x, '__len__'):\n            raise ValueError('`sequences` must be a list of iterables. '\n                             'Found non-iterable: ' + str(x))\n        lengths.append(len(x))\n\n    num_samples = len(sequences)\n    if maxlen is None:\n        maxlen = np.max(lengths)\n\n    # take the sample shape from the first non empty sequence\n    # checking for consistency in the main loop below.\n    sample_shape = tuple()\n    for s in sequences:\n        if len(s) > 0:\n            sample_shape = np.asarray(s).shape[1:]\n            break\n\n    x = (np.ones((num_samples, maxlen) + sample_shape) * value).astype(dtype)\n    for idx, s in enumerate(sequences):\n        if not len(s):\n            continue  # empty list/array was found\n        if truncating == 'pre':\n            trunc = s[-maxlen:]\n        elif truncating == 'post':\n            trunc = s[:maxlen]\n        else:\n            raise ValueError('Truncating type \"%s\" '\n                             'not understood' % truncating)\n\n        # check `trunc` has expected shape\n        trunc = np.asarray(trunc, dtype=dtype)\n        if trunc.shape[1:] != sample_shape:\n            raise ValueError('Shape of sample %s of sequence at position %s '\n                             'is different from expected shape %s' %\n                             (trunc.shape[1:], idx, sample_shape))\n\n        if padding == 'post':\n            x[idx, :len(trunc)] = trunc\n        elif padding == 'pre':\n            x[idx, -len(trunc):] = trunc\n        else:\n            raise ValueError('Padding type \"%s\" not understood' % padding)\n    return x",
+                "def make_sampling_table(size, sampling_factor=1e-5):\n    \"\"\"Generates a word rank-based probabilistic sampling table.\n\n    Used for generating the `sampling_table` argument for `skipgrams`.\n    `sampling_table[i]` is the probability of sampling\n    the word i-th most common word in a dataset\n    (more common words should be sampled less frequently, for balance).\n\n    The sampling probabilities are generated according\n    to the sampling distribution used in word2vec:\n\n    `p(word) = min(1, sqrt(word_frequency / sampling_factor) / (word_frequency / sampling_factor))`\n\n    We assume that the word frequencies follow Zipf's law (s=1) to derive\n    a numerical approximation of frequency(rank):\n\n    `frequency(rank) ~ 1/(rank * (log(rank) + gamma) + 1/2 - 1/(12*rank))`\n    where `gamma` is the Euler-Mascheroni constant.\n\n    # Arguments\n        size: Int, number of possible words to sample.\n        sampling_factor: The sampling factor in the word2vec formula.\n\n    # Returns\n        A 1D Numpy array of length `size` where the ith entry\n        is the probability that a word of rank i should be sampled.\n    \"\"\"\n    gamma = 0.577\n    rank = np.arange(size)\n    rank[0] = 1\n    inv_fq = rank * (np.log(rank) + gamma) + 0.5 - 1. / (12. * rank)\n    f = sampling_factor * inv_fq\n\n    return np.minimum(1., f / np.sqrt(f))",
+                "def skipgrams(sequence, vocabulary_size,\n              window_size=4, negative_samples=1., shuffle=True,\n              categorical=False, sampling_table=None, seed=None):\n    \"\"\"Generates skipgram word pairs.\n\n    This function transforms a sequence of word indexes (list of integers)\n    into tuples of words of the form:\n\n    - (word, word in the same window), with label 1 (positive samples).\n    - (word, random word from the vocabulary), with label 0 (negative samples).\n\n    Read more about Skipgram in this gnomic paper by Mikolov et al.:\n    [Efficient Estimation of Word Representations in\n    Vector Space](http://arxiv.org/pdf/1301.3781v3.pdf)\n\n    # Arguments\n        sequence: A word sequence (sentence), encoded as a list\n            of word indices (integers). If using a `sampling_table`,\n            word indices are expected to match the rank\n            of the words in a reference dataset (e.g. 10 would encode\n            the 10-th most frequently occurring token).\n            Note that index 0 is expected to be a non-word and will be skipped.\n        vocabulary_size: Int, maximum possible word index + 1\n        window_size: Int, size of sampling windows (technically half-window).\n            The window of a word `w_i` will be\n            `[i - window_size, i + window_size+1]`.\n        negative_samples: Float >= 0. 0 for no negative (i.e. random) samples.\n            1 for same number as positive samples.\n        shuffle: Whether to shuffle the word couples before returning them.\n        categorical: bool. if False, labels will be\n            integers (eg. `[0, 1, 1 .. ]`),\n            if `True`, labels will be categorical, e.g.\n            `[[1,0],[0,1],[0,1] .. ]`.\n        sampling_table: 1D array of size `vocabulary_size` where the entry i\n            encodes the probability to sample a word of rank i.\n        seed: Random seed.\n\n    # Returns\n        couples, labels: where `couples` are int pairs and\n            `labels` are either 0 or 1.\n\n    # Note\n        By convention, index 0 in the vocabulary is\n        a non-word and will be skipped.\n    \"\"\"\n    couples = []\n    labels = []\n    for i, wi in enumerate(sequence):\n        if not wi:\n            continue\n        if sampling_table is not None:\n            if sampling_table[wi] < random.random():\n                continue\n\n        window_start = max(0, i - window_size)\n        window_end = min(len(sequence), i + window_size + 1)\n        for j in range(window_start, window_end):\n            if j != i:\n                wj = sequence[j]\n                if not wj:\n                    continue\n                couples.append([wi, wj])\n                if categorical:\n                    labels.append([0, 1])\n                else:\n                    labels.append(1)\n\n    if negative_samples > 0:\n        num_negative_samples = int(len(labels) * negative_samples)\n        words = [c[0] for c in couples]\n        random.shuffle(words)\n\n        couples += [[words[i % len(words)],\n                    random.randint(1, vocabulary_size - 1)]\n                    for i in range(num_negative_samples)]\n        if categorical:\n            labels += [[1, 0]] * num_negative_samples\n        else:\n            labels += [0] * num_negative_samples\n\n    if shuffle:\n        if seed is None:\n            seed = random.randint(0, 10e6)\n        random.seed(seed)\n        random.shuffle(couples)\n        random.seed(seed)\n        random.shuffle(labels)\n\n    return couples, labels",
+                "def _remove_long_seq(maxlen, seq, label):\n    \"\"\"Removes sequences that exceed the maximum length.\n\n    # Arguments\n        maxlen: Int, maximum length of the output sequences.\n        seq: List of lists, where each sublist is a sequence.\n        label: List where each element is an integer.\n\n    # Returns\n        new_seq, new_label: shortened lists for `seq` and `label`.\n    \"\"\"\n    new_seq, new_label = [], []\n    for x, y in zip(seq, label):\n        if len(x) < maxlen:\n            new_seq.append(x)\n            new_label.append(y)\n    return new_seq, new_label",
+                "def __init__(self, data, targets, length,\n             sampling_rate=1,\n             stride=1,\n             start_index=0,\n             end_index=None,\n             shuffle=False,\n             reverse=False,\n             batch_size=128):\n    self.data = data\n    self.targets = targets\n    self.length = length\n    self.sampling_rate = sampling_rate\n    self.stride = stride\n    self.start_index = start_index + length\n    if end_index is None:\n        end_index = len(data) - 1\n    self.end_index = end_index\n    self.shuffle = shuffle\n    self.reverse = reverse\n    self.batch_size = batch_size",
+                "def __len__(self):\n    return int(np.ceil(\n        (self.end_index - self.start_index) /\n        (self.batch_size * self.stride)))",
+                "def _empty_batch(self, num_rows):\n    samples_shape = [num_rows, self.length // self.sampling_rate]\n    samples_shape.extend(self.data.shape[1:])\n    targets_shape = [num_rows]\n    targets_shape.extend(self.targets.shape[1:])\n    return np.empty(samples_shape), np.empty(targets_shape)",
+                "def __getitem__(self, index):\n    if self.shuffle:\n        rows = np.random.randint(\n            self.start_index, self.end_index, size=self.batch_size)\n    else:\n        i = self.start_index + self.batch_size * self.stride * index\n        rows = np.arange(i, min(i + self.batch_size *\n                                self.stride, self.end_index), self.stride)\n\n    samples, targets = self._empty_batch(len(rows))\n    for j, row in enumerate(rows):\n        indices = range(rows[j] - self.length, rows[j], self.sampling_rate)\n        samples[j] = self.data[indices]\n        targets[j] = self.targets[rows[j]]\n    if self.reverse:\n        return samples[:, ::-1, ...], targets\n    return samples, targets"
+            ],
+            "inscope_function_signatures": [
                 "pad_sequences(sequences, maxlen=None, dtype='int32', padding='pre', truncating='pre', value=0.0)",
                 "make_sampling_table(size, sampling_factor=1e-05)",
                 "skipgrams(sequence, vocabulary_size, window_size=4, negative_samples=1.0, shuffle=True, categorical=False, sampling_table=None, seed=None)",
