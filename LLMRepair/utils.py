@@ -5,7 +5,7 @@ import subprocess
 from typing import List
 
 
-FLAG_USE_DOCKER = True
+FLAG_USE_DOCKER = False
 
 DOCKER_CONTAINER_NAME = "pyr:lite"
 
