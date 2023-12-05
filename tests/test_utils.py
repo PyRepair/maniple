@@ -2,6 +2,7 @@ import pytest
 from LLMRepair.utils import (
     generate_contextual_diff_with_char_limit,
     extract_function_from_response,
+    remove_comments_and_docstrings,
 )
 
 
@@ -95,3 +96,33 @@ def pivot(data: "DataFrame", index=None, columns, values) -> "DataFrame":
 """
     with pytest.raises(SyntaxError):
         extract_function_from_response(input_code, "pivot")
+
+
+def test_remove_comments_and_docstrings():
+    test_cases = [
+        {
+            "input": "# This is a comment\nprint('Hello, world!')",
+            "expected": "print('Hello, world!')",
+        },
+        {
+            "input": "'''This is a docstring'''\ndef foo(): pass",
+            "expected": "def foo(): pass",
+        },
+        {
+            "input": "def bar():\n    '''Docstring in function'''\n    return 42",
+            "expected": "def bar():          return 42",
+        },
+        {
+            "input": "def baz(): # Inline comment\n    return 100",
+            "expected": "def baz():      return 100",
+        },
+        {
+            "input": '"""Module level docstring"""\n\nx = 10\ny = 20 # Variables',
+            "expected": "x = 10 y = 20",
+        },
+    ]
+
+    # Test each case
+    for _, test in enumerate(test_cases, 1):
+        result = remove_comments_and_docstrings(test["input"])
+        assert result == test["expected"]

@@ -435,9 +435,11 @@ class PromptGenerator:
             except Exception as error:
                 error_str = ""
                 if self.max_generation_count == 0:
-                    print_in_yellow(print(f"{response_md_file_name} in directory {self.output_dir} exceed max generation count"))
+                    print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} 
+                                          exceed max generation count"))
                 elif self.max_conversation_count == 0:
-                    print_in_yellow(f"{response_md_file_name} in directory {self.output_dir} exceed max conversation count, write omitted code")
+                    print_in_yellow(f"{self.output_dir}/{response_md_file_name} 
+                                    exceed max conversation count")
                 else:
                     error_str = str(error)
                     print_in_red(error_str)
@@ -445,7 +447,7 @@ class PromptGenerator:
                 with open(os.path.join(self.output_dir, response_md_file_name), "w") as output_file:
                     output_file.write(error_str)
 
-                print(f"write response error to file {response_md_file_name} in directory {self.output_dir}")
+                print(f"write response error to file {self.output_dir}/{response_md_file_name}")
 
     def get_response_with_valid_patch(self, messages: list, gpt_model: str):
         while self.max_generation_count > 0:
@@ -484,6 +486,10 @@ def create_query(messages: list, gpt_model: str) -> str:
                 model=gpt_model,
                 messages=messages
             )
+            finish_reason = chat_completion.choices[0]["finish_reason"]
+            if finish_reason != "stop":
+                print_in_yellow(f"retrying due to not stop, finish reason: {finish_reason}")
+                
             return chat_completion.choices[0].message.content
 
         except openai.RateLimitError as rate_limit_error:
