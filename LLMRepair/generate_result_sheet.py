@@ -35,10 +35,10 @@ for bug_dir in first_stratum_path:
     bug_id = bug_dir.rsplit('-', 1)[1]
 
     bug_path = os.path.join(stratum_path, bug_dir)
-    result_files = [path for path in os.listdir(bug_path) if "result.json" in path]
+    result_files = [path for path in os.listdir(bug_path) if "result" in path]
 
     for result_file_name in result_files:
-        with open(result_file_name, "r") as result_file:
+        with open(os.path.join(bug_path, result_file_name), "r") as result_file:
             result = json.load(result_file)
             pass_test = random.randint(0, 1)
 
@@ -69,4 +69,4 @@ for bug_dir in first_stratum_path:
         data["result_filename"].append(result_file_name)
 
 df = pd.DataFrame(data)
-df.to_excel(".", index=False)
+df.to_excel(os.path.join("..", "preliminary-study", "first_stratum_raw_result.xlsx"), index=False)
