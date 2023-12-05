@@ -8,7 +8,7 @@ import openai
 import tiktoken
 from openai import OpenAI
 from typing import List, Optional
-from utils import estimate_function_code_length
+from utils import estimate_function_code_length, print_in_red, print_in_yellow
 
 client = OpenAI(api_key="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")
 
@@ -404,50 +404,54 @@ class PromptGenerator:
             #     continue
 
             try:
-                response: str = ""
-                max_generation_count = 5
-                max_conversation_count = 5
-
                 messages = [{"role": "user", "content": self.prompt}]
-                while max_generation_count > 0 and max_conversation_count > 0:
+                valid_response = None
+
+                max_generation_count = 4
+                response = create_query(messages, gpt_model)
+                while (((fix_patch := contain_valid_fix_patch(response, self.buggy_function_name)) is not None)
+                       and max_generation_count > 0):
+
                     response = create_query(messages, gpt_model)
+                    time.sleep(3)
+                    max_generation_count -= 1
 
-                    fix_patch = contain_valid_fix_patch(response, self.buggy_function_name)
+                conversation_response = response
+                max_conversation_count = 5
+                if fix_patch is not None:
+                    messages = [
+                        {"role": "user", "content": self.prompt},
+                        {"role": "assistant", "content": response},
+                        {"role": "user", "content": "Print the full code of the fixed function"},
+                    ]
 
-                    # if the output doesn't contain fix patch in code block
-                    if fix_patch is None:
-                        time.sleep(3)
-                        max_generation_count -= 1
-                        messages = [{"role": "user", "content": self.prompt}]
-                        continue
+                    while (estimate_function_code_length(fix_patch) < 0.7 * buggy_function_length
+                           and max_conversation_count > 0):
+                        # if the fix patch is omitted
 
-                    # if the fix patch is omitted
-                    if estimate_function_code_length(fix_patch) < 0.7 * buggy_function_length:
+                        conversation_response = create_query(messages, gpt_model)
+                        fix_patch = contain_valid_fix_patch(conversation_response, self.buggy_function_name)
                         max_conversation_count -= 1
-                        messages = [
-                            {"role": "user", "content": self.prompt},
-                            {"role": "assistant", "content": response},
-                            {"role": "user", "content": "Print the full code of the fixed function"},
-                        ]
-                        continue
-
-                    # we have complete fixed function in code block
-                    break
 
                 if max_generation_count == 0:
-                    print(f"{response_md_file_name} in directory {self.output_dir} exceed max generation count")
+                    print_in_yellow(print(f"{response_md_file_name} in directory {self.output_dir} exceed max generation count"))
                 elif max_conversation_count == 0:
-                    print(f"{response_md_file_name} in directory {self.output_dir} exceed max conversation count, write omitted code")
+                    print_in_yellow(f"{response_md_file_name} in directory {self.output_dir} exceed max conversation count, write omitted code")
                 else:
                     print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
 
                 with open(os.path.join(self.output_dir, response_md_file_name), "w") as output_file:
-                    output_file.write(response)
+                    if valid_response is not None:
+                        output_file.write(conversation_response)
+                    else:
+                        output_file.write("")
 
             except Exception as error:
                 error_str = str(error)
                 with open(os.path.join(self.output_dir, response_md_file_name), "w") as output_file:
                     output_file.write(error_str)
+
+                print_in_red(error_str)
                 print(f"write response error to file {response_md_file_name} in directory {self.output_dir}")
 
 
@@ -520,7 +524,7 @@ if __name__ == "__main__":
 
                 prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir), remove_not_exist_facts)
                 prompt_generator.generate_prompt()
-                #prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
+                prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
                 print(f"generate prompt for {bug_dir}")
 
             else:
