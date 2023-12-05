@@ -23,7 +23,7 @@
             },
             "start_line": 73,
             "file_name": "scrapy/utils/request.py",
-            "replace_code": "def request_httprepr(request):\n    from scrapy.http.request import Request\n    from scrapy.utils.python import to_bytes\n    if request.scheme.lower() not in ['http', 'https']:\n        return b\"\"  # return empty bytes for non-HTTP requests\n    parsed = urlparse_cached(request)\n    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))\n    s = to_bytes(request.method) + b\" \" + to_bytes(path) + b\" HTTP/1.1\\r\\n\"\n    s += b\"Host: \" + to_bytes(parsed.hostname) + b\"\\r\\n\"\n    if request.headers:\n        s += request.headers.to_string() + b\"\\r\\n\"\n    s += b\"\\r\\n\"\n    s += request.body\n    return s"
+            "replace_code": "def request_httprepr(request):\n    from urllib.parse import urlparse, urlunparse\n    if not request.method:\n        raise ValueError(\"HTTP method is not provided in the request\")\n        \n    parsed = urlparse(request.url)\n    path = parsed.path or '/'\n    s = request.method + \" \" + path + \" HTTP/1.1\\r\\n\"\n    \n    if parsed.hostname:\n        s += \"Host: \" + parsed.hostname + \"\\r\\n\"\n        \n    if request.headers:\n        s += \"\\r\\n\".join([f\"{k}: {v}\" for k,v in request.headers.items()]) + \"\\r\\n\"\n        \n    if request.body:\n        s += \"\\r\\n\" + request.body.decode('utf-8')\n    \n    return s.encode('utf-8')"
         }
     ]
 }

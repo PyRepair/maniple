@@ -23,7 +23,7 @@
             },
             "start_line": 101,
             "file_name": "keras/layers/recurrent.py",
-            "replace_code": "def build(self, input_shape):\n        # no time axis in the input shape passed to RNN cells\n\n    if len(input_shape) != 3:  # Check for 3D input shape\n        raise ValueError(\"Input shape should be 3D tensor\")\n    \n    self.kernel = self.add_weight(shape=(input_shape[-1], self.units),\n                                  initializer='uniform',\n                                  name='kernel')\n    self.recurrent_kernel = self.add_weight(\n        shape=(self.units, self.units),\n        initializer='uniform',\n        name='recurrent_kernel')\n    self.built = True"
+            "replace_code": "def build(self, input_shape):\n\n    for cell in self.cells:\n        if isinstance(cell, Layer):\n            cell.build(input_shape)\n    \n        # Update input_shape if state_size is available\n        if hasattr(cell, 'state_size'):\n            if hasattr(cell.state_size, '__len__'):\n                output_dim = cell.state_size[0]\n            else:\n                output_dim = cell.state_size\n            if len(input_shape) == 3:\n                input_shape = (input_shape[0], input_shape[1], output_dim)\n            else:\n                input_shape = (input_shape[0], output_dim)\n    \n    self.built = True"
         }
     ]
 }

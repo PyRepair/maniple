@@ -23,7 +23,7 @@
             },
             "start_line": 953,
             "file_name": "pandas/io/json/_json.py",
-            "replace_code": "def _try_convert_to_date(self, data):\n\n        # no conversion on empty\n    import numpy as np\n    import pandas as pd\n    from pandas.api.types import isna\n    from pandas._libs.tslibs.nattype import iNaT\n    from pandas.core.tools.datetimes import to_datetime\n    if not len(data):\n        return data, False\n    \n    try:\n        new_data = pd.to_datetime(data)  # convert data to datetime\n    except (ValueError, OverflowError):\n        return data, False\n    \n    return new_data, True"
+            "replace_code": "def _try_convert_to_date(self, data):\n        # no conversion on empty\n    import numpy as np\n    import pandas as pd\n    from pandas.api.types import is_bool_dtype\n    from pandas.io.json import to_datetime\n    if not len(data):\n        return data, False\n    \n    if is_bool_dtype(data):\n        return data.map({True: pd.Timestamp(\"today\"), False: pd.NaT}), True\n    \n    if data.dtype == \"object\":\n        try:\n            data = pd.to_datetime(data, errors=\"raise\")\n            return data, True\n        except (ValueError, OverflowError):\n            pass\n    \n    date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS\n    for date_unit in date_units:\n        try:\n            data = to_datetime(data, errors=\"raise\", unit=date_unit)\n            return data, True\n        except (ValueError, OverflowError):\n            continue\n    return data, False"
         }
     ]
 }

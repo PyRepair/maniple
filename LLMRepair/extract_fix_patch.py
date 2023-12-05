@@ -1,13 +1,15 @@
 import json
 import os
 import re
+from typing import List
 
 from utils import extract_function_from_response, print_in_red, print_in_yellow
 
 
-def get_code_blocks(raw_response: str) -> list[str]:
+def get_code_blocks(raw_response: str) -> List[str]:
     code_block_pattern = r'```(?:python\n)?(.*?)(?:\n)?```'
     return re.findall(code_block_pattern, raw_response, re.DOTALL)
+
 
 
 stratum_path = "../preliminary-study/first-stratum"
@@ -103,5 +105,6 @@ for bug_dir in first_stratum_path:
         }
 
         test_input_path = os.path.join(bug_path, response_file_name[:response_file_name.find("m")] + "json")
+
         with open(test_input_path, "w") as test_input_file:
             json.dump(test_input_data, test_input_file, indent=4)

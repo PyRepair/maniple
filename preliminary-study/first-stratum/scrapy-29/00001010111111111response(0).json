@@ -23,7 +23,7 @@
             },
             "start_line": 73,
             "file_name": "scrapy/utils/request.py",
-            "replace_code": "def request_httprepr(request):\n    from urllib.parse import urlparse, urlunparse\n    import six\n    parsed = urlparse(request.url)  # Use urlparse instead of urlparse_cached\n    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))\n    \n    s = request.method + \" \" + path + \" HTTP/1.1\\r\\n\"\n    s += \"Host: \" + (parsed.hostname or '') + \"\\r\\n\"\n    \n    if request.headers:\n        s += request.headers.to_string() + \"\\r\\n\"\n    \n    s += \"\\r\\n\"\n    s += request.body.decode('utf-8')  # Convert bytes to string\n    return s.encode('utf-8')  # Convert back to bytes"
+            "replace_code": "def request_httprepr(request):\n    from six.moves.urllib.parse import urlparse_cached, urlunparse\n    from scrapy.http.request import Request\n    from scrapy.utils.python import to_bytes\n    parsed = urlparse_cached(request)\n    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))\n    s = to_bytes(request.method) + b\" \" + to_bytes(path) + b\" HTTP/1.1\\r\\n\"\n    s += b\"Host: \" + to_bytes(parsed.hostname or b'') + b\"\\r\\n\"\n    if request.headers:\n        s += request.headers.to_string() + b\"\\r\\n\"\n    s += b\"\\r\\n\"\n    s += request.body\n    return s"
         }
     ]
 }

@@ -23,7 +23,7 @@
             },
             "start_line": 117,
             "file_name": "docs/autogen.py",
-            "replace_code": "def process_list_block(docstring, starting_point, section_end, leading_spaces, marker):\n    import re\n    ending_point = docstring.find('\\n\\n', starting_point)\n    block = docstring[starting_point:ending_point]\n    # Place marker for later reinjection.\n    docstring_slice = docstring[starting_point:section_end].replace(block, marker)\n    docstring = docstring[:starting_point] + docstring_slice + docstring[section_end:]\n    lines = block.split('\\n')\n    lines = [re.sub(r'^' + ' ' * leading_spaces, '', line) for line in lines]\n    \n    for i in range(len(lines)):\n        if lines[i].strip().startswith('-'):\n            lines[i] = '- ' + lines[i].lstrip('- ').strip()\n            \n    block = '\\n'.join(lines)\n    \n    return docstring, block"
+            "replace_code": "def process_list_block(docstring, starting_point, section_end, leading_spaces, marker):\n    import re\n    ending_point = docstring.find('\\n\\n', starting_point)\n    block = docstring[starting_point:(None if ending_point == -1 else ending_point - 1)]\n    # Place marker for later reinjection.\n    docstring_slice = docstring[starting_point:section_end].replace(block, marker)\n    docstring = (docstring[:starting_point]\n                 + docstring_slice\n                 + docstring[section_end:])\n    lines = block.split('\\n')\n    # Add bullet points to the list items in the \"Arguments\" section\n    lines = ['- ' + line.lstrip() if line.lstrip().startswith('__') else '    - ' + line.lstrip() for line in lines]\n    block = '\\n'.join(lines)\n    return docstring, block"
         }
     ]
 }

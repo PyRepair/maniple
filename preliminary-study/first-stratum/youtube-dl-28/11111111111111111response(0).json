@@ -23,7 +23,7 @@
             },
             "start_line": 385,
             "file_name": "youtube_dl/utils.py",
-            "replace_code": "def _htmlentity_transform(entity):\n    import re\n    \"\"\"\n    Transforms an HTML entity to a character.\n    \"\"\"\n    \n    if entity in compat_html_entities.name2codepoint:\n        return compat_chr(compat_html_entities.name2codepoint[entity])\n    \n    if re.match(r'^#(x[0-9a-fA-F]+|[0-9]+);$', entity):\n        numstr = entity.lstrip('#x')\n        if numstr.isdigit():\n            base = 10\n        else:\n            base = 16\n        try:\n            return compat_chr(int(numstr, base))\n        except ValueError:\n            pass\n    \n    return '&{};'.format(entity)"
+            "replace_code": "def _htmlentity_transform(entity):\n    import re\n    from html import unescape\n    \"\"\"\n    Transforms an HTML entity to a character.\n    \"\"\"\n    \n    if entity.startswith(\"#x\"):\n        numstr = entity[2:]\n        base = 16\n    else:\n        numstr = entity[1:]\n        base = 10\n    \n    try:\n        code_point = int(numstr, base)\n        return chr(code_point)\n    except (ValueError, OverflowError):\n        return unescape('&' + entity + ';')"
         }
     ]
 }

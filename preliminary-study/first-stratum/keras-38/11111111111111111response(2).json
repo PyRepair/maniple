@@ -23,7 +23,7 @@
             },
             "start_line": 101,
             "file_name": "keras/layers/recurrent.py",
-            "replace_code": "def build(self, input_shape):\n\n    output_dim = self.units  # Adjust input shape to match the expected shape for the RNN cell\n    self.kernel = self.add_weight(shape=(input_shape[-1], self.units),\n                                  initializer='uniform',\n                                  name='kernel')\n    self.recurrent_kernel = self.add_weight(\n        shape=(self.units, self.units),\n        initializer='uniform',\n        name='recurrent_kernel')\n    self.state_size = [input_shape[0], output_dim]  # Update the state size based on the adjusted input shape\n    self.built = True"
+            "replace_code": "def build(self, input_shape):\n\n    for cell in self.cells:\n        if isinstance(cell, Layer):\n            cell.build(input_shape)\n        if hasattr(cell.state_size, '__len__'):\n            output_dim = cell.state_size[0]\n        else:\n            output_dim = cell.state_size\n        if isinstance(input_shape, list):\n            input_shape = input_shape[0]  # Use the first element if input_shape is a list\n        input_shape = (input_shape[0], input_shape[1], output_dim)\n    self.built = True"
         }
     ]
 }

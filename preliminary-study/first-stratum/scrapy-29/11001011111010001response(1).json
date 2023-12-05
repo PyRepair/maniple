@@ -23,7 +23,7 @@
             },
             "start_line": 73,
             "file_name": "scrapy/utils/request.py",
-            "replace_code": "def request_httprepr(request):\n    from urllib.parse import urlparse, urlunparse\n    parsed = urlparse(request.url)\n    if parsed.hostname is None:  # handle the case for non-http/https scheme\n        parsed = parsed._replace(hostname='')\n    \n    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))\n    s = request.method.encode('utf-8') + b\" \" + path.encode('utf-8') + b\" HTTP/1.1\\r\\n\"\n    if parsed.hostname:\n        s += b\"Host: \" + parsed.hostname.encode('utf-8') + b\"\\r\\n\"\n    if request.headers:\n        s += request.headers.to_string() + b\"\\r\\n\"\n    s += b\"\\r\\n\"\n    s += request.body\n    return s"
+            "replace_code": "def request_httprepr(request):\n    from scrapy.http import Request\n    from six import BytesIO\n    from urllib.parse import urlparse as urlparse_cached, urlunparse\n    parsed = urlparse_cached(request.url)\n    path = urlunparse(('', '') + parsed[2:])\n    s = to_bytes(request.method) + b\" \" + to_bytes(path) + b\" HTTP/1.1\\r\\n\"\n    if parsed.hostname:\n        s += b\"Host: \" + to_bytes(parsed.hostname) + b\"\\r\\n\"\n    if request.headers:\n        s += request.headers.to_string() + b\"\\r\\n\"\n    s += b\"\\r\\n\"\n    if request.body:\n        s += request.body\n    return s"
         }
     ]
 }

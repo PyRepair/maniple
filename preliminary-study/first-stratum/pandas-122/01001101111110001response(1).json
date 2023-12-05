@@ -23,7 +23,7 @@
             },
             "start_line": 1386,
             "file_name": "pandas/core/internals/managers.py",
-            "replace_code": "def equals(self, other):\n\n    if self is other:\n        return True\n    if not isinstance(other, BlockManager):\n        return False\n    \n    self._consolidate_inplace()\n    other._consolidate_inplace()\n    \n    if self.axes.equals(other.axes):\n        for self_block, other_block in zip(self.blocks, other.blocks):\n            if not self_block.equals(other_block):\n                return False\n        return True\n        \n    return False"
+            "replace_code": "def equals(self, other):\n\n    self_axes, other_axes = self.axes, other.axes\n    if len(self_axes) != len(other_axes):\n        return False\n    if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):\n        return False\n    self._consolidate_inplace()\n    other._consolidate_inplace()\n    if len(self.blocks) != len(other.blocks):\n        return False\n    \n    def compare_blocks(block1, block2):\n        # Compare the values in the blocks, taking into account index and column labels\n        return block1.values.equals(block2.values) and block1.index.equals(block2.index) and block1.columns.equals(block2.columns)\n    \n    self_blocks = self.blocks\n    other_blocks = other.blocks\n    return all(compare_blocks(block1, block2) for block1, block2 in zip(self_blocks, other_blocks))"
         }
     ]
 }

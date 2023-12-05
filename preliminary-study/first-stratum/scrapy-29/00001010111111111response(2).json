@@ -23,7 +23,7 @@
             },
             "start_line": 73,
             "file_name": "scrapy/utils/request.py",
-            "replace_code": "def request_httprepr(request):\n    from six.moves.urllib.parse import urlparse_cached, urlunparse\n    from scrapy.http import to_bytes, Request\n    parsed = urlparse_cached(request)\n    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))\n    \n    # Handle the case where parsed.hostname is None\n    hostname = parsed.hostname or b''\n    \n    s = to_bytes(request.method) + b\" \" + to_bytes(path) + b\" HTTP/1.1\\r\\n\"\n    s += b\"Host: \" + to_bytes(hostname) + b\"\\r\\n\"\n    if request.headers:\n        s += request.headers.to_string() + b\"\\r\\n\"\n    s += b\"\\r\\n\"\n    s += request.body\n    return s"
+            "replace_code": "def request_httprepr(request):\n    \n    from six.moves.urllib.parse import urlparse as urlparse_cached, urlunparse\n    from six import PY3\n    parsed = urlparse_cached(request)\n    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))\n    s = to_bytes(request.method) + b\" \" + to_bytes(path) + b\" HTTP/1.1\\r\\n\"\n    s += b\"Host: \" + to_bytes(parsed.hostname) + b\"\\r\\n\" if parsed.hostname else b\"Host: \\r\\n\"\n    if request.headers:\n        s += request.headers.to_string() + b\"\\r\\n\"\n    s += b\"\\r\\n\"\n    s += request.body\n    return s"
         }
     ]
 }
