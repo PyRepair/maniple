@@ -8,15 +8,22 @@ import openai
 import tiktoken
 from openai import OpenAI
 from typing import List, Optional
+from utils import estimate_function_code_length
 
 client = OpenAI(api_key="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")
 
 
 class PromptGenerator:
-    def __init__(self, facts: dict, facts_bitvector: dict, output_dir: str, remove_not_exist_facts) -> None:
+    def __init__(self, facts: dict, facts_bitvector: dict, output_dir: str, remove_not_exist_facts: int) -> None:
         self.facts: dict = facts
         self.bitvector: dict = facts_bitvector.copy()
         self.output_dir: str = output_dir
+
+        paths = output_dir.split("\\")
+        parts = paths[-1].split("-")
+        self.project_name = "-".join(parts[0: -1])
+        self.bugid = parts[-1]
+
         with open("prompt_template.json", "r") as template_file:
             self.template: dict = json.load(template_file)
         self.prompt: str = ""
@@ -30,6 +37,9 @@ class PromptGenerator:
 
         self.actual_bitvector = facts_bitvector.copy()
         for key in self.bitvector.keys():
+            if key == "cot":
+                continue
+
             if self.bitvector[key] == 1 and self.facts[key] is None:
                 self.actual_bitvector[key] = 0
 
@@ -60,17 +70,16 @@ class PromptGenerator:
         variable_runtime_value_test_cases: list = self.facts["2.2.5"]
         variable_runtime_type_test_cases: list = self.facts["2.2.6"]
 
-        if len(variable_runtime_value_test_cases) == 0 and self.bitvector["2.2.5"] == 0 and self.bitvector[
-            "2.2.6"] == 0:
+        if self.actual_bitvector["2.2.5"] == 0 and self.actual_bitvector["2.2.6"] == 0:
             return
 
         self.prompt = self.prompt + "# Variable runtime "
 
-        if self.bitvector["2.2.5"] == 1 and self.bitvector["2.2.6"] == 1:
+        if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
             self.prompt = self.prompt + "value and type"
-        elif self.bitvector["2.2.5"] == 1:
+        elif self.actual_bitvector["2.2.5"] == 1:
             self.prompt = self.prompt + "value"
-        elif self.bitvector["2.2.6"] == 1:
+        elif self.actual_bitvector["2.2.6"] == 1:
             self.prompt = self.prompt + "type"
 
         self.prompt = self.prompt + " inside buggy function\n"
@@ -82,11 +91,11 @@ class PromptGenerator:
             runtime_types: list = variable_runtime_type_test_cases[test_case_index]
 
             self.prompt = self.prompt + "### input parameter runtime "
-            if self.bitvector["2.2.5"] == 1 and self.bitvector["2.2.6"] == 1:
+            if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
                 self.prompt = self.prompt + "value and type"
-            elif self.bitvector["2.2.5"] == 1:
+            elif self.actual_bitvector["2.2.5"] == 1:
                 self.prompt = self.prompt + "value"
-            elif self.bitvector["2.2.6"] == 1:
+            elif self.actual_bitvector["2.2.6"] == 1:
                 self.prompt = self.prompt + "type"
 
             self.prompt = self.prompt + " for buggy function\n"
@@ -99,11 +108,11 @@ class PromptGenerator:
 
                 self.prompt = self.prompt + f"{variable}, "
 
-                if self.bitvector["2.2.5"] == 1 and self.bitvector["2.2.6"] == 1:
+                if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
-                elif self.bitvector["2.2.5"] == 1:
+                elif self.actual_bitvector["2.2.5"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`"
-                elif self.bitvector["2.2.6"] == 1:
+                elif self.actual_bitvector["2.2.6"] == 1:
                     self.prompt = self.prompt + f"type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
@@ -116,11 +125,11 @@ class PromptGenerator:
 
             else:
                 self.prompt = self.prompt + "### variable runtime "
-                if self.bitvector["2.2.5"] == 1 and self.bitvector["2.2.6"] == 1:
+                if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
                     self.prompt = self.prompt + "value and type"
-                elif self.bitvector["2.2.5"] == 1:
+                elif self.actual_bitvector["2.2.5"] == 1:
                     self.prompt = self.prompt + "value"
-                elif self.bitvector["2.2.6"] == 1:
+                elif self.actual_bitvector["2.2.6"] == 1:
                     self.prompt = self.prompt + "type"
 
                 self.prompt = self.prompt + " before buggy function return\n"
@@ -131,11 +140,11 @@ class PromptGenerator:
 
                     self.prompt = self.prompt + f"{variable}, "
 
-                    if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
+                    if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
                         self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
-                    elif self.bitvector["2.2.3"] == 1:
+                    elif self.actual_bitvector["2.2.3"] == 1:
                         self.prompt = self.prompt + f"value: `{variable_value}`"
-                    elif self.bitvector["2.2.4"] == 1:
+                    elif self.actual_bitvector["2.2.4"] == 1:
                         self.prompt = self.prompt + f"type: `{variable_type}`"
 
                     self.prompt = self.prompt + "\n\n"
@@ -144,17 +153,16 @@ class PromptGenerator:
         variable_angelic_value_test_cases: list = self.facts["2.2.3"]
         variable_angelic_type_test_cases: list = self.facts["2.2.4"]
 
-        if len(variable_angelic_value_test_cases) == 0 and self.bitvector["2.2.3"] == 0 and self.bitvector[
-            "2.2.4"] == 0:
+        if self.actual_bitvector["2.2.3"] == 0 and self.actual_bitvector["2.2.4"] == 0:
             return
 
         self.prompt = self.prompt + "# Expected variable "
 
-        if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
+        if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
             self.prompt = self.prompt + "value and type"
-        elif self.bitvector["2.2.3"] == 1:
+        elif self.actual_bitvector["2.2.3"] == 1:
             self.prompt = self.prompt + "value"
-        elif self.bitvector["2.2.4"] == 1:
+        elif self.actual_bitvector["2.2.4"] == 1:
             self.prompt = self.prompt + "type"
 
         self.prompt = self.prompt + " in tests\n"
@@ -166,11 +174,11 @@ class PromptGenerator:
             angelic_types: list = variable_angelic_type_test_cases[test_case_index]
 
             self.prompt = self.prompt + "### Input parameter "
-            if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
+            if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
                 self.prompt = self.prompt + "value and type"
-            elif self.bitvector["2.2.3"] == 1:
+            elif self.actual_bitvector["2.2.3"] == 1:
                 self.prompt = self.prompt + "value"
-            elif self.bitvector["2.2.4"] == 1:
+            elif self.actual_bitvector["2.2.4"] == 1:
                 self.prompt = self.prompt + "type"
 
             self.prompt = self.prompt + "\n"
@@ -183,21 +191,21 @@ class PromptGenerator:
 
                 self.prompt = self.prompt + f"{variable}, "
 
-                if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
+                if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
-                elif self.bitvector["2.2.3"] == 1:
+                elif self.actual_bitvector["2.2.3"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`"
-                elif self.bitvector["2.2.4"] == 1:
+                elif self.actual_bitvector["2.2.4"] == 1:
                     self.prompt = self.prompt + f"type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
 
             self.prompt = self.prompt + "### Expected variable "
-            if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
+            if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
                 self.prompt = self.prompt + "value and type"
-            elif self.bitvector["2.2.3"] == 1:
+            elif self.actual_bitvector["2.2.3"] == 1:
                 self.prompt = self.prompt + "value"
-            elif self.bitvector["2.2.4"] == 1:
+            elif self.actual_bitvector["2.2.4"] == 1:
                 self.prompt = self.prompt + "type"
 
             self.prompt = self.prompt + " before function return\n"
@@ -210,33 +218,38 @@ class PromptGenerator:
 
                 self.prompt = self.prompt + f"{variable}, "
 
-                if self.bitvector["2.2.3"] == 1 and self.bitvector["2.2.4"] == 1:
+                if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
                     self.prompt = self.prompt + f"expected value: `{variable_value}`, type: `{variable_type}`"
-                elif self.bitvector["2.2.3"] == 1:
+                elif self.actual_bitvector["2.2.3"] == 1:
                     self.prompt = self.prompt + f"expected value: `{variable_value}`"
-                elif self.bitvector["2.2.4"] == 1:
+                elif self.actual_bitvector["2.2.4"] == 1:
                     self.prompt = self.prompt + f"expected type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
 
     def generate_cot(self):
-        if self.bitvector["cot"] == 1:
+        if self.actual_bitvector["cot"] == 1:
             self.prompt = self.prompt + self.template["cot"]
 
     def generate_issue_section(self):
-        if "3.1.1" not in self.facts or "3.1.2" not in self.facts:
-            return
-
         issue_titles = self.facts["3.1.1"]
         issue_descriptions = self.facts["3.1.2"]
 
-        for issue_index in range(len(issue_titles)):
-            if self.bitvector["3.1.1"] == 1:
+        if issue_titles is None and issue_descriptions is None:
+            return
+
+        if issue_titles is not None:
+            issue_length = len(issue_titles)
+        else:
+            issue_length = len(issue_descriptions)
+
+        for issue_index in range(issue_length):
+            if self.actual_bitvector["3.1.1"] == 1:
                 self.prompt = self.prompt + self.template["3.1.1"] + "```text\n"
                 self.prompt = self.prompt + issue_titles[issue_index] + "```"
                 self.add_newline_between_sections()
 
-            if self.bitvector["3.1.2"] == 1:
+            if self.actual_bitvector["3.1.2"] == 1:
                 self.prompt = self.prompt + self.template["3.1.2"] + "```text\n"
                 self.prompt = self.prompt + issue_descriptions[issue_index] + "```\n"
 
@@ -244,10 +257,10 @@ class PromptGenerator:
 
     def generate_test_related_section(self):
         for test_index in range(len(self.facts["2.1.1"])):
-            if self.bitvector["2.1.1"] == 1:
+            if self.actual_bitvector["2.1.1"] == 1:
                 self.prompt = self.prompt + self.template["2.1.1"] + "```python\n"
 
-                if self.bitvector["2.1.2"] == 1 and "2.1.2" in self.facts:
+                if self.actual_bitvector["2.1.2"] == 1:
                     self.prompt = self.prompt + self.template["2.1.2"] + self.facts["2.1.2"][test_index]
                     self.add_newline_between_sections()
 
@@ -257,7 +270,7 @@ class PromptGenerator:
             error_messages = self.facts["2.2.1"][test_index]
             stack_traces = self.facts["2.2.2"][test_index]
 
-            if self.bitvector["2.2.1"] == 1 and self.bitvector["2.2.2"] == 1:
+            if self.actual_bitvector["2.2.1"] == 1 and self.actual_bitvector["2.2.2"] == 1:
                 self.prompt = self.prompt + self.template["2.2.1"] + "```text\n"
                 for error_index in range(len(stack_traces)):
                     self.prompt = self.prompt + stack_traces[error_index] + "\n"
@@ -267,14 +280,14 @@ class PromptGenerator:
                 self.prompt = self.prompt + "\n```"
 
             else:
-                if self.bitvector["2.2.2"] == 1:
+                if self.actual_bitvector["2.2.2"] == 1:
                     self.prompt = self.prompt + self.template["2.2.2"] + "```text\n"
                     for error_index in range(len(stack_traces)):
                         self.prompt = self.prompt + stack_traces[error_index] + "\n"
 
                     self.prompt = self.prompt + "\n```"
 
-                if self.bitvector["2.2.1"] == 1:
+                if self.actual_bitvector["2.2.1"] == 1:
                     self.prompt = self.prompt + self.template["2.2.1"] + "```text\n"
                     for error_index in range(len(error_messages)):
                         self.prompt = self.prompt + error_messages[error_index] + "\n"
@@ -291,11 +304,11 @@ class PromptGenerator:
         has_function_in_file = False
         has_class_declaration = False
 
-        if "1.3.1" in self.facts and self.bitvector["1.3.1"] == 1:
+        if self.actual_bitvector["1.3.1"] == 1:
             self.prompt = self.prompt + self.template["1.3.1"] + self.facts["1.3.1"]
             self.add_newline_between_sections()
 
-        if "1.3.2" in self.facts and self.facts["1.3.2"] != [] and self.bitvector["1.3.2"] == 1:
+        if self.actual_bitvector["1.3.2"] == 1:
             has_function_in_file = True
             buggy_functions: List[str] = self.facts["1.3.2"]
             for function_index in range(len(buggy_functions)):
@@ -304,12 +317,12 @@ class PromptGenerator:
                 self.prompt = self.prompt + "    pass"
                 self.add_newline_between_sections()
 
-        if "1.2.1" in self.facts and self.bitvector["1.2.1"] == 1:
+        if self.actual_bitvector["1.2.1"] == 1:
             has_class_declaration = True
             self.prompt = self.prompt + self.template["1.2.1"]
             self.prompt = self.prompt + self.facts["1.2.1"] + ":\n"
 
-            if "1.2.2" in self.facts and self.bitvector["1.2.2"] == 1:
+            if self.actual_bitvector["1.2.2"] == 1:
                 class_docs: str = self.facts["1.2.2"]
                 self.prompt = self.prompt + "    \"\"\"\n"
                 for doc in class_docs.split('\n'):
@@ -325,7 +338,7 @@ class PromptGenerator:
         else:
             indent = "    "
 
-        if "1.2.3" in self.facts and self.facts["1.2.3"] != [] and self.bitvector["1.2.3"] == 1:
+        if self.actual_bitvector["1.2.3"] == 1:
             buggy_functions: List[str] = self.facts["1.2.3"]
             for function_index in range(len(buggy_functions)):
                 self.prompt = self.prompt + indent + self.template["1.2.3"]
@@ -343,7 +356,7 @@ class PromptGenerator:
         for statement in source_code.split('\n'):
             self.prompt = self.prompt + indent + statement + "\n"
 
-            if ("def " + self.buggy_function_name) in statement and "1.1.2" in self.facts and self.bitvector["1.1.2"] == 1:
+            if ("def " + self.buggy_function_name) in statement and self.actual_bitvector["1.1.2"] == 1:
                 buggy_function_docs = self.facts["1.1.2"]
 
                 self.prompt = self.prompt + indent + "    \"\"\"\n"
@@ -360,77 +373,82 @@ class PromptGenerator:
 
     def write_prompt(self):
         prompt_file_name = ""
-        for value in self.bitvector.values():
-            prompt_file_name = prompt_file_name + str(value)
+        if self.remove_not_exist_facts == 1:
+            for value in self.actual_bitvector.values():
+                prompt_file_name = prompt_file_name + str(value)
+        else:
+            for value in self.bitvector.values():
+                prompt_file_name = prompt_file_name + str(value)
+
         prompt_file_name += "prompt.md"
         with open(os.path.join(self.output_dir, prompt_file_name), "w") as output_file:
             output_file.write(self.prompt)
 
     def get_response_from_gpt(self, repeat_count: int, gpt_model: str):
         bitvector_flatten = ""
-        if self.remove_not_exist_facts:
+
+        if self.remove_not_exist_facts == 1:
             for value in self.actual_bitvector.values():
                 bitvector_flatten = bitvector_flatten + str(value)
         else:
             for value in self.bitvector.values():
                 bitvector_flatten = bitvector_flatten + str(value)
 
-        buggy_function_length = len(self.facts["1.1.1"])
-        if self.bitvector["1.1.2"] == 1:
-            buggy_function_length += len(self.facts["1.1.2"])
+        buggy_function_length = estimate_function_code_length(self.facts["1.1.1"])
 
         for count in range(repeat_count):
-            response_file_name = bitvector_flatten + "response(" + str(count) + ").md"
+            response_md_file_name = bitvector_flatten + "response(" + str(count) + ").md"
 
-            if os.path.exists(os.path.join(self.output_dir, response_file_name)):
-                print(f"{response_file_name} already exists in directory {self.output_dir}")
+            # if os.path.exists(os.path.join(self.output_dir, response_md_file_name)):
+            #     print(f"{response_md_file_name} already exists in directory {self.output_dir}")
+            #     continue
 
-            else:
+            try:
+                response: str = ""
+                max_generation_count = 5
+                max_conversation_count = 5
 
-                try:
-                    response: str = ""
-                    max_generation_count = 5
-                    max_conversation_count = 5
+                messages = [{"role": "user", "content": self.prompt}]
+                while max_generation_count > 0 and max_conversation_count > 0:
+                    response = create_query(messages, gpt_model)
 
-                    messages = [{"role": "user", "content": self.prompt}]
-                    while max_generation_count > 0 and max_conversation_count > 0:
-                        response = create_query(messages, gpt_model)
+                    fix_patch = contain_valid_fix_patch(response, self.buggy_function_name)
 
-                        fix_patch = contain_valid_fix_patch(response, self.buggy_function_name)
+                    # if the output doesn't contain fix patch in code block
+                    if fix_patch is None:
+                        time.sleep(3)
+                        max_generation_count -= 1
+                        messages = [{"role": "user", "content": self.prompt}]
+                        continue
 
-                        # if the output doesn't contain fix patch in code block
-                        if fix_patch is None:
-                            time.sleep(3)
-                            max_generation_count -= 1
-                            messages = [{"role": "user", "content": self.prompt}]
-                            continue
+                    # if the fix patch is omitted
+                    if estimate_function_code_length(fix_patch) < 0.7 * buggy_function_length:
+                        max_conversation_count -= 1
+                        messages = [
+                            {"role": "user", "content": self.prompt},
+                            {"role": "assistant", "content": response},
+                            {"role": "user", "content": "Print the full code of the fixed function"},
+                        ]
+                        continue
 
-                        # if the fix patch is omitted
-                        if len(fix_patch) < 0.6 * buggy_function_length:
-                            max_conversation_count -= 1
-                            messages = [
-                                {"role": "user", "content": self.prompt},
-                                {"role": "assistant", "content": response},
-                                {"role": "user", "content": "Print the full code of the fixed function"},
-                            ]
-                            continue
+                    # we have complete fixed function in code block
+                    break
 
-                        # we have complete fixed function in code block
-                        break
+                if max_generation_count == 0:
+                    print(f"{response_md_file_name} in directory {self.output_dir} exceed max generation count")
+                elif max_conversation_count == 0:
+                    print(f"{response_md_file_name} in directory {self.output_dir} exceed max conversation count, write omitted code")
+                else:
+                    print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
 
-                    if max_generation_count == 0 or max_conversation_count == 0:
-                        print(f"write response error to file {response_file_name} in directory {self.output_dir}")
-                    else:
-                        print(f"write response to file {response_file_name} in directory {self.output_dir}")
+                with open(os.path.join(self.output_dir, response_md_file_name), "w") as output_file:
+                    output_file.write(response)
 
-                    with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
-                        output_file.write(response)
-
-                except Exception as error:
-                    error_str = str(error)
-                    with open(os.path.join(self.output_dir, response_file_name), "w") as output_file:
-                        output_file.write(error_str)
-                    print(f"write response error to file {response_file_name} in directory {self.output_dir}")
+            except Exception as error:
+                error_str = str(error)
+                with open(os.path.join(self.output_dir, response_md_file_name), "w") as output_file:
+                    output_file.write(error_str)
+                print(f"write response error to file {response_md_file_name} in directory {self.output_dir}")
 
 
 class QueryException(Exception):
@@ -480,16 +498,15 @@ def contain_valid_fix_patch(response: str, buggy_function_name: str) -> Optional
 
 
 if __name__ == "__main__":
-    stratum = "first-stratum"
+    stratum = os.path.join("..", "preliminary-study", "first-stratum")
     remove_not_exist_facts = 0
 
     stratum_path = os.listdir(stratum)
 
     bitvectors = []
 
-    current_directory = os.getcwd()
     pattern = "*bitvector*.json"
-    bitvector_files = glob.glob(os.path.join(current_directory, pattern))
+    bitvector_files = glob.glob(os.path.join("..", "preliminary-study", pattern))
     for file in bitvector_files:
         with open(file, "r") as input_bitvector_file:
             bitvectors.append(json.load(input_bitvector_file))
@@ -501,13 +518,10 @@ if __name__ == "__main__":
                 with open(facts_path, "r") as input_file:
                     bug_facts = json.load(input_file)
 
-                try:
-                    prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir),
-                                                       remove_not_exist_facts)
-                    prompt_generator.generate_prompt()
-                    prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
-                    print(f"generate prompt for {bug_dir}")
-                except KeyError as e:
-                    print(f"{bug_dir}: buggy function code are not available, not supported")
+                prompt_generator = PromptGenerator(bug_facts, bitvector, os.path.join(stratum, bug_dir), remove_not_exist_facts)
+                prompt_generator.generate_prompt()
+                #prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
+                print(f"generate prompt for {bug_dir}")
+
             else:
                 print(f"{bug_dir}: multi function fix, not supported")
