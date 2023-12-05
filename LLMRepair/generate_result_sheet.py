@@ -40,7 +40,7 @@ for bug_dir in first_stratum_path:
     for result_file_name in result_files:
         with open(os.path.join(bug_path, result_file_name), "r") as result_file:
             result = json.load(result_file)
-            pass_test = random.randint(0, 1)
+            pass_test = result[f"{project_name}:{bug_id}"]
 
         used_facts = [int(char) for char in result_file_name[:17]]
 
