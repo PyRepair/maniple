@@ -1,1 +1,0 @@
-The issue in the code is that it incorrectly checks that the length of

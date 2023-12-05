@@ -1,1 +1,0 @@
-The issue in the code is that when `values` parameter is not passed, it assigns the column names of the DataFrame as the values to be aggregated. But the code assumes that `values` will always be a list of column names and tries to drop the keys from the `values`

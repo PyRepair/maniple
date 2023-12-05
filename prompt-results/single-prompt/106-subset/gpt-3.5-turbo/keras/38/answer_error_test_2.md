@@ -1,1 +1,0 @@
-To fix the bug in the code, we need to replace the assertion

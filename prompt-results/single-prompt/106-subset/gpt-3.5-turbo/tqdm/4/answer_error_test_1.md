@@ -1,1 +1,0 @@
-The bug in the code is that the `total` variable can be `None` if the value of `total` is less than `n`. When applying the custom scale, multiplying `total` with `unit_scale` throws a `TypeError` because `None` cannot be multiplied
