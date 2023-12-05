@@ -1,9 +1,8 @@
 import argparse
 import os
 import shutil
-import subprocess
 from utils import print_in_red
-from cleaner import clear_files
+from cleaner import clear_features, clear_logs, clear_prompts
 from features_extractor import collect_facts, NotSupportedError
 from patch_validator import validate_patches
 
@@ -23,7 +22,13 @@ if __name__ == "__main__":
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "command",
-        choices=["extract_features", "validate_patches", "clean"],
+        choices=[
+            "extract_features",
+            "validate_patches",
+            "clean_feature_files",
+            "clean_log_files",
+            "clean_prompt_files",
+        ],
         help="specify the command to run",
     )
     args_parser.add_argument(
@@ -33,6 +38,12 @@ if __name__ == "__main__":
     )
     args_parser.add_argument(
         "-p", "--database-path", required=True, help="specify the path to bug database"
+    )
+    args_parser.add_argument(
+        "--delete-cache",
+        action="store_true",
+        default=False,
+        help="delete the cache before collecting facts",
     )
     args_parser.add_argument("--overwrite", action="store_true", default=False)
     args = args_parser.parse_args()
@@ -46,7 +57,9 @@ if __name__ == "__main__":
         bugids = get_bugids_from_database_path(args.database_path)
 
     flag_overwrite = args.overwrite
-    if flag_overwrite:
+    flag_delete_cache = args.delete_cache
+
+    if flag_delete_cache:
         HOME_DIR = os.path.expanduser("~")
         BGP_CACHE_DIR = os.path.join(HOME_DIR, ".abw", "BugsInPy_Dir", "envs")
         print_in_red(
@@ -66,8 +79,12 @@ if __name__ == "__main__":
                 collect_facts(bugid, bwd, flag_overwrite)
             elif args.command == "validate_patches":
                 validate_patches(bugid, bwd, flag_overwrite)
-            elif args.command == "clean":
-                clear_files(bwd)
+            elif args.command == "clean_feature_files":
+                clear_features(bwd)
+            elif args.command == "clean_log_files":
+                clear_logs(bwd)
+            elif args.command == "clean_prompt_files":
+                clear_prompts(bwd)
 
         except NotSupportedError as e:
             print_in_red(f"ERROR: {e}")
