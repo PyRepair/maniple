@@ -256,8 +256,11 @@ class Facts:
                 if cond(varItem):
                     ovals[varName] = varItem["variable_value"]
                     otypes[varName] = varItem["variable_type"]
-            iovals.append((ivals, ovals))
-            iotypes.append((itypes, otypes))
+            # fix issue to have tuple of 2 empty dicts
+            if len(ivals.keys()) > 0 or len(ovals.keys()) > 0:
+                iovals.append((ivals, ovals))
+            if len(itypes.keys()) > 0 or len(otypes.keys()) > 0:
+                iotypes.append((itypes, otypes))
         return (iovals, iotypes)
 
     def _resolve_angelic_variables(self, function_info):
@@ -268,16 +271,31 @@ class Facts:
             ioavals, ioatypes = self._resolve_dynamics(
                 function_info["angelic_variable_values"]
             )
-            self.facts["2.2.3"] = ioavals
-            self.facts["2.2.4"] = ioatypes
+            # fix issue where angelic and runtime list is empty
+            # where they should be empty
+            if len(ioavals) > 0:
+                self.facts["2.2.3"] = ioavals
+            else:
+                self._log_stat("angelic_variable_values", (0))
+            if len(ioatypes) > 0:
+                self.facts["2.2.4"] = ioatypes
+            else:
+                self._log_stat("angelic_variable_types", (0))
 
         if (
             function_info["variable_values"] is not None
             and len(function_info["variable_values"]) > 0
         ):
             iobvals, iobtypes = self._resolve_dynamics(function_info["variable_values"])
-            self.facts["2.2.5"] = iobvals
-            self.facts["2.2.6"] = iobtypes
+            # fix issue same as above
+            if len(iobvals) > 0:
+                self.facts["2.2.5"] = iobvals
+            else:
+                self._log_stat("runtime_variable_values", (0))
+            if len(iobtypes) > 0:
+                self.facts["2.2.6"] = iobtypes
+            else:
+                self._log_stat("runtime_variable_types", (0))
 
     @staticmethod
     def _does_this_2_variable_records_actually_have_changes(
