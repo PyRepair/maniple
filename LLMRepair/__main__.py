@@ -1,6 +1,5 @@
 import argparse
 import os
-import utils
 from utils import print_in_red
 from cleaner import clear_features, clear_logs, clear_prompts
 from features_extractor import collect_facts, NotSupportedError
@@ -44,22 +43,10 @@ if __name__ == "__main__":
         help="specify the path to bug database",
     )
     args_parser.add_argument(
-        "--prep",
-        help="whether to re-prep the environment",
+        "--overwrite",
+        help="whether overwrite existing results",
         action="store_true",
-        default=False
-    )
-    args_parser.add_argument(
-        "--background",
-        help="whether to run the command in background",
-        action="store_true",
-        default=False
-    )
-    args_parser.add_argument(
-        "--use-docker",
-        help="whether to use docker to run the commands",
-        action="store_true",
-        default=False
+        default=False,
     )
     args = args_parser.parse_args()
 
@@ -71,11 +58,7 @@ if __name__ == "__main__":
     if bugids is None:
         bugids = get_bugids_from_database_path(args.database_path)
 
-    flag_prep = args.prep
-    if args.use_docker:
-        utils.FLAG_USE_DOCKER = True
-    if args.background:
-        utils.BACKGROUND_MODE = True
+    flag_overwrite = args.overwrite
 
     for bugid in bugids:
         bwd = os.path.join(args.database_path, "-".join(bugid.split(":")))
@@ -84,9 +67,9 @@ if __name__ == "__main__":
 
         try:
             if args.command == "extract_features":
-                collect_facts(bugid, bwd, flag_prep)
+                collect_facts(bugid, bwd, flag_overwrite)
             elif args.command == "validate_patches":
-                validate_patches(bugid, bwd, flag_prep)
+                validate_patches(bugid, bwd, flag_overwrite)
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":

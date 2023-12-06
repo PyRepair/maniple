@@ -11,7 +11,6 @@ from utils import (
     generate_contextual_diff_with_char_limit,
     print_in_red,
     print_in_yellow,
-    run_command,
 )
 
 
@@ -105,7 +104,8 @@ class Facts:
                 return True
         return False
 
-    def _extract_single_function_name(function_code):
+    @staticmethod
+    def _extract_single_function_name(function_code: str):
         """
         Extracts and returns the name of a single function from its source code.
 
@@ -174,11 +174,11 @@ class Facts:
                     break
 
             # if same input got matched, then we can use this pair, otherwise we discard it
-            if not containEqual or buggy_idx in matched_buggy_variable_indices:
+            if not containEqual or buggy_idx in matched_buggy_variable_indices:  # type: ignore
                 continue
 
             # if the the buggy program crash, the IO tuple will be incomplete and we should ignore it
-            if len(buggy_IO_tuple) < 2 or len(buggy_IO_tuple[1].keys()) == 0:
+            if len(buggy_IO_tuple) < 2 or len(buggy_IO_tuple[1].keys()) == 0:  # type: ignore
                 continue
             if len(angelic_IO_tuple) < 2 or len(angelic_IO_tuple[1].keys()) == 0:
                 continue
@@ -204,7 +204,7 @@ class Facts:
             o_val = dict()
             o_type = dict()
             for varName, varItem in angelic_IO_tuple[1].items():
-                buggyItem = buggy_IO_tuple[1][varName]
+                buggyItem = buggy_IO_tuple[1][varName]  # type: ignore
                 if self._does_this_variable_record_contains_non_empty_value(
                     varItem
                 ) and self._does_this_2_variable_records_actually_have_changes(
@@ -226,10 +226,10 @@ class Facts:
                 continue
 
             # if the data survive util the last time, then we can add the buggy_idx to the set
-            matched_buggy_variable_indices.add(buggy_idx)
+            matched_buggy_variable_indices.add(buggy_idx)  # type: ignore
             self._log_stat(
                 "buggy_angelic_dynamics_pair",
-                (buggy_idx, angelic_idx),
+                (buggy_idx, angelic_idx),  # type: ignore
             )
 
             # now we have target_output and target_input
@@ -448,19 +448,15 @@ class Facts:
         full_bugdir_path = self._bwd
 
         if flag_overwrite or not os.path.exists(bug_json_file):
-            if shutil.which("bgp") is None:
-                print_in_red(
-                    """FATAL: bgp command not found. 
-                            Try to install it by following the instruction from 
-                            https://github.com/PyRepair/PyRepair/tree/master/pyr_benchmark_wrangling"""
-                )
-                raise NotSupportedError("bgp command not found")
-
-            run_command(["bgp", "clone", "--bugids", bugid], check=True)
-
+            # assume we have already cloned and prepped the repo successfully
             try:
-                console_output = run_command(
-                    ["bgp", "extract_features", "--bugids", bugid],
+                commands = (
+                    f"docker run --rm -it -v /Volumes/JerrySSD/envs:/envs pyr:lite bgp extract_features "
+                    + f"--bugids {bugid} --separate-envs --envs-dir /envs"
+                )
+                commands = commands.split(" ")
+                console_output = subprocess.run(
+                    commands,
                     capture_output=True,
                     check=True,
                 )
@@ -469,7 +465,11 @@ class Facts:
                     f"FATAL: bgp extract_features failed with error code {e.returncode}"
                     + f"\nThis is likely due to network issues when downloading the bug {bugid}"
                 )
-                raise NotSupportedError("bgp extract_features failed")
+                with open(f"{bugid}_extract_feature_error.log", "w") as f:
+                    f.write(e.stdout.decode("utf-8"))
+
+                # stop execution
+                return
 
             decoded_string = console_output.stdout.decode("utf-8")
             json_output = json.loads(decoded_string)
