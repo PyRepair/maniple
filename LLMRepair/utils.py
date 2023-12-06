@@ -2,7 +2,7 @@ import difflib
 import ast
 import re
 import subprocess
-from typing import List
+from typing import List, Optional
 
 
 FLAG_USE_DOCKER = False
@@ -115,7 +115,7 @@ def generate_contextual_diff_with_char_limit(text1, text2, context=1, char_limit
     return "\n".join(filtered_diff)
 
 
-def extract_function_from_response(src: str, func_name: str) -> str:
+def extract_function_from_response(src: str, func_name: str) -> Optional[str]:
     # Parsing the source code into an AST
     tree = ast.parse(src)
 
@@ -162,8 +162,8 @@ def extract_function_from_response(src: str, func_name: str) -> str:
 
     # Extract import statements as source code with appropriate indentation
     imports_code = "\n".join(
-        indent_spaces + ast.get_source_segment(src, node) for node in import_statements
-    )
+        indent_spaces + ast.get_source_segment(src, node) for node in import_statements  # type: ignore
+    )  # type: ignore
 
     # Combine the function signature, imports, and function body
     modified_function = (
