@@ -7,6 +7,8 @@ from typing import List
 
 FLAG_USE_DOCKER = False
 
+BACKGROUND_MODE = False
+
 DOCKER_CONTAINER_NAME = "pyr:lite"
 
 
@@ -173,7 +175,10 @@ def extract_function_from_response(src: str, func_name: str) -> str:
 
 def run_command(command: List[str], check=False, capture_output=False):
     if FLAG_USE_DOCKER:
-        docker_cmds = ["docker", "run", "-it", "--rm", DOCKER_CONTAINER_NAME]
+        docker_cmds = ["docker", "run"]
+        if not BACKGROUND_MODE:
+            docker_cmds.append("-it")
+        docker_cmds.extend(["--rm", DOCKER_CONTAINER_NAME])
         docker_cmds.extend(command)
         return subprocess.run(docker_cmds, check=check, capture_output=capture_output)
     else:

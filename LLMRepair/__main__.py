@@ -47,13 +47,19 @@ if __name__ == "__main__":
         "--prep",
         help="whether to re-prep the environment",
         action="store_true",
-        default=False,
+        default=False
+    )
+    args_parser.add_argument(
+        "--background",
+        help="whether to run the command in background",
+        action="store_true",
+        default=False
     )
     args_parser.add_argument(
         "--use-docker",
         help="whether to use docker to run the commands",
         action="store_true",
-        default=False,
+        default=False
     )
     args = args_parser.parse_args()
 
@@ -68,6 +74,8 @@ if __name__ == "__main__":
     flag_prep = args.prep
     if args.use_docker:
         utils.FLAG_USE_DOCKER = True
+    if args.background:
+        utils.BACKGROUND_MODE = True
 
     for bugid in bugids:
         bwd = os.path.join(args.database_path, "-".join(bugid.split(":")))
