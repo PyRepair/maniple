@@ -2,7 +2,7 @@ import os.path
 import pandas as pd
 
 
-stratum = "first"
+stratum = "second"
 result_path = os.path.join("..", "preliminary-study", f"{stratum}_stratum_raw_result.xlsx")
 
 test_data = pd.read_excel(result_path, engine='openpyxl')
@@ -39,6 +39,9 @@ fix_rate_data = grouped[result_column].agg(
 
 
 fix_rate_data.to_excel(os.path.join("..", "preliminary-study", f"{stratum}_stratum_fix_rate.xlsx"), index=False)
+
+fix_rate_for_each_bug = fix_rate_data.groupby(['Project', 'Bug_id'])[['fix_patch_count', 'total_response_count']].sum().reset_index()
+fix_rate_for_each_bug.to_excel(os.path.join("..", "preliminary-study", f"{stratum}_stratum_fix_rate_for_each_bug.xlsx"), index=False)
 
 
 fix_rate_for_each_bug = fix_rate_data.groupby(['Project', 'Bug_id']).agg(
