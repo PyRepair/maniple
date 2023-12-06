@@ -2,6 +2,7 @@ import os.path
 import pandas as pd
 
 
+
 result_path = os.path.join("..", "preliminary-study", "first_stratum_raw_result.xlsx")
 
 test_data = pd.read_excel(result_path, engine='openpyxl')
@@ -16,11 +17,9 @@ grouped_by_bitvector = test_data.groupby(['bitvector', test_data.columns[19]]).s
 # Reset index to make 'bitvector' a column
 bitvector_fix_rate = grouped_by_bitvector.reset_index()
 
-bitvector_fix_rate.to_excel(os.path.join("..", "preliminary-study", "bitvecotr_fix_rate.xlsx"), index=False)
+bitvector_fix_rate.to_excel(os.path.join("..", "preliminary-study", "first_stratum_bitvecotr_fix_rate.xlsx"), index=False)
 
 
 test_result_codes = test_data.iloc[:, 19].value_counts()
 aggregate_fix_rate = pd.DataFrame(test_result_codes).transpose()
-aggregate_fix_rate.to_excel(os.path.join("..", "preliminary-study", "aggregate_fix_rate.xlsx"), index=False)
-
-
+aggregate_fix_rate.to_excel(os.path.join("..", "preliminary-study", "first_stratum_aggregate_fix_rate.xlsx"), index=False)

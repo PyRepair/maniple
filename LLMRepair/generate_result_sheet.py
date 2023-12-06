@@ -1,6 +1,5 @@
 import json
 import os
-import random
 import pandas as pd
 
 stratum_path = "../preliminary-study/first-stratum"

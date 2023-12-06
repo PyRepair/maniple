@@ -11,16 +11,23 @@ def get_code_blocks(raw_response: str) -> List[str]:
     return re.findall(code_block_pattern, raw_response, re.DOTALL)
 
 
-
-stratum_path = "../preliminary-study/first-stratum"
+stratum_path = "../preliminary-study/second-stratum"
 first_stratum_path = os.listdir(stratum_path)
 
 for bug_dir in first_stratum_path:
     project_name = bug_dir.rsplit('-', 1)[0]
     bug_id = bug_dir.rsplit('-', 1)[1]
 
+    if project_name == "pandas" and bug_id == "124":
+        continue
+
     bug_path = os.path.join(stratum_path, bug_dir)
     responses_files = [path for path in os.listdir(bug_path) if ("response" in path) and ("md" in path)]
+
+    bug_data_file = os.path.join(bug_path, "bug-data.json")
+
+    if not os.path.exists(bug_data_file):
+        continue
 
     with open(os.path.join(bug_path, "bug-data.json"), "r") as bug_data_file:
         bug_data: dict = json.load(bug_data_file)[project_name + ":" + bug_id]
