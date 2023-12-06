@@ -1,14 +1,22 @@
 import json
 import os
 import re
-from typing import List
+from typing import List, Optional
 
 from utils import extract_function_from_response, print_in_red, print_in_yellow
 
 
-def get_code_blocks(raw_response: str) -> List[str]:
+def find_patch_from_response(
+    raw_response: str, buggy_function_name: str
+) -> Optional[str]:
     code_block_pattern = r"```(?:python\n)?(.*?)(?:\n)?```"
-    return re.findall(code_block_pattern, raw_response, re.DOTALL)
+    function_pattern = rf".*def.*{buggy_function_name}.*"
+
+    code_blocks = re.findall(code_block_pattern, raw_response, re.DOTALL)
+    for code_block in code_blocks:
+        if re.search(function_pattern, code_block, re.DOTALL):
+            return code_block
+    return None
 
 
 stratum_path = "/Users/jerry/Documents/GitHub/LLM-prompt-data-for-APR/preliminary-study/second-stratum"
@@ -52,25 +60,7 @@ for project_name in os.listdir(stratum_path):
         for response_file_name in responses_files:
             with open(os.path.join(bug_path, response_file_name), "r") as response_file:
                 response = response_file.read()
-                code_blocks = get_code_blocks(response)
-
-            fix_patch = None
-            if len(code_blocks) > 1:
-                buggy_function_signature = ""
-                for statement in buggy_function_code.split("\n"):
-                    buggy_function_signature += statement
-                    if ("def " + buggy_function_name) in statement:
-                        break
-                    else:
-                        buggy_function_signature += "\n"
-
-                for code_block in code_blocks:
-                    if buggy_function_signature in code_block:
-                        fix_patch = code_block
-                        break
-
-            elif len(code_blocks) == 1:
-                fix_patch = code_blocks[0]
+                fix_patch = find_patch_from_response(response, buggy_function_name)
 
             if fix_patch is not None:
                 try:
