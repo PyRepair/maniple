@@ -32,7 +32,7 @@ def get_bugids_from_dataset(dataset: Union[Literal["106subset"], Literal["396sub
     bugids = []
     for project_name, bugids_list in dataset_indices.items():
         for bugid in bugids_list:
-            bugids.append(f"{project_name.lower()}:{bugid}")
+            bugids.append(f"{project_name}:{bugid}")
 
     return bugids
 
@@ -43,9 +43,14 @@ def batch_prepare(bugids: List[str]):
 
     for bugid in bugids:
         print(f"Preparing {bugid}")
+        commands = (
+            "docker run --rm -it -v /Volumes/JerrySSD/envs:/envs "
+            + f"pyr:lite bgp prep --bugids {bugid} --reinstall --separate-envs "
+            + "--envs-dir /envs"
+        )
+        commands = commands.split(" ")
         output = subprocess.run(
-            f"docker run --rm -it -v /Volumes/JerrySSD/envs:/envs pyr:lite "
-            f"bgp prep --bugids {bugid} --reinstall --separate-envs --envs-dir /envs",
+            commands,
             capture_output=True,
         )
         all_output = output.stdout.decode("utf-8") + output.stderr.decode("utf-8")
