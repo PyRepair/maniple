@@ -6,7 +6,7 @@ from utils import print_in_red
 import os
 
 
-def get_bugids_from_dataset(dataset: Union[Literal["106subset"], Literal["396subset"]]):
+def get_bugids_from_dataset(dataset: Union[Literal["106subset"], Literal["395subset"]]):
     current_script_path = os.path.dirname(os.path.abspath(__file__))
 
     if dataset == "106subset":
@@ -23,7 +23,7 @@ def get_bugids_from_dataset(dataset: Union[Literal["106subset"], Literal["396sub
             "..",
             "training-data",
             "subsets-list",
-            "396-dataset.json",
+            "395-dataset.json",
         )
 
     with open(dataset_indices_file_path, "r") as f:
@@ -44,7 +44,7 @@ def batch_prepare(bugids: List[str]):
     for bugid in bugids:
         print(f"Preparing {bugid}")
         commands = (
-            "docker run --rm -it -v /Volumes/JerrySSD/envs:/envs "
+            "docker run --rm -it -v /Volumes/SSD2T/envs:/envs "
             + f"pyr:lite bgp prep --bugids {bugid} --reinstall --separate-envs "
             + "--envs-dir /envs"
         )
@@ -65,7 +65,7 @@ def main():
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=["106subset", "396subset"],
+        choices=["106subset", "395subset"],
         default="106subset",
         help="Which dataset to prepare",
     )
