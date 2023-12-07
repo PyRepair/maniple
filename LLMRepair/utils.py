@@ -110,6 +110,13 @@ def generate_contextual_diff_with_char_limit(text1, text2, context=1, char_limit
 def find_patch_from_response(
     raw_response: str, buggy_function_name: str
 ) -> Optional[str]:
+    """
+    This function extract code block that contains buggy function from the response of OpenAI
+
+    raw_response: response from OpenAI
+    buggy_function_name: name of the buggy function
+    """
+
     code_block_pattern = r"```(?:python\n)?(.*?)(?:\n)?```"
     function_pattern = rf".*def.*{buggy_function_name}.*"
 
