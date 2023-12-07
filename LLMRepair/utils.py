@@ -107,9 +107,27 @@ def generate_contextual_diff_with_char_limit(text1, text2, context=1, char_limit
     return "\n".join(filtered_diff)
 
 
-def extract_function_from_response(src: str, func_name: str) -> Optional[str]:
+def find_patch_from_response(
+    raw_response: str, buggy_function_name: str
+) -> Optional[str]:
+    code_block_pattern = r"```(?:python\n)?(.*?)(?:\n)?```"
+    function_pattern = rf".*def.*{buggy_function_name}.*"
+
+    code_blocks = re.findall(code_block_pattern, raw_response, re.DOTALL)
+    for code_block in code_blocks:
+        if re.search(function_pattern, code_block, re.DOTALL):
+            return code_block
+    return None
+
+
+def extract_function_from_code_block(code_block: str, func_name: str) -> Optional[str]:
+    """
+    code block: valid python source code
+    func_name: name of the function to be extracted
+    """
+
     # Parsing the source code into an AST
-    tree = ast.parse(src)
+    tree = ast.parse(code_block)
 
     # Find the function node and import statements
     function_node = None
@@ -128,10 +146,10 @@ def extract_function_from_response(src: str, func_name: str) -> Optional[str]:
     end_line = (
         function_node.body[0].lineno - 2
     )  # The line before the function body starts
-    function_signature = "\n".join(src.splitlines()[start_line : end_line + 1])
+    function_signature = "\n".join(code_block.splitlines()[start_line : end_line + 1])
 
     # Get the function body
-    function_body_lines = src.splitlines()[
+    function_body_lines = code_block.splitlines()[
         function_node.body[0].lineno - 1 : function_node.end_lineno
     ]
 
@@ -154,7 +172,7 @@ def extract_function_from_response(src: str, func_name: str) -> Optional[str]:
 
     # Extract import statements as source code with appropriate indentation
     imports_code = "\n".join(
-        indent_spaces + ast.get_source_segment(src, node) for node in import_statements  # type: ignore
+        indent_spaces + ast.get_source_segment(code_block, node) for node in import_statements  # type: ignore
     )  # type: ignore
 
     # Combine the function signature, imports, and function body
