@@ -43,7 +43,7 @@ def parse_bitvector_from_strata(strata_bitvector: dict) -> dict:
     return bitvector
 
 
-def get_strata_bitvector(strata_bitvector: dict):
+def get_strata_bitvector(strata_bitvector: dict) -> dict:
     bitvector = {
         "1": 0,
         "2": 0,
@@ -51,8 +51,7 @@ def get_strata_bitvector(strata_bitvector: dict):
         "4": 0,
         "5": 0,
         "6": 0,
-        "7": 0,
-        "8": 0
+        "7": 0
     }
     for strata in strata_bitvector.keys():
         facts: dict = strata_bitvector[strata]
@@ -118,8 +117,7 @@ class PromptGenerator:
             "4": 0,
             "5": 0,
             "6": 0,
-            "7": 0,
-            "8": 0
+            "7": 0
         }
         for strata, selected in self.strata_bitvector:
             if selected == 1:
