@@ -275,15 +275,11 @@ class Facts:
     def _remove_duplicate_keys(self, vvs):
         result = []
         for i, o in vvs:
-            if len(i.keys()) == 0 or len(o.keys()) == 0:
-                continue
-            ri = dict()
-            ro = dict()
-            for k in i.keys():
-                ri[k] = i[k]
-                if i[k] != o[k]:
-                    ro[k] = o[k]
-            result.append((ri, ro))
+            if i and o:  # This checks if both dictionaries are non-empty
+                ro = {
+                    k: o[k] for k in i if i[k] != o[k]
+                }  # Include in 'ro' only if values are different
+                result.append((i, ro))
         return result
 
     def _resolve_angelic_variables(self, function_info):
