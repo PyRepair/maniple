@@ -545,7 +545,7 @@ def create_query(messages: list, gpt_model: str) -> str:
     retry_max_count = 10
     while retry_max_count > 0:
         try:
-            time.sleep(3)
+            time.sleep(1)
             chat_completion = client.chat.completions.create(
                 model=gpt_model,
                 messages=messages
@@ -556,8 +556,8 @@ def create_query(messages: list, gpt_model: str) -> str:
                 
             return chat_completion.choices[0].message.content
 
-        except openai.RateLimitError as rate_limit_error:
-            time.sleep(15)
+        except openai.RateLimitError:
+            time.sleep(5)
             retry_max_count -= 1
 
     raise QueryException("Tried 10 times OpenAI rate limit query")
@@ -585,6 +585,6 @@ if __name__ == "__main__":
                     print(f"generate prompt for {project}")
                     prompt_generator = PromptGenerator(stratum_path, project, bid, bitvector_strata, remove_not_exist_fact_label)
                     prompt_generator.generate_prompt()
-                    prompt_generator.get_response_from_gpt(3, "gpt-3.5-turbo-1106")
+                    prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
                 except Exception as e:
                     print_in_red(str(e))
