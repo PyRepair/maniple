@@ -6,18 +6,7 @@ from features_extractor import collect_facts, NotSupportedError
 from patch_validator import validate_patches
 
 
-def get_bugids_from_database_path(database_path: str):
-    dirs = os.listdir(database_path)
-    bugids = []
-    for directory in dirs:
-        if not os.path.isdir(os.path.join(database_path, directory)):
-            continue
-        parts = directory.split("-")
-        bugids.append(f"{'-'.join(parts[:-1])}:{parts[-1]}")
-    return bugids
-
-
-if __name__ == "__main__":
+def resolve_cli_args():
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "command",
@@ -54,22 +43,27 @@ if __name__ == "__main__":
         args_parser.print_help()
         exit(1)
 
-    bugids = args.bugids
-    if bugids is None:
-        bugids = get_bugids_from_database_path(args.database_path)
+    if args.bugids is None:
+        bugids = []
+        for project_name in os.listdir(args.database_path):
+            for bugid in os.listdir(os.path.join(args.database_path, project_name)):
+                bugids.append(f"{project_name}:{bugid}")
+        args.bugids = bugids
 
-    flag_overwrite = args.overwrite
+    return args
 
-    for bugid in bugids:
-        bwd = os.path.join(args.database_path, "-".join(bugid.split(":")))
+
+def main(args):
+    for bugid in args.bugids:
+        bwd = os.path.join(args.database_path, *bugid.split(":"))
         if not os.path.exists(bwd):
             os.makedirs(bwd)
 
         try:
             if args.command == "extract_features":
-                collect_facts(bugid, bwd, flag_overwrite)
+                collect_facts(bugid, bwd, args.overwrite)
             elif args.command == "validate_patches":
-                validate_patches(bugid, bwd, flag_overwrite)
+                validate_patches(bugid, bwd, args.overwrite)
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":
@@ -80,3 +74,8 @@ if __name__ == "__main__":
         except NotSupportedError as e:
             print_in_red(f"ERROR: {e}")
             print_in_red(f"Skip {bugid}")
+
+
+if __name__ == "__main__":
+    args = resolve_cli_args()
+    main(args)
