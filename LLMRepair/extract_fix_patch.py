@@ -6,9 +6,7 @@ from typing import Optional
 from utils import extract_function_from_response, print_in_red, print_in_yellow
 
 
-def find_patch_from_response(
-    raw_response: str, buggy_function_name: str
-) -> Optional[str]:
+def find_patch_from_response(raw_response: str, buggy_function_name: str) -> Optional[str]:
     code_block_pattern = r"```(?:python\n)?(.*?)(?:\n)?```"
     function_pattern = rf".*def.*{buggy_function_name}.*"
 
@@ -47,15 +45,9 @@ for project_name in os.listdir(stratum_path):
         with open(os.path.join(bug_path, "bug-data.json"), "r") as bug_data_file:
             bug_data: dict = json.load(bug_data_file)[project_name + ":" + bug_id]
             user_dir: str = list(bug_data)[0]
-            buggy_function_code: str = bug_data[user_dir]["buggy_functions"][0][
-                "function_code"
-            ]
-            buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0][
-                "function_name"
-            ]
-            buggy_function_start_line: str = bug_data[user_dir]["buggy_functions"][0][
-                "start_line"
-            ]
+            buggy_function_code: str = bug_data[user_dir]["buggy_functions"][0]["function_code"]
+            buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]
+            buggy_function_start_line: str = bug_data[user_dir]["buggy_functions"][0]["start_line"]
 
         for response_file_name in responses_files:
             with open(os.path.join(bug_path, response_file_name), "r") as response_file:
@@ -64,9 +56,7 @@ for project_name in os.listdir(stratum_path):
 
             if fix_patch is not None:
                 try:
-                    fix_patch = extract_function_from_response(
-                        fix_patch, buggy_function_name
-                    )
+                    fix_patch = extract_function_from_response(fix_patch, buggy_function_name)
 
                     if fix_patch is None:
                         print_in_red(
