@@ -6,9 +6,9 @@ import re
 from typing import Any, List
 
 from utils import (
-    FACT_MAP,
     IGNORED_BUGS,
     generate_contextual_diff_with_char_limit,
+    get_fact_map,
     print_in_red,
 )
 
@@ -31,7 +31,9 @@ class Facts:
         self._bwd = bug_working_directory
         self._variables_in_methods = []
 
-        for key in FACT_MAP.keys():
+        self.FACT_MAP = get_fact_map()
+
+        for key in self.FACT_MAP.keys():
             self.facts[key] = None
 
     def _log_stat(self, state_category, state_record):
@@ -296,11 +298,11 @@ class Facts:
             # fix issue where angelic and runtime list is empty
             # where they should be empty
             if len(ioavals) > 0:
-                self.facts["2.2.3"] = ioavals
+                self.facts["2.1.5"] = ioavals
             else:
                 self._log_stat("angelic_variable_values", (0))
             if len(ioatypes) > 0:
-                self.facts["2.2.4"] = ioatypes
+                self.facts["2.1.6"] = ioatypes
             else:
                 self._log_stat("angelic_variable_types", (0))
 
@@ -316,11 +318,11 @@ class Facts:
 
             # fix issue same as above
             if len(iobvals) > 0:
-                self.facts["2.2.5"] = iobvals
+                self.facts["2.1.3"] = iobvals
             else:
                 self._log_stat("runtime_variable_values", (0))
             if len(iobtypes) > 0:
-                self.facts["2.2.6"] = iobtypes
+                self.facts["2.1.4"] = iobtypes
             else:
                 self._log_stat("runtime_variable_types", (0))
 
@@ -413,16 +415,16 @@ class Facts:
 
     def _resolve_test_data(self, test_data):
         test_function_code = test_data["test_function_code"]
-        if self.facts["2.1.1"] is None:
-            self.facts["2.1.1"] = [test_function_code]
+        if self.facts["1.4.1"] is None:
+            self.facts["1.4.1"] = [test_function_code]
         else:
-            self.facts["2.1.1"].append(test_function_code)
+            self.facts["1.4.1"].append(test_function_code)
 
         test_file_name = test_data["test_path"]
-        if self.facts["2.1.2"] is None:
-            self.facts["2.1.2"] = [test_file_name]
+        if self.facts["1.4.2"] is None:
+            self.facts["1.4.2"] = [test_file_name]
         else:
-            self.facts["2.1.2"].append(test_file_name)
+            self.facts["1.4.2"].append(test_file_name)
 
         full_test_error = test_data["full_test_error"]
         error_stacktrace_chunks = Facts._split_error_message(full_test_error)
@@ -444,16 +446,16 @@ class Facts:
                 full_error_message.append(chunk["content"])
 
         if len(full_error_message) > 0:
-            if self.facts["2.2.1"] is None:
-                self.facts["2.2.1"] = [full_error_message]
+            if self.facts["2.1.1"] is None:
+                self.facts["2.1.1"] = [full_error_message]
             else:
-                self.facts["2.2.1"].append(full_error_message)
+                self.facts["2.1.1"].append(full_error_message)
 
         if len(full_stacktrace) > 0:
-            if self.facts["2.2.2"] is None:
-                self.facts["2.2.2"] = [full_stacktrace]
+            if self.facts["2.1.2"] is None:
+                self.facts["2.1.2"] = [full_stacktrace]
             else:
-                self.facts["2.2.2"].append(full_stacktrace)
+                self.facts["2.1.2"].append(full_stacktrace)
 
     @staticmethod
     def _extract_code_blocks_from_markdown(md_content):
@@ -549,7 +551,7 @@ class Facts:
             if fact_content is None:
                 continue
 
-            fact_name = FACT_MAP[fact_key]
+            fact_name = self.FACT_MAP[fact_key]
             if "code" in fact_name:
                 fact_type = "python"
             else:
