@@ -268,9 +268,11 @@ class Facts:
             function_info["angelic_variable_values"] is not None
             and len(function_info["angelic_variable_values"]) > 0
         ):
-            ioavals, ioatypes = self._resolve_dynamics(
-                function_info["angelic_variable_values"]
-            )
+            # resolve issue: make sure we do not have duplicate inputs
+            avv = function_info["angelic_variable_values"]
+            avv = list(set(avv))
+            ioavals, ioatypes = self._resolve_dynamics(avv)
+
             # fix issue where angelic and runtime list is empty
             # where they should be empty
             if len(ioavals) > 0:
@@ -286,7 +288,11 @@ class Facts:
             function_info["variable_values"] is not None
             and len(function_info["variable_values"]) > 0
         ):
-            iobvals, iobtypes = self._resolve_dynamics(function_info["variable_values"])
+            # resolve issue: make sure we do not have duplicate inputs
+            vv = function_info["variable_values"]
+            vv = list(set(vv))
+            iobvals, iobtypes = self._resolve_dynamics(vv)
+
             # fix issue same as above
             if len(iobvals) > 0:
                 self.facts["2.2.5"] = iobvals
