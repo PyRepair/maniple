@@ -480,7 +480,7 @@ class Facts:
             # assume we have already cloned and prepped the repo successfully
             try:
                 commands = (
-                    f"docker run --rm -it -v /Volumes/JerrySSD/envs:/envs pyr:lite bgp extract_features "
+                    f"docker run --rm -it -v /Volumes/SSD2T/envs:/envs pyr:lite bgp extract_features "
                     + f"--bugids {bugid} --separate-envs --envs-dir /envs"
                 )
                 commands = commands.split(" ")
