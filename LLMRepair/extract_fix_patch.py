@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import List, Optional
+from typing import Optional
 
 from utils import extract_function_from_response, print_in_red, print_in_yellow
 
@@ -93,14 +93,14 @@ for project_name in os.listdir(stratum_path):
                 "1.2.2": used_facts[3],
                 "1.2.3": used_facts[4],
                 "1.1.2": used_facts[5],
-                "2.2.3": used_facts[6],
-                "2.2.4": used_facts[7],
-                "2.2.5": used_facts[8],
-                "2.2.6": used_facts[9],
-                "2.1.1": used_facts[10],
-                "2.1.2": used_facts[11],
-                "2.2.1": used_facts[12],
-                "2.2.2": used_facts[13],
+                "2.1.3": used_facts[6],
+                "2.1.4": used_facts[7],
+                "2.1.5": used_facts[8],
+                "2.1.6": used_facts[9],
+                "1.4.1": used_facts[10],
+                "1.4.2": used_facts[11],
+                "2.1.1": used_facts[12],
+                "2.1.2": used_facts[13],
                 "3.1.1": used_facts[14],
                 "3.1.2": used_facts[15],
                 "cot": used_facts[16],

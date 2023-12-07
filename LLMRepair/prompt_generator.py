@@ -70,19 +70,19 @@ class PromptGenerator:
         self.write_prompt()
 
     def generate_variable_runtime_info(self):
-        variable_runtime_value_test_cases: list = self.facts["2.2.5"]
-        variable_runtime_type_test_cases: list = self.facts["2.2.6"]
+        variable_runtime_value_test_cases: list = self.facts["2.1.5"]
+        variable_runtime_type_test_cases: list = self.facts["2.1.6"]
 
-        if self.actual_bitvector["2.2.5"] == 0 and self.actual_bitvector["2.2.6"] == 0:
+        if self.actual_bitvector["2.1.5"] == 0 and self.actual_bitvector["2.1.6"] == 0:
             return
 
         self.prompt = self.prompt + "# Variable runtime "
 
-        if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
+        if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
             self.prompt = self.prompt + "value and type"
-        elif self.actual_bitvector["2.2.5"] == 1:
+        elif self.actual_bitvector["2.1.5"] == 1:
             self.prompt = self.prompt + "value"
-        elif self.actual_bitvector["2.2.6"] == 1:
+        elif self.actual_bitvector["2.1.6"] == 1:
             self.prompt = self.prompt + "type"
 
         self.prompt = self.prompt + " inside buggy function\n"
@@ -94,11 +94,11 @@ class PromptGenerator:
             runtime_types: list = variable_runtime_type_test_cases[test_case_index]
 
             self.prompt = self.prompt + "### input parameter runtime "
-            if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
+            if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
                 self.prompt = self.prompt + "value and type"
-            elif self.actual_bitvector["2.2.5"] == 1:
+            elif self.actual_bitvector["2.1.5"] == 1:
                 self.prompt = self.prompt + "value"
-            elif self.actual_bitvector["2.2.6"] == 1:
+            elif self.actual_bitvector["2.1.6"] == 1:
                 self.prompt = self.prompt + "type"
 
             self.prompt = self.prompt + " for buggy function\n"
@@ -111,11 +111,11 @@ class PromptGenerator:
 
                 self.prompt = self.prompt + f"{variable}, "
 
-                if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
+                if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
-                elif self.actual_bitvector["2.2.5"] == 1:
+                elif self.actual_bitvector["2.1.5"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`"
-                elif self.actual_bitvector["2.2.6"] == 1:
+                elif self.actual_bitvector["2.1.6"] == 1:
                     self.prompt = self.prompt + f"type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
@@ -128,11 +128,11 @@ class PromptGenerator:
 
             else:
                 self.prompt = self.prompt + "### variable runtime "
-                if self.actual_bitvector["2.2.5"] == 1 and self.actual_bitvector["2.2.6"] == 1:
+                if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
                     self.prompt = self.prompt + "value and type"
-                elif self.actual_bitvector["2.2.5"] == 1:
+                elif self.actual_bitvector["2.1.5"] == 1:
                     self.prompt = self.prompt + "value"
-                elif self.actual_bitvector["2.2.6"] == 1:
+                elif self.actual_bitvector["2.1.6"] == 1:
                     self.prompt = self.prompt + "type"
 
                 self.prompt = self.prompt + " before buggy function return\n"
@@ -143,29 +143,29 @@ class PromptGenerator:
 
                     self.prompt = self.prompt + f"{variable}, "
 
-                    if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
+                    if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
                         self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
-                    elif self.actual_bitvector["2.2.3"] == 1:
+                    elif self.actual_bitvector["2.1.3"] == 1:
                         self.prompt = self.prompt + f"value: `{variable_value}`"
-                    elif self.actual_bitvector["2.2.4"] == 1:
+                    elif self.actual_bitvector["2.1.4"] == 1:
                         self.prompt = self.prompt + f"type: `{variable_type}`"
 
                     self.prompt = self.prompt + "\n\n"
 
     def generate_variable_angelic_info(self):
-        variable_angelic_value_test_cases: list = self.facts["2.2.3"]
-        variable_angelic_type_test_cases: list = self.facts["2.2.4"]
+        variable_angelic_value_test_cases: list = self.facts["2.1.3"]
+        variable_angelic_type_test_cases: list = self.facts["2.1.4"]
 
-        if self.actual_bitvector["2.2.3"] == 0 and self.actual_bitvector["2.2.4"] == 0:
+        if self.actual_bitvector["2.1.3"] == 0 and self.actual_bitvector["2.1.4"] == 0:
             return
 
         self.prompt = self.prompt + "# Expected variable "
 
-        if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
+        if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
             self.prompt = self.prompt + "value and type"
-        elif self.actual_bitvector["2.2.3"] == 1:
+        elif self.actual_bitvector["2.1.3"] == 1:
             self.prompt = self.prompt + "value"
-        elif self.actual_bitvector["2.2.4"] == 1:
+        elif self.actual_bitvector["2.1.4"] == 1:
             self.prompt = self.prompt + "type"
 
         self.prompt = self.prompt + " in tests\n"
@@ -177,11 +177,11 @@ class PromptGenerator:
             angelic_types: list = variable_angelic_type_test_cases[test_case_index]
 
             self.prompt = self.prompt + "### Input parameter "
-            if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
+            if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
                 self.prompt = self.prompt + "value and type"
-            elif self.actual_bitvector["2.2.3"] == 1:
+            elif self.actual_bitvector["2.1.3"] == 1:
                 self.prompt = self.prompt + "value"
-            elif self.actual_bitvector["2.2.4"] == 1:
+            elif self.actual_bitvector["2.1.4"] == 1:
                 self.prompt = self.prompt + "type"
 
             self.prompt = self.prompt + "\n"
@@ -194,21 +194,21 @@ class PromptGenerator:
 
                 self.prompt = self.prompt + f"{variable}, "
 
-                if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
+                if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
-                elif self.actual_bitvector["2.2.3"] == 1:
+                elif self.actual_bitvector["2.1.3"] == 1:
                     self.prompt = self.prompt + f"value: `{variable_value}`"
-                elif self.actual_bitvector["2.2.4"] == 1:
+                elif self.actual_bitvector["2.1.4"] == 1:
                     self.prompt = self.prompt + f"type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
 
             self.prompt = self.prompt + "### Expected variable "
-            if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
+            if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
                 self.prompt = self.prompt + "value and type"
-            elif self.actual_bitvector["2.2.3"] == 1:
+            elif self.actual_bitvector["2.1.3"] == 1:
                 self.prompt = self.prompt + "value"
-            elif self.actual_bitvector["2.2.4"] == 1:
+            elif self.actual_bitvector["2.1.4"] == 1:
                 self.prompt = self.prompt + "type"
 
             self.prompt = self.prompt + " before function return\n"
@@ -221,11 +221,11 @@ class PromptGenerator:
 
                 self.prompt = self.prompt + f"{variable}, "
 
-                if self.actual_bitvector["2.2.3"] == 1 and self.actual_bitvector["2.2.4"] == 1:
+                if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
                     self.prompt = self.prompt + f"expected value: `{variable_value}`, type: `{variable_type}`"
-                elif self.actual_bitvector["2.2.3"] == 1:
+                elif self.actual_bitvector["2.1.3"] == 1:
                     self.prompt = self.prompt + f"expected value: `{variable_value}`"
-                elif self.actual_bitvector["2.2.4"] == 1:
+                elif self.actual_bitvector["2.1.4"] == 1:
                     self.prompt = self.prompt + f"expected type: `{variable_type}`"
 
                 self.prompt = self.prompt + "\n\n"
@@ -259,22 +259,22 @@ class PromptGenerator:
             self.prompt = self.prompt + "\n"
 
     def generate_test_related_section(self):
-        for test_index in range(len(self.facts["2.1.1"])):
-            if self.actual_bitvector["2.1.1"] == 1:
-                self.prompt = self.prompt + self.template["2.1.1"] + "```python\n"
+        for test_index in range(len(self.facts["1.4.1"])):
+            if self.actual_bitvector["1.4.1"] == 1:
+                self.prompt = self.prompt + self.template["1.4.1"] + "```python\n"
 
-                if self.actual_bitvector["2.1.2"] == 1:
-                    self.prompt = self.prompt + self.template["2.1.2"] + self.facts["2.1.2"][test_index]
+                if self.actual_bitvector["1.4.2"] == 1:
+                    self.prompt = self.prompt + self.template["1.4.2"] + self.facts["1.4.2"][test_index]
                     self.add_newline_between_sections()
 
-                self.prompt = self.prompt + self.facts["2.1.1"][test_index] + "\n```"
+                self.prompt = self.prompt + self.facts["1.4.1"][test_index] + "\n```"
                 self.add_newline_between_sections()
 
-            error_messages = self.facts["2.2.1"][test_index]
-            stack_traces = self.facts["2.2.2"][test_index]
+            error_messages = self.facts["2.1.1"][test_index]
+            stack_traces = self.facts["2.1.2"][test_index]
 
-            if self.actual_bitvector["2.2.1"] == 1 and self.actual_bitvector["2.2.2"] == 1:
-                self.prompt = self.prompt + self.template["2.2.1"] + "```text\n"
+            if self.actual_bitvector["2.1.1"] == 1 and self.actual_bitvector["2.1.2"] == 1:
+                self.prompt = self.prompt + self.template["2.1.1"] + "```text\n"
                 for error_index in range(len(stack_traces)):
                     self.prompt = self.prompt + stack_traces[error_index] + "\n"
                     if error_index < len(error_messages):
@@ -283,15 +283,15 @@ class PromptGenerator:
                 self.prompt = self.prompt + "\n```"
 
             else:
-                if self.actual_bitvector["2.2.2"] == 1:
-                    self.prompt = self.prompt + self.template["2.2.2"] + "```text\n"
+                if self.actual_bitvector["2.1.2"] == 1:
+                    self.prompt = self.prompt + self.template["2.1.2"] + "```text\n"
                     for error_index in range(len(stack_traces)):
                         self.prompt = self.prompt + stack_traces[error_index] + "\n"
 
                     self.prompt = self.prompt + "\n```"
 
-                if self.actual_bitvector["2.2.1"] == 1:
-                    self.prompt = self.prompt + self.template["2.2.1"] + "```text\n"
+                if self.actual_bitvector["2.1.1"] == 1:
+                    self.prompt = self.prompt + self.template["2.1.1"] + "```text\n"
                     for error_index in range(len(error_messages)):
                         self.prompt = self.prompt + error_messages[error_index] + "\n"
 

@@ -14,14 +14,14 @@ data = {
     "1.2.2: buggy class docstring": [],
     "1.2.3: Buggy class scope invoked method signature": [],
     "1.1.2: buggy function docstring": [],
-    "2.2.3: Variable runtime value": [],
-    "2.2.4: Variable runtime type": [],
-    "2.2.5: Angelic value": [],
-    "2.2.6: Angelic type": [],
-    "2.1.1: Test code": [],
-    "2.1.2: Test file name": [],
+    "2.1.3: Variable runtime value": [],
+    "2.1.4: Variable runtime type": [],
+    "2.1.5: Angelic value": [],
+    "2.1.6: Angelic type": [],
+    "1.4.1: Test code": [],
+    "1.4.2: Test file name": [],
     "2.2.1: Error message": [],
-    "2.2.2: Error stack trace": [],
+    "2.1.2: Error stack trace": [],
     "3.1.1: Github linked issue title": [],
     "3.1.2: Github linked issue description": [],
     "cot: Chain of Thought prompt technique": [],
@@ -52,14 +52,14 @@ for bug_dir in first_stratum_path:
         data["1.2.2: buggy class docstring"].append(used_facts[3])
         data["1.2.3: Buggy class scope invoked method signature"].append(used_facts[4])
         data["1.1.2: buggy function docstring"].append(used_facts[5])
-        data["2.2.3: Variable runtime value"].append(used_facts[6])
-        data["2.2.4: Variable runtime type"].append(used_facts[7])
-        data["2.2.5: Angelic value"].append(used_facts[8])
-        data["2.2.6: Angelic type"].append(used_facts[9])
-        data["2.1.1: Test code"].append(used_facts[10])
-        data["2.1.2: Test file name"].append(used_facts[11])
+        data["2.1.3: Variable runtime value"].append(used_facts[6])
+        data["2.1.4: Variable runtime type"].append(used_facts[7])
+        data["2.1.5: Angelic value"].append(used_facts[8])
+        data["2.1.6: Angelic type"].append(used_facts[9])
+        data["1.4.1: Test code"].append(used_facts[10])
+        data["1.4.2: Test file name"].append(used_facts[11])
         data["2.2.1: Error message"].append(used_facts[12])
-        data["2.2.2: Error stack trace"].append(used_facts[13])
+        data["2.1.2: Error stack trace"].append(used_facts[13])
         data["3.1.1: Github linked issue title"].append(used_facts[14])
         data["3.1.2: Github linked issue description"].append(used_facts[15])
         data["cot: Chain of Thought prompt technique"].append(used_facts[16])
