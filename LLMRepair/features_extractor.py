@@ -263,6 +263,28 @@ class Facts:
                 iotypes.append((itypes, otypes))
         return (iovals, iotypes)
 
+    @staticmethod
+    def _remove_duplicate_io_tuples(vvs):
+        result = []
+        indices = []
+        for io_tuple in vvs:
+            inv = io_tuple[0]
+            outv = io_tuple[1]
+            duplicate_flag = False
+            for indv in indices:
+                if inv == indv:
+                    duplicate_flag = True
+                    # if outv != result[indices.index(indv)][1]:
+                    #     print_in_red(
+                    #         f"WARNING: duplicate input but different output {outv}"
+                    #     )
+                    #     print_in_red(f"WARNING: {result[indices.index(indv)][1]}")
+                    break
+            if not duplicate_flag:
+                indices.append(inv)
+                result.append(io_tuple)
+        return result
+
     def _resolve_angelic_variables(self, function_info):
         if (
             function_info["angelic_variable_values"] is not None
@@ -270,7 +292,7 @@ class Facts:
         ):
             # resolve issue: make sure we do not have duplicate inputs
             avv = function_info["angelic_variable_values"]
-            avv = list(set(avv))
+            avv = Facts._remove_duplicate_io_tuples(avv)
             ioavals, ioatypes = self._resolve_dynamics(avv)
 
             # fix issue where angelic and runtime list is empty
@@ -290,7 +312,7 @@ class Facts:
         ):
             # resolve issue: make sure we do not have duplicate inputs
             vv = function_info["variable_values"]
-            vv = list(set(vv))
+            vv = Facts._remove_duplicate_io_tuples(vv)
             iobvals, iobtypes = self._resolve_dynamics(vv)
 
             # fix issue same as above

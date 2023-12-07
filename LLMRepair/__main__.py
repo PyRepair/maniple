@@ -46,7 +46,12 @@ def resolve_cli_args():
     if args.bugids is None:
         bugids = []
         for project_name in os.listdir(args.database_path):
-            for bugid in os.listdir(os.path.join(args.database_path, project_name)):
+            project_dir = os.path.join(args.database_path, project_name)
+            if not os.path.isdir(project_dir):
+                continue
+            for bugid in os.listdir(project_dir):
+                if not os.path.isdir(os.path.join(project_dir, bugid)):
+                    continue
                 bugids.append(f"{project_name}:{bugid}")
         args.bugids = bugids
 
