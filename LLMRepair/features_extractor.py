@@ -1,16 +1,15 @@
 import ast
 import os
-import shutil
 import subprocess
 import json
 import re
 from typing import Any, List
+
 from utils import (
     FACT_MAP,
     IGNORED_BUGS,
     generate_contextual_diff_with_char_limit,
     print_in_red,
-    print_in_yellow,
 )
 
 
@@ -263,26 +262,28 @@ class Facts:
                 iotypes.append((itypes, otypes))
         return (iovals, iotypes)
 
-    @staticmethod
-    def _remove_duplicate_io_tuples(vvs):
+    def _remove_duplicate_io_tuples(self, vvs):
         result = []
-        indices = []
+        seen = []
         for io_tuple in vvs:
             inv = io_tuple[0]
-            outv = io_tuple[1]
-            duplicate_flag = False
-            for indv in indices:
-                if inv == indv:
-                    duplicate_flag = True
-                    # if outv != result[indices.index(indv)][1]:
-                    #     print_in_red(
-                    #         f"WARNING: duplicate input but different output {outv}"
-                    #     )
-                    #     print_in_red(f"WARNING: {result[indices.index(indv)][1]}")
-                    break
-            if not duplicate_flag:
-                indices.append(inv)
+            if not any(inv == s for s in seen):
+                seen.append(inv)
                 result.append(io_tuple)
+        return result
+
+    def _remove_duplicate_keys(self, vvs):
+        result = []
+        for i, o in vvs:
+            if len(i.keys()) == 0 or len(o.keys()) == 0:
+                continue
+            ri = dict()
+            ro = dict()
+            for k in i.keys():
+                ri[k] = i[k]
+                if i[k] != o[k]:
+                    ro[k] = o[k]
+            result.append((ri, ro))
         return result
 
     def _resolve_angelic_variables(self, function_info):
@@ -292,7 +293,8 @@ class Facts:
         ):
             # resolve issue: make sure we do not have duplicate inputs
             avv = function_info["angelic_variable_values"]
-            avv = Facts._remove_duplicate_io_tuples(avv)
+            avv = self._remove_duplicate_io_tuples(avv)
+            avv = self._remove_duplicate_keys(avv)
             ioavals, ioatypes = self._resolve_dynamics(avv)
 
             # fix issue where angelic and runtime list is empty
@@ -312,7 +314,8 @@ class Facts:
         ):
             # resolve issue: make sure we do not have duplicate inputs
             vv = function_info["variable_values"]
-            vv = Facts._remove_duplicate_io_tuples(vv)
+            vv = self._remove_duplicate_io_tuples(vv)
+            vv = self._remove_duplicate_keys(vv)
             iobvals, iobtypes = self._resolve_dynamics(vv)
 
             # fix issue same as above
@@ -586,4 +589,4 @@ def collect_facts(bugid: str, bwd: str, flag_overwrite=False):
     facts.load_from_bwd(
         flag_overwrite=flag_overwrite, write_markdown_files=True, write_facts_json=True
     )
-    print_in_yellow(facts.report_stats())
+    # print_in_yellow(facts.report_stats())
