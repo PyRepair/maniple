@@ -2,13 +2,12 @@ import glob
 import json
 import os.path
 import time
-import re
 
 import openai
 import tiktoken
 from openai import OpenAI
-from typing import List, Optional
-from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_from_response
+from typing import List
+from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_from_code_block, find_patch_from_response
 
 client = OpenAI(api_key="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")
 
@@ -465,7 +464,6 @@ class PromptGenerator:
             response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
 
             conversation_response = response
-
             messages = [
                 {"role": "user", "content": self.prompt},
                 {"role": "assistant", "content": response},
@@ -473,7 +471,7 @@ class PromptGenerator:
             ]
 
             while (estimate_function_code_length(fix_patch) < 0.6 * buggy_function_length
-                   and extract_function_from_response(response, self.buggy_function_name) is not None
+                   and extract_function_from_code_block(fix_patch, self.buggy_function_name) is not None
                    and self.max_conversation_count > 0):
                 # if the fix patch is omitted
 
@@ -494,7 +492,7 @@ class PromptGenerator:
                             "strata": strata,
                             "start_line": self.buggy_function_start_line,
                             "file_name": self.buggy_location_file_name,
-                            "replace_code": extract_function_from_response(response, self.buggy_function_name),
+                            "replace_code": extract_function_from_code_block(response, self.buggy_function_name),
                         }
                     ]
                 }
@@ -520,7 +518,7 @@ class PromptGenerator:
     def get_response_with_valid_patch(self, messages: list, gpt_model: str):
         while self.max_generation_count > 0:
             response = create_query(messages, gpt_model)
-            fix_patch = contain_valid_fix_patch(response, self.buggy_function_name)
+            fix_patch = find_patch_from_response(response, self.buggy_function_name)
             if fix_patch is not None:
                 return response, fix_patch
 
@@ -565,19 +563,6 @@ def create_query(messages: list, gpt_model: str) -> str:
             retry_max_count -= 1
 
     raise QueryException("Tried 10 times OpenAI rate limit query")
-
-
-# used to check if there is ```python ``` code tag in the response
-# and the code block must contain buggy function name to ensure gpt is not interrupted
-def contain_valid_fix_patch(response: str, buggy_function_name: str) -> Optional[str]:
-    code_block_pattern = r'```(?:python)?(.*?)```'
-    code_blocks = re.findall(code_block_pattern, response, re.DOTALL)
-
-    for code_block in code_blocks:
-        if ("def " + buggy_function_name) in code_block:
-            return code_block
-
-    return None
 
 
 if __name__ == "__main__":
