@@ -513,7 +513,7 @@ class Facts:
                     # need to prepare the repo
                     print(f"Preparing the repo for {bugid}")
                     prep_commands = (
-                        f"bgp extract_features --bugids {bugid} "
+                        f"bgp prep --restart --bugids {bugid} "
                         + f"--separate-envs --envs-dir /Volumes/SSD2T/test"
                     ).split(" ")
                     subprocess.run(
