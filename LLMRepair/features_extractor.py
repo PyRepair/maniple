@@ -526,8 +526,9 @@ class Facts:
             ):
                 return
 
-        with open(bug_json_file, "r") as f:
+        with open(bug_json_file, "w") as f:
             json_output = json.load(f)
+            json.dump(json_output, f, indent=4)
 
         bug_record = json_output[bugid]
         self.load_from_json_object(bug_record)
