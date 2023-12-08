@@ -134,8 +134,15 @@ def main():
         "--dataset",
         type=str,
         choices=["106subset", "395subset", "all"],
-        required=True,
+        required=False,
         help="Which dataset to prepare",
+    )
+    parser.add_argument(
+        "--bugids",
+        type=lambda s: [item for item in s.split(",")],
+        required=False,
+        help="Which bugids to prepare",
+        default=[],
     )
     parser.add_argument(
         "--envs-dir",
@@ -163,7 +170,9 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.dataset == "all":
+    if len(args.bugids) > 0:
+        bugids = args.bugids
+    elif args.dataset == "all":
         bugids = get_bugids_from_dataset(
             "106subset", test_mode=args.test_mode
         ) + get_bugids_from_dataset("395subset", test_mode=args.test_mode)
