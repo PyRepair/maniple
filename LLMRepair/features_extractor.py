@@ -4,7 +4,7 @@ import subprocess
 import json
 import re
 from typing import Any, List, Tuple
-from prepare_bugs import run_prepare_command
+from prepare_bugs import run_clone_command, run_prepare_command
 
 import utils
 from utils import (
@@ -502,18 +502,29 @@ class Facts:
         bwd = self._bwd
 
         if flag_overwrite or not os.path.exists(bug_json_file):
-            run_prepare_command(
+            if not run_clone_command(
                 bugid,
                 utils.CONFIG_ARGS.envs_dir,
                 use_docker=utils.CONFIG_ARGS.use_docker,
                 overwrite=flag_overwrite,
-            )
-            run_extract_features_command(
+            ):
+                return
+
+            if not run_prepare_command(
+                bugid,
+                utils.CONFIG_ARGS.envs_dir,
+                use_docker=utils.CONFIG_ARGS.use_docker,
+                overwrite=flag_overwrite,
+            ):
+                return
+
+            if not run_extract_features_command(
                 bugid,
                 utils.CONFIG_ARGS.envs_dir,
                 bwd,
                 use_docker=utils.CONFIG_ARGS.use_docker,
-            )
+            ):
+                return
 
         with open(bug_json_file, "r") as f:
             json_output = json.load(f)
