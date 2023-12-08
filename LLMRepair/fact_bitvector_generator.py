@@ -55,13 +55,12 @@ database_path = os.path.join("..", "preliminary-study", "strata-bitvectors")
 if not os.path.exists(database_path):
     os.makedirs(database_path)
 
-save_bitvector(os.path.join(database_path, "all_facts_bitvector.json"), strata_bitvector)
-num_samples = 5
 
 # "traversal" or "random"
 mode = "traversal"
 
 if mode == "random":
+    num_samples = 5
     for i in range(num_samples):
         code = ""
         for fact_class in strata_bitvector.keys():

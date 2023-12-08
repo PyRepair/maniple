@@ -36,9 +36,8 @@ def parse_bitvector_from_strata(strata_bitvector: dict) -> dict:
 
     for strata in strata_bitvector.keys():
         facts: dict = strata_bitvector[strata]
-
-        for fact, selected in facts:
-            bitvector[fact] = selected
+        for fact in facts.keys():
+            bitvector[fact] = facts[fact]
 
     return bitvector
 
@@ -68,12 +67,14 @@ class PromptGenerator:
         self.output_dir: str = os.path.join(database_dir, project_name, bug_id)
 
         facts_path = os.path.join(self.output_dir, "facts.json")
-        if os.path.isfile(facts_path):
+        if os.path.exists(facts_path):
             with open(facts_path, "r") as facts_file:
                 self.facts: dict = json.load(facts_file)
 
             if self.facts["1.1.1"] is None:
                 raise Exception(f"{project}:{bug_id} not single function fix, not supported")
+        else:
+            raise Exception(f"{project}:{bug_id} not single function fix, not supported")
 
         self.project_name = project_name
         self.bug_id = bug_id
@@ -119,8 +120,8 @@ class PromptGenerator:
             "6": 0,
             "7": 0
         }
-        for strata, selected in self.strata_bitvector:
-            if selected == 1:
+        for strata in self.strata_bitvector.keys():
+            if self.strata_bitvector[strata] == 1:
                 facts: dict = strata_bitvector[strata]
                 for fact in facts.keys():
                     if self.actual_bitvector[fact] == 1:
@@ -572,7 +573,7 @@ if __name__ == "__main__":
     strata_bitvectors = []
 
     pattern = "*bitvector*.json"
-    bitvector_files = glob.glob(os.path.join("..", "preliminary-study", pattern))
+    bitvector_files = glob.glob(os.path.join("..", "preliminary-study", "strata-bitvectors", pattern))
     for file in bitvector_files:
         with open(file, "r") as input_bitvector_file:
             strata_bitvectors.append(json.load(input_bitvector_file))
