@@ -12,7 +12,7 @@ docker run --rm -it -v /Volumes/SSD2T/envs:/envs pyr:lite bgp prep --bugids blac
 
 Using CLI
 ```bash
-bgp prep --bugids black:10 --reinstall --separate-envs --envs-dir /Volumes/SSD2T/envs
+bgp prep --bugids black:10 --restart --separate-envs --envs-dir /Volumes/SSD2T/envs
 ```
 
 ### Extract features
@@ -24,9 +24,8 @@ docker run --rm -it -v /Volumes/SSD2T/envs:/envs pyr:lite bgp extract_features -
 
 Using CLI
 ```bash
-bgp extract_features  --bugids black:10 --separate-envs --envs-dir /Volumes/SSD2T/envs > b10.json
+bgp extract_features  --bugids black:4 --envs-dir /Volumes/SSD2T/bgp_cache
 ```
-
 
 
 # Structure of Directories

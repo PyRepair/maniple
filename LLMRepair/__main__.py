@@ -33,6 +33,12 @@ def resolve_cli_args():
         help="specify the path to bug database",
     )
     args_parser.add_argument(
+        "--envs-dir",
+        type=str,
+        required=True,
+        help="specify the path to prepared environments",
+    )
+    args_parser.add_argument(
         "--overwrite",
         help="whether overwrite existing results",
         action="store_true",

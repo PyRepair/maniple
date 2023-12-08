@@ -3,9 +3,10 @@ import os
 import subprocess
 import json
 import re
-import utils
 from typing import Any, List, Tuple
+from prepare_bugs import run_prepare_command
 
+import utils
 from utils import (
     IGNORED_BUGS,
     generate_contextual_diff_with_char_limit,
@@ -498,61 +499,24 @@ class Facts:
     ):
         bug_json_file = os.path.join(self._bwd, "bug-data.json")
         bugid = self._bugid
-        full_bugdir_path = self._bwd
+        bwd = self._bwd
 
         if flag_overwrite or not os.path.exists(bug_json_file):
-            try:
-                if utils.CONFIG_ARGS.use_docker:
-                    # assume we have already cloned and prepped the repo successfully
-                    commands = (
-                        f"docker run --rm -it -v /Volumes/SSD2T/envs:/envs pyr:lite bgp extract_features "
-                        + f"--bugids {bugid} --separate-envs --envs-dir /envs"
-                    ).split(" ")
+            run_prepare_command(
+                bugid,
+                utils.CONFIG_ARGS.envs_dir,
+                use_docker=utils.CONFIG_ARGS.use_docker,
+                overwrite=flag_overwrite,
+            )
+            run_extract_features_command(
+                bugid,
+                utils.CONFIG_ARGS.envs_dir,
+                bwd,
+                use_docker=utils.CONFIG_ARGS.use_docker,
+            )
 
-                else:
-                    # need to prepare the repo
-                    print(f"Preparing the repo for {bugid}")
-                    prep_commands = (
-                        f"bgp prep --restart --bugids {bugid} "
-                        + f"--separate-envs --envs-dir /Volumes/SSD2T/test"
-                    ).split(" ")
-                    subprocess.run(
-                        prep_commands,
-                        capture_output=False,
-                        check=True,
-                    )
-
-                    commands = (
-                        f"bgp extract_features --bugids {bugid} "
-                        + f"--separate-envs --envs-dir /Volumes/SSD2T/envs"
-                    ).split(" ")
-
-                console_output = subprocess.run(
-                    commands,
-                    capture_output=True,
-                    check=True,
-                )
-            except subprocess.CalledProcessError as e:
-                print_in_red(
-                    f"FATAL: bgp extract_features failed with error code {e.returncode}"
-                    + f"\nThis is likely due to network issues when downloading the bug {bugid}"
-                )
-                with open(f"{bugid}_extract_feature_error.log", "w") as f:
-                    f.write(e.stdout.decode("utf-8"))
-
-                # stop execution
-                return
-
-            decoded_string = console_output.stdout.decode("utf-8")
-            json_output = json.loads(decoded_string)
-
-            # write bug-data.json file
-            with open(bug_json_file, "w") as f:
-                json.dump(json_output, f, indent=4)
-
-        else:
-            with open(bug_json_file, "r") as f:
-                json_output = json.load(f)
+        with open(bug_json_file, "r") as f:
+            json_output = json.load(f)
 
         bug_record = json_output[bugid]
         self.load_from_json_object(bug_record)
@@ -560,17 +524,17 @@ class Facts:
         if write_markdown_files:
             self._write_markdown_files()
 
-        if os.path.exists(os.path.join(full_bugdir_path, "f3-1-1.md")):
-            with open(os.path.join(full_bugdir_path, "f3-1-1.md"), "r") as f:
+        if os.path.exists(os.path.join(bwd, "f3-1-1.md")):
+            with open(os.path.join(bwd, "f3-1-1.md"), "r") as f:
                 self.facts["3.1.1"] = Facts._extract_code_blocks_from_markdown(f.read())
 
-        if os.path.exists(os.path.join(full_bugdir_path, "f3-1-2.md")):
-            with open(os.path.join(full_bugdir_path, "f3-1-2.md"), "r") as f:
+        if os.path.exists(os.path.join(bwd, "f3-1-2.md")):
+            with open(os.path.join(bwd, "f3-1-2.md"), "r") as f:
                 self.facts["3.1.2"] = Facts._extract_code_blocks_from_markdown(f.read())
 
         if write_facts_json:
             # write facts.json file
-            with open(os.path.join(full_bugdir_path, "facts.json"), "w") as f:
+            with open(os.path.join(bwd, "facts.json"), "w") as f:
                 json.dump(self.facts, f, indent=4)
 
         if self.facts["1.2.3"] is None:
@@ -619,6 +583,37 @@ class Facts:
             for record in records:
                 stats += f"\t{record}\n"
         return stats
+
+
+def run_extract_features_command(bugid: str, envs_dir: str, bwd: str, use_docker=False):
+    try:
+        if use_docker:
+            subprocess.run(
+                (
+                    f"docker run --rm -it -v {envs_dir}:/envs pyr:lite "
+                    + f"bgp extract_features --bugids {bugid} --envs-dir /envs "
+                    + f"--feature-json {os.path.join(bwd, 'bug-data.json')}"
+                ).split(" "),
+                capture_output=True,
+                check=True,
+            )
+        else:
+            subprocess.run(
+                (
+                    f"bgp extract_features --bugids {bugid} --envs-dir {envs_dir} "
+                    + f"--feature-json {os.path.join(bwd, 'bug-data.json')}"
+                ).split(" "),
+                capture_output=True,
+                check=True,
+            )
+    except subprocess.CalledProcessError as e:
+        print_in_red(
+            f"FATAL: bgp extract_features failed with error code {e.returncode}"
+        )
+        with open(f"{bugid}_extract_feature_error.log", "w") as f:
+            f.write(e.stdout.decode("utf-8"))
+        return False
+    return True
 
 
 def collect_facts(bugid: str, bwd: str, flag_overwrite=False):
