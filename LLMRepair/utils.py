@@ -3,10 +3,12 @@ import ast
 import json
 import os
 import re
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 
 IGNORED_BUGS = ["spacy:2"]
+
+CONFIG_ARGS: Any = None
 
 
 def get_fact_map() -> Dict[str, str]:

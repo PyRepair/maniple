@@ -3,7 +3,8 @@ import os
 import subprocess
 import json
 import re
-from typing import Any, List
+import utils
+from typing import Any, List, Tuple
 
 from utils import (
     IGNORED_BUGS,
@@ -240,6 +241,21 @@ class Facts:
 
         return (iovals, iotypes)
 
+    def _resolve_dynamics_value_and_type(self, varItem) -> Tuple[str, str]:
+        variable_value = varItem["variable_value"]
+        variable_shape = varItem["variable_shape"]
+
+        if len(variable_value) > 200:
+            target_variable_value = (
+                f"array of shape {variable_shape}"
+                if variable_shape is not None
+                else f"{variable_value[:30]} ... {variable_value[-30:]}"
+            )
+        else:
+            target_variable_value = variable_value
+
+        return target_variable_value, varItem["variable_type"]
+
     def _resolve_dynamics(self, values):
         iovals = []
         iotypes = []
@@ -247,21 +263,29 @@ class Facts:
             ivals = dict()
             itypes = dict()
             cond = Facts._does_this_variable_record_contains_non_empty_value
+
             for varName, varItem in I.items():
                 if cond(varItem):
-                    ivals[varName] = varItem["variable_value"]
-                    itypes[varName] = varItem["variable_type"]
+                    (
+                        ivals[varName],
+                        itypes[varName],
+                    ) = self._resolve_dynamics_value_and_type(varItem)
             ovals = dict()
             otypes = dict()
+
             for varName, varItem in O.items():
                 if cond(varItem):
-                    ovals[varName] = varItem["variable_value"]
-                    otypes[varName] = varItem["variable_type"]
+                    (
+                        ovals[varName],
+                        otypes[varName],
+                    ) = self._resolve_dynamics_value_and_type(varItem)
+
             # fix issue to have tuple of 2 empty dicts
             if len(ivals.keys()) > 0 or len(ovals.keys()) > 0:
                 iovals.append((ivals, ovals))
             if len(itypes.keys()) > 0 or len(otypes.keys()) > 0:
                 iotypes.append((itypes, otypes))
+
         return (iovals, iotypes)
 
     def _remove_duplicate_io_tuples(self, vvs):
@@ -479,11 +503,17 @@ class Facts:
         if flag_overwrite or not os.path.exists(bug_json_file):
             # assume we have already cloned and prepped the repo successfully
             try:
-                commands = (
-                    f"docker run --rm -it -v /Volumes/SSD2T/envs:/envs pyr:lite bgp extract_features "
-                    + f"--bugids {bugid} --separate-envs --envs-dir /envs"
-                )
-                commands = commands.split(" ")
+                if utils.CONFIG_ARGS.use_docker:
+                    commands = (
+                        f"docker run --rm -it -v /Volumes/SSD2T/envs:/envs pyr:lite bgp extract_features "
+                        + f"--bugids {bugid} --separate-envs --envs-dir /envs"
+                    ).split(" ")
+                else:
+                    commands = (
+                        f"bgp extract_features --bugids {bugid} "
+                        + f"--separate-envs --envs-dir /Volumes/SSD2T/envs"
+                    ).split(" ")
+
                 console_output = subprocess.run(
                     commands,
                     capture_output=True,

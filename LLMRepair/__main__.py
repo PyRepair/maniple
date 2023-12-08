@@ -1,5 +1,6 @@
 import argparse
 import os
+import utils
 from utils import print_in_red
 from cleaner import clear_features, clear_logs, clear_prompts
 from features_extractor import collect_facts, NotSupportedError
@@ -34,6 +35,12 @@ def resolve_cli_args():
     args_parser.add_argument(
         "--overwrite",
         help="whether overwrite existing results",
+        action="store_true",
+        default=False,
+    )
+    args_parser.add_argument(
+        "--use-docker",
+        help="whether use docker to run the command",
         action="store_true",
         default=False,
     )
@@ -83,4 +90,5 @@ def main(args):
 
 if __name__ == "__main__":
     args = resolve_cli_args()
+    utils.CONFIG_ARGS = args
     main(args)
