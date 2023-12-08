@@ -501,14 +501,27 @@ class Facts:
         full_bugdir_path = self._bwd
 
         if flag_overwrite or not os.path.exists(bug_json_file):
-            # assume we have already cloned and prepped the repo successfully
             try:
                 if utils.CONFIG_ARGS.use_docker:
+                    # assume we have already cloned and prepped the repo successfully
                     commands = (
                         f"docker run --rm -it -v /Volumes/SSD2T/envs:/envs pyr:lite bgp extract_features "
                         + f"--bugids {bugid} --separate-envs --envs-dir /envs"
                     ).split(" ")
+
                 else:
+                    # need to prepare the repo
+                    print(f"Preparing the repo for {bugid}")
+                    prep_commands = (
+                        f"bgp extract_features --bugids {bugid} "
+                        + f"--separate-envs --envs-dir /Volumes/SSD2T/test"
+                    ).split(" ")
+                    subprocess.run(
+                        prep_commands,
+                        capture_output=False,
+                        check=True,
+                    )
+
                     commands = (
                         f"bgp extract_features --bugids {bugid} "
                         + f"--separate-envs --envs-dir /Volumes/SSD2T/envs"
