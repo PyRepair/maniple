@@ -14,7 +14,8 @@ def resolve_cli_args():
     args_parser.add_argument(
         "command",
         choices=[
-            "prep" "extract",
+            "prep",
+            "extract",
             "validate",
             "clean_feature_files",
             "clean_log_files",
@@ -70,7 +71,7 @@ def resolve_cli_args():
     )
     args = args_parser.parse_args()
 
-    if args.database_path is None:
+    if args.output_dir is None:
         args_parser.print_help()
         exit(1)
 
@@ -88,7 +89,7 @@ def main(args):
         bugids = load_bugids_from_dataset(args.dataset, test_mode=args.test_mode)
 
     for bugid in bugids:
-        bwd = os.path.join(args.database_path, *bugid.split(":"))
+        bwd = os.path.join(args.output_dir, *bugid.split(":"))
         if not os.path.exists(bwd):
             os.makedirs(bwd)
 

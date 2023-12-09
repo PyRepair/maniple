@@ -1,6 +1,4 @@
 import json
-from multiprocessing.spawn import prepare
-from optparse import Option
 import subprocess
 import os
 from typing import Optional
@@ -19,8 +17,6 @@ def run_clone_command(
             print_in_yellow(f"Skipping cloning {bugid} because it already exists")
             return False
 
-    print(f"Cloning {bugid}")
-
     try:
         if use_docker:
             command = ["docker", "run", "--rm", "-it"]
@@ -36,6 +32,8 @@ def run_clone_command(
             command = ["bgp", "clone", "--restart", "--bugids", bugid]
             if envs_dir is not None:
                 command += ["--envs-dir", envs_dir]
+
+        print(f"Cloning {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
         subprocess.run(command, capture_output=True, check=True)
@@ -67,8 +65,6 @@ def run_prepare_command(
             print_in_yellow(f"Skipping preparing {bugid} because it already exists")
             return False
 
-    print(f"Preparing {bugid}")
-
     try:
         # Start building the command
         if use_docker:
@@ -82,6 +78,8 @@ def run_prepare_command(
             command = ["bgp", "prep", "--restart", "--bugids", bugid]
             if envs_dir is not None:
                 command += ["--envs-dir", envs_dir]
+
+        print(f"Preparing {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
         output = subprocess.run(command, capture_output=True)
@@ -137,6 +135,8 @@ def run_extract_features_command(
 
         # Adding feature-json argument for both scenarios
         command += ["--feature-json", feature_json_path]
+
+        print(f"Extracting features for {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
         subprocess.run(command, capture_output=True, check=True)
@@ -194,6 +194,8 @@ def run_validate_patch_command(
             command += ["--output-file", output_result_json_path]
             if envs_dir is not None:
                 command += ["--envs-dir", envs_dir]
+
+        print(f"Validating patch for {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
         subprocess.run(command, check=True, capture_output=True)
