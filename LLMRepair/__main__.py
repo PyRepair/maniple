@@ -2,7 +2,7 @@ import argparse
 import os
 
 from utils import print_in_yellow
-from cleaner import clear_features, clear_logs, clear_prompts
+from cleaner import clear_features, clear_logs, clear_prompts, clear_results, clear_responses
 from features_extractor import collect_facts, NotSupportedError
 from patch_validator import validate_patches
 from dataset_manager import load_bugids_from_dataset
@@ -18,6 +18,8 @@ def resolve_cli_args():
             "extract",
             "validate",
             "clean_feature_files",
+            "clean_response_files",
+            "clean_result_files",
             "clean_log_files",
             "clean_prompt_files",
         ],
@@ -98,7 +100,7 @@ def main(args):
                 ensure_clone_and_prep_complete(
                     bugid, args.envs_dir, args.use_docker, args.overwrite
                 )
-            if args.command == "extract":
+            elif args.command == "extract":
                 collect_facts(
                     bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
                 )
@@ -112,6 +114,10 @@ def main(args):
                 clear_logs(bwd)
             elif args.command == "clean_prompt_files":
                 clear_prompts(bwd)
+            elif args.command == "clean_result_files":
+                clear_results(bwd)
+            elif args.command == "clean_response_files":
+                clear_responses(bwd)
 
         except NotSupportedError as e:
             print_in_yellow(f"WARNING: {e}")

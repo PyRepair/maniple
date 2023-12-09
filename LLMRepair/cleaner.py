@@ -19,5 +19,19 @@ def clear_logs(path: str):
 def clear_prompts(path: str):
     for root, dirs, files in os.walk(path):
         for file in files:
-            if "promot" in file:
+            if "prompt" in file:
+                os.remove(os.path.join(root, file))
+
+
+def clear_responses(path: str):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if "response" in file:
+                os.remove(os.path.join(root, file))
+
+
+def clear_results(path: str):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if "result" in file:
                 os.remove(os.path.join(root, file))
