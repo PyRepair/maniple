@@ -119,16 +119,19 @@ def run_extract_features_command(
             command = ["docker", "run", "--rm", "-it"]
             if envs_dir is not None:
                 command += ["-v", f"{envs_dir}:/envs"]
+            command += ["-v", f"{os.path.dirname(feature_json_path)}:/RUN_FEATURE_DIR"]
             command += ["pyr:lite", "bgp", "extract_features", "--bugids", bugid]
             if envs_dir is not None:
                 command += ["--envs-dir", "/envs"]
+            command += [
+                "--feature-json",
+                f"/RUN_FEATURE_DIR/{os.path.basename(feature_json_path)}",
+            ]
         else:
             command = ["bgp", "extract_features", "--bugids", bugid]
             if envs_dir is not None:
                 command += ["--envs-dir", envs_dir]
-
-        # Adding feature-json argument for both scenarios
-        command += ["--feature-json", feature_json_path]
+            command += ["--feature-json", feature_json_path]
 
         print(f"Extracting features for {bugid} using command: '{' '.join(command)}'")
 
