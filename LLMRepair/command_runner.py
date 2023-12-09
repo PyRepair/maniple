@@ -12,6 +12,7 @@ def run_clone_command(
 
     repo_dir = None
     if envs_dir is not None:
+        envs_dir = os.path.abspath(envs_dir)
         repo_dir = os.path.join(envs_dir, "repos", path_bugid_name)
         if not overwrite and os.path.exists(repo_dir):
             print_in_yellow(f"Skipping cloning {bugid} because it already exists")
@@ -38,12 +39,6 @@ def run_clone_command(
         # Run the subprocess
         subprocess.run(command, capture_output=True, check=True)
 
-    except KeyboardInterrupt:
-        print("Ctrl+C pressed. Program exiting...")
-        if repo_dir is not None:
-            print_in_yellow(f"Warning: {repo_dir} may not be fully cloned")
-        exit(0)
-
     except subprocess.CalledProcessError as e:
         print_in_red(f"Failed to clone {bugid}")
         with open(f"logs/{path_bugid_name}_clone_fail_log.txt", "w") as f:
@@ -60,42 +55,36 @@ def run_prepare_command(
 
     prepare_env_dir = None
     if envs_dir is not None:
+        envs_dir = os.path.abspath(envs_dir)
         prepare_env_dir = os.path.join(envs_dir, "envs", path_bugid_name)
         if not overwrite and os.path.exists(prepare_env_dir):
             print_in_yellow(f"Skipping preparing {bugid} because it already exists")
             return True
 
-    try:
-        # Start building the command
-        if use_docker:
-            command = ["docker", "run", "--rm", "-it"]
-            if envs_dir is not None:
-                command += ["-v", f"{envs_dir}:/envs"]
-            command += ["pyr:lite", "bgp", "prep", "--restart", "--bugids", bugid]
-            if envs_dir is not None:
-                command += ["--envs-dir", "/envs"]
-        else:
-            command = ["bgp", "prep", "--restart", "--bugids", bugid]
-            if envs_dir is not None:
-                command += ["--envs-dir", envs_dir]
+    # Start building the command
+    if use_docker:
+        command = ["docker", "run", "--rm", "-it"]
+        if envs_dir is not None:
+            command += ["-v", f"{envs_dir}:/envs"]
+        command += ["pyr:lite", "bgp", "prep", "--restart", "--bugids", bugid]
+        if envs_dir is not None:
+            command += ["--envs-dir", "/envs"]
+    else:
+        command = ["bgp", "prep", "--restart", "--bugids", bugid]
+        if envs_dir is not None:
+            command += ["--envs-dir", envs_dir]
 
-        print(f"Preparing {bugid} using command: '{' '.join(command)}'")
+    print(f"Preparing {bugid} using command: '{' '.join(command)}'")
 
-        # Run the subprocess
-        output = subprocess.run(command, capture_output=True)
+    # Run the subprocess
+    output = subprocess.run(command, capture_output=True)
 
-        all_output = output.stdout.decode("utf-8") + output.stderr.decode("utf-8")
-        if "TestStatus.PASS" not in all_output:
-            print_in_red(f"Failed to prepare {bugid}")
-            with open(f"logs/{path_bugid_name}_prep_fail_log.txt", "w") as f:
-                f.write(all_output)
-            return False
-
-    except KeyboardInterrupt:
-        print("Ctrl+C pressed. Program exiting...")
-        if prepare_env_dir is not None:
-            print_in_yellow(f"Warning: {prepare_env_dir} may not be fully prepared")
-        exit(0)
+    all_output = output.stdout.decode("utf-8") + output.stderr.decode("utf-8")
+    if "TestStatus.PASS" not in all_output:
+        print_in_red(f"Failed to prepare {bugid}")
+        with open(f"logs/{path_bugid_name}_prep_fail_log.txt", "w") as f:
+            f.write(all_output)
+        return False
 
     return True
 
@@ -121,6 +110,10 @@ def run_extract_features_command(
         )
         return True
 
+    if envs_dir is not None:
+        envs_dir = os.path.abspath(envs_dir)
+    feature_json_path = os.path.abspath(feature_json_path)
+
     try:
         if use_docker:
             command = ["docker", "run", "--rm", "-it"]
@@ -141,10 +134,6 @@ def run_extract_features_command(
 
         # Run the subprocess
         subprocess.run(command, capture_output=True, check=True)
-
-    except KeyboardInterrupt:
-        print_in_yellow(f"WARNING: {bugid} is interrupted")
-        return False
 
     except subprocess.CalledProcessError as e:
         print_in_red(
@@ -170,6 +159,11 @@ def run_validate_patch_command(
             f"Skipping validating patch for {bugid} because it already exists"
         )
         return True
+
+    if envs_dir is not None:
+        envs_dir = os.path.abspath(envs_dir)
+    input_patch_json_path = os.path.abspath(input_patch_json_path)
+    output_result_json_path = os.path.abspath(output_result_json_path)
 
     try:
         if use_docker:
@@ -200,10 +194,6 @@ def run_validate_patch_command(
 
         # Run the subprocess
         subprocess.run(command, check=True, capture_output=True)
-
-    except KeyboardInterrupt:
-        print_in_yellow(f"WARNING: {bugid} validation is interrupted")
-        return False
 
     except subprocess.CalledProcessError as e:
         error_log_path = input_patch_json_path.replace("response", "log").replace(
