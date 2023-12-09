@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Optional
 
 from command_runner import ensure_clone_and_prep_complete, run_validate_patch_command
 from utils import print_in_yellow
@@ -28,7 +29,11 @@ def is_patch_file_ok(patchfile_path: str, result_file_path: str, bugid: str) -> 
 
 
 def validate_patches(
-    bugid: str, bwd: str, envs_dir: str, use_docker=False, overwrite=False
+    bugid: str,
+    bwd: str,
+    envs_dir: Optional[str] = None,
+    use_docker=False,
+    overwrite=False,
 ):
     """
     Result status code: (1-5 from pytest, 6-7 from LLMRepair)
@@ -67,9 +72,9 @@ def validate_patches(
         # run validation
         run_validate_patch_command(
             bugid,
-            envs_dir,
             patchfile_path,
             result_file_path,
+            envs_dir,
             use_docker=use_docker,
             overwrite=overwrite,
         )

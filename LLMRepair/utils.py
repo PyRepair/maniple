@@ -3,10 +3,15 @@ import ast
 import json
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 
 IGNORED_BUGS = ["spacy:2"]
+
+
+class NotSupportedError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
 
 
 def get_fact_map() -> Dict[str, str]:
@@ -118,6 +123,15 @@ def find_patch_from_response(
 
 
 def extract_function_from_code_block(code_block: str, func_name: str) -> Optional[str]:
+    try:
+        return _extract_function_from_code_block_impl(code_block, func_name)
+    except Exception:
+        return None
+
+
+def _extract_function_from_code_block_impl(
+    code_block: str, func_name: str
+) -> Optional[str]:
     """
     code block: valid python source code
     func_name: name of the function to be extracted

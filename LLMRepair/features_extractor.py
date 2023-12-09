@@ -2,26 +2,21 @@ import ast
 import os
 import json
 import re
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 from command_runner import (
     ensure_clone_and_prep_complete,
     run_extract_features_command,
 )
 
-import utils
 from utils import (
     IGNORED_BUGS,
+    NotSupportedError,
     generate_contextual_diff_with_char_limit,
     get_fact_map,
     print_in_red,
     print_in_yellow,
 )
-
-
-class NotSupportedError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
 
 
 class Facts:
@@ -577,7 +572,11 @@ class Facts:
 
 
 def collect_facts(
-    bugid: str, bwd: str, envs_dir: str, use_docker=False, overwrite=False
+    bugid: str,
+    bwd: str,
+    envs_dir: Optional[str] = None,
+    use_docker=False,
+    overwrite=False,
 ):
     if bugid in IGNORED_BUGS:
         print_in_yellow(f"WARNING: {bugid} is ignored")
@@ -594,8 +593,8 @@ def collect_facts(
     bug_json_file = os.path.join(bwd, "bug-data.json")
     if not run_extract_features_command(
         bugid,
-        envs_dir,
         bug_json_file,
+        envs_dir,
         use_docker=use_docker,
         overwrite=overwrite,
     ):
