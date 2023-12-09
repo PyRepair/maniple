@@ -15,7 +15,7 @@ def run_clone_command(
         repo_dir = os.path.join(envs_dir, "repos", path_bugid_name)
         if not overwrite and os.path.exists(repo_dir):
             print_in_yellow(f"Skipping cloning {bugid} because it already exists")
-            return False
+            return True
 
     try:
         if use_docker:
@@ -63,7 +63,7 @@ def run_prepare_command(
         prepare_env_dir = os.path.join(envs_dir, "envs", path_bugid_name)
         if not overwrite and os.path.exists(prepare_env_dir):
             print_in_yellow(f"Skipping preparing {bugid} because it already exists")
-            return False
+            return True
 
     try:
         # Start building the command
@@ -103,8 +103,9 @@ def run_prepare_command(
 def ensure_clone_and_prep_complete(
     bugid: str, envs_dir: Optional[str] = None, use_docker=False, overwrite=False
 ) -> bool:
-    r = run_clone_command(bugid, envs_dir, use_docker, overwrite)
-    return r and run_prepare_command(bugid, envs_dir, use_docker, overwrite)
+    if not run_clone_command(bugid, envs_dir, use_docker, overwrite):
+        return False
+    return run_prepare_command(bugid, envs_dir, use_docker, overwrite)
 
 
 def run_extract_features_command(
@@ -118,7 +119,7 @@ def run_extract_features_command(
         print_in_yellow(
             f"Skipping extracting features for {bugid} because it already exists"
         )
-        return False
+        return True
 
     try:
         if use_docker:
@@ -168,7 +169,7 @@ def run_validate_patch_command(
         print_in_yellow(
             f"Skipping validating patch for {bugid} because it already exists"
         )
-        return False
+        return True
 
     try:
         if use_docker:

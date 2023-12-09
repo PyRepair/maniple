@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from utils import print_in_red
+from utils import print_in_yellow
 from cleaner import clear_features, clear_logs, clear_prompts
 from features_extractor import collect_facts, NotSupportedError
 from patch_validator import validate_patches
@@ -42,8 +42,8 @@ def resolve_cli_args():
     args_parser.add_argument(
         "--output-dir",
         type=str,
-        required=True,
         help="specify directory to store prompt and result files",
+        default=os.getcwd(),
     )
     args_parser.add_argument(
         "--envs-dir",
@@ -114,8 +114,8 @@ def main(args):
                 clear_prompts(bwd)
 
         except NotSupportedError as e:
-            print_in_red(f"ERROR: {e}")
-            print_in_red(f"Skip {bugid}")
+            print_in_yellow(f"WARNING: {e}")
+            print_in_yellow(f"Skip {bugid}")
 
 
 if __name__ == "__main__":
