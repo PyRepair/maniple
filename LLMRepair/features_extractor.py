@@ -12,6 +12,7 @@ from utils import (
     generate_contextual_diff_with_char_limit,
     get_fact_map,
     print_in_red,
+    print_in_yellow,
 )
 
 
@@ -246,7 +247,7 @@ class Facts:
         variable_value = varItem["variable_value"]
         variable_shape = varItem["variable_shape"]
 
-        if len(variable_value) > 200:
+        if len(variable_value) > 500:
             target_variable_value = (
                 f"array of shape {variable_shape}"
                 if variable_shape is not None
@@ -506,7 +507,7 @@ class Facts:
                 bugid,
                 utils.CONFIG_ARGS.envs_dir,
                 use_docker=utils.CONFIG_ARGS.use_docker,
-                overwrite=flag_overwrite,
+                overwrite=False,
             ):
                 return
 
@@ -514,7 +515,7 @@ class Facts:
                 bugid,
                 utils.CONFIG_ARGS.envs_dir,
                 use_docker=utils.CONFIG_ARGS.use_docker,
-                overwrite=flag_overwrite,
+                overwrite=False,
             ):
                 return
 
@@ -632,7 +633,7 @@ def run_extract_features_command(bugid: str, envs_dir: str, bwd: str, use_docker
 
 def collect_facts(bugid: str, bwd: str, flag_overwrite=False):
     if bugid in IGNORED_BUGS:
-        print_in_red(f"WARNING: {bugid} is ignored")
+        print_in_yellow(f"WARNING: {bugid} is ignored")
         return
 
     facts = Facts(bugid, bwd)
