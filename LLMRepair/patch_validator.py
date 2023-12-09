@@ -1,6 +1,7 @@
 import json
 import os
-import subprocess
+
+from command_runner import ensure_clone_and_prep_complete, run_validate_patch_command
 from utils import print_in_yellow
 
 
@@ -26,7 +27,9 @@ def is_patch_file_ok(patchfile_path: str, result_file_path: str, bugid: str) -> 
     return True
 
 
-def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
+def validate_patches(
+    bugid: str, bwd: str, envs_dir: str, use_docker=False, overwrite=False
+):
     """
     Result status code: (1-5 from pytest, 6-7 from LLMRepair)
     PyTest code 0: All tests were collected and passed successfully
@@ -41,8 +44,8 @@ def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
     """
 
     # assume bug has already been prepped
-
     for filename in os.listdir(bwd):
+        # making sure that the input files are actually fine
         is_patchfile = "response" in filename and filename.endswith(".json")
         if not is_patchfile:
             continue
@@ -55,27 +58,18 @@ def validate_patches(bugid: str, bwd: str, flag_overwrite: bool = False):
         if not is_patch_file_ok(patchfile_path, result_file_path, bugid):
             continue
 
-        try:
-            commands = (
-                f"docker run --rm -it "
-                + f"-v /Volumes/SSD2T/envs:/envs pyr:lite "
-                + f"-v {os.path.dirname(result_file_path)}:/RUN_CUSTOM_PATCH_DIR "
-                + f"run_custom_patch /RUN_CUSTOM_PATCH_DIR/{os.path.basename(patchfile_path)} "
-                + f"--output-file /RUN_CUSTOM_PATCH_DIR{os.path.basename(result_file_path)} "
-                + f"--separate-envs --envs-dir /envs"
-            )
-            commands = commands.split(" ")
-            subprocess.run(
-                commands,
-                check=True,
-                capture_output=True,
-            )
+        # ensure this bug is prepped
+        if not ensure_clone_and_prep_complete(
+            bugid, envs_dir, use_docker, overwrite=False
+        ):
+            continue
 
-        except subprocess.CalledProcessError as e:
-            log_file_name = filename.replace("response", "log").replace(".json", ".txt")
-            error_log_path = os.path.join(bwd, log_file_name)
-            msg = e.stderr.decode("utf-8") + "\n" + e.stdout.decode("utf-8")
-            with open(os.path.join(error_log_path), "w") as f:
-                f.write(msg)
-            with open(result_file_path, "w") as f:
-                json.dump({bugid: 8}, f, indent=4)
+        # run validation
+        run_validate_patch_command(
+            bugid,
+            envs_dir,
+            patchfile_path,
+            result_file_path,
+            use_docker=use_docker,
+            overwrite=overwrite,
+        )

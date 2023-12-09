@@ -8,8 +8,6 @@ from typing import Any, Dict, Optional
 
 IGNORED_BUGS = ["spacy:2"]
 
-CONFIG_ARGS: Any = None
-
 
 def get_fact_map() -> Dict[str, str]:
     with open(os.path.join(os.path.dirname(__file__), "fact_strata_table.json")) as f:

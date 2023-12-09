@@ -1,10 +1,13 @@
 import ast
 import os
-import subprocess
 import json
 import re
 from typing import Any, List, Tuple
-from prepare_bugs import run_clone_command, run_prepare_command
+
+from command_runner import (
+    ensure_clone_and_prep_complete,
+    run_extract_features_command,
+)
 
 import utils
 from utils import (
@@ -496,45 +499,18 @@ class Facts:
         return matches
 
     def load_from_bwd(
-        self, flag_overwrite=False, write_markdown_files=True, write_facts_json=True
+        self, feature_json_path: str, write_markdown_files=True, write_facts_json=True
     ):
-        bug_json_file = os.path.join(self._bwd, "bug-data.json")
+        with open(feature_json_path, "r") as f:
+            json_output = json.load(f)
+
+        with open(feature_json_path, "w") as f:
+            json.dump(json_output, f, indent=4)
+
         bugid = self._bugid
         bwd = self._bwd
 
-        if flag_overwrite or not os.path.exists(bug_json_file):
-            if not run_clone_command(
-                bugid,
-                utils.CONFIG_ARGS.envs_dir,
-                use_docker=utils.CONFIG_ARGS.use_docker,
-                overwrite=False,
-            ):
-                return
-
-            if not run_prepare_command(
-                bugid,
-                utils.CONFIG_ARGS.envs_dir,
-                use_docker=utils.CONFIG_ARGS.use_docker,
-                overwrite=False,
-            ):
-                return
-
-            if not run_extract_features_command(
-                bugid,
-                utils.CONFIG_ARGS.envs_dir,
-                bwd,
-                use_docker=utils.CONFIG_ARGS.use_docker,
-            ):
-                return
-
-        with open(bug_json_file, "r") as f:
-            json_output = json.load(f)
-
-        with open(bug_json_file, "w") as f:
-            json.dump(json_output, f, indent=4)
-
-        bug_record = json_output[bugid]
-        self.load_from_json_object(bug_record)
+        self.load_from_json_object(json_output[bugid])
 
         if write_markdown_files:
             self._write_markdown_files()
@@ -600,44 +576,31 @@ class Facts:
         return stats
 
 
-def run_extract_features_command(bugid: str, envs_dir: str, bwd: str, use_docker=False):
-    try:
-        if use_docker:
-            subprocess.run(
-                (
-                    f"docker run --rm -it -v {envs_dir}:/envs pyr:lite "
-                    + f"bgp extract_features --bugids {bugid} --envs-dir /envs "
-                    + f"--feature-json {os.path.join(bwd, 'bug-data.json')}"
-                ).split(" "),
-                capture_output=True,
-                check=True,
-            )
-        else:
-            subprocess.run(
-                (
-                    f"bgp extract_features --bugids {bugid} --envs-dir {envs_dir} "
-                    + f"--feature-json {os.path.join(bwd, 'bug-data.json')}"
-                ).split(" "),
-                capture_output=True,
-                check=True,
-            )
-    except subprocess.CalledProcessError as e:
-        print_in_red(
-            f"FATAL: bgp extract_features failed with error code {e.returncode}"
-        )
-        with open(f"{bugid}_extract_feature_error.log", "w") as f:
-            f.write(e.stdout.decode("utf-8"))
-        return False
-    return True
-
-
-def collect_facts(bugid: str, bwd: str, flag_overwrite=False):
+def collect_facts(
+    bugid: str, bwd: str, envs_dir: str, use_docker=False, overwrite=False
+):
     if bugid in IGNORED_BUGS:
         print_in_yellow(f"WARNING: {bugid} is ignored")
         return
 
+    if not ensure_clone_and_prep_complete(
+        bugid,
+        envs_dir,
+        use_docker=use_docker,
+        overwrite=False,
+    ):
+        return
+
+    bug_json_file = os.path.join(bwd, "bug-data.json")
+    if not run_extract_features_command(
+        bugid,
+        envs_dir,
+        bug_json_file,
+        use_docker=use_docker,
+        overwrite=overwrite,
+    ):
+        return
+
     facts = Facts(bugid, bwd)
-    facts.load_from_bwd(
-        flag_overwrite=flag_overwrite, write_markdown_files=True, write_facts_json=True
-    )
+    facts.load_from_bwd(bug_json_file, write_markdown_files=True, write_facts_json=True)
     # print_in_yellow(facts.report_stats())

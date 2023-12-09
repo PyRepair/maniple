@@ -1,6 +1,6 @@
 import argparse
 import os
-import utils
+
 from utils import print_in_red
 from cleaner import clear_features, clear_logs, clear_prompts
 from features_extractor import collect_facts, NotSupportedError
@@ -79,9 +79,13 @@ def main(args):
 
         try:
             if args.command == "extract_features":
-                collect_facts(bugid, bwd, args.overwrite)
+                collect_facts(
+                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                )
             elif args.command == "validate_patches":
-                validate_patches(bugid, bwd, args.overwrite)
+                validate_patches(
+                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                )
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":
@@ -96,5 +100,4 @@ def main(args):
 
 if __name__ == "__main__":
     args = resolve_cli_args()
-    utils.CONFIG_ARGS = args
     main(args)
