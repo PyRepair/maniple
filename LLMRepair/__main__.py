@@ -32,14 +32,14 @@ def resolve_cli_args():
         help="specify the command to run",
     )
 
-    group = args_parser.add_mutually_exclusive_group()
-    group.add_argument(
+    group_resource = args_parser.add_mutually_exclusive_group()
+    group_resource.add_argument(
         "--bugids",
         type=lambda s: s.split(","),
         help="specify a list of bugids to collect facts, like `pandas:30`",
         default=[],
     )
-    group.add_argument(
+    group_resource.add_argument(
         "--dataset",
         type=str,
         choices=["106subset", "395subset", "first-stratum", "second-stratum", "all"],
@@ -47,10 +47,17 @@ def resolve_cli_args():
         default="all",
     )
 
-    args_parser.add_argument(
+    group_include_exclude = args_parser.add_mutually_exclusive_group()
+    group_include_exclude.add_argument(
         "--exclude-projects",
         type=lambda s: s.split(","),
         help="specify a list of projects to exclude",
+        default=[],
+    )
+    group_include_exclude.add_argument(
+        "--include-projects",
+        type=lambda s: s.split(","),
+        help="specify a list of projects to include",
         default=[],
     )
 
@@ -100,24 +107,31 @@ def resolve_cli_args():
 def main(args):
     if len(args.bugids) > 0:
         bugids = args.bugids
+
     elif args.dataset == "all":
         s1 = load_bugids_from_dataset(
             "106subset",
             exclude_projects=args.exclude_projects,
+            include_projects=args.include_projects,
             test_mode=args.test_mode,
         )
         s2 = load_bugids_from_dataset(
             "395subset",
             exclude_projects=args.exclude_projects,
+            include_projects=args.include_projects,
             test_mode=args.test_mode,
         )
         bugids = s1 + s2
+
     else:
         bugids = load_bugids_from_dataset(
             args.dataset,
             exclude_projects=args.exclude_projects,
+            include_projects=args.include_projects,
             test_mode=args.test_mode,
         )
+
+    print(f"Use bugids: {','.join(bugids)}")
 
     for bugid in bugids:
         bwd = os.path.join(args.output_dir, *bugid.split(":"))
@@ -126,11 +140,17 @@ def main(args):
 
         try:
             if args.command == "prep":
-                ensure_clone_and_prep_complete(bugid, args.envs_dir, args.use_docker, args.overwrite)
+                ensure_clone_and_prep_complete(
+                    bugid, args.envs_dir, args.use_docker, args.overwrite
+                )
             elif args.command == "extract":
-                collect_facts(bugid, bwd, args.envs_dir, args.use_docker, args.overwrite)
+                collect_facts(
+                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                )
             elif args.command == "validate":
-                validate_patches(bugid, bwd, args.envs_dir, args.use_docker, args.overwrite)
+                validate_patches(
+                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                )
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":
