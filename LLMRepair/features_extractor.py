@@ -155,8 +155,15 @@ class Facts:
         self._resolve_angelic_variables(buggy_function_info)
 
     def _get_angelic_dynamics_LEGACY(self, function_info):
-        buggy_variables_values = function_info["variable_values"]
-        angelic_variable_values = function_info["angelic_variable_values"]
+        if function_info.get("angelic_variable_values") is None:
+            buggy_variables_values = []
+        else:
+            buggy_variables_values = function_info["variable_values"]
+
+        if function_info.get("angelic_variable_values") is None:
+            angelic_variable_values = []
+        else:
+            angelic_variable_values = function_info["angelic_variable_values"]
 
         iovals = []
         iotypes = []
