@@ -3,9 +3,11 @@ from itertools import combinations
 
 import pandas as pd
 import upsetplot
+from pandas import DataFrame
 from upsetplot import UpSet, from_contents
 from collections import Counter
 from matplotlib import pyplot as plt
+from upsetplot import plot
 
 
 def create_raw_bitvector_fix_rate(test_data):
@@ -73,10 +75,8 @@ fix_rate = create_fix_probability(raw_data)
 create_fix_rate_for_each_bug(fix_rate)
 create_bitvector_fix_rate(fix_rate)
 
-fix_succeed = fix_rate[fix_rate['fix_probability'] > 0]
 
-# If you need to work with the filtered data or export it:
-# You can work with `df_filtered` as needed or export it to a new CSV
+fix_succeed = fix_rate[fix_rate['fix_probability'] > 0]
 
 result_dict: dict = {}
 
@@ -96,29 +96,7 @@ for index, row in fix_succeed.iterrows():
         result_dict[code_key].add(project_bug_id)
 
 
-
-# Inverting the data structure: Each unique value (e.g., "youtube-dl:17") becomes a key,
-# and the set of unique codes where it appears will be the value
-inverted_data = {}
-
-# # Populate the inverted data structure
-# for set_code, items in result_dict.items():
-#     for item in items:
-#         if item not in inverted_data:
-#             inverted_data[item] = set()
-#         inverted_data[item].add(set_code)
-#
-# # Display the inverted data
-# upset_data = from_contents(inverted_data)
-#
-# # Creating the UpSet plot
-# upset = UpSet(upset_data, subset_size='count', show_counts=True)
-# upset.plot()
-# plt.suptitle("UpSet Plot of Inverted Data")
-# plt.show()
-
-
-upset_data = upsetplot.from_contents(result_dict)
+upset_data: DataFrame = upsetplot.from_contents(result_dict)
 
 # Create an UpSet plot
 ax = upsetplot.plot(upset_data, subset_size='count', show_counts='%d', sort_by="cardinality")
@@ -138,3 +116,29 @@ for subset, elements in intersections.items():
     print(f"Intersection {subset}: {len(elements)} elements - {', '.join(elements)}")
 
 plt.show()
+
+
+# df_list = []
+# for code, bugs in result_dict.items():
+#     for bug in bugs:
+#         row = {'bug_id': bug}
+#         for i, digit in enumerate(code):
+#             row[f'feature_{i+1}'] = int(digit)
+#         df_list.append(row)
+#
+# df = pd.DataFrame(df_list)
+# df = df.set_index('bug_id')
+# df = df.groupby('bug_id').max()  # Assuming a bug_id should not repeat across different codes
+#
+# # Generating memberships
+# memberships = []
+# for index, row in df.iterrows():
+#     active_features = [f'feature_{i+1}' for i, digit in enumerate(row) if digit == 1]
+#     memberships.append(active_features)
+#
+# # Generating UpSet data
+# upset_data = upsetplot.from_memberships(memberships)
+#
+# # Plotting
+# ax = upsetplot.plot(upset_data, subset_size='count', show_counts='%d', sort_by="cardinality")
+# plt.show()

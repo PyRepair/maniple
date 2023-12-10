@@ -63,7 +63,7 @@ def get_strata_bitvector(strata_bitvector: dict) -> dict:
 
 
 class PromptGenerator:
-    def __init__(self, database_dir: str, project_name: str, bug_id: str, strata_bitvector: dict, remove_not_exist_fact_label: int) -> None:
+    def __init__(self, database_dir: str, project_name: str, bug_id: str, strata_bitvector: dict) -> None:
         self.output_dir: str = os.path.join(database_dir, project_name, bug_id)
 
         facts_path = os.path.join(self.output_dir, "facts.json")
@@ -92,8 +92,6 @@ class PromptGenerator:
             prefix = project_name + "/"
             start_idx = user_dir.find(prefix) + len(prefix)
             self.buggy_location_file_name = user_dir[start_idx:]
-
-        self.remove_not_exist_fact_label = remove_not_exist_fact_label
 
         self.bitvector: dict = parse_bitvector_from_strata(strata_bitvector)
         self.actual_bitvector: dict = self.bitvector.copy()
@@ -198,7 +196,8 @@ class PromptGenerator:
             variable_values_before_return: dict = runtime_values[1]
             variable_types_before_return: dict = runtime_types[1]
             if len(variable_values_before_return) == 0:
-                self.prompt = self.prompt + "### Variable runtime info before function return is not available due to buggy function crashed\n\n"
+                # self.prompt = self.prompt + "### Variable runtime info before function return is not available\n\n"
+                continue
 
             else:
                 self.prompt = self.prompt + f"### variable runtime {place_holder} before buggy function return\n"
@@ -260,7 +259,8 @@ class PromptGenerator:
             variable_values_before_return: dict = angelic_values[1]
             variable_types_before_return: dict = angelic_types[1]
             if len(variable_values_before_return) == 0:
-                self.prompt = self.prompt + "### Expected variable value before function return is not available due to function crashed\n\n"
+                #self.prompt = self.prompt + "### Expected variable value before function return is not available\n\n"
+                continue
 
             else:
                 self.prompt = self.prompt + f"### Expected variable {place_holder} before function return\n"
@@ -423,28 +423,17 @@ class PromptGenerator:
 
     def write_prompt(self):
         prompt_file_name = ""
-        if self.remove_not_exist_fact_label == 1:
-            for value in self.actual_bitvector.values():
-                prompt_file_name = prompt_file_name + str(value)
-        else:
-            for value in self.bitvector.values():
-                prompt_file_name = prompt_file_name + str(value)
+        for value in self.bitvector.values():
+            prompt_file_name = prompt_file_name + str(value)
 
         prompt_file_name += "_prompt.md"
         with open(os.path.join(self.output_dir, prompt_file_name), "w", encoding='utf-8') as output_file:
             output_file.write(self.prompt)
 
     def get_response_from_gpt(self, count_number: int, gpt_model: str):
-        if self.remove_not_exist_fact_label == 1:
-            bitvector = self.actual_bitvector.copy()
-            strata = self.actual_strata_bitvector.copy()
-        else:
-            bitvector = self.bitvector.copy()
-            strata = self.strata_bitvector.copy()
-
         bitvector_flatten = ""
 
-        for value in bitvector.values():
+        for value in self.bitvector.values():
             bitvector_flatten = bitvector_flatten + str(value)
 
         response_md_file_name = bitvector_flatten + "_response_" + str(count_number) + ".md"
@@ -477,18 +466,18 @@ class PromptGenerator:
                 conversation_response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
                 self.max_conversation_count -= 1
 
-            print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
-
-            with open(os.path.join(self.output_dir, response_md_file_name), "w") as md_file:
+            with open(os.path.join(self.output_dir, response_md_file_name), "w", encoding='utf-8') as md_file:
                 md_file.write(conversation_response)
 
-            with open(os.path.join(self.output_dir, response_json_file_name), "w") as json_file:
+            with open(os.path.join(self.output_dir, response_json_file_name), "w", encoding='utf-8') as json_file:
                 test_input_data = {
                     self.project_name: [
                         {
                             "bugID": int(self.bug_id),
-                            "bitvector": bitvector,
-                            "strata": strata,
+                            "bitvector": self.bitvector,
+                            "strata": self.strata_bitvector,
+                            "available_bitvector": self.actual_bitvector,
+                            "available_strata": self.actual_strata_bitvector,
                             "start_line": self.buggy_function_start_line,
                             "file_name": self.buggy_location_file_name,
                             "replace_code": extract_function_from_code_block(response, self.buggy_function_name),
@@ -496,6 +485,8 @@ class PromptGenerator:
                     ]
                 }
                 json.dump(test_input_data, json_file, indent=4)
+
+            print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
 
         except Exception as error:
             error_str = ""
@@ -509,7 +500,7 @@ class PromptGenerator:
                 error_str = str(error)
                 print_in_red(error_str)
 
-            with open(os.path.join(self.output_dir, response_md_file_name), "w") as md_file:
+            with open(os.path.join(self.output_dir, response_md_file_name), "w", encoding='utf-8') as md_file:
                 md_file.write(error_str)
 
             print(f"write response error to file {self.output_dir}/{response_md_file_name}")
@@ -565,8 +556,7 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    stratum_path = os.path.join("..", "preliminary-study", "second-stratum")
-    remove_not_exist_fact_label = 0
+    stratum_path = os.path.join("..", "preliminary-study", "first-stratum")
 
     projects = os.listdir(stratum_path)
 
@@ -583,8 +573,8 @@ if __name__ == "__main__":
             bug_ids = os.listdir(os.path.join(stratum_path, project))
             for bid in bug_ids:
                 try:
-                    print(f"generate prompt for {project}")
-                    prompt_generator = PromptGenerator(stratum_path, project, bid, bitvector_strata, remove_not_exist_fact_label)
+                    print(f"generate prompt for {project}:{bid}")
+                    prompt_generator = PromptGenerator(stratum_path, project, bid, bitvector_strata)
                     prompt_generator.generate_prompt()
                     prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
                 except Exception as e:
