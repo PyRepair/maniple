@@ -1,0 +1,235 @@
+{
+    "1.1.1": "def get_body_field(*, dependant: Dependant, name: str) -> Optional[Field]:\n    flat_dependant = get_flat_dependant(dependant)\n    if not flat_dependant.body_params:\n        return None\n    first_param = flat_dependant.body_params[0]\n    embed = getattr(first_param.schema, \"embed\", None)\n    if len(flat_dependant.body_params) == 1 and not embed:\n        return get_schema_compatible_field(field=first_param)\n    model_name = \"Body_\" + name\n    BodyModel = create_model(model_name)\n    for f in flat_dependant.body_params:\n        BodyModel.__fields__[f.name] = get_schema_compatible_field(field=f)\n    required = any(True for f in flat_dependant.body_params if f.required)\n    if any(isinstance(f.schema, params.File) for f in flat_dependant.body_params):\n        BodySchema: Type[params.Body] = params.File\n    elif any(isinstance(f.schema, params.Form) for f in flat_dependant.body_params):\n        BodySchema = params.Form\n    else:\n        BodySchema = params.Body\n\n    field = Field(\n        name=\"body\",\n        type_=BodyModel,\n        default=None,\n        required=required,\n        model_config=BaseConfig,\n        class_validators={},\n        alias=\"body\",\n        schema=BodySchema(None),\n    )\n    return field\n",
+    "1.1.2": null,
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_9/fastapi/dependencies/utils.py",
+    "1.3.2": [
+        "get_flat_dependant(dependant: Dependant) -> Dependant",
+        "get_schema_compatible_field() -> Field"
+    ],
+    "1.4.1": [
+        "def test_openapi_schema():\n    response = client.get(\"/openapi.json\")\n    assert response.status_code == 200\n    openapi_schema = response.json()\n    assert (\n        openapi_schema[\"paths\"][\"/products\"][\"post\"][\"requestBody\"]\n        == create_product_request_body\n    )\n    assert (\n        openapi_schema[\"paths\"][\"/shops\"][\"post\"][\"requestBody\"]\n        == create_shop_request_body\n    )"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_9/tests/test_request_body_parameters_media_type.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: assert {'content': {'application/json': {'schema': {'$ref': '#/components/schemas/Body_create_product_products_post'}}},\\n 'required': True} == {'content': {'application/vnd.api+json': {'schema': {'$ref': '#/components/schemas/Body_create_product_products_post'}}},\\n 'required': True}\nE         Common items:\nE         {'required': True}\nE         Differing items:\nE         {'content': {'application/json': {'schema': {'$ref': '#/components/schemas/Body_create_product_products_post'}}}} != {'content': {'application/vnd.api+json': {'schema': {'$ref': '#/components/schemas/Body_create_product_products_post'}}}}\nE         Full diff:\nE           {\nE         -  'content': {'application/vnd.api+json': {'schema': {'$ref': '#/components/schemas/Body_create_product_products_post'}}},\nE         ?                           --------\nE         +  'content': {'application/json': {'schema': {'$ref': '#/components/schemas/Body_create_product_products_post'}}},\nE            'required': True,\nE           }"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "def test_openapi_schema():\n        response = client.get(\"/openapi.json\")\n        assert response.status_code == 200\n        openapi_schema = response.json()\n>       assert (\n            openapi_schema[\"paths\"][\"/products\"][\"post\"][\"requestBody\"]\n            == create_product_request_body\n        )",
+            "\ntests/test_request_body_parameters_media_type.py:60: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "dependant": "<fastapi.dependencies.models.Dependant object at 0x10ffc85e0>",
+                "name": "'create_product_products_post'"
+            },
+            {
+                "flat_dependant": "<fastapi.dependencies.models.Dependant object at 0x10ffc8af0>",
+                "flat_dependant.body_params": "[<Field(data type=Product required)>]",
+                "first_param": "<Field(data type=Product required)>",
+                "embed": "True",
+                "first_param.schema": "Schema(default: Ellipsis, extra: {})",
+                "model_name": "'Body_create_product_products_post'",
+                "BodyModel": "<class 'Body_create_product_products_post'>",
+                "f": "<Field(data type=Product required)>",
+                "BodyModel.__fields__": "{'data': <Field(data type=Product required)>}",
+                "f.name": "'data'",
+                "required": "True",
+                "f.required": "True",
+                "f.schema": "Schema(default: Ellipsis, extra: {})",
+                "BodySchema": "<class 'fastapi.params.Body'>",
+                "field": "<Field(body type=Body_create_product_products_post required)>"
+            }
+        ],
+        [
+            {
+                "dependant": "<fastapi.dependencies.models.Dependant object at 0x10ffd4340>",
+                "name": "'create_shop_shops_post'"
+            },
+            {
+                "flat_dependant": "<fastapi.dependencies.models.Dependant object at 0x10ffd4880>",
+                "flat_dependant.body_params": "[<Field(data type=Shop required)>, <Field(included type=Product default=[])>]",
+                "first_param": "<Field(data type=Shop required)>",
+                "embed": "False",
+                "first_param.schema": "Schema(default: Ellipsis, extra: {})",
+                "model_name": "'Body_create_shop_shops_post'",
+                "BodyModel": "<class 'Body_create_shop_shops_post'>",
+                "f": "<Field(included type=Product default=[])>",
+                "BodyModel.__fields__": "{'data': <Field(data type=Shop required)>, 'included': <Field(included type=Product default=[])>}",
+                "f.name": "'included'",
+                "required": "True",
+                "f.required": "False",
+                "f.schema": "Schema(default: [], extra: {})",
+                "BodySchema": "<class 'fastapi.params.Body'>",
+                "field": "<Field(body type=Body_create_shop_shops_post required)>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "dependant": "Dependant",
+                "name": "str"
+            },
+            {
+                "flat_dependant": "Dependant",
+                "flat_dependant.body_params": "list",
+                "first_param": "Field",
+                "embed": "bool",
+                "first_param.schema": "Body",
+                "model_name": "str",
+                "BodyModel": "MetaModel",
+                "f": "Field",
+                "BodyModel.__fields__": "dict",
+                "f.name": "str",
+                "required": "bool",
+                "f.required": "bool",
+                "f.schema": "Body",
+                "BodySchema": "type",
+                "field": "Field"
+            }
+        ],
+        [
+            {
+                "dependant": "Dependant",
+                "name": "str"
+            },
+            {
+                "flat_dependant": "Dependant",
+                "flat_dependant.body_params": "list",
+                "first_param": "Field",
+                "embed": "bool",
+                "first_param.schema": "Body",
+                "model_name": "str",
+                "BodyModel": "MetaModel",
+                "f": "Field",
+                "BodyModel.__fields__": "dict",
+                "f.name": "str",
+                "required": "bool",
+                "f.required": "bool",
+                "f.schema": "Body",
+                "BodySchema": "type",
+                "field": "Field"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "dependant": "<fastapi.dependencies.models.Dependant object at 0x10558b6d0>",
+                "name": "'create_product_products_post'"
+            },
+            {
+                "flat_dependant": "<fastapi.dependencies.models.Dependant object at 0x10558bbe0>",
+                "flat_dependant.body_params": "[<Field(data type=Product required)>]",
+                "first_param": "<Field(data type=Product required)>",
+                "embed": "True",
+                "first_param.schema": "Schema(default: Ellipsis, extra: {})",
+                "model_name": "'Body_create_product_products_post'",
+                "BodyModel": "<class 'Body_create_product_products_post'>",
+                "f": "<Field(data type=Product required)>",
+                "BodyModel.__fields__": "{'data': <Field(data type=Product required)>}",
+                "f.name": "'data'",
+                "required": "True",
+                "f.required": "True",
+                "BodySchema_kwargs": "{'default': None, 'media_type': 'application/vnd.api+json'}",
+                "f.schema": "Schema(default: Ellipsis, extra: {})",
+                "BodySchema": "<class 'fastapi.params.Body'>",
+                "body_param_media_types": "['application/vnd.api+json']",
+                "field": "<Field(body type=Body_create_product_products_post required)>"
+            }
+        ],
+        [
+            {
+                "dependant": "<fastapi.dependencies.models.Dependant object at 0x10559a430>",
+                "name": "'create_shop_shops_post'"
+            },
+            {
+                "flat_dependant": "<fastapi.dependencies.models.Dependant object at 0x10559a970>",
+                "flat_dependant.body_params": "[<Field(data type=Shop required)>, <Field(included type=Product default=[])>]",
+                "first_param": "<Field(data type=Shop required)>",
+                "embed": "False",
+                "first_param.schema": "Schema(default: Ellipsis, extra: {})",
+                "model_name": "'Body_create_shop_shops_post'",
+                "BodyModel": "<class 'Body_create_shop_shops_post'>",
+                "f": "<Field(included type=Product default=[])>",
+                "BodyModel.__fields__": "{'data': <Field(data type=Shop required)>, 'included': <Field(included type=Product default=[])>}",
+                "f.name": "'included'",
+                "required": "True",
+                "f.required": "False",
+                "BodySchema_kwargs": "{'default': None, 'media_type': 'application/vnd.api+json'}",
+                "f.schema": "Schema(default: [], extra: {})",
+                "BodySchema": "<class 'fastapi.params.Body'>",
+                "body_param_media_types": "['application/vnd.api+json', 'application/vnd.api+json']",
+                "field": "<Field(body type=Body_create_shop_shops_post required)>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "dependant": "Dependant",
+                "name": "str"
+            },
+            {
+                "flat_dependant": "Dependant",
+                "flat_dependant.body_params": "list",
+                "first_param": "Field",
+                "embed": "bool",
+                "first_param.schema": "Body",
+                "model_name": "str",
+                "BodyModel": "MetaModel",
+                "f": "Field",
+                "BodyModel.__fields__": "dict",
+                "f.name": "str",
+                "required": "bool",
+                "f.required": "bool",
+                "BodySchema_kwargs": "dict",
+                "f.schema": "Body",
+                "BodySchema": "type",
+                "body_param_media_types": "list",
+                "field": "Field"
+            }
+        ],
+        [
+            {
+                "dependant": "Dependant",
+                "name": "str"
+            },
+            {
+                "flat_dependant": "Dependant",
+                "flat_dependant.body_params": "list",
+                "first_param": "Field",
+                "embed": "bool",
+                "first_param.schema": "Body",
+                "model_name": "str",
+                "BodyModel": "MetaModel",
+                "f": "Field",
+                "BodyModel.__fields__": "dict",
+                "f.name": "str",
+                "required": "bool",
+                "f.required": "bool",
+                "BodySchema_kwargs": "dict",
+                "f.schema": "Body",
+                "BodySchema": "type",
+                "body_param_media_types": "list",
+                "field": "Field"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "\n"
+    ],
+    "3.1.2": [
+        "\n"
+    ]
+}
