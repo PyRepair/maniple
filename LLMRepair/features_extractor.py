@@ -317,7 +317,7 @@ class Facts:
 
     def _resolve_angelic_variables(self, function_info):
         if (
-            function_info["angelic_variable_values"] is not None
+            function_info.get("angelic_variable_values") is not None
             and len(function_info["angelic_variable_values"]) > 0
         ):
             # resolve issue: make sure we do not have duplicate inputs
@@ -338,7 +338,7 @@ class Facts:
                 self._log_stat("angelic_variable_types", (0))
 
         if (
-            function_info["variable_values"] is not None
+            function_info.get("variable_values") is not None
             and len(function_info["variable_values"]) > 0
         ):
             # resolve issue: make sure we do not have duplicate inputs
