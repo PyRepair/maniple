@@ -1,0 +1,3892 @@
+{
+    "pandas:128": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_128/pandas/io/json/_json.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "read_json",
+                    "function_code": "def read_json(\n    path_or_buf=None,\n    orient=None,\n    typ=\"frame\",\n    dtype=None,\n    convert_axes=None,\n    convert_dates=True,\n    keep_default_dates=True,\n    numpy=False,\n    precise_float=False,\n    date_unit=None,\n    encoding=None,\n    lines=False,\n    chunksize=None,\n    compression=\"infer\",\n):\n    \"\"\"\n    Convert a JSON string to pandas object.\n\n    Parameters\n    ----------\n    path_or_buf : a valid JSON str, path object or file-like object\n        Any valid string path is acceptable. The string could be a URL. Valid\n        URL schemes include http, ftp, s3, and file. For file URLs, a host is\n        expected. A local file could be:\n        ``file://localhost/path/to/table.json``.\n\n        If you want to pass in a path object, pandas accepts any\n        ``os.PathLike``.\n\n        By file-like object, we refer to objects with a ``read()`` method,\n        such as a file handler (e.g. via builtin ``open`` function)\n        or ``StringIO``.\n    orient : str\n        Indication of expected JSON string format.\n        Compatible JSON strings can be produced by ``to_json()`` with a\n        corresponding orient value.\n        The set of possible orients is:\n\n        - ``'split'`` : dict like\n          ``{index -> [index], columns -> [columns], data -> [values]}``\n        - ``'records'`` : list like\n          ``[{column -> value}, ... , {column -> value}]``\n        - ``'index'`` : dict like ``{index -> {column -> value}}``\n        - ``'columns'`` : dict like ``{column -> {index -> value}}``\n        - ``'values'`` : just the values array\n\n        The allowed and default values depend on the value\n        of the `typ` parameter.\n\n        * when ``typ == 'series'``,\n\n          - allowed orients are ``{'split','records','index'}``\n          - default is ``'index'``\n          - The Series index must be unique for orient ``'index'``.\n\n        * when ``typ == 'frame'``,\n\n          - allowed orients are ``{'split','records','index',\n            'columns','values', 'table'}``\n          - default is ``'columns'``\n          - The DataFrame index must be unique for orients ``'index'`` and\n            ``'columns'``.\n          - The DataFrame columns must be unique for orients ``'index'``,\n            ``'columns'``, and ``'records'``.\n\n        .. versionadded:: 0.23.0\n           'table' as an allowed value for the ``orient`` argument\n\n    typ : {'frame', 'series'}, default 'frame'\n        The type of object to recover.\n\n    dtype : bool or dict, default None\n        If True, infer dtypes; if a dict of column to dtype, then use those;\n        if False, then don't infer dtypes at all, applies only to the data.\n\n        For all ``orient`` values except ``'table'``, default is True.\n\n        .. versionchanged:: 0.25.0\n\n           Not applicable for ``orient='table'``.\n\n    convert_axes : bool, default None\n        Try to convert the axes to the proper dtypes.\n\n        For all ``orient`` values except ``'table'``, default is True.\n\n        .. versionchanged:: 0.25.0\n\n           Not applicable for ``orient='table'``.\n\n    convert_dates : bool or list of str, default True\n        List of columns to parse for dates. If True, then try to parse\n        datelike columns. A column label is datelike if\n\n        * it ends with ``'_at'``,\n\n        * it ends with ``'_time'``,\n\n        * it begins with ``'timestamp'``,\n\n        * it is ``'modified'``, or\n\n        * it is ``'date'``.\n\n    keep_default_dates : bool, default True\n        If parsing dates, then parse the default datelike columns.\n\n    numpy : bool, default False\n        Direct decoding to numpy arrays. Supports numeric data only, but\n        non-numeric column and index labels are supported. Note also that the\n        JSON ordering MUST be the same for each term if numpy=True.\n\n    precise_float : bool, default False\n        Set to enable usage of higher precision (strtod) function when\n        decoding string to double values. Default (False) is to use fast but\n        less precise builtin functionality.\n\n    date_unit : str, default None\n        The timestamp unit to detect if converting dates. The default behaviour\n        is to try and detect the correct precision, but if this is not desired\n        then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,\n        milliseconds, microseconds or nanoseconds respectively.\n\n    encoding : str, default is 'utf-8'\n        The encoding to use to decode py3 bytes.\n\n    lines : bool, default False\n        Read the file as a json object per line.\n\n    chunksize : int, optional\n        Return JsonReader object for iteration.\n        See the `line-delimited json docs\n        <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_\n        for more information on ``chunksize``.\n        This can only be passed if `lines=True`.\n        If this is None, the file will be read into memory all at once.\n\n        .. versionadded:: 0.21.0\n\n    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'\n        For on-the-fly decompression of on-disk data. If 'infer', then use\n        gzip, bz2, zip or xz if path_or_buf is a string ending in\n        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression\n        otherwise. If using 'zip', the ZIP file must contain only one data\n        file to be read in. Set to None for no decompression.\n\n        .. versionadded:: 0.21.0\n\n    Returns\n    -------\n    Series or DataFrame\n        The type returned depends on the value of `typ`.\n\n    See Also\n    --------\n    DataFrame.to_json : Convert a DataFrame to a JSON string.\n    Series.to_json : Convert a Series to a JSON string.\n\n    Notes\n    -----\n    Specific to ``orient='table'``, if a :class:`DataFrame` with a literal\n    :class:`Index` name of `index` gets written with :func:`to_json`, the\n    subsequent read operation will incorrectly set the :class:`Index` name to\n    ``None``. This is because `index` is also used by :func:`DataFrame.to_json`\n    to denote a missing :class:`Index` name, and the subsequent\n    :func:`read_json` operation cannot distinguish between the two. The same\n    limitation is encountered with a :class:`MultiIndex` and any names\n    beginning with ``'level_'``.\n\n    Examples\n    --------\n\n    >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],\n    ...                   index=['row 1', 'row 2'],\n    ...                   columns=['col 1', 'col 2'])\n\n    Encoding/decoding a Dataframe using ``'split'`` formatted JSON:\n\n    >>> df.to_json(orient='split')\n    '{\"columns\":[\"col 1\",\"col 2\"],\n      \"index\":[\"row 1\",\"row 2\"],\n      \"data\":[[\"a\",\"b\"],[\"c\",\"d\"]]}'\n    >>> pd.read_json(_, orient='split')\n          col 1 col 2\n    row 1     a     b\n    row 2     c     d\n\n    Encoding/decoding a Dataframe using ``'index'`` formatted JSON:\n\n    >>> df.to_json(orient='index')\n    '{\"row 1\":{\"col 1\":\"a\",\"col 2\":\"b\"},\"row 2\":{\"col 1\":\"c\",\"col 2\":\"d\"}}'\n    >>> pd.read_json(_, orient='index')\n          col 1 col 2\n    row 1     a     b\n    row 2     c     d\n\n    Encoding/decoding a Dataframe using ``'records'`` formatted JSON.\n    Note that index labels are not preserved with this encoding.\n\n    >>> df.to_json(orient='records')\n    '[{\"col 1\":\"a\",\"col 2\":\"b\"},{\"col 1\":\"c\",\"col 2\":\"d\"}]'\n    >>> pd.read_json(_, orient='records')\n      col 1 col 2\n    0     a     b\n    1     c     d\n\n    Encoding with Table Schema\n\n    >>> df.to_json(orient='table')\n    '{\"schema\": {\"fields\": [{\"name\": \"index\", \"type\": \"string\"},\n                            {\"name\": \"col 1\", \"type\": \"string\"},\n                            {\"name\": \"col 2\", \"type\": \"string\"}],\n                    \"primaryKey\": \"index\",\n                    \"pandas_version\": \"0.20.0\"},\n        \"data\": [{\"index\": \"row 1\", \"col 1\": \"a\", \"col 2\": \"b\"},\n                {\"index\": \"row 2\", \"col 1\": \"c\", \"col 2\": \"d\"}]}'\n    \"\"\"\n\n    if orient == \"table\" and dtype:\n        raise ValueError(\"cannot pass both dtype and orient='table'\")\n    if orient == \"table\" and convert_axes:\n        raise ValueError(\"cannot pass both convert_axes and orient='table'\")\n\n    if dtype is None and orient != \"table\":\n        dtype = True\n    if convert_axes is None and orient != \"table\":\n        convert_axes = True\n\n    compression = _infer_compression(path_or_buf, compression)\n    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(\n        path_or_buf, encoding=encoding, compression=compression\n    )\n\n    json_reader = JsonReader(\n        filepath_or_buffer,\n        orient=orient,\n        typ=typ,\n        dtype=dtype,\n        convert_axes=convert_axes,\n        convert_dates=convert_dates,\n        keep_default_dates=keep_default_dates,\n        numpy=numpy,\n        precise_float=precise_float,\n        date_unit=date_unit,\n        encoding=encoding,\n        lines=lines,\n        chunksize=chunksize,\n        compression=compression,\n    )\n\n    if chunksize:\n        return json_reader\n\n    result = json_reader.read()\n    if should_close:\n        filepath_or_buffer.close()\n\n    return result\n",
+                    "decorators": [],
+                    "docstring": "Convert a JSON string to pandas object.\n\nParameters\n----------\npath_or_buf : a valid JSON str, path object or file-like object\n    Any valid string path is acceptable. The string could be a URL. Valid\n    URL schemes include http, ftp, s3, and file. For file URLs, a host is\n    expected. A local file could be:\n    ``file://localhost/path/to/table.json``.\n\n    If you want to pass in a path object, pandas accepts any\n    ``os.PathLike``.\n\n    By file-like object, we refer to objects with a ``read()`` method,\n    such as a file handler (e.g. via builtin ``open`` function)\n    or ``StringIO``.\norient : str\n    Indication of expected JSON string format.\n    Compatible JSON strings can be produced by ``to_json()`` with a\n    corresponding orient value.\n    The set of possible orients is:\n\n    - ``'split'`` : dict like\n      ``{index -> [index], columns -> [columns], data -> [values]}``\n    - ``'records'`` : list like\n      ``[{column -> value}, ... , {column -> value}]``\n    - ``'index'`` : dict like ``{index -> {column -> value}}``\n    - ``'columns'`` : dict like ``{column -> {index -> value}}``\n    - ``'values'`` : just the values array\n\n    The allowed and default values depend on the value\n    of the `typ` parameter.\n\n    * when ``typ == 'series'``,\n\n      - allowed orients are ``{'split','records','index'}``\n      - default is ``'index'``\n      - The Series index must be unique for orient ``'index'``.\n\n    * when ``typ == 'frame'``,\n\n      - allowed orients are ``{'split','records','index',\n        'columns','values', 'table'}``\n      - default is ``'columns'``\n      - The DataFrame index must be unique for orients ``'index'`` and\n        ``'columns'``.\n      - The DataFrame columns must be unique for orients ``'index'``,\n        ``'columns'``, and ``'records'``.\n\n    .. versionadded:: 0.23.0\n       'table' as an allowed value for the ``orient`` argument\n\ntyp : {'frame', 'series'}, default 'frame'\n    The type of object to recover.\n\ndtype : bool or dict, default None\n    If True, infer dtypes; if a dict of column to dtype, then use those;\n    if False, then don't infer dtypes at all, applies only to the data.\n\n    For all ``orient`` values except ``'table'``, default is True.\n\n    .. versionchanged:: 0.25.0\n\n       Not applicable for ``orient='table'``.\n\nconvert_axes : bool, default None\n    Try to convert the axes to the proper dtypes.\n\n    For all ``orient`` values except ``'table'``, default is True.\n\n    .. versionchanged:: 0.25.0\n\n       Not applicable for ``orient='table'``.\n\nconvert_dates : bool or list of str, default True\n    List of columns to parse for dates. If True, then try to parse\n    datelike columns. A column label is datelike if\n\n    * it ends with ``'_at'``,\n\n    * it ends with ``'_time'``,\n\n    * it begins with ``'timestamp'``,\n\n    * it is ``'modified'``, or\n\n    * it is ``'date'``.\n\nkeep_default_dates : bool, default True\n    If parsing dates, then parse the default datelike columns.\n\nnumpy : bool, default False\n    Direct decoding to numpy arrays. Supports numeric data only, but\n    non-numeric column and index labels are supported. Note also that the\n    JSON ordering MUST be the same for each term if numpy=True.\n\nprecise_float : bool, default False\n    Set to enable usage of higher precision (strtod) function when\n    decoding string to double values. Default (False) is to use fast but\n    less precise builtin functionality.\n\ndate_unit : str, default None\n    The timestamp unit to detect if converting dates. The default behaviour\n    is to try and detect the correct precision, but if this is not desired\n    then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,\n    milliseconds, microseconds or nanoseconds respectively.\n\nencoding : str, default is 'utf-8'\n    The encoding to use to decode py3 bytes.\n\nlines : bool, default False\n    Read the file as a json object per line.\n\nchunksize : int, optional\n    Return JsonReader object for iteration.\n    See the `line-delimited json docs\n    <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_\n    for more information on ``chunksize``.\n    This can only be passed if `lines=True`.\n    If this is None, the file will be read into memory all at once.\n\n    .. versionadded:: 0.21.0\n\ncompression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'\n    For on-the-fly decompression of on-disk data. If 'infer', then use\n    gzip, bz2, zip or xz if path_or_buf is a string ending in\n    '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression\n    otherwise. If using 'zip', the ZIP file must contain only one data\n    file to be read in. Set to None for no decompression.\n\n    .. versionadded:: 0.21.0\n\nReturns\n-------\nSeries or DataFrame\n    The type returned depends on the value of `typ`.\n\nSee Also\n--------\nDataFrame.to_json : Convert a DataFrame to a JSON string.\nSeries.to_json : Convert a Series to a JSON string.\n\nNotes\n-----\nSpecific to ``orient='table'``, if a :class:`DataFrame` with a literal\n:class:`Index` name of `index` gets written with :func:`to_json`, the\nsubsequent read operation will incorrectly set the :class:`Index` name to\n``None``. This is because `index` is also used by :func:`DataFrame.to_json`\nto denote a missing :class:`Index` name, and the subsequent\n:func:`read_json` operation cannot distinguish between the two. The same\nlimitation is encountered with a :class:`MultiIndex` and any names\nbeginning with ``'level_'``.\n\nExamples\n--------\n\n>>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],\n...                   index=['row 1', 'row 2'],\n...                   columns=['col 1', 'col 2'])\n\nEncoding/decoding a Dataframe using ``'split'`` formatted JSON:\n\n>>> df.to_json(orient='split')\n'{\"columns\":[\"col 1\",\"col 2\"],\n  \"index\":[\"row 1\",\"row 2\"],\n  \"data\":[[\"a\",\"b\"],[\"c\",\"d\"]]}'\n>>> pd.read_json(_, orient='split')\n      col 1 col 2\nrow 1     a     b\nrow 2     c     d\n\nEncoding/decoding a Dataframe using ``'index'`` formatted JSON:\n\n>>> df.to_json(orient='index')\n'{\"row 1\":{\"col 1\":\"a\",\"col 2\":\"b\"},\"row 2\":{\"col 1\":\"c\",\"col 2\":\"d\"}}'\n>>> pd.read_json(_, orient='index')\n      col 1 col 2\nrow 1     a     b\nrow 2     c     d\n\nEncoding/decoding a Dataframe using ``'records'`` formatted JSON.\nNote that index labels are not preserved with this encoding.\n\n>>> df.to_json(orient='records')\n'[{\"col 1\":\"a\",\"col 2\":\"b\"},{\"col 1\":\"c\",\"col 2\":\"d\"}]'\n>>> pd.read_json(_, orient='records')\n  col 1 col 2\n0     a     b\n1     c     d\n\nEncoding with Table Schema\n\n>>> df.to_json(orient='table')\n'{\"schema\": {\"fields\": [{\"name\": \"index\", \"type\": \"string\"},\n                        {\"name\": \"col 1\", \"type\": \"string\"},\n                        {\"name\": \"col 2\", \"type\": \"string\"}],\n                \"primaryKey\": \"index\",\n                \"pandas_version\": \"0.20.0\"},\n    \"data\": [{\"index\": \"row 1\", \"col 1\": \"a\", \"col 2\": \"b\"},\n            {\"index\": \"row 2\", \"col 1\": \"c\", \"col 2\": \"d\"}]}'",
+                    "start_line": 352,
+                    "variables": {
+                        "orient": [
+                            576,
+                            578,
+                            588,
+                            571,
+                            573
+                        ],
+                        "dtype": [
+                            576,
+                            577,
+                            571,
+                            590
+                        ],
+                        "ValueError": [
+                            572,
+                            574
+                        ],
+                        "convert_axes": [
+                            578,
+                            579,
+                            573,
+                            591
+                        ],
+                        "compression": [
+                            600,
+                            581,
+                            582,
+                            583
+                        ],
+                        "_infer_compression": [
+                            581
+                        ],
+                        "path_or_buf": [
+                            581,
+                            583
+                        ],
+                        "filepath_or_buffer": [
+                            608,
+                            587,
+                            582
+                        ],
+                        "_": [
+                            582
+                        ],
+                        "should_close": [
+                            582,
+                            607
+                        ],
+                        "get_filepath_or_buffer": [
+                            582
+                        ],
+                        "encoding": [
+                            597,
+                            583
+                        ],
+                        "json_reader": [
+                            586,
+                            604,
+                            606
+                        ],
+                        "JsonReader": [
+                            586
+                        ],
+                        "typ": [
+                            589
+                        ],
+                        "convert_dates": [
+                            592
+                        ],
+                        "keep_default_dates": [
+                            593
+                        ],
+                        "numpy": [
+                            594
+                        ],
+                        "precise_float": [
+                            595
+                        ],
+                        "date_unit": [
+                            596
+                        ],
+                        "lines": [
+                            598
+                        ],
+                        "chunksize": [
+                            603,
+                            599
+                        ],
+                        "result": [
+                            610,
+                            606
+                        ],
+                        "json_reader.read": [
+                            606
+                        ],
+                        "filepath_or_buffer.close": [
+                            608
+                        ]
+                    },
+                    "filtered_variables": {
+                        "orient": [
+                            576,
+                            578,
+                            588,
+                            571,
+                            573
+                        ],
+                        "dtype": [
+                            576,
+                            577,
+                            571,
+                            590
+                        ],
+                        "convert_axes": [
+                            578,
+                            579,
+                            573,
+                            591
+                        ],
+                        "compression": [
+                            600,
+                            581,
+                            582,
+                            583
+                        ],
+                        "_infer_compression": [
+                            581
+                        ],
+                        "path_or_buf": [
+                            581,
+                            583
+                        ],
+                        "filepath_or_buffer": [
+                            608,
+                            587,
+                            582
+                        ],
+                        "_": [
+                            582
+                        ],
+                        "should_close": [
+                            582,
+                            607
+                        ],
+                        "get_filepath_or_buffer": [
+                            582
+                        ],
+                        "encoding": [
+                            597,
+                            583
+                        ],
+                        "json_reader": [
+                            586,
+                            604,
+                            606
+                        ],
+                        "JsonReader": [
+                            586
+                        ],
+                        "typ": [
+                            589
+                        ],
+                        "convert_dates": [
+                            592
+                        ],
+                        "keep_default_dates": [
+                            593
+                        ],
+                        "numpy": [
+                            594
+                        ],
+                        "precise_float": [
+                            595
+                        ],
+                        "date_unit": [
+                            596
+                        ],
+                        "lines": [
+                            598
+                        ],
+                        "chunksize": [
+                            603,
+                            599
+                        ],
+                        "result": [
+                            610,
+                            606
+                        ],
+                        "json_reader.read": [
+                            606
+                        ],
+                        "filepath_or_buffer.close": [
+                            608
+                        ]
+                    },
+                    "diff_line_number": 579,
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {
+                                "orient": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "convert_axes": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "compression": {
+                                    "variable_value": "'infer'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "_infer_compression": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "path_or_buf": {
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpnovydusstest.json'",
+                                    "variable_type": "str",
+                                    "variable_shape": "69"
+                                },
+                                "filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "should_close": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "get_filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "json_reader": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "JsonReader": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "typ": {
+                                    "variable_value": "'frame'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "convert_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "keep_default_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "numpy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "precise_float": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "date_unit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "lines": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json_reader.read": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer.close": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "orient": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "convert_axes": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "compression": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "_infer_compression": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "path_or_buf": {
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpnovydusstest.json'",
+                                    "variable_type": "str",
+                                    "variable_shape": "69"
+                                },
+                                "filepath_or_buffer": {
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpnovydusstest.json'",
+                                    "variable_type": "str",
+                                    "variable_shape": "69"
+                                },
+                                "_": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "should_close": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "get_filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "json_reader": {
+                                    "variable_value": "<pandas.io.json._json.JsonReader object at 0x1208ae310>",
+                                    "variable_type": "JsonReader",
+                                    "variable_shape": null
+                                },
+                                "JsonReader": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "typ": {
+                                    "variable_value": "'frame'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "convert_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "keep_default_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "numpy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "precise_float": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "date_unit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "lines": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": "    \uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc\n0  \ufffd\uba12\ubaf0\ubbcc\ubcc2\ubda0\uac86\uadc8\uaf65\ub113\ub2ff\ufffd\ufffd",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "1"
+                                },
+                                "json_reader.read": {
+                                    "variable_value": "<bound method JsonReader.read of <pandas.io.json._json.JsonReader object at 0x1208ae310>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer.close": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "orient": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "convert_axes": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "compression": {
+                                    "variable_value": "'infer'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "_infer_compression": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "path_or_buf": {
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp2at5g5rwtest.json'",
+                                    "variable_type": "str",
+                                    "variable_shape": "69"
+                                },
+                                "filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "should_close": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "get_filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json_reader": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "JsonReader": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "typ": {
+                                    "variable_value": "'frame'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "convert_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "keep_default_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "numpy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "precise_float": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "date_unit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "lines": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json_reader.read": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer.close": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "orient": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "convert_axes": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "encoding": {
+                                    "variable_value": "'utf-8'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "compression": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "_infer_compression": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "path_or_buf": {
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp2at5g5rwtest.json'",
+                                    "variable_type": "str",
+                                    "variable_shape": "69"
+                                },
+                                "filepath_or_buffer": {
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp2at5g5rwtest.json'",
+                                    "variable_type": "str",
+                                    "variable_shape": "69"
+                                },
+                                "_": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "should_close": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "get_filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json_reader": {
+                                    "variable_value": "<pandas.io.json._json.JsonReader object at 0x113d53070>",
+                                    "variable_type": "JsonReader",
+                                    "variable_shape": null
+                                },
+                                "JsonReader": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "typ": {
+                                    "variable_value": "'frame'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "convert_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "keep_default_dates": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "numpy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "precise_float": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "date_unit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "lines": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": "   \u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\n0  \u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "1"
+                                },
+                                "json_reader.read": {
+                                    "variable_value": "<bound method JsonReader.read of <pandas.io.json._json.JsonReader object at 0x113d53070>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer.close": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def to_json(\n    path_or_buf,\n    obj,\n    orient: Optional[str] = None,\n    date_format: str = \"epoch\",\n    double_precision: int = 10,\n    force_ascii: bool = True,\n    date_unit: str = \"ms\",\n    default_handler: Optional[Callable[[Any], JSONSerializable]] = None,\n    lines: bool = False,\n    compression: Optional[str] = \"infer\",\n    index: bool = True,\n    indent: int = 0,\n):\n\n    if not index and orient not in [\"split\", \"table\"]:\n        raise ValueError(\n            \"'index=False' is only valid when 'orient' is \" \"'split' or 'table'\"\n        )\n\n    path_or_buf = _stringify_path(path_or_buf)\n    if lines and orient != \"records\":\n        raise ValueError(\"'lines' keyword only valid when 'orient' is records\")\n\n    if orient == \"table\" and isinstance(obj, Series):\n        obj = obj.to_frame(name=obj.name or \"values\")\n    if orient == \"table\" and isinstance(obj, DataFrame):\n        writer = JSONTableWriter  # type: Type[\"Writer\"]\n    elif isinstance(obj, Series):\n        writer = SeriesWriter\n    elif isinstance(obj, DataFrame):\n        writer = FrameWriter\n    else:\n        raise NotImplementedError(\"'obj' should be a Series or a DataFrame\")\n\n    s = writer(\n        obj,\n        orient=orient,\n        date_format=date_format,\n        double_precision=double_precision,\n        ensure_ascii=force_ascii,\n        date_unit=date_unit,\n        default_handler=default_handler,\n        index=index,\n        indent=indent,\n    ).write()\n\n    if lines:\n        s = convert_to_line_delimits(s)\n\n    if isinstance(path_or_buf, str):\n        fh, handles = _get_handle(path_or_buf, \"w\", compression=compression)\n        try:\n            fh.write(s)\n        finally:\n            fh.close()\n    elif path_or_buf is None:\n        return s\n    else:\n        path_or_buf.write(s)",
+                "def read_json(\n    path_or_buf=None,\n    orient=None,\n    typ=\"frame\",\n    dtype=None,\n    convert_axes=None,\n    convert_dates=True,\n    keep_default_dates=True,\n    numpy=False,\n    precise_float=False,\n    date_unit=None,\n    encoding=None,\n    lines=False,\n    chunksize=None,\n    compression=\"infer\",\n):\n    \"\"\"\n    Convert a JSON string to pandas object.\n\n    Parameters\n    ----------\n    path_or_buf : a valid JSON str, path object or file-like object\n        Any valid string path is acceptable. The string could be a URL. Valid\n        URL schemes include http, ftp, s3, and file. For file URLs, a host is\n        expected. A local file could be:\n        ``file://localhost/path/to/table.json``.\n\n        If you want to pass in a path object, pandas accepts any\n        ``os.PathLike``.\n\n        By file-like object, we refer to objects with a ``read()`` method,\n        such as a file handler (e.g. via builtin ``open`` function)\n        or ``StringIO``.\n    orient : str\n        Indication of expected JSON string format.\n        Compatible JSON strings can be produced by ``to_json()`` with a\n        corresponding orient value.\n        The set of possible orients is:\n\n        - ``'split'`` : dict like\n          ``{index -> [index], columns -> [columns], data -> [values]}``\n        - ``'records'`` : list like\n          ``[{column -> value}, ... , {column -> value}]``\n        - ``'index'`` : dict like ``{index -> {column -> value}}``\n        - ``'columns'`` : dict like ``{column -> {index -> value}}``\n        - ``'values'`` : just the values array\n\n        The allowed and default values depend on the value\n        of the `typ` parameter.\n\n        * when ``typ == 'series'``,\n\n          - allowed orients are ``{'split','records','index'}``\n          - default is ``'index'``\n          - The Series index must be unique for orient ``'index'``.\n\n        * when ``typ == 'frame'``,\n\n          - allowed orients are ``{'split','records','index',\n            'columns','values', 'table'}``\n          - default is ``'columns'``\n          - The DataFrame index must be unique for orients ``'index'`` and\n            ``'columns'``.\n          - The DataFrame columns must be unique for orients ``'index'``,\n            ``'columns'``, and ``'records'``.\n\n        .. versionadded:: 0.23.0\n           'table' as an allowed value for the ``orient`` argument\n\n    typ : {'frame', 'series'}, default 'frame'\n        The type of object to recover.\n\n    dtype : bool or dict, default None\n        If True, infer dtypes; if a dict of column to dtype, then use those;\n        if False, then don't infer dtypes at all, applies only to the data.\n\n        For all ``orient`` values except ``'table'``, default is True.\n\n        .. versionchanged:: 0.25.0\n\n           Not applicable for ``orient='table'``.\n\n    convert_axes : bool, default None\n        Try to convert the axes to the proper dtypes.\n\n        For all ``orient`` values except ``'table'``, default is True.\n\n        .. versionchanged:: 0.25.0\n\n           Not applicable for ``orient='table'``.\n\n    convert_dates : bool or list of str, default True\n        List of columns to parse for dates. If True, then try to parse\n        datelike columns. A column label is datelike if\n\n        * it ends with ``'_at'``,\n\n        * it ends with ``'_time'``,\n\n        * it begins with ``'timestamp'``,\n\n        * it is ``'modified'``, or\n\n        * it is ``'date'``.\n\n    keep_default_dates : bool, default True\n        If parsing dates, then parse the default datelike columns.\n\n    numpy : bool, default False\n        Direct decoding to numpy arrays. Supports numeric data only, but\n        non-numeric column and index labels are supported. Note also that the\n        JSON ordering MUST be the same for each term if numpy=True.\n\n    precise_float : bool, default False\n        Set to enable usage of higher precision (strtod) function when\n        decoding string to double values. Default (False) is to use fast but\n        less precise builtin functionality.\n\n    date_unit : str, default None\n        The timestamp unit to detect if converting dates. The default behaviour\n        is to try and detect the correct precision, but if this is not desired\n        then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,\n        milliseconds, microseconds or nanoseconds respectively.\n\n    encoding : str, default is 'utf-8'\n        The encoding to use to decode py3 bytes.\n\n    lines : bool, default False\n        Read the file as a json object per line.\n\n    chunksize : int, optional\n        Return JsonReader object for iteration.\n        See the `line-delimited json docs\n        <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_\n        for more information on ``chunksize``.\n        This can only be passed if `lines=True`.\n        If this is None, the file will be read into memory all at once.\n\n        .. versionadded:: 0.21.0\n\n    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'\n        For on-the-fly decompression of on-disk data. If 'infer', then use\n        gzip, bz2, zip or xz if path_or_buf is a string ending in\n        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression\n        otherwise. If using 'zip', the ZIP file must contain only one data\n        file to be read in. Set to None for no decompression.\n\n        .. versionadded:: 0.21.0\n\n    Returns\n    -------\n    Series or DataFrame\n        The type returned depends on the value of `typ`.\n\n    See Also\n    --------\n    DataFrame.to_json : Convert a DataFrame to a JSON string.\n    Series.to_json : Convert a Series to a JSON string.\n\n    Notes\n    -----\n    Specific to ``orient='table'``, if a :class:`DataFrame` with a literal\n    :class:`Index` name of `index` gets written with :func:`to_json`, the\n    subsequent read operation will incorrectly set the :class:`Index` name to\n    ``None``. This is because `index` is also used by :func:`DataFrame.to_json`\n    to denote a missing :class:`Index` name, and the subsequent\n    :func:`read_json` operation cannot distinguish between the two. The same\n    limitation is encountered with a :class:`MultiIndex` and any names\n    beginning with ``'level_'``.\n\n    Examples\n    --------\n\n    >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],\n    ...                   index=['row 1', 'row 2'],\n    ...                   columns=['col 1', 'col 2'])\n\n    Encoding/decoding a Dataframe using ``'split'`` formatted JSON:\n\n    >>> df.to_json(orient='split')\n    '{\"columns\":[\"col 1\",\"col 2\"],\n      \"index\":[\"row 1\",\"row 2\"],\n      \"data\":[[\"a\",\"b\"],[\"c\",\"d\"]]}'\n    >>> pd.read_json(_, orient='split')\n          col 1 col 2\n    row 1     a     b\n    row 2     c     d\n\n    Encoding/decoding a Dataframe using ``'index'`` formatted JSON:\n\n    >>> df.to_json(orient='index')\n    '{\"row 1\":{\"col 1\":\"a\",\"col 2\":\"b\"},\"row 2\":{\"col 1\":\"c\",\"col 2\":\"d\"}}'\n    >>> pd.read_json(_, orient='index')\n          col 1 col 2\n    row 1     a     b\n    row 2     c     d\n\n    Encoding/decoding a Dataframe using ``'records'`` formatted JSON.\n    Note that index labels are not preserved with this encoding.\n\n    >>> df.to_json(orient='records')\n    '[{\"col 1\":\"a\",\"col 2\":\"b\"},{\"col 1\":\"c\",\"col 2\":\"d\"}]'\n    >>> pd.read_json(_, orient='records')\n      col 1 col 2\n    0     a     b\n    1     c     d\n\n    Encoding with Table Schema\n\n    >>> df.to_json(orient='table')\n    '{\"schema\": {\"fields\": [{\"name\": \"index\", \"type\": \"string\"},\n                            {\"name\": \"col 1\", \"type\": \"string\"},\n                            {\"name\": \"col 2\", \"type\": \"string\"}],\n                    \"primaryKey\": \"index\",\n                    \"pandas_version\": \"0.20.0\"},\n        \"data\": [{\"index\": \"row 1\", \"col 1\": \"a\", \"col 2\": \"b\"},\n                {\"index\": \"row 2\", \"col 1\": \"c\", \"col 2\": \"d\"}]}'\n    \"\"\"\n\n    if orient == \"table\" and dtype:\n        raise ValueError(\"cannot pass both dtype and orient='table'\")\n    if orient == \"table\" and convert_axes:\n        raise ValueError(\"cannot pass both convert_axes and orient='table'\")\n\n    if dtype is None and orient != \"table\":\n        dtype = True\n    if convert_axes is None and orient != \"table\":\n        convert_axes = True\n\n    compression = _infer_compression(path_or_buf, compression)\n    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(\n        path_or_buf, encoding=encoding, compression=compression\n    )\n\n    json_reader = JsonReader(\n        filepath_or_buffer,\n        orient=orient,\n        typ=typ,\n        dtype=dtype,\n        convert_axes=convert_axes,\n        convert_dates=convert_dates,\n        keep_default_dates=keep_default_dates,\n        numpy=numpy,\n        precise_float=precise_float,\n        date_unit=date_unit,\n        encoding=encoding,\n        lines=lines,\n        chunksize=chunksize,\n        compression=compression,\n    )\n\n    if chunksize:\n        return json_reader\n\n    result = json_reader.read()\n    if should_close:\n        filepath_or_buffer.close()\n\n    return result",
+                "def __init__(\n    self,\n    obj,\n    orient: Optional[str],\n    date_format: str,\n    double_precision: int,\n    ensure_ascii: bool,\n    date_unit: str,\n    index: bool,\n    default_handler: Optional[Callable[[Any], JSONSerializable]] = None,\n    indent: int = 0,\n):\n    self.obj = obj\n\n    if orient is None:\n        orient = self._default_orient  # type: ignore\n\n    self.orient = orient\n    self.date_format = date_format\n    self.double_precision = double_precision\n    self.ensure_ascii = ensure_ascii\n    self.date_unit = date_unit\n    self.default_handler = default_handler\n    self.index = index\n    self.indent = indent\n\n    self.is_copy = None\n    self._format_axes()",
+                "def _format_axes(self):\n    raise AbstractMethodError(self)",
+                "def write(self):\n    return self._write(\n        self.obj,\n        self.orient,\n        self.double_precision,\n        self.ensure_ascii,\n        self.date_unit,\n        self.date_format == \"iso\",\n        self.default_handler,\n        self.indent,\n    )",
+                "def _write(\n    self,\n    obj,\n    orient: Optional[str],\n    double_precision: int,\n    ensure_ascii: bool,\n    date_unit: str,\n    iso_dates: bool,\n    default_handler: Optional[Callable[[Any], JSONSerializable]],\n    indent: int,\n):\n    return dumps(\n        obj,\n        orient=orient,\n        double_precision=double_precision,\n        ensure_ascii=ensure_ascii,\n        date_unit=date_unit,\n        iso_dates=iso_dates,\n        default_handler=default_handler,\n        indent=indent,\n    )",
+                "def _format_axes(self):\n    if not self.obj.index.is_unique and self.orient == \"index\":\n        raise ValueError(\n            \"Series index must be unique for orient=\"\n            \"'{orient}'\".format(orient=self.orient)\n        )",
+                "def _write(\n    self,\n    obj,\n    orient: Optional[str],\n    double_precision: int,\n    ensure_ascii: bool,\n    date_unit: str,\n    iso_dates: bool,\n    default_handler: Optional[Callable[[Any], JSONSerializable]],\n    indent: int,\n):\n    if not self.index and orient == \"split\":\n        obj = {\"name\": obj.name, \"data\": obj.values}\n    return super()._write(\n        obj,\n        orient,\n        double_precision,\n        ensure_ascii,\n        date_unit,\n        iso_dates,\n        default_handler,\n        indent,\n    )",
+                "def _format_axes(self):\n    \"\"\"\n    Try to format axes if they are datelike.\n    \"\"\"\n    if not self.obj.index.is_unique and self.orient in (\"index\", \"columns\"):\n        raise ValueError(\n            \"DataFrame index must be unique for orient=\"\n            \"'{orient}'.\".format(orient=self.orient)\n        )\n    if not self.obj.columns.is_unique and self.orient in (\n        \"index\",\n        \"columns\",\n        \"records\",\n    ):\n        raise ValueError(\n            \"DataFrame columns must be unique for orient=\"\n            \"'{orient}'.\".format(orient=self.orient)\n        )",
+                "def _write(\n    self,\n    obj,\n    orient: Optional[str],\n    double_precision: int,\n    ensure_ascii: bool,\n    date_unit: str,\n    iso_dates: bool,\n    default_handler: Optional[Callable[[Any], JSONSerializable]],\n    indent: int,\n):\n    if not self.index and orient == \"split\":\n        obj = obj.to_dict(orient=\"split\")\n        del obj[\"index\"]\n    return super()._write(\n        obj,\n        orient,\n        double_precision,\n        ensure_ascii,\n        date_unit,\n        iso_dates,\n        default_handler,\n        indent,\n    )",
+                "def __init__(\n    self,\n    obj,\n    orient: Optional[str],\n    date_format: str,\n    double_precision: int,\n    ensure_ascii: bool,\n    date_unit: str,\n    index: bool,\n    default_handler: Optional[Callable[[Any], JSONSerializable]] = None,\n    indent: int = 0,\n):\n    \"\"\"\n    Adds a `schema` attribute with the Table Schema, resets\n    the index (can't do in caller, because the schema inference needs\n    to know what the index is, forces orient to records, and forces\n    date_format to 'iso'.\n    \"\"\"\n\n    super().__init__(\n        obj,\n        orient,\n        date_format,\n        double_precision,\n        ensure_ascii,\n        date_unit,\n        index,\n        default_handler=default_handler,\n        indent=indent,\n    )\n\n    if date_format != \"iso\":\n        msg = (\n            \"Trying to write with `orient='table'` and \"\n            \"`date_format='{fmt}'`. Table Schema requires dates \"\n            \"to be formatted with `date_format='iso'`\".format(fmt=date_format)\n        )\n        raise ValueError(msg)\n\n    self.schema = build_table_schema(obj, index=self.index)\n\n    # NotImplemented on a column MultiIndex\n    if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):\n        raise NotImplementedError(\"orient='table' is not supported for MultiIndex\")\n\n    # TODO: Do this timedelta properly in objToJSON.c See GH #15137\n    if (\n        (obj.ndim == 1)\n        and (obj.name in set(obj.index.names))\n        or len(obj.columns & obj.index.names)\n    ):\n        msg = \"Overlapping names between the index and columns\"\n        raise ValueError(msg)\n\n    obj = obj.copy()\n    timedeltas = obj.select_dtypes(include=[\"timedelta\"]).columns\n    if len(timedeltas):\n        obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())\n    # Convert PeriodIndex to datetimes before serialzing\n    if is_period_dtype(obj.index):\n        obj.index = obj.index.to_timestamp()\n\n    # exclude index from obj if index=False\n    if not self.index:\n        self.obj = obj.reset_index(drop=True)\n    else:\n        self.obj = obj.reset_index(drop=False)\n    self.date_format = \"iso\"\n    self.orient = \"records\"\n    self.index = index",
+                "def _write(\n    self,\n    obj,\n    orient,\n    double_precision,\n    ensure_ascii,\n    date_unit,\n    iso_dates,\n    default_handler,\n    indent,\n):\n    table_obj = OrderedDict(((\"schema\", self.schema), (\"data\", obj)))\n    serialized = super()._write(\n        table_obj,\n        orient,\n        double_precision,\n        ensure_ascii,\n        date_unit,\n        iso_dates,\n        default_handler,\n        indent,\n    )\n\n    return serialized",
+                "def __init__(\n    self,\n    filepath_or_buffer,\n    orient,\n    typ,\n    dtype,\n    convert_axes,\n    convert_dates,\n    keep_default_dates,\n    numpy,\n    precise_float,\n    date_unit,\n    encoding,\n    lines,\n    chunksize,\n    compression,\n):\n\n    self.path_or_buf = filepath_or_buffer\n    self.orient = orient\n    self.typ = typ\n    self.dtype = dtype\n    self.convert_axes = convert_axes\n    self.convert_dates = convert_dates\n    self.keep_default_dates = keep_default_dates\n    self.numpy = numpy\n    self.precise_float = precise_float\n    self.date_unit = date_unit\n    self.encoding = encoding\n    self.compression = compression\n    self.lines = lines\n    self.chunksize = chunksize\n    self.nrows_seen = 0\n    self.should_close = False\n\n    if self.chunksize is not None:\n        self.chunksize = _validate_integer(\"chunksize\", self.chunksize, 1)\n        if not self.lines:\n            raise ValueError(\"chunksize can only be passed if lines=True\")\n\n    data = self._get_data_from_filepath(filepath_or_buffer)\n    self.data = self._preprocess_data(data)",
+                "def _preprocess_data(self, data):\n    \"\"\"\n    At this point, the data either has a `read` attribute (e.g. a file\n    object or a StringIO) or is a string that is a JSON document.\n\n    If self.chunksize, we prepare the data for the `__next__` method.\n    Otherwise, we read it into memory for the `read` method.\n    \"\"\"\n    if hasattr(data, \"read\") and not self.chunksize:\n        data = data.read()\n    if not hasattr(data, \"read\") and self.chunksize:\n        data = StringIO(data)\n\n    return data",
+                "def _get_data_from_filepath(self, filepath_or_buffer):\n    \"\"\"\n    The function read_json accepts three input types:\n        1. filepath (string-like)\n        2. file-like object (e.g. open file object, StringIO)\n        3. JSON string\n\n    This method turns (1) into (2) to simplify the rest of the processing.\n    It returns input types (2) and (3) unchanged.\n    \"\"\"\n    data = filepath_or_buffer\n\n    exists = False\n    if isinstance(data, str):\n        try:\n            exists = os.path.exists(filepath_or_buffer)\n        # gh-5874: if the filepath is too long will raise here\n        except (TypeError, ValueError):\n            pass\n\n    if exists or self.compression is not None:\n        data, _ = _get_handle(\n            filepath_or_buffer,\n            \"r\",\n            encoding=self.encoding,\n            compression=self.compression,\n        )\n        self.should_close = True\n        self.open_stream = data\n\n    return data",
+                "def _combine_lines(self, lines):\n    \"\"\"\n    Combines a list of JSON objects into one JSON object.\n    \"\"\"\n    lines = filter(None, map(lambda x: x.strip(), lines))\n    return \"[\" + \",\".join(lines) + \"]\"",
+                "def read(self):\n    \"\"\"\n    Read the whole JSON input into a pandas object.\n    \"\"\"\n    if self.lines and self.chunksize:\n        obj = concat(self)\n    elif self.lines:\n        data = ensure_str(self.data)\n        obj = self._get_object_parser(self._combine_lines(data.split(\"\\n\")))\n    else:\n        obj = self._get_object_parser(self.data)\n    self.close()\n    return obj",
+                "def _get_object_parser(self, json):\n    \"\"\"\n    Parses a json document into a pandas object.\n    \"\"\"\n    typ = self.typ\n    dtype = self.dtype\n    kwargs = {\n        \"orient\": self.orient,\n        \"dtype\": self.dtype,\n        \"convert_axes\": self.convert_axes,\n        \"convert_dates\": self.convert_dates,\n        \"keep_default_dates\": self.keep_default_dates,\n        \"numpy\": self.numpy,\n        \"precise_float\": self.precise_float,\n        \"date_unit\": self.date_unit,\n    }\n    obj = None\n    if typ == \"frame\":\n        obj = FrameParser(json, **kwargs).parse()\n\n    if typ == \"series\" or obj is None:\n        if not isinstance(dtype, bool):\n            kwargs[\"dtype\"] = dtype\n        obj = SeriesParser(json, **kwargs).parse()\n\n    return obj",
+                "def close(self):\n    \"\"\"\n    If we opened a stream earlier, in _get_data_from_filepath, we should\n    close it.\n\n    If an open stream or file was passed, we leave it open.\n    \"\"\"\n    if self.should_close:\n        try:\n            self.open_stream.close()\n        except (IOError, AttributeError):\n            pass",
+                "def __next__(self):\n    lines = list(islice(self.data, self.chunksize))\n    if lines:\n        lines_json = self._combine_lines(lines)\n        obj = self._get_object_parser(lines_json)\n\n        # Make sure that the returned objects have the right index.\n        obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))\n        self.nrows_seen += len(obj)\n\n        return obj\n\n    self.close()\n    raise StopIteration",
+                "def __init__(\n    self,\n    json,\n    orient,\n    dtype=None,\n    convert_axes=True,\n    convert_dates=True,\n    keep_default_dates=False,\n    numpy=False,\n    precise_float=False,\n    date_unit=None,\n):\n    self.json = json\n\n    if orient is None:\n        orient = self._default_orient\n    self.orient = orient\n\n    self.dtype = dtype\n\n    if orient == \"split\":\n        numpy = False\n\n    if date_unit is not None:\n        date_unit = date_unit.lower()\n        if date_unit not in self._STAMP_UNITS:\n            raise ValueError(\n                \"date_unit must be one of {units}\".format(units=self._STAMP_UNITS)\n            )\n        self.min_stamp = self._MIN_STAMPS[date_unit]\n    else:\n        self.min_stamp = self._MIN_STAMPS[\"s\"]\n\n    self.numpy = numpy\n    self.precise_float = precise_float\n    self.convert_axes = convert_axes\n    self.convert_dates = convert_dates\n    self.date_unit = date_unit\n    self.keep_default_dates = keep_default_dates\n    self.obj = None",
+                "def check_keys_split(self, decoded):\n    \"\"\"\n    Checks that dict has only the appropriate keys for orient='split'.\n    \"\"\"\n    bad_keys = set(decoded.keys()).difference(set(self._split_keys))\n    if bad_keys:\n        bad_keys = \", \".join(bad_keys)\n        raise ValueError(\n            \"JSON data had unexpected key(s): {bad_keys}\".format(\n                bad_keys=pprint_thing(bad_keys)\n            )\n        )",
+                "def parse(self):\n\n    # try numpy\n    numpy = self.numpy\n    if numpy:\n        self._parse_numpy()\n\n    else:\n        self._parse_no_numpy()\n\n    if self.obj is None:\n        return None\n    if self.convert_axes:\n        self._convert_axes()\n    self._try_convert_types()\n    return self.obj",
+                "def _convert_axes(self):\n    \"\"\"\n    Try to convert axes.\n    \"\"\"\n    for axis in self.obj._AXIS_NUMBERS.keys():\n        new_axis, result = self._try_convert_data(\n            axis, self.obj._get_axis(axis), use_dtypes=False, convert_dates=True\n        )\n        if result:\n            setattr(self.obj, axis, new_axis)",
+                "def _try_convert_types(self):\n    raise AbstractMethodError(self)",
+                "def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):\n    \"\"\"\n    Try to parse a ndarray like into a column by inferring dtype.\n    \"\"\"\n\n    # don't try to coerce, unless a force conversion\n    if use_dtypes:\n        if not self.dtype:\n            return data, False\n        elif self.dtype is True:\n            pass\n        else:\n            # dtype to force\n            dtype = (\n                self.dtype.get(name) if isinstance(self.dtype, dict) else self.dtype\n            )\n            if dtype is not None:\n                try:\n                    dtype = np.dtype(dtype)\n                    return data.astype(dtype), True\n                except (TypeError, ValueError):\n                    return data, False\n\n    if convert_dates:\n        new_data, result = self._try_convert_to_date(data)\n        if result:\n            return new_data, True\n\n    result = False\n\n    if data.dtype == \"object\":\n\n        # try float\n        try:\n            data = data.astype(\"float64\")\n            result = True\n        except (TypeError, ValueError):\n            pass\n\n    if data.dtype.kind == \"f\":\n\n        if data.dtype != \"float64\":\n\n            # coerce floats to 64\n            try:\n                data = data.astype(\"float64\")\n                result = True\n            except (TypeError, ValueError):\n                pass\n\n    # don't coerce 0-len data\n    if len(data) and (data.dtype == \"float\" or data.dtype == \"object\"):\n\n        # coerce ints if we can\n        try:\n            new_data = data.astype(\"int64\")\n            if (new_data == data).all():\n                data = new_data\n                result = True\n        except (TypeError, ValueError):\n            pass\n\n    # coerce ints to 64\n    if data.dtype == \"int\":\n\n        # coerce floats to 64\n        try:\n            data = data.astype(\"int64\")\n            result = True\n        except (TypeError, ValueError):\n            pass\n\n    return data, result",
+                "def _try_convert_to_date(self, data):\n    \"\"\"\n    Try to parse a ndarray like into a date column.\n\n    Try to coerce object in epoch/iso formats and integer/float in epoch\n    formats. Return a boolean if parsing was successful.\n    \"\"\"\n\n    # no conversion on empty\n    if not len(data):\n        return data, False\n\n    new_data = data\n    if new_data.dtype == \"object\":\n        try:\n            new_data = data.astype(\"int64\")\n        except (TypeError, ValueError, OverflowError):\n            pass\n\n    # ignore numbers that are out of range\n    if issubclass(new_data.dtype.type, np.number):\n        in_range = (\n            isna(new_data.values)\n            | (new_data > self.min_stamp)\n            | (new_data.values == iNaT)\n        )\n        if not in_range.all():\n            return data, False\n\n    date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS\n    for date_unit in date_units:\n        try:\n            new_data = to_datetime(new_data, errors=\"raise\", unit=date_unit)\n        except (ValueError, OverflowError):\n            continue\n        return new_data, True\n    return data, False",
+                "def _try_convert_dates(self):\n    raise AbstractMethodError(self)",
+                "def _parse_no_numpy(self):\n\n    json = self.json\n    orient = self.orient\n    if orient == \"split\":\n        decoded = {\n            str(k): v\n            for k, v in loads(json, precise_float=self.precise_float).items()\n        }\n        self.check_keys_split(decoded)\n        self.obj = Series(dtype=None, **decoded)\n    else:\n        self.obj = Series(loads(json, precise_float=self.precise_float), dtype=None)",
+                "def _parse_numpy(self):\n\n    json = self.json\n    orient = self.orient\n    if orient == \"split\":\n        decoded = loads(\n            json, dtype=None, numpy=True, precise_float=self.precise_float\n        )\n        decoded = {str(k): v for k, v in decoded.items()}\n        self.check_keys_split(decoded)\n        self.obj = Series(**decoded)\n    elif orient == \"columns\" or orient == \"index\":\n        self.obj = Series(\n            *loads(\n                json,\n                dtype=None,\n                numpy=True,\n                labelled=True,\n                precise_float=self.precise_float,\n            )\n        )\n    else:\n        self.obj = Series(\n            loads(json, dtype=None, numpy=True, precise_float=self.precise_float)\n        )",
+                "def _try_convert_types(self):\n    if self.obj is None:\n        return\n    obj, result = self._try_convert_data(\n        \"data\", self.obj, convert_dates=self.convert_dates\n    )\n    if result:\n        self.obj = obj",
+                "def _parse_numpy(self):\n\n    json = self.json\n    orient = self.orient\n\n    if orient == \"columns\":\n        args = loads(\n            json,\n            dtype=None,\n            numpy=True,\n            labelled=True,\n            precise_float=self.precise_float,\n        )\n        if len(args):\n            args = (args[0].T, args[2], args[1])\n        self.obj = DataFrame(*args)\n    elif orient == \"split\":\n        decoded = loads(\n            json, dtype=None, numpy=True, precise_float=self.precise_float\n        )\n        decoded = {str(k): v for k, v in decoded.items()}\n        self.check_keys_split(decoded)\n        self.obj = DataFrame(**decoded)\n    elif orient == \"values\":\n        self.obj = DataFrame(\n            loads(json, dtype=None, numpy=True, precise_float=self.precise_float)\n        )\n    else:\n        self.obj = DataFrame(\n            *loads(\n                json,\n                dtype=None,\n                numpy=True,\n                labelled=True,\n                precise_float=self.precise_float,\n            )\n        )",
+                "def _parse_no_numpy(self):\n\n    json = self.json\n    orient = self.orient\n\n    if orient == \"columns\":\n        self.obj = DataFrame(\n            loads(json, precise_float=self.precise_float), dtype=None\n        )\n    elif orient == \"split\":\n        decoded = {\n            str(k): v\n            for k, v in loads(json, precise_float=self.precise_float).items()\n        }\n        self.check_keys_split(decoded)\n        self.obj = DataFrame(dtype=None, **decoded)\n    elif orient == \"index\":\n        self.obj = DataFrame.from_dict(\n            loads(json, precise_float=self.precise_float),\n            dtype=None,\n            orient=\"index\",\n        )\n    elif orient == \"table\":\n        self.obj = parse_table_schema(json, precise_float=self.precise_float)\n    else:\n        self.obj = DataFrame(\n            loads(json, precise_float=self.precise_float), dtype=None\n        )",
+                "def _process_converter(self, f, filt=None):\n    \"\"\"\n    Take a conversion function and possibly recreate the frame.\n    \"\"\"\n\n    if filt is None:\n        filt = lambda col, c: True\n\n    needs_new_obj = False\n    new_obj = dict()\n    for i, (col, c) in enumerate(self.obj.items()):\n        if filt(col, c):\n            new_data, result = f(col, c)\n            if result:\n                c = new_data\n                needs_new_obj = True\n        new_obj[i] = c\n\n    if needs_new_obj:\n\n        # possibly handle dup columns\n        new_obj = DataFrame(new_obj, index=self.obj.index)\n        new_obj.columns = self.obj.columns\n        self.obj = new_obj",
+                "def _try_convert_types(self):\n    if self.obj is None:\n        return\n    if self.convert_dates:\n        self._try_convert_dates()\n\n    self._process_converter(\n        lambda col, c: self._try_convert_data(col, c, convert_dates=False)\n    )",
+                "def _try_convert_dates(self):\n    if self.obj is None:\n        return\n\n    # our columns to parse\n    convert_dates = self.convert_dates\n    if convert_dates is True:\n        convert_dates = []\n    convert_dates = set(convert_dates)\n\n    def is_ok(col):\n        \"\"\"\n        Return if this col is ok to try for a date parse.\n        \"\"\"\n        if not isinstance(col, str):\n            return False\n\n        col_lower = col.lower()\n        if (\n            col_lower.endswith(\"_at\")\n            or col_lower.endswith(\"_time\")\n            or col_lower == \"modified\"\n            or col_lower == \"date\"\n            or col_lower == \"datetime\"\n            or col_lower.startswith(\"timestamp\")\n        ):\n            return True\n        return False\n\n    self._process_converter(\n        lambda col, c: self._try_convert_to_date(c),\n        lambda col, c: (\n            (self.keep_default_dates and is_ok(col)) or col in convert_dates\n        ),\n    )",
+                "def is_ok(col):\n    \"\"\"\n    Return if this col is ok to try for a date parse.\n    \"\"\"\n    if not isinstance(col, str):\n        return False\n\n    col_lower = col.lower()\n    if (\n        col_lower.endswith(\"_at\")\n        or col_lower.endswith(\"_time\")\n        or col_lower == \"modified\"\n        or col_lower == \"date\"\n        or col_lower == \"datetime\"\n        or col_lower.startswith(\"timestamp\")\n    ):\n        return True\n    return False"
+            ],
+            "inscope_function_signatures": [
+                "to_json(path_or_buf, obj, orient: Optional[str]=None, date_format: str='epoch', double_precision: int=10, force_ascii: bool=True, date_unit: str='ms', default_handler: Optional[Callable[[Any], JSONSerializable]]=None, lines: bool=False, compression: Optional[str]='infer', index: bool=True, indent: int=0)",
+                "read_json(path_or_buf=None, orient=None, typ='frame', dtype=None, convert_axes=None, convert_dates=True, keep_default_dates=True, numpy=False, precise_float=False, date_unit=None, encoding=None, lines=False, chunksize=None, compression='infer')",
+                "__init__(self, obj, orient: Optional[str], date_format: str, double_precision: int, ensure_ascii: bool, date_unit: str, index: bool, default_handler: Optional[Callable[[Any], JSONSerializable]]=None, indent: int=0)",
+                "_format_axes(self)",
+                "write(self)",
+                "_write(self, obj, orient: Optional[str], double_precision: int, ensure_ascii: bool, date_unit: str, iso_dates: bool, default_handler: Optional[Callable[[Any], JSONSerializable]], indent: int)",
+                "_format_axes(self)",
+                "_write(self, obj, orient: Optional[str], double_precision: int, ensure_ascii: bool, date_unit: str, iso_dates: bool, default_handler: Optional[Callable[[Any], JSONSerializable]], indent: int)",
+                "_format_axes(self)",
+                "_write(self, obj, orient: Optional[str], double_precision: int, ensure_ascii: bool, date_unit: str, iso_dates: bool, default_handler: Optional[Callable[[Any], JSONSerializable]], indent: int)",
+                "__init__(self, obj, orient: Optional[str], date_format: str, double_precision: int, ensure_ascii: bool, date_unit: str, index: bool, default_handler: Optional[Callable[[Any], JSONSerializable]]=None, indent: int=0)",
+                "_write(self, obj, orient, double_precision, ensure_ascii, date_unit, iso_dates, default_handler, indent)",
+                "__init__(self, filepath_or_buffer, orient, typ, dtype, convert_axes, convert_dates, keep_default_dates, numpy, precise_float, date_unit, encoding, lines, chunksize, compression)",
+                "_preprocess_data(self, data)",
+                "_get_data_from_filepath(self, filepath_or_buffer)",
+                "_combine_lines(self, lines)",
+                "read(self)",
+                "_get_object_parser(self, json)",
+                "close(self)",
+                "__next__(self)",
+                "__init__(self, json, orient, dtype=None, convert_axes=True, convert_dates=True, keep_default_dates=False, numpy=False, precise_float=False, date_unit=None)",
+                "check_keys_split(self, decoded)",
+                "parse(self)",
+                "_convert_axes(self)",
+                "_try_convert_types(self)",
+                "_try_convert_data(self, name, data, use_dtypes=True, convert_dates=True)",
+                "_try_convert_to_date(self, data)",
+                "_try_convert_dates(self)",
+                "_parse_no_numpy(self)",
+                "_parse_numpy(self)",
+                "_try_convert_types(self)",
+                "_parse_numpy(self)",
+                "_parse_no_numpy(self)",
+                "_process_converter(self, f, filt=None)",
+                "_try_convert_types(self)",
+                "_try_convert_dates(self)",
+                "is_ok(col)"
+            ],
+            "variables_in_file": {
+                "loads": [
+                    32,
+                    1122,
+                    1031,
+                    1064,
+                    1103,
+                    1041,
+                    1011,
+                    1075,
+                    1108,
+                    1016,
+                    1114,
+                    1083,
+                    1087,
+                    1023
+                ],
+                "json.loads": [
+                    32
+                ],
+                "json": [
+                    1024,
+                    1032,
+                    1041,
+                    32,
+                    33,
+                    1060,
+                    1065,
+                    811,
+                    1076,
+                    1083,
+                    1088,
+                    1098,
+                    1103,
+                    1108,
+                    1114,
+                    1119,
+                    1122,
+                    1006,
+                    751,
+                    1011,
+                    756,
+                    1016,
+                    1020
+                ],
+                "dumps": [
+                    33,
+                    157
+                ],
+                "json.dumps": [
+                    33
+                ],
+                "TABLE_SCHEMA_VERSION": [
+                    35
+                ],
+                "Optional": [
+                    258,
+                    229,
+                    264,
+                    105,
+                    42,
+                    234,
+                    111,
+                    47,
+                    49,
+                    149,
+                    182,
+                    154,
+                    187
+                ],
+                "str": [
+                    258,
+                    259,
+                    1026,
+                    262,
+                    149,
+                    1174,
+                    152,
+                    42,
+                    43,
+                    46,
+                    49,
+                    693,
+                    182,
+                    1078,
+                    185,
+                    1107,
+                    89,
+                    229,
+                    232,
+                    105,
+                    106,
+                    109,
+                    1010
+                ],
+                "int": [
+                    260,
+                    230,
+                    265,
+                    107,
+                    44,
+                    235,
+                    112,
+                    51,
+                    150,
+                    183,
+                    155,
+                    188
+                ],
+                "bool": [
+                    261,
+                    231,
+                    263,
+                    233,
+                    108,
+                    45,
+                    110,
+                    48,
+                    50,
+                    754,
+                    151,
+                    184,
+                    153,
+                    186
+                ],
+                "Callable": [
+                    264,
+                    234,
+                    111,
+                    47,
+                    154,
+                    187
+                ],
+                "Any": [
+                    264,
+                    234,
+                    111,
+                    47,
+                    154,
+                    187
+                ],
+                "JSONSerializable": [
+                    264,
+                    234,
+                    111,
+                    47,
+                    154,
+                    187
+                ],
+                "index": [
+                    324,
+                    82,
+                    54,
+                    281,
+                    125
+                ],
+                "orient": [
+                    641,
+                    1029,
+                    276,
+                    159,
+                    1061,
+                    1063,
+                    813,
+                    814,
+                    815,
+                    1074,
+                    819,
+                    54,
+                    1081,
+                    571,
+                    60,
+                    573,
+                    190,
+                    63,
+                    576,
+                    65,
+                    194,
+                    578,
+                    1099,
+                    76,
+                    588,
+                    1101,
+                    1105,
+                    340,
+                    1112,
+                    1118,
+                    237,
+                    1007,
+                    1008,
+                    242,
+                    116,
+                    117,
+                    119,
+                    1021,
+                    1022
+                ],
+                "ValueError": [
+                    904,
+                    660,
+                    920,
+                    931,
+                    292,
+                    174,
+                    943,
+                    307,
+                    55,
+                    825,
+                    697,
+                    953,
+                    572,
+                    61,
+                    574,
+                    974,
+                    847,
+                    212,
+                    221,
+                    991
+                ],
+                "path_or_buf": [
+                    98,
+                    581,
+                    583,
+                    89,
+                    90,
+                    59,
+                    95
+                ],
+                "_stringify_path": [
+                    59
+                ],
+                "lines": [
+                    774,
+                    775,
+                    776,
+                    716,
+                    652,
+                    717,
+                    598,
+                    86,
+                    60
+                ],
+                "isinstance": [
+                    65,
+                    898,
+                    67,
+                    69,
+                    297,
+                    754,
+                    693,
+                    1174,
+                    89,
+                    63
+                ],
+                "obj": [
+                    777,
+                    780,
+                    781,
+                    783,
+                    275,
+                    1047,
+                    1051,
+                    158,
+                    294,
+                    297,
+                    302,
+                    303,
+                    304,
+                    309,
+                    310,
+                    312,
+                    314,
+                    315,
+                    191,
+                    64,
+                    65,
+                    193,
+                    67,
+                    63,
+                    69,
+                    319,
+                    321,
+                    75,
+                    337,
+                    724,
+                    727,
+                    729,
+                    731,
+                    749,
+                    238,
+                    239,
+                    751,
+                    241,
+                    114,
+                    753,
+                    756,
+                    758
+                ],
+                "Series": [
+                    67,
+                    1028,
+                    1030,
+                    1040,
+                    1014,
+                    1016,
+                    63
+                ],
+                "obj.to_frame": [
+                    64
+                ],
+                "obj.name": [
+                    64,
+                    303,
+                    191
+                ],
+                "DataFrame": [
+                    65,
+                    1121,
+                    69,
+                    1146,
+                    1102,
+                    1073,
+                    1111,
+                    1080,
+                    1113,
+                    1082,
+                    1086
+                ],
+                "writer": [
+                    66,
+                    68,
+                    74,
+                    70
+                ],
+                "JSONTableWriter": [
+                    66
+                ],
+                "SeriesWriter": [
+                    68
+                ],
+                "FrameWriter": [
+                    252,
+                    70
+                ],
+                "NotImplementedError": [
+                    72,
+                    298
+                ],
+                "s": [
+                    96,
+                    98,
+                    74,
+                    87,
+                    92
+                ],
+                "write": [
+                    74
+                ],
+                "date_format": [
+                    290,
+                    77,
+                    277,
+                    120,
+                    286
+                ],
+                "double_precision": [
+                    160,
+                    195,
+                    78,
+                    243,
+                    341,
+                    278,
+                    121
+                ],
+                "force_ascii": [
+                    79
+                ],
+                "date_unit": [
+                    162,
+                    836,
+                    197,
+                    649,
+                    988,
+                    823,
+                    80,
+                    824,
+                    596,
+                    245,
+                    822,
+                    343,
+                    280,
+                    123,
+                    828,
+                    990
+                ],
+                "default_handler": [
+                    164,
+                    199,
+                    81,
+                    247,
+                    345,
+                    282,
+                    124
+                ],
+                "indent": [
+                    165,
+                    200,
+                    83,
+                    248,
+                    346,
+                    283,
+                    126
+                ],
+                "convert_to_line_delimits": [
+                    87
+                ],
+                "fh": [
+                    90,
+                    92,
+                    94
+                ],
+                "handles": [
+                    90
+                ],
+                "_get_handle": [
+                    90,
+                    701
+                ],
+                "compression": [
+                    581,
+                    582,
+                    583,
+                    651,
+                    600,
+                    90
+                ],
+                "fh.write": [
+                    92
+                ],
+                "fh.close": [
+                    94
+                ],
+                "path_or_buf.write": [
+                    98
+                ],
+                "self.obj": [
+                    1028,
+                    1030,
+                    136,
+                    1161,
+                    1040,
+                    1045,
+                    1048,
+                    1051,
+                    173,
+                    1073,
+                    1080,
+                    1082,
+                    1086,
+                    319,
+                    321,
+                    838,
+                    1102,
+                    211,
+                    1111,
+                    216,
+                    1113,
+                    863,
+                    1119,
+                    1121,
+                    868,
+                    874,
+                    876,
+                    879,
+                    1135,
+                    114,
+                    1014,
+                    1016,
+                    1146,
+                    1147,
+                    1148,
+                    1151
+                ],
+                "self": [
+                    1024,
+                    1027,
+                    1028,
+                    1030,
+                    1036,
+                    1040,
+                    1041,
+                    1045,
+                    1047,
+                    1048,
+                    1051,
+                    1161,
+                    1060,
+                    1061,
+                    1069,
+                    1073,
+                    1076,
+                    1079,
+                    1080,
+                    1082,
+                    1083,
+                    1086,
+                    1092,
+                    1098,
+                    1099,
+                    1102,
+                    1103,
+                    1108,
+                    1110,
+                    1111,
+                    1113,
+                    1114,
+                    1119,
+                    1121,
+                    1122,
+                    1135,
+                    114,
+                    117,
+                    119,
+                    120,
+                    121,
+                    122,
+                    123,
+                    124,
+                    125,
+                    126,
+                    1146,
+                    128,
+                    129,
+                    640,
+                    641,
+                    132,
+                    642,
+                    643,
+                    135,
+                    136,
+                    137,
+                    138,
+                    139,
+                    140,
+                    141,
+                    142,
+                    143,
+                    647,
+                    648,
+                    649,
+                    650,
+                    651,
+                    652,
+                    653,
+                    654,
+                    655,
+                    657,
+                    658,
+                    659,
+                    662,
+                    663,
+                    1151,
+                    673,
+                    675,
+                    1189,
+                    1190,
+                    1192,
+                    644,
+                    1153,
+                    173,
+                    645,
+                    1154,
+                    176,
+                    646,
+                    1147,
+                    1156,
+                    700,
+                    190,
+                    1157,
+                    704,
+                    705,
+                    707,
+                    708,
+                    1148,
+                    211,
+                    723,
+                    724,
+                    214,
+                    725,
+                    216,
+                    726,
+                    727,
+                    729,
+                    730,
+                    223,
+                    737,
+                    738,
+                    740,
+                    741,
+                    742,
+                    743,
+                    744,
+                    745,
+                    746,
+                    747,
+                    1165,
+                    237,
+                    767,
+                    769,
+                    774,
+                    776,
+                    777,
+                    780,
+                    781,
+                    785,
+                    294,
+                    811,
+                    814,
+                    815,
+                    817,
+                    824,
+                    826,
+                    828,
+                    318,
+                    319,
+                    830,
+                    321,
+                    322,
+                    323,
+                    324,
+                    832,
+                    833,
+                    834,
+                    835,
+                    836,
+                    837,
+                    838,
+                    844,
+                    337,
+                    856,
+                    858,
+                    861,
+                    863,
+                    865,
+                    866,
+                    867,
+                    868,
+                    874,
+                    875,
+                    876,
+                    879,
+                    882,
+                    891,
+                    893,
+                    898,
+                    908,
+                    981,
+                    987,
+                    997,
+                    1006,
+                    1007,
+                    1011,
+                    1013,
+                    1014,
+                    1016,
+                    1020,
+                    1021
+                ],
+                "self._default_orient": [
+                    117,
+                    814
+                ],
+                "self.orient": [
+                    641,
+                    323,
+                    740,
+                    1061,
+                    137,
+                    1099,
+                    173,
+                    815,
+                    176,
+                    1007,
+                    211,
+                    214,
+                    119,
+                    216,
+                    1021,
+                    223
+                ],
+                "self.date_format": [
+                    120,
+                    322,
+                    141
+                ],
+                "self.double_precision": [
+                    121,
+                    138
+                ],
+                "self.ensure_ascii": [
+                    122,
+                    139
+                ],
+                "ensure_ascii": [
+                    161,
+                    196,
+                    244,
+                    342,
+                    279,
+                    122
+                ],
+                "self.date_unit": [
+                    836,
+                    987,
+                    649,
+                    747,
+                    140,
+                    123
+                ],
+                "self.default_handler": [
+                    124,
+                    142
+                ],
+                "self.index": [
+                    318,
+                    324,
+                    294,
+                    237,
+                    125,
+                    190
+                ],
+                "self.indent": [
+                    126,
+                    143
+                ],
+                "self.is_copy": [
+                    128
+                ],
+                "self._format_axes": [
+                    129
+                ],
+                "AbstractMethodError": [
+                    882,
+                    132,
+                    997
+                ],
+                "self._write": [
+                    135
+                ],
+                "iso_dates": [
+                    344,
+                    163,
+                    198,
+                    246
+                ],
+                "Writer": [
+                    169,
+                    204
+                ],
+                "_default_orient": [
+                    1001,
+                    170,
+                    205,
+                    253,
+                    1055
+                ],
+                "self.obj.index.is_unique": [
+                    211,
+                    173
+                ],
+                "self.obj.index": [
+                    1146,
+                    211,
+                    173
+                ],
+                "format": [
+                    288,
+                    175,
+                    848,
+                    213,
+                    826,
+                    222
+                ],
+                "obj.values": [
+                    191
+                ],
+                "_write": [
+                    192,
+                    240,
+                    338
+                ],
+                "super": [
+                    192,
+                    240,
+                    274,
+                    338
+                ],
+                "self.obj.columns.is_unique": [
+                    216
+                ],
+                "self.obj.columns": [
+                    216,
+                    1147
+                ],
+                "obj.to_dict": [
+                    238
+                ],
+                "__init__": [
+                    274
+                ],
+                "msg": [
+                    306,
+                    307,
+                    292,
+                    287
+                ],
+                "self.schema": [
+                    337,
+                    294
+                ],
+                "build_table_schema": [
+                    294
+                ],
+                "obj.ndim": [
+                    297,
+                    302
+                ],
+                "obj.columns": [
+                    304,
+                    297
+                ],
+                "MultiIndex": [
+                    297
+                ],
+                "set": [
+                    1168,
+                    844,
+                    303
+                ],
+                "obj.index.names": [
+                    304,
+                    303
+                ],
+                "obj.index": [
+                    780,
+                    303,
+                    304,
+                    314,
+                    315
+                ],
+                "len": [
+                    935,
+                    967,
+                    780,
+                    781,
+                    1071,
+                    304,
+                    311
+                ],
+                "obj.copy": [
+                    309
+                ],
+                "timedeltas": [
+                    312,
+                    310,
+                    311
+                ],
+                "columns": [
+                    310
+                ],
+                "obj.select_dtypes": [
+                    310
+                ],
+                "applymap": [
+                    312
+                ],
+                "x.isoformat": [
+                    312
+                ],
+                "x": [
+                    312,
+                    716
+                ],
+                "is_period_dtype": [
+                    314
+                ],
+                "obj.index.to_timestamp": [
+                    315
+                ],
+                "obj.reset_index": [
+                    321,
+                    319
+                ],
+                "table_obj": [
+                    337,
+                    339
+                ],
+                "OrderedDict": [
+                    337
+                ],
+                "serialized": [
+                    338,
+                    349
+                ],
+                "dtype": [
+                    576,
+                    577,
+                    738,
+                    643,
+                    897,
+                    900,
+                    902,
+                    903,
+                    590,
+                    817,
+                    754,
+                    755,
+                    571
+                ],
+                "convert_axes": [
+                    578,
+                    579,
+                    644,
+                    834,
+                    591,
+                    573
+                ],
+                "_infer_compression": [
+                    581
+                ],
+                "filepath_or_buffer": [
+                    608,
+                    640,
+                    582,
+                    587,
+                    690,
+                    662,
+                    695,
+                    702
+                ],
+                "_": [
+                    701,
+                    582
+                ],
+                "should_close": [
+                    582,
+                    607
+                ],
+                "get_filepath_or_buffer": [
+                    582
+                ],
+                "encoding": [
+                    650,
+                    597,
+                    583
+                ],
+                "json_reader": [
+                    586,
+                    604,
+                    606
+                ],
+                "JsonReader": [
+                    586
+                ],
+                "typ": [
+                    737,
+                    642,
+                    589,
+                    750,
+                    753
+                ],
+                "convert_dates": [
+                    835,
+                    645,
+                    1192,
+                    907,
+                    1165,
+                    1166,
+                    1167,
+                    592,
+                    1168
+                ],
+                "keep_default_dates": [
+                    593,
+                    837,
+                    646
+                ],
+                "numpy": [
+                    832,
+                    647,
+                    594,
+                    820,
+                    856,
+                    857
+                ],
+                "precise_float": [
+                    648,
+                    833,
+                    595
+                ],
+                "chunksize": [
+                    603,
+                    653,
+                    599
+                ],
+                "result": [
+                    610,
+                    930,
+                    875,
+                    908,
+                    909,
+                    878,
+                    942,
+                    912,
+                    1137,
+                    1138,
+                    1047,
+                    919,
+                    952,
+                    1050,
+                    956,
+                    606
+                ],
+                "json_reader.read": [
+                    606
+                ],
+                "filepath_or_buffer.close": [
+                    608
+                ],
+                "BaseIterator": [
+                    613
+                ],
+                "self.path_or_buf": [
+                    640
+                ],
+                "self.typ": [
+                    737,
+                    642
+                ],
+                "self.dtype": [
+                    738,
+                    643,
+                    898,
+                    741,
+                    817,
+                    891,
+                    893
+                ],
+                "self.convert_axes": [
+                    865,
+                    834,
+                    644,
+                    742
+                ],
+                "self.convert_dates": [
+                    1153,
+                    835,
+                    645,
+                    743,
+                    1165,
+                    1048
+                ],
+                "self.keep_default_dates": [
+                    744,
+                    1192,
+                    837,
+                    646
+                ],
+                "self.numpy": [
+                    832,
+                    745,
+                    856,
+                    647
+                ],
+                "self.precise_float": [
+                    1024,
+                    833,
+                    1122,
+                    1092,
+                    648,
+                    746,
+                    1036,
+                    1069,
+                    1103,
+                    1041,
+                    1011,
+                    1076,
+                    1108,
+                    1016,
+                    1114,
+                    1083,
+                    1119
+                ],
+                "self.encoding": [
+                    704,
+                    650
+                ],
+                "self.compression": [
+                    705,
+                    651,
+                    700
+                ],
+                "self.lines": [
+                    659,
+                    652,
+                    725,
+                    723
+                ],
+                "self.chunksize": [
+                    673,
+                    675,
+                    774,
+                    653,
+                    657,
+                    658,
+                    723
+                ],
+                "self.nrows_seen": [
+                    780,
+                    781,
+                    654
+                ],
+                "self.should_close": [
+                    767,
+                    707,
+                    655
+                ],
+                "_validate_integer": [
+                    658
+                ],
+                "data": [
+                    903,
+                    905,
+                    908,
+                    914,
+                    662,
+                    663,
+                    918,
+                    923,
+                    925,
+                    673,
+                    674,
+                    675,
+                    676,
+                    929,
+                    678,
+                    935,
+                    939,
+                    940,
+                    941,
+                    690,
+                    947,
+                    693,
+                    951,
+                    956,
+                    701,
+                    708,
+                    710,
+                    967,
+                    968,
+                    970,
+                    973,
+                    726,
+                    727,
+                    985,
+                    994,
+                    892
+                ],
+                "self._get_data_from_filepath": [
+                    662
+                ],
+                "self.data": [
+                    729,
+                    774,
+                    726,
+                    663
+                ],
+                "self._preprocess_data": [
+                    663
+                ],
+                "hasattr": [
+                    673,
+                    675
+                ],
+                "data.read": [
+                    674
+                ],
+                "StringIO": [
+                    676
+                ],
+                "exists": [
+                    700,
+                    692,
+                    695
+                ],
+                "os.path.exists": [
+                    695
+                ],
+                "os.path": [
+                    695
+                ],
+                "os": [
+                    695
+                ],
+                "TypeError": [
+                    931,
+                    904,
+                    974,
+                    943,
+                    920,
+                    697,
+                    953
+                ],
+                "self.open_stream": [
+                    769,
+                    708
+                ],
+                "filter": [
+                    716
+                ],
+                "map": [
+                    716
+                ],
+                "x.strip": [
+                    716
+                ],
+                "join": [
+                    717,
+                    846
+                ],
+                "concat": [
+                    724
+                ],
+                "ensure_str": [
+                    726
+                ],
+                "self._get_object_parser": [
+                    729,
+                    777,
+                    727
+                ],
+                "self._combine_lines": [
+                    776,
+                    727
+                ],
+                "data.split": [
+                    727
+                ],
+                "self.close": [
+                    785,
+                    730
+                ],
+                "kwargs": [
+                    739,
+                    755,
+                    756,
+                    751
+                ],
+                "parse": [
+                    756,
+                    751
+                ],
+                "FrameParser": [
+                    751
+                ],
+                "SeriesParser": [
+                    756
+                ],
+                "self.open_stream.close": [
+                    769
+                ],
+                "IOError": [
+                    770
+                ],
+                "AttributeError": [
+                    770
+                ],
+                "list": [
+                    774
+                ],
+                "islice": [
+                    774
+                ],
+                "lines_json": [
+                    776,
+                    777
+                ],
+                "range": [
+                    780
+                ],
+                "StopIteration": [
+                    786
+                ],
+                "_STAMP_UNITS": [
+                    791
+                ],
+                "_MIN_STAMPS": [
+                    792
+                ],
+                "self.json": [
+                    1060,
+                    1098,
+                    811,
+                    1006,
+                    1020
+                ],
+                "date_unit.lower": [
+                    823
+                ],
+                "self._STAMP_UNITS": [
+                    824,
+                    826,
+                    987
+                ],
+                "self.min_stamp": [
+                    828,
+                    981,
+                    830
+                ],
+                "self._MIN_STAMPS": [
+                    828,
+                    830
+                ],
+                "bad_keys": [
+                    849,
+                    844,
+                    845,
+                    846
+                ],
+                "difference": [
+                    844
+                ],
+                "decoded.keys": [
+                    844
+                ],
+                "decoded": [
+                    1026,
+                    1027,
+                    1028,
+                    844,
+                    1009,
+                    1106,
+                    1075,
+                    1013,
+                    1014,
+                    1078,
+                    1079,
+                    1110,
+                    1080,
+                    1111,
+                    1023
+                ],
+                "self._split_keys": [
+                    844
+                ],
+                "pprint_thing": [
+                    849
+                ],
+                "self._parse_numpy": [
+                    858
+                ],
+                "self._parse_no_numpy": [
+                    861
+                ],
+                "self._convert_axes": [
+                    866
+                ],
+                "self._try_convert_types": [
+                    867
+                ],
+                "axis": [
+                    874,
+                    876,
+                    879
+                ],
+                "self.obj._AXIS_NUMBERS.keys": [
+                    874
+                ],
+                "self.obj._AXIS_NUMBERS": [
+                    874
+                ],
+                "new_axis": [
+                    875,
+                    879
+                ],
+                "self._try_convert_data": [
+                    875,
+                    1157,
+                    1047
+                ],
+                "self.obj._get_axis": [
+                    876
+                ],
+                "setattr": [
+                    879
+                ],
+                "use_dtypes": [
+                    890
+                ],
+                "dict": [
+                    898,
+                    1134
+                ],
+                "self.dtype.get": [
+                    898
+                ],
+                "name": [
+                    898
+                ],
+                "np.dtype": [
+                    902
+                ],
+                "np": [
+                    978,
+                    902
+                ],
+                "data.astype": [
+                    929,
+                    903,
+                    939,
+                    973,
+                    918,
+                    951
+                ],
+                "new_data": [
+                    993,
+                    970,
+                    939,
+                    940,
+                    908,
+                    941,
+                    910,
+                    971,
+                    973,
+                    978,
+                    1137,
+                    980,
+                    981,
+                    982,
+                    1139,
+                    990
+                ],
+                "self._try_convert_to_date": [
+                    908,
+                    1190
+                ],
+                "data.dtype": [
+                    935,
+                    914,
+                    947,
+                    923,
+                    925
+                ],
+                "data.dtype.kind": [
+                    923
+                ],
+                "all": [
+                    940
+                ],
+                "new_data.dtype": [
+                    978,
+                    971
+                ],
+                "OverflowError": [
+                    974,
+                    991
+                ],
+                "issubclass": [
+                    978
+                ],
+                "new_data.dtype.type": [
+                    978
+                ],
+                "np.number": [
+                    978
+                ],
+                "in_range": [
+                    984,
+                    979
+                ],
+                "isna": [
+                    980
+                ],
+                "new_data.values": [
+                    980,
+                    982
+                ],
+                "iNaT": [
+                    982
+                ],
+                "in_range.all": [
+                    984
+                ],
+                "date_units": [
+                    987,
+                    988
+                ],
+                "to_datetime": [
+                    990
+                ],
+                "Parser": [
+                    1000,
+                    1054
+                ],
+                "_split_keys": [
+                    1056,
+                    1002
+                ],
+                "k": [
+                    1026,
+                    1010,
+                    1011,
+                    1107,
+                    1108,
+                    1078
+                ],
+                "v": [
+                    1026,
+                    1010,
+                    1011,
+                    1107,
+                    1108,
+                    1078
+                ],
+                "items": [
+                    1011,
+                    1108
+                ],
+                "self.check_keys_split": [
+                    1027,
+                    1013,
+                    1110,
+                    1079
+                ],
+                "decoded.items": [
+                    1026,
+                    1078
+                ],
+                "args": [
+                    1064,
+                    1073,
+                    1072,
+                    1071
+                ],
+                "T": [
+                    1072
+                ],
+                "DataFrame.from_dict": [
+                    1113
+                ],
+                "parse_table_schema": [
+                    1119
+                ],
+                "filt": [
+                    1136,
+                    1130,
+                    1131
+                ],
+                "needs_new_obj": [
+                    1140,
+                    1133,
+                    1143
+                ],
+                "new_obj": [
+                    1134,
+                    1141,
+                    1146,
+                    1147,
+                    1148
+                ],
+                "i": [
+                    1141,
+                    1135
+                ],
+                "col": [
+                    1157,
+                    1192,
+                    1135,
+                    1136,
+                    1137,
+                    1174,
+                    1177
+                ],
+                "c": [
+                    1157,
+                    1190,
+                    1135,
+                    1136,
+                    1137,
+                    1139,
+                    1141
+                ],
+                "enumerate": [
+                    1135
+                ],
+                "self.obj.items": [
+                    1135
+                ],
+                "f": [
+                    1137
+                ],
+                "new_obj.columns": [
+                    1147
+                ],
+                "self._try_convert_dates": [
+                    1154
+                ],
+                "self._process_converter": [
+                    1156,
+                    1189
+                ],
+                "col_lower": [
+                    1184,
+                    1177,
+                    1179,
+                    1180,
+                    1181,
+                    1182,
+                    1183
+                ],
+                "col.lower": [
+                    1177
+                ],
+                "col_lower.endswith": [
+                    1179,
+                    1180
+                ],
+                "col_lower.startswith": [
+                    1184
+                ],
+                "is_ok": [
+                    1192
+                ]
+            },
+            "filtered_variables_in_file": {
+                "loads": [
+                    32,
+                    1122,
+                    1031,
+                    1064,
+                    1103,
+                    1041,
+                    1011,
+                    1075,
+                    1108,
+                    1016,
+                    1114,
+                    1083,
+                    1087,
+                    1023
+                ],
+                "json.loads": [
+                    32
+                ],
+                "json": [
+                    1024,
+                    1032,
+                    1041,
+                    32,
+                    33,
+                    1060,
+                    1065,
+                    811,
+                    1076,
+                    1083,
+                    1088,
+                    1098,
+                    1103,
+                    1108,
+                    1114,
+                    1119,
+                    1122,
+                    1006,
+                    751,
+                    1011,
+                    756,
+                    1016,
+                    1020
+                ],
+                "dumps": [
+                    33,
+                    157
+                ],
+                "json.dumps": [
+                    33
+                ],
+                "TABLE_SCHEMA_VERSION": [
+                    35
+                ],
+                "Optional": [
+                    258,
+                    229,
+                    264,
+                    105,
+                    42,
+                    234,
+                    111,
+                    47,
+                    49,
+                    149,
+                    182,
+                    154,
+                    187
+                ],
+                "Callable": [
+                    264,
+                    234,
+                    111,
+                    47,
+                    154,
+                    187
+                ],
+                "Any": [
+                    264,
+                    234,
+                    111,
+                    47,
+                    154,
+                    187
+                ],
+                "JSONSerializable": [
+                    264,
+                    234,
+                    111,
+                    47,
+                    154,
+                    187
+                ],
+                "index": [
+                    324,
+                    82,
+                    54,
+                    281,
+                    125
+                ],
+                "orient": [
+                    641,
+                    1029,
+                    276,
+                    159,
+                    1061,
+                    1063,
+                    813,
+                    814,
+                    815,
+                    1074,
+                    819,
+                    54,
+                    1081,
+                    571,
+                    60,
+                    573,
+                    190,
+                    63,
+                    576,
+                    65,
+                    194,
+                    578,
+                    1099,
+                    76,
+                    588,
+                    1101,
+                    1105,
+                    340,
+                    1112,
+                    1118,
+                    237,
+                    1007,
+                    1008,
+                    242,
+                    116,
+                    117,
+                    119,
+                    1021,
+                    1022
+                ],
+                "path_or_buf": [
+                    98,
+                    581,
+                    583,
+                    89,
+                    90,
+                    59,
+                    95
+                ],
+                "_stringify_path": [
+                    59
+                ],
+                "lines": [
+                    774,
+                    775,
+                    776,
+                    716,
+                    652,
+                    717,
+                    598,
+                    86,
+                    60
+                ],
+                "obj": [
+                    777,
+                    780,
+                    781,
+                    783,
+                    275,
+                    1047,
+                    1051,
+                    158,
+                    294,
+                    297,
+                    302,
+                    303,
+                    304,
+                    309,
+                    310,
+                    312,
+                    314,
+                    315,
+                    191,
+                    64,
+                    65,
+                    193,
+                    67,
+                    63,
+                    69,
+                    319,
+                    321,
+                    75,
+                    337,
+                    724,
+                    727,
+                    729,
+                    731,
+                    749,
+                    238,
+                    239,
+                    751,
+                    241,
+                    114,
+                    753,
+                    756,
+                    758
+                ],
+                "Series": [
+                    67,
+                    1028,
+                    1030,
+                    1040,
+                    1014,
+                    1016,
+                    63
+                ],
+                "obj.to_frame": [
+                    64
+                ],
+                "obj.name": [
+                    64,
+                    303,
+                    191
+                ],
+                "DataFrame": [
+                    65,
+                    1121,
+                    69,
+                    1146,
+                    1102,
+                    1073,
+                    1111,
+                    1080,
+                    1113,
+                    1082,
+                    1086
+                ],
+                "writer": [
+                    66,
+                    68,
+                    74,
+                    70
+                ],
+                "JSONTableWriter": [
+                    66
+                ],
+                "SeriesWriter": [
+                    68
+                ],
+                "FrameWriter": [
+                    252,
+                    70
+                ],
+                "s": [
+                    96,
+                    98,
+                    74,
+                    87,
+                    92
+                ],
+                "write": [
+                    74
+                ],
+                "date_format": [
+                    290,
+                    77,
+                    277,
+                    120,
+                    286
+                ],
+                "double_precision": [
+                    160,
+                    195,
+                    78,
+                    243,
+                    341,
+                    278,
+                    121
+                ],
+                "force_ascii": [
+                    79
+                ],
+                "date_unit": [
+                    162,
+                    836,
+                    197,
+                    649,
+                    988,
+                    823,
+                    80,
+                    824,
+                    596,
+                    245,
+                    822,
+                    343,
+                    280,
+                    123,
+                    828,
+                    990
+                ],
+                "default_handler": [
+                    164,
+                    199,
+                    81,
+                    247,
+                    345,
+                    282,
+                    124
+                ],
+                "indent": [
+                    165,
+                    200,
+                    83,
+                    248,
+                    346,
+                    283,
+                    126
+                ],
+                "convert_to_line_delimits": [
+                    87
+                ],
+                "fh": [
+                    90,
+                    92,
+                    94
+                ],
+                "handles": [
+                    90
+                ],
+                "_get_handle": [
+                    90,
+                    701
+                ],
+                "compression": [
+                    581,
+                    582,
+                    583,
+                    651,
+                    600,
+                    90
+                ],
+                "fh.write": [
+                    92
+                ],
+                "fh.close": [
+                    94
+                ],
+                "path_or_buf.write": [
+                    98
+                ],
+                "self.obj": [
+                    1028,
+                    1030,
+                    136,
+                    1161,
+                    1040,
+                    1045,
+                    1048,
+                    1051,
+                    173,
+                    1073,
+                    1080,
+                    1082,
+                    1086,
+                    319,
+                    321,
+                    838,
+                    1102,
+                    211,
+                    1111,
+                    216,
+                    1113,
+                    863,
+                    1119,
+                    1121,
+                    868,
+                    874,
+                    876,
+                    879,
+                    1135,
+                    114,
+                    1014,
+                    1016,
+                    1146,
+                    1147,
+                    1148,
+                    1151
+                ],
+                "self": [
+                    1024,
+                    1027,
+                    1028,
+                    1030,
+                    1036,
+                    1040,
+                    1041,
+                    1045,
+                    1047,
+                    1048,
+                    1051,
+                    1161,
+                    1060,
+                    1061,
+                    1069,
+                    1073,
+                    1076,
+                    1079,
+                    1080,
+                    1082,
+                    1083,
+                    1086,
+                    1092,
+                    1098,
+                    1099,
+                    1102,
+                    1103,
+                    1108,
+                    1110,
+                    1111,
+                    1113,
+                    1114,
+                    1119,
+                    1121,
+                    1122,
+                    1135,
+                    114,
+                    117,
+                    119,
+                    120,
+                    121,
+                    122,
+                    123,
+                    124,
+                    125,
+                    126,
+                    1146,
+                    128,
+                    129,
+                    640,
+                    641,
+                    132,
+                    642,
+                    643,
+                    135,
+                    136,
+                    137,
+                    138,
+                    139,
+                    140,
+                    141,
+                    142,
+                    143,
+                    647,
+                    648,
+                    649,
+                    650,
+                    651,
+                    652,
+                    653,
+                    654,
+                    655,
+                    657,
+                    658,
+                    659,
+                    662,
+                    663,
+                    1151,
+                    673,
+                    675,
+                    1189,
+                    1190,
+                    1192,
+                    644,
+                    1153,
+                    173,
+                    645,
+                    1154,
+                    176,
+                    646,
+                    1147,
+                    1156,
+                    700,
+                    190,
+                    1157,
+                    704,
+                    705,
+                    707,
+                    708,
+                    1148,
+                    211,
+                    723,
+                    724,
+                    214,
+                    725,
+                    216,
+                    726,
+                    727,
+                    729,
+                    730,
+                    223,
+                    737,
+                    738,
+                    740,
+                    741,
+                    742,
+                    743,
+                    744,
+                    745,
+                    746,
+                    747,
+                    1165,
+                    237,
+                    767,
+                    769,
+                    774,
+                    776,
+                    777,
+                    780,
+                    781,
+                    785,
+                    294,
+                    811,
+                    814,
+                    815,
+                    817,
+                    824,
+                    826,
+                    828,
+                    318,
+                    319,
+                    830,
+                    321,
+                    322,
+                    323,
+                    324,
+                    832,
+                    833,
+                    834,
+                    835,
+                    836,
+                    837,
+                    838,
+                    844,
+                    337,
+                    856,
+                    858,
+                    861,
+                    863,
+                    865,
+                    866,
+                    867,
+                    868,
+                    874,
+                    875,
+                    876,
+                    879,
+                    882,
+                    891,
+                    893,
+                    898,
+                    908,
+                    981,
+                    987,
+                    997,
+                    1006,
+                    1007,
+                    1011,
+                    1013,
+                    1014,
+                    1016,
+                    1020,
+                    1021
+                ],
+                "self._default_orient": [
+                    117,
+                    814
+                ],
+                "self.orient": [
+                    641,
+                    323,
+                    740,
+                    1061,
+                    137,
+                    1099,
+                    173,
+                    815,
+                    176,
+                    1007,
+                    211,
+                    214,
+                    119,
+                    216,
+                    1021,
+                    223
+                ],
+                "self.date_format": [
+                    120,
+                    322,
+                    141
+                ],
+                "self.double_precision": [
+                    121,
+                    138
+                ],
+                "self.ensure_ascii": [
+                    122,
+                    139
+                ],
+                "ensure_ascii": [
+                    161,
+                    196,
+                    244,
+                    342,
+                    279,
+                    122
+                ],
+                "self.date_unit": [
+                    836,
+                    987,
+                    649,
+                    747,
+                    140,
+                    123
+                ],
+                "self.default_handler": [
+                    124,
+                    142
+                ],
+                "self.index": [
+                    318,
+                    324,
+                    294,
+                    237,
+                    125,
+                    190
+                ],
+                "self.indent": [
+                    126,
+                    143
+                ],
+                "self.is_copy": [
+                    128
+                ],
+                "self._format_axes": [
+                    129
+                ],
+                "AbstractMethodError": [
+                    882,
+                    132,
+                    997
+                ],
+                "self._write": [
+                    135
+                ],
+                "iso_dates": [
+                    344,
+                    163,
+                    198,
+                    246
+                ],
+                "Writer": [
+                    169,
+                    204
+                ],
+                "_default_orient": [
+                    1001,
+                    170,
+                    205,
+                    253,
+                    1055
+                ],
+                "self.obj.index.is_unique": [
+                    211,
+                    173
+                ],
+                "self.obj.index": [
+                    1146,
+                    211,
+                    173
+                ],
+                "obj.values": [
+                    191
+                ],
+                "_write": [
+                    192,
+                    240,
+                    338
+                ],
+                "self.obj.columns.is_unique": [
+                    216
+                ],
+                "self.obj.columns": [
+                    216,
+                    1147
+                ],
+                "obj.to_dict": [
+                    238
+                ],
+                "__init__": [
+                    274
+                ],
+                "msg": [
+                    306,
+                    307,
+                    292,
+                    287
+                ],
+                "self.schema": [
+                    337,
+                    294
+                ],
+                "build_table_schema": [
+                    294
+                ],
+                "obj.ndim": [
+                    297,
+                    302
+                ],
+                "obj.columns": [
+                    304,
+                    297
+                ],
+                "MultiIndex": [
+                    297
+                ],
+                "obj.index.names": [
+                    304,
+                    303
+                ],
+                "obj.index": [
+                    780,
+                    303,
+                    304,
+                    314,
+                    315
+                ],
+                "obj.copy": [
+                    309
+                ],
+                "timedeltas": [
+                    312,
+                    310,
+                    311
+                ],
+                "columns": [
+                    310
+                ],
+                "obj.select_dtypes": [
+                    310
+                ],
+                "applymap": [
+                    312
+                ],
+                "x.isoformat": [
+                    312
+                ],
+                "x": [
+                    312,
+                    716
+                ],
+                "is_period_dtype": [
+                    314
+                ],
+                "obj.index.to_timestamp": [
+                    315
+                ],
+                "obj.reset_index": [
+                    321,
+                    319
+                ],
+                "table_obj": [
+                    337,
+                    339
+                ],
+                "OrderedDict": [
+                    337
+                ],
+                "serialized": [
+                    338,
+                    349
+                ],
+                "dtype": [
+                    576,
+                    577,
+                    738,
+                    643,
+                    897,
+                    900,
+                    902,
+                    903,
+                    590,
+                    817,
+                    754,
+                    755,
+                    571
+                ],
+                "convert_axes": [
+                    578,
+                    579,
+                    644,
+                    834,
+                    591,
+                    573
+                ],
+                "_infer_compression": [
+                    581
+                ],
+                "filepath_or_buffer": [
+                    608,
+                    640,
+                    582,
+                    587,
+                    690,
+                    662,
+                    695,
+                    702
+                ],
+                "_": [
+                    701,
+                    582
+                ],
+                "should_close": [
+                    582,
+                    607
+                ],
+                "get_filepath_or_buffer": [
+                    582
+                ],
+                "encoding": [
+                    650,
+                    597,
+                    583
+                ],
+                "json_reader": [
+                    586,
+                    604,
+                    606
+                ],
+                "JsonReader": [
+                    586
+                ],
+                "typ": [
+                    737,
+                    642,
+                    589,
+                    750,
+                    753
+                ],
+                "convert_dates": [
+                    835,
+                    645,
+                    1192,
+                    907,
+                    1165,
+                    1166,
+                    1167,
+                    592,
+                    1168
+                ],
+                "keep_default_dates": [
+                    593,
+                    837,
+                    646
+                ],
+                "numpy": [
+                    832,
+                    647,
+                    594,
+                    820,
+                    856,
+                    857
+                ],
+                "precise_float": [
+                    648,
+                    833,
+                    595
+                ],
+                "chunksize": [
+                    603,
+                    653,
+                    599
+                ],
+                "result": [
+                    610,
+                    930,
+                    875,
+                    908,
+                    909,
+                    878,
+                    942,
+                    912,
+                    1137,
+                    1138,
+                    1047,
+                    919,
+                    952,
+                    1050,
+                    956,
+                    606
+                ],
+                "json_reader.read": [
+                    606
+                ],
+                "filepath_or_buffer.close": [
+                    608
+                ],
+                "BaseIterator": [
+                    613
+                ],
+                "self.path_or_buf": [
+                    640
+                ],
+                "self.typ": [
+                    737,
+                    642
+                ],
+                "self.dtype": [
+                    738,
+                    643,
+                    898,
+                    741,
+                    817,
+                    891,
+                    893
+                ],
+                "self.convert_axes": [
+                    865,
+                    834,
+                    644,
+                    742
+                ],
+                "self.convert_dates": [
+                    1153,
+                    835,
+                    645,
+                    743,
+                    1165,
+                    1048
+                ],
+                "self.keep_default_dates": [
+                    744,
+                    1192,
+                    837,
+                    646
+                ],
+                "self.numpy": [
+                    832,
+                    745,
+                    856,
+                    647
+                ],
+                "self.precise_float": [
+                    1024,
+                    833,
+                    1122,
+                    1092,
+                    648,
+                    746,
+                    1036,
+                    1069,
+                    1103,
+                    1041,
+                    1011,
+                    1076,
+                    1108,
+                    1016,
+                    1114,
+                    1083,
+                    1119
+                ],
+                "self.encoding": [
+                    704,
+                    650
+                ],
+                "self.compression": [
+                    705,
+                    651,
+                    700
+                ],
+                "self.lines": [
+                    659,
+                    652,
+                    725,
+                    723
+                ],
+                "self.chunksize": [
+                    673,
+                    675,
+                    774,
+                    653,
+                    657,
+                    658,
+                    723
+                ],
+                "self.nrows_seen": [
+                    780,
+                    781,
+                    654
+                ],
+                "self.should_close": [
+                    767,
+                    707,
+                    655
+                ],
+                "_validate_integer": [
+                    658
+                ],
+                "data": [
+                    903,
+                    905,
+                    908,
+                    914,
+                    662,
+                    663,
+                    918,
+                    923,
+                    925,
+                    673,
+                    674,
+                    675,
+                    676,
+                    929,
+                    678,
+                    935,
+                    939,
+                    940,
+                    941,
+                    690,
+                    947,
+                    693,
+                    951,
+                    956,
+                    701,
+                    708,
+                    710,
+                    967,
+                    968,
+                    970,
+                    973,
+                    726,
+                    727,
+                    985,
+                    994,
+                    892
+                ],
+                "self._get_data_from_filepath": [
+                    662
+                ],
+                "self.data": [
+                    729,
+                    774,
+                    726,
+                    663
+                ],
+                "self._preprocess_data": [
+                    663
+                ],
+                "data.read": [
+                    674
+                ],
+                "StringIO": [
+                    676
+                ],
+                "exists": [
+                    700,
+                    692,
+                    695
+                ],
+                "os.path.exists": [
+                    695
+                ],
+                "os.path": [
+                    695
+                ],
+                "os": [
+                    695
+                ],
+                "self.open_stream": [
+                    769,
+                    708
+                ],
+                "x.strip": [
+                    716
+                ],
+                "join": [
+                    717,
+                    846
+                ],
+                "concat": [
+                    724
+                ],
+                "ensure_str": [
+                    726
+                ],
+                "self._get_object_parser": [
+                    729,
+                    777,
+                    727
+                ],
+                "self._combine_lines": [
+                    776,
+                    727
+                ],
+                "data.split": [
+                    727
+                ],
+                "self.close": [
+                    785,
+                    730
+                ],
+                "kwargs": [
+                    739,
+                    755,
+                    756,
+                    751
+                ],
+                "parse": [
+                    756,
+                    751
+                ],
+                "FrameParser": [
+                    751
+                ],
+                "SeriesParser": [
+                    756
+                ],
+                "self.open_stream.close": [
+                    769
+                ],
+                "islice": [
+                    774
+                ],
+                "lines_json": [
+                    776,
+                    777
+                ],
+                "_STAMP_UNITS": [
+                    791
+                ],
+                "_MIN_STAMPS": [
+                    792
+                ],
+                "self.json": [
+                    1060,
+                    1098,
+                    811,
+                    1006,
+                    1020
+                ],
+                "date_unit.lower": [
+                    823
+                ],
+                "self._STAMP_UNITS": [
+                    824,
+                    826,
+                    987
+                ],
+                "self.min_stamp": [
+                    828,
+                    981,
+                    830
+                ],
+                "self._MIN_STAMPS": [
+                    828,
+                    830
+                ],
+                "bad_keys": [
+                    849,
+                    844,
+                    845,
+                    846
+                ],
+                "difference": [
+                    844
+                ],
+                "decoded.keys": [
+                    844
+                ],
+                "decoded": [
+                    1026,
+                    1027,
+                    1028,
+                    844,
+                    1009,
+                    1106,
+                    1075,
+                    1013,
+                    1014,
+                    1078,
+                    1079,
+                    1110,
+                    1080,
+                    1111,
+                    1023
+                ],
+                "self._split_keys": [
+                    844
+                ],
+                "pprint_thing": [
+                    849
+                ],
+                "self._parse_numpy": [
+                    858
+                ],
+                "self._parse_no_numpy": [
+                    861
+                ],
+                "self._convert_axes": [
+                    866
+                ],
+                "self._try_convert_types": [
+                    867
+                ],
+                "axis": [
+                    874,
+                    876,
+                    879
+                ],
+                "self.obj._AXIS_NUMBERS.keys": [
+                    874
+                ],
+                "self.obj._AXIS_NUMBERS": [
+                    874
+                ],
+                "new_axis": [
+                    875,
+                    879
+                ],
+                "self._try_convert_data": [
+                    875,
+                    1157,
+                    1047
+                ],
+                "self.obj._get_axis": [
+                    876
+                ],
+                "use_dtypes": [
+                    890
+                ],
+                "self.dtype.get": [
+                    898
+                ],
+                "name": [
+                    898
+                ],
+                "np.dtype": [
+                    902
+                ],
+                "np": [
+                    978,
+                    902
+                ],
+                "data.astype": [
+                    929,
+                    903,
+                    939,
+                    973,
+                    918,
+                    951
+                ],
+                "new_data": [
+                    993,
+                    970,
+                    939,
+                    940,
+                    908,
+                    941,
+                    910,
+                    971,
+                    973,
+                    978,
+                    1137,
+                    980,
+                    981,
+                    982,
+                    1139,
+                    990
+                ],
+                "self._try_convert_to_date": [
+                    908,
+                    1190
+                ],
+                "data.dtype": [
+                    935,
+                    914,
+                    947,
+                    923,
+                    925
+                ],
+                "data.dtype.kind": [
+                    923
+                ],
+                "new_data.dtype": [
+                    978,
+                    971
+                ],
+                "new_data.dtype.type": [
+                    978
+                ],
+                "np.number": [
+                    978
+                ],
+                "in_range": [
+                    984,
+                    979
+                ],
+                "isna": [
+                    980
+                ],
+                "new_data.values": [
+                    980,
+                    982
+                ],
+                "iNaT": [
+                    982
+                ],
+                "in_range.all": [
+                    984
+                ],
+                "date_units": [
+                    987,
+                    988
+                ],
+                "to_datetime": [
+                    990
+                ],
+                "Parser": [
+                    1000,
+                    1054
+                ],
+                "_split_keys": [
+                    1056,
+                    1002
+                ],
+                "k": [
+                    1026,
+                    1010,
+                    1011,
+                    1107,
+                    1108,
+                    1078
+                ],
+                "v": [
+                    1026,
+                    1010,
+                    1011,
+                    1107,
+                    1108,
+                    1078
+                ],
+                "items": [
+                    1011,
+                    1108
+                ],
+                "self.check_keys_split": [
+                    1027,
+                    1013,
+                    1110,
+                    1079
+                ],
+                "decoded.items": [
+                    1026,
+                    1078
+                ],
+                "args": [
+                    1064,
+                    1073,
+                    1072,
+                    1071
+                ],
+                "T": [
+                    1072
+                ],
+                "DataFrame.from_dict": [
+                    1113
+                ],
+                "parse_table_schema": [
+                    1119
+                ],
+                "filt": [
+                    1136,
+                    1130,
+                    1131
+                ],
+                "needs_new_obj": [
+                    1140,
+                    1133,
+                    1143
+                ],
+                "new_obj": [
+                    1134,
+                    1141,
+                    1146,
+                    1147,
+                    1148
+                ],
+                "i": [
+                    1141,
+                    1135
+                ],
+                "col": [
+                    1157,
+                    1192,
+                    1135,
+                    1136,
+                    1137,
+                    1174,
+                    1177
+                ],
+                "c": [
+                    1157,
+                    1190,
+                    1135,
+                    1136,
+                    1137,
+                    1139,
+                    1141
+                ],
+                "self.obj.items": [
+                    1135
+                ],
+                "f": [
+                    1137
+                ],
+                "new_obj.columns": [
+                    1147
+                ],
+                "self._try_convert_dates": [
+                    1154
+                ],
+                "self._process_converter": [
+                    1156,
+                    1189
+                ],
+                "col_lower": [
+                    1184,
+                    1177,
+                    1179,
+                    1180,
+                    1181,
+                    1182,
+                    1183
+                ],
+                "col.lower": [
+                    1177
+                ],
+                "col_lower.endswith": [
+                    1179,
+                    1180
+                ],
+                "col_lower.startswith": [
+                    1184
+                ],
+                "is_ok": [
+                    1192
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_128/pandas/tests/io/json/test_readlines.py",
+                "test_function": "test_readjson_unicode",
+                "test_function_code": "def test_readjson_unicode(monkeypatch):\n    with tm.ensure_clean(\"test.json\") as path:\n        monkeypatch.setattr(\"_bootlocale.getpreferredencoding\", lambda l: \"cp949\")\n        with open(path, \"w\", encoding=\"utf-8\") as f:\n            f.write('{\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\":[\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]}')\n\n        result = read_json(path)\n        expected = pd.DataFrame({\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\": [\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]})\n        tm.assert_frame_equal(result, expected)",
+                "test_error": "AssertionError: DataFrame.columns are different  DataFrame.columns values are different (100.0 %) [left]:  Index(['\uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc'], dtype='object') [right]: Index(['\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff'], dtype='object')",
+                "full_test_error": "monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x117f843d0>\n\n    def test_readjson_unicode(monkeypatch):\n        with tm.ensure_clean(\"test.json\") as path:\n            monkeypatch.setattr(\"_bootlocale.getpreferredencoding\", lambda l: \"cp949\")\n            with open(path, \"w\", encoding=\"utf-8\") as f:\n                f.write('{\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\":[\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]}')\n    \n            result = read_json(path)\n            expected = pd.DataFrame({\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\": [\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]})\n>           tm.assert_frame_equal(result, expected)\n\npandas/tests/io/json/test_readlines.py:186: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: DataFrame.columns are different\nE   \nE   DataFrame.columns values are different (100.0 %)\nE   [left]:  Index(['\uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc'], dtype='object')\nE   [right]: Index(['\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff'], dtype='object')\n\npandas/_libs/testing.pyx:174: AssertionError",
+                "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: DataFrame.columns are different\nE   \nE   DataFrame.columns values are different (100.0 %)\nE   [left]:  Index(['\uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc'], dtype='object')\nE   [right]: Index(['\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff'], dtype='object')\n\npandas/_libs/testing.pyx:174: AssertionError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}
