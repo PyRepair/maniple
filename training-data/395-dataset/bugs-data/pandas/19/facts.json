@@ -1,0 +1,360 @@
+{
+    "1.1.1": "def _getitem_axis(self, key, axis: int):\n    key = item_from_zerodim(key)\n    if is_iterator(key):\n        key = list(key)\n\n    labels = self.obj._get_axis(axis)\n    key = labels._get_partial_string_timestamp_match_key(key)\n\n    if isinstance(key, slice):\n        self._validate_key(key, axis)\n        return self._get_slice_axis(key, axis=axis)\n    elif com.is_bool_indexer(key):\n        return self._getbool_axis(key, axis=axis)\n    elif is_list_like_indexer(key):\n\n        # convert various list-like indexers\n        # to a list of keys\n        # we will use the *values* of the object\n        # and NOT the index if its a PandasObject\n        if isinstance(labels, ABCMultiIndex):\n\n            if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:\n                # Series, or 0,1 ndim ndarray\n                # GH 14730\n                key = list(key)\n            elif isinstance(key, ABCDataFrame):\n                # GH 15438\n                raise NotImplementedError(\n                    \"Indexing a MultiIndex with a \"\n                    \"DataFrame key is not \"\n                    \"implemented\"\n                )\n            elif hasattr(key, \"ndim\") and key.ndim > 1:\n                raise NotImplementedError(\n                    \"Indexing a MultiIndex with a \"\n                    \"multidimensional key is not \"\n                    \"implemented\"\n                )\n\n            if (\n                not isinstance(key, tuple)\n                and len(key)\n                and not isinstance(key[0], tuple)\n            ):\n                key = tuple([key])\n\n        # an iterable multi-selection\n        if not (isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)):\n\n            if hasattr(key, \"ndim\") and key.ndim > 1:\n                raise ValueError(\"Cannot index with multidimensional key\")\n\n            return self._getitem_iterable(key, axis=axis)\n\n        # nested tuple slicing\n        if is_nested_tuple(key, labels):\n            locs = labels.get_locs(key)\n            indexer = [slice(None)] * self.ndim\n            indexer[axis] = locs\n            return self.obj.iloc[tuple(indexer)]\n\n    # fall thru to straight lookup\n    self._validate_key(key, axis)\n    return self._get_label(key, axis=axis)\n",
+    "1.1.2": null,
+    "1.2.1": "@doc(IndexingMixin.loc)\nclass _LocIndexer(_LocationIndexer)",
+    "1.2.2": null,
+    "1.2.3": [
+        "_validate_key(self, key, axis: int)",
+        "_getitem_iterable(self, key, axis: int)",
+        "_get_label(self, label, axis: int)",
+        "_get_slice_axis(self, slice_obj: slice, axis: int)"
+    ],
+    "1.3.1": "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/core/indexing.py",
+    "1.3.2": [
+        "is_nested_tuple(tup, labels) -> bool",
+        "iloc(self) -> '_iLocIndexer'",
+        "_validate_key(self, key, axis: int)",
+        "_getbool_axis(self, key, axis: int)",
+        "_validate_key(self, key, axis: int)",
+        "_getitem_iterable(self, key, axis: int)",
+        "_get_label(self, label, axis: int)",
+        "_get_slice_axis(self, slice_obj: slice, axis: int)",
+        "_validate_key(self, key, axis: int)",
+        "_get_slice_axis(self, slice_obj: slice, axis: int)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n\n        with pytest.raises(KeyError, match=\"not in index\"):\n            df.loc[key]",
+        "    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n\n        with pytest.raises(KeyError, match=\"not in index\"):\n            df.loc[key]",
+        "    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n\n        with pytest.raises(KeyError, match=\"not in index\"):\n            df.loc[key]",
+        "    def test_per_axis_per_level_getitem(self):\n\n        # GH6134\n        # example test case\n        ix = MultiIndex.from_product(\n            [_mklbl(\"A\", 5), _mklbl(\"B\", 7), _mklbl(\"C\", 4), _mklbl(\"D\", 2)]\n        )\n        df = DataFrame(np.arange(len(ix.to_numpy())), index=ix)\n\n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), [\"C1\", \"C3\"]), :]\n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_frame_equal(result, expected)\n\n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\")\n                and (c == \"C1\" or c == \"C2\" or c == \"C3\")\n            ]\n        ]\n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), slice(\"C1\", \"C3\")), :]\n        tm.assert_frame_equal(result, expected)\n\n        # test multi-index slicing with per axis and per index controls\n        index = MultiIndex.from_tuples(\n            [(\"A\", 1), (\"A\", 2), (\"A\", 3), (\"B\", 1)], names=[\"one\", \"two\"]\n        )\n        columns = MultiIndex.from_tuples(\n            [(\"a\", \"foo\"), (\"a\", \"bar\"), (\"b\", \"foo\"), (\"b\", \"bah\")],\n            names=[\"lvl0\", \"lvl1\"],\n        )\n\n        df = DataFrame(\n            np.arange(16, dtype=\"int64\").reshape(4, 4), index=index, columns=columns\n        )\n        df = df.sort_index(axis=0).sort_index(axis=1)\n\n        # identity\n        result = df.loc[(slice(None), slice(None)), :]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[(slice(None), slice(None)), (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[:, (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n\n        # index\n        result = df.loc[(slice(None), [1]), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        result = df.loc[(slice(None), 1), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # columns\n        result = df.loc[:, (slice(None), [\"foo\"])]\n        expected = df.iloc[:, [1, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # both\n        result = df.loc[(slice(None), 1), (slice(None), [\"foo\"])]\n        expected = df.iloc[[0, 3], [1, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        result = df.loc[\"A\", \"a\"]\n        expected = DataFrame(\n            dict(bar=[1, 5, 9], foo=[0, 4, 8]),\n            index=Index([1, 2, 3], name=\"two\"),\n            columns=Index([\"bar\", \"foo\"], name=\"lvl1\"),\n        )\n        tm.assert_frame_equal(result, expected)\n\n        result = df.loc[(slice(None), [1, 2]), :]\n        expected = df.iloc[[0, 1, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # multi-level series\n        s = Series(np.arange(len(ix.to_numpy())), index=ix)\n        result = s.loc[\"A1\":\"A3\", :, [\"C1\", \"C3\"]]\n        expected = s.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in s.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_series_equal(result, expected)\n\n        # boolean indexers\n        result = df.loc[(slice(None), df.loc[:, (\"a\", \"bar\")] > 5), :]\n        expected = df.iloc[[2, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        msg = (\n            \"cannot index with a boolean indexer \"\n            \"that is not the same length as the index\"\n        )\n        with pytest.raises(ValueError, match=msg):\n            df.loc[(slice(None), np.array([True, False])), :]\n\n        with pytest.raises(KeyError, match=r\"\\[1\\] not in index\"):\n            # slice(None) is on the index, [1] is on the columns, but 1 is\n            #  not in the columns, so we raise\n            #  This used to treat [1] as positional GH#16396\n            df.loc[slice(None), [1]]\n\n        result = df.loc[(slice(None), [1]), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # not lexsorted\n        assert df.index.lexsort_depth == 2\n        df = df.sort_index(level=1, axis=0)\n        assert df.index.lexsort_depth == 0\n\n        msg = (\n            \"MultiIndex slicing requires the index to be \"\n            r\"lexsorted: slicing on levels \\[1\\], lexsort depth 0\"\n        )\n        with pytest.raises(UnsortedIndexError, match=msg):\n            df.loc[(slice(None), slice(\"bar\")), :]\n\n        # GH 16734: not sorted, but no real slicing\n        result = df.loc[(slice(None), df.loc[:, (\"a\", \"bar\")] > 5), :]\n        tm.assert_frame_equal(result, df.iloc[[1, 3], :])",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]"
+    ],
+    "1.4.2": [
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_loc.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_loc.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_loc.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_slice.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py"
+    ],
+    "2.1.1": [
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.indexing.multiindex.test_loc.TestMultiIndexLoc object at 0x11a57c3a0>\nkey = [2, 4], pos = [0, 1]\n\n    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n    \n        with pytest.raises(KeyError, match=\"not in index\"):\n>           df.loc[key]",
+            "\npandas/tests/indexing/multiindex/test_loc.py:145: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.multiindex.test_loc.TestMultiIndexLoc object at 0x11a5be220>\nkey = [2], pos = []\n\n    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n    \n        with pytest.raises(KeyError, match=\"not in index\"):\n>           df.loc[key]",
+            "\npandas/tests/indexing/multiindex/test_loc.py:145: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.multiindex.test_loc.TestMultiIndexLoc object at 0x11a6e3d00>\nkey = [2, 3], pos = []\n\n    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n    \n        with pytest.raises(KeyError, match=\"not in index\"):\n>           df.loc[key]",
+            "\npandas/tests/indexing/multiindex/test_loc.py:145: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.multiindex.test_slice.TestMultiIndexSlicers object at 0x11a6f6640>\n\n    def test_per_axis_per_level_getitem(self):\n    \n        # GH6134\n        # example test case\n        ix = MultiIndex.from_product(\n            [_mklbl(\"A\", 5), _mklbl(\"B\", 7), _mklbl(\"C\", 4), _mklbl(\"D\", 2)]\n        )\n        df = DataFrame(np.arange(len(ix.to_numpy())), index=ix)\n    \n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), [\"C1\", \"C3\"]), :]\n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_frame_equal(result, expected)\n    \n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\")\n                and (c == \"C1\" or c == \"C2\" or c == \"C3\")\n            ]\n        ]\n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), slice(\"C1\", \"C3\")), :]\n        tm.assert_frame_equal(result, expected)\n    \n        # test multi-index slicing with per axis and per index controls\n        index = MultiIndex.from_tuples(\n            [(\"A\", 1), (\"A\", 2), (\"A\", 3), (\"B\", 1)], names=[\"one\", \"two\"]\n        )\n        columns = MultiIndex.from_tuples(\n            [(\"a\", \"foo\"), (\"a\", \"bar\"), (\"b\", \"foo\"), (\"b\", \"bah\")],\n            names=[\"lvl0\", \"lvl1\"],\n        )\n    \n        df = DataFrame(\n            np.arange(16, dtype=\"int64\").reshape(4, 4), index=index, columns=columns\n        )\n        df = df.sort_index(axis=0).sort_index(axis=1)\n    \n        # identity\n        result = df.loc[(slice(None), slice(None)), :]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[(slice(None), slice(None)), (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[:, (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n    \n        # index\n        result = df.loc[(slice(None), [1]), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        result = df.loc[(slice(None), 1), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        # columns\n        result = df.loc[:, (slice(None), [\"foo\"])]\n        expected = df.iloc[:, [1, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        # both\n        result = df.loc[(slice(None), 1), (slice(None), [\"foo\"])]\n        expected = df.iloc[[0, 3], [1, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        result = df.loc[\"A\", \"a\"]\n        expected = DataFrame(\n            dict(bar=[1, 5, 9], foo=[0, 4, 8]),\n            index=Index([1, 2, 3], name=\"two\"),\n            columns=Index([\"bar\", \"foo\"], name=\"lvl1\"),\n        )\n        tm.assert_frame_equal(result, expected)\n    \n        result = df.loc[(slice(None), [1, 2]), :]\n        expected = df.iloc[[0, 1, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        # multi-level series\n        s = Series(np.arange(len(ix.to_numpy())), index=ix)\n        result = s.loc[\"A1\":\"A3\", :, [\"C1\", \"C3\"]]\n        expected = s.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in s.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_series_equal(result, expected)\n    \n        # boolean indexers\n        result = df.loc[(slice(None), df.loc[:, (\"a\", \"bar\")] > 5), :]\n        expected = df.iloc[[2, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        msg = (\n            \"cannot index with a boolean indexer \"\n            \"that is not the same length as the index\"\n        )\n        with pytest.raises(ValueError, match=msg):\n            df.loc[(slice(None), np.array([True, False])), :]\n    \n        with pytest.raises(KeyError, match=r\"\\[1\\] not in index\"):\n            # slice(None) is on the index, [1] is on the columns, but 1 is\n            #  not in the columns, so we raise\n            #  This used to treat [1] as positional GH#16396\n>           df.loc[slice(None), [1]]",
+            "\npandas/tests/indexing/multiindex/test_slice.py:125: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a6e3cd0>\ndtype = <class 'numpy.int64'>, box = <class 'list'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a694040>\ndtype = <class 'numpy.int64'>, box = <built-in function array>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a6ec820>\ndtype = <class 'numpy.int64'>, box = <class 'pandas.core.indexes.base.Index'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a6d9370>\ndtype = <class 'numpy.float64'>, box = <class 'list'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a769820>\ndtype = <class 'numpy.float64'>, box = <built-in function array>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a6ec9a0>\ndtype = <class 'numpy.float64'>, box = <class 'pandas.core.indexes.base.Index'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a766c10>\ndtype = <class 'numpy.uint64'>, box = <class 'list'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a694610>\ndtype = <class 'numpy.uint64'>, box = <built-in function array>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x11a7695b0>\ndtype = <class 'numpy.uint64'>, box = <class 'pandas.core.indexes.base.Index'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "key": "'A'",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x118b731d0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>"
+            }
+        ],
+        [
+            {
+                "key": "'a'",
+                "self.obj": "lvl0   a       b    \nlvl1 bar foo bah foo\ntwo                 \n1      1   0   3   2\n2      5   4   7   6\n3      9   8  11  10",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x118b9df90>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "('a', 'bar')",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x118a9ce00>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "key": "'A'",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x117b417c0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>"
+            }
+        ],
+        [
+            {
+                "key": "'a'",
+                "self.obj": "lvl0   a       b    \nlvl1 bar foo bah foo\ntwo                 \n1      1   0   3   2\n2      5   4   7   6\n3      9   8  11  10",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x117c704f0>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "('a', 'bar')",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x117b41f90>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "('a', 'bar')",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\nB   1    13  12  15  14\nA   2     5   4   7   6\n    3     9   8  11  10",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x117a10db0>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "\n"
+    ],
+    "3.1.2": [
+        "\n"
+    ]
+}

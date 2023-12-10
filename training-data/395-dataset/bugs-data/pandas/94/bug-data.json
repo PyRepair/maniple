@@ -1,0 +1,4154 @@
+{
+    "pandas:94": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_94/pandas/core/indexes/datetimelike.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "take",
+                    "function_code": "@Appender(_index_shared_docs[\"take\"] % _index_doc_kwargs)\ndef take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):\n    nv.validate_take(tuple(), kwargs)\n    indices = ensure_int64(indices)\n\n    maybe_slice = lib.maybe_indices_to_slice(indices, len(self))\n    if isinstance(maybe_slice, slice):\n        return self[maybe_slice]\n\n    taken = ExtensionIndex.take(\n        self, indices, axis, allow_fill, fill_value, **kwargs\n    )\n\n    # keep freq in PeriodArray/Index, reset otherwise\n    freq = self.freq if is_period_dtype(self) else None\n    assert taken.freq == freq, (taken.freq, freq, taken)\n    return self._shallow_copy(taken, freq=freq)\n",
+                    "decorators": [
+                        "Appender(_index_shared_docs['take'] % _index_doc_kwargs)"
+                    ],
+                    "docstring": null,
+                    "start_line": 245,
+                    "variables": {
+                        "nv.validate_take": [
+                            247
+                        ],
+                        "nv": [
+                            247
+                        ],
+                        "tuple": [
+                            247
+                        ],
+                        "kwargs": [
+                            255,
+                            247
+                        ],
+                        "indices": [
+                            248,
+                            250,
+                            255
+                        ],
+                        "ensure_int64": [
+                            248
+                        ],
+                        "maybe_slice": [
+                            250,
+                            251,
+                            252
+                        ],
+                        "lib.maybe_indices_to_slice": [
+                            250
+                        ],
+                        "lib": [
+                            250
+                        ],
+                        "len": [
+                            250
+                        ],
+                        "self": [
+                            259,
+                            261,
+                            250,
+                            252,
+                            255
+                        ],
+                        "isinstance": [
+                            251
+                        ],
+                        "slice": [
+                            251
+                        ],
+                        "taken": [
+                            260,
+                            261,
+                            254
+                        ],
+                        "ExtensionIndex.take": [
+                            254
+                        ],
+                        "ExtensionIndex": [
+                            254
+                        ],
+                        "axis": [
+                            255
+                        ],
+                        "allow_fill": [
+                            255
+                        ],
+                        "fill_value": [
+                            255
+                        ],
+                        "freq": [
+                            259,
+                            260,
+                            261
+                        ],
+                        "is_period_dtype": [
+                            259
+                        ],
+                        "self.freq": [
+                            259
+                        ],
+                        "taken.freq": [
+                            260
+                        ],
+                        "self._shallow_copy": [
+                            261
+                        ],
+                        "Appender": [
+                            245
+                        ],
+                        "_index_shared_docs": [
+                            245
+                        ],
+                        "_index_doc_kwargs": [
+                            245
+                        ]
+                    },
+                    "filtered_variables": {
+                        "nv.validate_take": [
+                            247
+                        ],
+                        "nv": [
+                            247
+                        ],
+                        "kwargs": [
+                            255,
+                            247
+                        ],
+                        "indices": [
+                            248,
+                            250,
+                            255
+                        ],
+                        "ensure_int64": [
+                            248
+                        ],
+                        "maybe_slice": [
+                            250,
+                            251,
+                            252
+                        ],
+                        "lib.maybe_indices_to_slice": [
+                            250
+                        ],
+                        "lib": [
+                            250
+                        ],
+                        "self": [
+                            259,
+                            261,
+                            250,
+                            252,
+                            255
+                        ],
+                        "taken": [
+                            260,
+                            261,
+                            254
+                        ],
+                        "ExtensionIndex.take": [
+                            254
+                        ],
+                        "ExtensionIndex": [
+                            254
+                        ],
+                        "axis": [
+                            255
+                        ],
+                        "allow_fill": [
+                            255
+                        ],
+                        "fill_value": [
+                            255
+                        ],
+                        "freq": [
+                            259,
+                            260,
+                            261
+                        ],
+                        "is_period_dtype": [
+                            259
+                        ],
+                        "self.freq": [
+                            259
+                        ],
+                        "taken.freq": [
+                            260
+                        ],
+                        "self._shallow_copy": [
+                            261
+                        ],
+                        "Appender": [
+                            245
+                        ],
+                        "_index_shared_docs": [
+                            245
+                        ],
+                        "_index_doc_kwargs": [
+                            245
+                        ]
+                    },
+                    "diff_line_number": 254,
+                    "class_data": {
+                        "signature": "class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin)",
+                        "docstring": "Common ops mixin to support a unified interface datetimelike Index.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "@property\ndef is_all_dates(self) -> bool:\n    return True",
+                            "def unique(self, level=None):\n    if level is not None:\n        self._validate_index_level(level)\n    result = self._data.unique()\n    return self._shallow_copy(result._data)",
+                            "@classmethod\ndef _create_comparison_method(cls, op):\n    \"\"\"\n    Create a comparison method that dispatches to ``cls.values``.\n    \"\"\"\n    return make_wrapped_comparison_op(f'__{op.__name__}__')",
+                            "@property\ndef values(self):\n    return self._data._data",
+                            "def __array_wrap__(self, result, context=None):\n    \"\"\"\n    Gets called after a ufunc.\n    \"\"\"\n    result = lib.item_from_zerodim(result)\n    if is_bool_dtype(result) or lib.is_scalar(result):\n        return result\n    attrs = self._get_attributes_dict()\n    if not is_period_dtype(self) and attrs['freq']:\n        attrs['freq'] = 'infer'\n    return Index(result, **attrs)",
+                            "def equals(self, other) -> bool:\n    \"\"\"\n    Determines if two Index objects contain the same elements.\n    \"\"\"\n    if self.is_(other):\n        return True\n    if not isinstance(other, ABCIndexClass):\n        return False\n    elif not isinstance(other, type(self)):\n        try:\n            other = type(self)(other)\n        except (ValueError, TypeError, OverflowError):\n            return False\n    if not is_dtype_equal(self.dtype, other.dtype):\n        return False\n    return np.array_equal(self.asi8, other.asi8)",
+                            "def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise', from_utc=False):\n    if getattr(self, 'tz', None):\n        result = self._data._ensure_localized(arg, ambiguous=ambiguous, nonexistent=nonexistent, from_utc=from_utc)\n        return type(self)._simple_new(result, name=self.name)\n    return arg",
+                            "@Appender(_index_shared_docs['contains'] % _index_doc_kwargs)\ndef __contains__(self, key):\n    try:\n        res = self.get_loc(key)\n        return is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))\n    except (KeyError, TypeError, ValueError):\n        return False",
+                            "def map(self, mapper, na_action=None):\n    try:\n        result = mapper(self)\n        if isinstance(result, np.ndarray):\n            result = Index(result)\n        if not isinstance(result, Index):\n            raise TypeError('The map function must return an Index object')\n        return result\n    except Exception:\n        return self.astype(object).map(mapper)",
+                            "def sort_values(self, return_indexer=False, ascending=True):\n    \"\"\"\n    Return sorted copy of Index.\n    \"\"\"\n    if return_indexer:\n        _as = self.argsort()\n        if not ascending:\n            _as = _as[::-1]\n        sorted_index = self.take(_as)\n        return (sorted_index, _as)\n    else:\n        sorted_values = np.sort(self.asi8)\n        attribs = self._get_attributes_dict()\n        freq = attribs['freq']\n        if freq is not None and (not is_period_dtype(self)):\n            if freq.n > 0 and (not ascending):\n                freq = freq * -1\n            elif freq.n < 0 and ascending:\n                freq = freq * -1\n        attribs['freq'] = freq\n        if not ascending:\n            sorted_values = sorted_values[::-1]\n        return self._simple_new(sorted_values, **attribs)",
+                            "@Appender(_index_shared_docs['take'] % _index_doc_kwargs)\ndef take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):\n    nv.validate_take(tuple(), kwargs)\n    indices = ensure_int64(indices)\n    maybe_slice = lib.maybe_indices_to_slice(indices, len(self))\n    if isinstance(maybe_slice, slice):\n        return self[maybe_slice]\n    taken = ExtensionIndex.take(self, indices, axis, allow_fill, fill_value, **kwargs)\n    freq = self.freq if is_period_dtype(self) else None\n    assert taken.freq == freq, (taken.freq, freq, taken)\n    return self._shallow_copy(taken, freq=freq)",
+                            "def _convert_tolerance(self, tolerance, target):\n    tolerance = np.asarray(to_timedelta(tolerance).to_numpy())\n    if target.size != tolerance.size and tolerance.size > 1:\n        raise ValueError('list-like tolerance size must match target index size')\n    return tolerance",
+                            "def tolist(self) -> List:\n    \"\"\"\n    Return a list of the underlying data.\n    \"\"\"\n    return list(self.astype(object))",
+                            "def min(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Return the minimum value of the Index or minimum along\n    an axis.\n\n    See Also\n    --------\n    numpy.ndarray.min\n    Series.min : Return the minimum value in a Series.\n    \"\"\"\n    nv.validate_min(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    if not len(self):\n        return self._na_value\n    i8 = self.asi8\n    try:\n        if len(i8) and self.is_monotonic:\n            if i8[0] != iNaT:\n                return self._box_func(i8[0])\n        if self.hasnans:\n            if skipna:\n                min_stamp = self[~self._isnan].asi8.min()\n            else:\n                return self._na_value\n        else:\n            min_stamp = i8.min()\n        return self._box_func(min_stamp)\n    except ValueError:\n        return self._na_value",
+                            "def argmin(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Returns the indices of the minimum values along an axis.\n\n    See `numpy.ndarray.argmin` for more information on the\n    `axis` parameter.\n\n    See Also\n    --------\n    numpy.ndarray.argmin\n    \"\"\"\n    nv.validate_argmin(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    i8 = self.asi8\n    if self.hasnans:\n        mask = self._isnan\n        if mask.all() or not skipna:\n            return -1\n        i8 = i8.copy()\n        i8[mask] = np.iinfo('int64').max\n    return i8.argmin()",
+                            "def max(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Return the maximum value of the Index or maximum along\n    an axis.\n\n    See Also\n    --------\n    numpy.ndarray.max\n    Series.max : Return the maximum value in a Series.\n    \"\"\"\n    nv.validate_max(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    if not len(self):\n        return self._na_value\n    i8 = self.asi8\n    try:\n        if len(i8) and self.is_monotonic:\n            if i8[-1] != iNaT:\n                return self._box_func(i8[-1])\n        if self.hasnans:\n            if skipna:\n                max_stamp = self[~self._isnan].asi8.max()\n            else:\n                return self._na_value\n        else:\n            max_stamp = i8.max()\n        return self._box_func(max_stamp)\n    except ValueError:\n        return self._na_value",
+                            "def argmax(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Returns the indices of the maximum values along an axis.\n\n    See `numpy.ndarray.argmax` for more information on the\n    `axis` parameter.\n\n    See Also\n    --------\n    numpy.ndarray.argmax\n    \"\"\"\n    nv.validate_argmax(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    i8 = self.asi8\n    if self.hasnans:\n        mask = self._isnan\n        if mask.all() or not skipna:\n            return -1\n        i8 = i8.copy()\n        i8[mask] = 0\n    return i8.argmax()",
+                            "def _format_with_header(self, header, na_rep='NaT', **kwargs):\n    return header + list(self._format_native_types(na_rep, **kwargs))",
+                            "@property\ndef _formatter_func(self):\n    raise AbstractMethodError(self)",
+                            "def _format_attrs(self):\n    \"\"\"\n    Return a list of tuples of the (attr,formatted_value).\n    \"\"\"\n    attrs = super()._format_attrs()\n    for attrib in self._attributes:\n        if attrib == 'freq':\n            freq = self.freqstr\n            if freq is not None:\n                freq = repr(freq)\n            attrs.append(('freq', freq))\n    return attrs",
+                            "def _convert_scalar_indexer(self, key, kind=None):\n    \"\"\"\n    We don't allow integer or float indexing on datetime-like when using\n    loc.\n\n    Parameters\n    ----------\n    key : label of the slice bound\n    kind : {'ix', 'loc', 'getitem', 'iloc'} or None\n    \"\"\"\n    assert kind in ['ix', 'loc', 'getitem', 'iloc', None]\n    if is_scalar(key):\n        is_int = is_integer(key)\n        is_flt = is_float(key)\n        if kind in ['loc'] and (is_int or is_flt):\n            self._invalid_indexer('index', key)\n        elif kind in ['ix', 'getitem'] and is_flt:\n            self._invalid_indexer('index', key)\n    return super()._convert_scalar_indexer(key, kind=kind)",
+                            "def isin(self, values, level=None):\n    \"\"\"\n    Compute boolean array of whether each index value is found in the\n    passed set of values.\n\n    Parameters\n    ----------\n    values : set or sequence of values\n\n    Returns\n    -------\n    is_contained : ndarray (boolean dtype)\n    \"\"\"\n    if level is not None:\n        self._validate_index_level(level)\n    if not isinstance(values, type(self)):\n        try:\n            values = type(self)(values)\n        except ValueError:\n            return self.astype(object).isin(values)\n    return algorithms.isin(self.asi8, values.asi8)",
+                            "@Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)\ndef repeat(self, repeats, axis=None):\n    nv.validate_repeat(tuple(), dict(axis=axis))\n    freq = self.freq if is_period_dtype(self) else None\n    return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)",
+                            "@Appender(_index_shared_docs['where'] % _index_doc_kwargs)\ndef where(self, cond, other=None):\n    other = _ensure_datetimelike_to_i8(other, to_utc=True)\n    values = _ensure_datetimelike_to_i8(self, to_utc=True)\n    result = np.where(cond, values, other).astype('i8')\n    result = self._ensure_localized(result, from_utc=True)\n    return self._shallow_copy(result)",
+                            "def _summary(self, name=None):\n    \"\"\"\n    Return a summarized representation.\n\n    Parameters\n    ----------\n    name : str\n        Name to use in the summary representation.\n\n    Returns\n    -------\n    str\n        Summarized representation of the index.\n    \"\"\"\n    formatter = self._formatter_func\n    if len(self) > 0:\n        index_summary = f', {formatter(self[0])} to {formatter(self[-1])}'\n    else:\n        index_summary = ''\n    if name is None:\n        name = type(self).__name__\n    result = f'{name}: {len(self)} entries{index_summary}'\n    if self.freq:\n        result += f'\\nFreq: {self.freqstr}'\n    result = result.replace(\"'\", '')\n    return result",
+                            "def _concat_same_dtype(self, to_concat, name):\n    \"\"\"\n    Concatenate to_concat which has the same class.\n    \"\"\"\n    attribs = self._get_attributes_dict()\n    attribs['name'] = name\n    if len({str(x.dtype) for x in to_concat}) != 1:\n        raise ValueError('to_concat must have the same tz')\n    new_data = type(self._values)._concat_same_type(to_concat).asi8\n    is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1\n    if not is_period_dtype(self) and (not is_diff_evenly_spaced):\n        attribs['freq'] = None\n    return self._simple_new(new_data, **attribs)",
+                            "@Appender(_index_shared_docs['astype'])\ndef astype(self, dtype, copy=True):\n    if is_dtype_equal(self.dtype, dtype) and copy is False:\n        return self\n    new_values = self._data.astype(dtype, copy=copy)\n    return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)",
+                            "def shift(self, periods=1, freq=None):\n    \"\"\"\n    Shift index by desired number of time frequency increments.\n\n    This method is for shifting the values of datetime-like indexes\n    by a specified time increment a given number of times.\n\n    Parameters\n    ----------\n    periods : int, default 1\n        Number of periods (or increments) to shift by,\n        can be positive or negative.\n\n        .. versionchanged:: 0.24.0\n\n    freq : pandas.DateOffset, pandas.Timedelta or string, optional\n        Frequency increment to shift by.\n        If None, the index is shifted by its own `freq` attribute.\n        Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.\n\n    Returns\n    -------\n    pandas.DatetimeIndex\n        Shifted index.\n\n    See Also\n    --------\n    Index.shift : Shift values of Index.\n    PeriodIndex.shift : Shift values of PeriodIndex.\n    \"\"\"\n    result = self._data._time_shift(periods, freq=freq)\n    return type(self)(result, name=self.name)",
+                            "def delete(self, loc):\n    new_i8s = np.delete(self.asi8, loc)\n    freq = None\n    if is_period_dtype(self):\n        freq = self.freq\n    elif is_integer(loc):\n        if loc in (0, -len(self), -1, len(self) - 1):\n            freq = self.freq\n    else:\n        if is_list_like(loc):\n            loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))\n        if isinstance(loc, slice) and loc.step in (1, None):\n            if loc.start in (0, None) or loc.stop in (len(self), None):\n                freq = self.freq\n    return self._shallow_copy(new_i8s, freq=freq)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_data",
+                            "freq",
+                            "freqstr",
+                            "_resolution",
+                            "_bool_ops",
+                            "_field_ops",
+                            "hasnans",
+                            "_hasnans",
+                            "_can_hold_na",
+                            "_na_value",
+                            "__add__",
+                            "__radd__",
+                            "__sub__",
+                            "__rsub__",
+                            "__pow__",
+                            "__rpow__",
+                            "__mul__",
+                            "__rmul__",
+                            "__floordiv__",
+                            "__rfloordiv__",
+                            "__mod__",
+                            "__rmod__",
+                            "__divmod__",
+                            "__rdivmod__",
+                            "__truediv__",
+                            "__rtruediv__"
+                        ],
+                        "class_decorators": [
+                            "inherit_names(['inferred_freq', '_isnan', '_resolution', 'resolution'], DatetimeLikeArrayMixin, cache=True)",
+                            "inherit_names(['__iter__', 'mean', 'freq', 'freqstr', '_ndarray_values', 'asi8', '_box_values'], DatetimeLikeArrayMixin)"
+                        ],
+                        "function_signatures": [
+                            "is_all_dates(self) -> bool",
+                            "unique(self, level=None)",
+                            "_create_comparison_method(cls, op)",
+                            "values(self)",
+                            "__array_wrap__(self, result, context=None)",
+                            "equals(self, other) -> bool",
+                            "_ensure_localized(self, arg, ambiguous='raise', nonexistent='raise', from_utc=False)",
+                            "__contains__(self, key)",
+                            "map(self, mapper, na_action=None)",
+                            "sort_values(self, return_indexer=False, ascending=True)",
+                            "take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs)",
+                            "_convert_tolerance(self, tolerance, target)",
+                            "tolist(self) -> List",
+                            "min(self, axis=None, skipna=True, *args, **kwargs)",
+                            "argmin(self, axis=None, skipna=True, *args, **kwargs)",
+                            "max(self, axis=None, skipna=True, *args, **kwargs)",
+                            "argmax(self, axis=None, skipna=True, *args, **kwargs)",
+                            "_format_with_header(self, header, na_rep='NaT', **kwargs)",
+                            "_formatter_func(self)",
+                            "_format_attrs(self)",
+                            "_convert_scalar_indexer(self, key, kind=None)",
+                            "isin(self, values, level=None)",
+                            "repeat(self, repeats, axis=None)",
+                            "where(self, cond, other=None)",
+                            "_summary(self, name=None)",
+                            "_concat_same_dtype(self, to_concat, name)",
+                            "astype(self, dtype, copy=True)",
+                            "shift(self, periods=1, freq=None)",
+                            "delete(self, loc)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "repeat",
+                    "function_code": "@Appender(_index_shared_docs[\"repeat\"] % _index_doc_kwargs)\ndef repeat(self, repeats, axis=None):\n    nv.validate_repeat(tuple(), dict(axis=axis))\n    freq = self.freq if is_period_dtype(self) else None\n    return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)\n",
+                    "decorators": [
+                        "Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)"
+                    ],
+                    "docstring": null,
+                    "start_line": 486,
+                    "variables": {
+                        "nv.validate_repeat": [
+                            488
+                        ],
+                        "nv": [
+                            488
+                        ],
+                        "tuple": [
+                            488
+                        ],
+                        "dict": [
+                            488
+                        ],
+                        "axis": [
+                            488
+                        ],
+                        "freq": [
+                            489,
+                            490
+                        ],
+                        "is_period_dtype": [
+                            489
+                        ],
+                        "self": [
+                            489,
+                            490
+                        ],
+                        "self.freq": [
+                            489
+                        ],
+                        "self._shallow_copy": [
+                            490
+                        ],
+                        "self.asi8.repeat": [
+                            490
+                        ],
+                        "self.asi8": [
+                            490
+                        ],
+                        "repeats": [
+                            490
+                        ],
+                        "Appender": [
+                            486
+                        ],
+                        "_index_shared_docs": [
+                            486
+                        ],
+                        "_index_doc_kwargs": [
+                            486
+                        ]
+                    },
+                    "filtered_variables": {
+                        "nv.validate_repeat": [
+                            488
+                        ],
+                        "nv": [
+                            488
+                        ],
+                        "axis": [
+                            488
+                        ],
+                        "freq": [
+                            489,
+                            490
+                        ],
+                        "is_period_dtype": [
+                            489
+                        ],
+                        "self": [
+                            489,
+                            490
+                        ],
+                        "self.freq": [
+                            489
+                        ],
+                        "self._shallow_copy": [
+                            490
+                        ],
+                        "self.asi8.repeat": [
+                            490
+                        ],
+                        "self.asi8": [
+                            490
+                        ],
+                        "repeats": [
+                            490
+                        ],
+                        "Appender": [
+                            486
+                        ],
+                        "_index_shared_docs": [
+                            486
+                        ],
+                        "_index_doc_kwargs": [
+                            486
+                        ]
+                    },
+                    "diff_line_number": 489,
+                    "class_data": {
+                        "signature": "class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin)",
+                        "docstring": "Common ops mixin to support a unified interface datetimelike Index.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "@property\ndef is_all_dates(self) -> bool:\n    return True",
+                            "def unique(self, level=None):\n    if level is not None:\n        self._validate_index_level(level)\n    result = self._data.unique()\n    return self._shallow_copy(result._data)",
+                            "@classmethod\ndef _create_comparison_method(cls, op):\n    \"\"\"\n    Create a comparison method that dispatches to ``cls.values``.\n    \"\"\"\n    return make_wrapped_comparison_op(f'__{op.__name__}__')",
+                            "@property\ndef values(self):\n    return self._data._data",
+                            "def __array_wrap__(self, result, context=None):\n    \"\"\"\n    Gets called after a ufunc.\n    \"\"\"\n    result = lib.item_from_zerodim(result)\n    if is_bool_dtype(result) or lib.is_scalar(result):\n        return result\n    attrs = self._get_attributes_dict()\n    if not is_period_dtype(self) and attrs['freq']:\n        attrs['freq'] = 'infer'\n    return Index(result, **attrs)",
+                            "def equals(self, other) -> bool:\n    \"\"\"\n    Determines if two Index objects contain the same elements.\n    \"\"\"\n    if self.is_(other):\n        return True\n    if not isinstance(other, ABCIndexClass):\n        return False\n    elif not isinstance(other, type(self)):\n        try:\n            other = type(self)(other)\n        except (ValueError, TypeError, OverflowError):\n            return False\n    if not is_dtype_equal(self.dtype, other.dtype):\n        return False\n    return np.array_equal(self.asi8, other.asi8)",
+                            "def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise', from_utc=False):\n    if getattr(self, 'tz', None):\n        result = self._data._ensure_localized(arg, ambiguous=ambiguous, nonexistent=nonexistent, from_utc=from_utc)\n        return type(self)._simple_new(result, name=self.name)\n    return arg",
+                            "@Appender(_index_shared_docs['contains'] % _index_doc_kwargs)\ndef __contains__(self, key):\n    try:\n        res = self.get_loc(key)\n        return is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))\n    except (KeyError, TypeError, ValueError):\n        return False",
+                            "def map(self, mapper, na_action=None):\n    try:\n        result = mapper(self)\n        if isinstance(result, np.ndarray):\n            result = Index(result)\n        if not isinstance(result, Index):\n            raise TypeError('The map function must return an Index object')\n        return result\n    except Exception:\n        return self.astype(object).map(mapper)",
+                            "def sort_values(self, return_indexer=False, ascending=True):\n    \"\"\"\n    Return sorted copy of Index.\n    \"\"\"\n    if return_indexer:\n        _as = self.argsort()\n        if not ascending:\n            _as = _as[::-1]\n        sorted_index = self.take(_as)\n        return (sorted_index, _as)\n    else:\n        sorted_values = np.sort(self.asi8)\n        attribs = self._get_attributes_dict()\n        freq = attribs['freq']\n        if freq is not None and (not is_period_dtype(self)):\n            if freq.n > 0 and (not ascending):\n                freq = freq * -1\n            elif freq.n < 0 and ascending:\n                freq = freq * -1\n        attribs['freq'] = freq\n        if not ascending:\n            sorted_values = sorted_values[::-1]\n        return self._simple_new(sorted_values, **attribs)",
+                            "@Appender(_index_shared_docs['take'] % _index_doc_kwargs)\ndef take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):\n    nv.validate_take(tuple(), kwargs)\n    indices = ensure_int64(indices)\n    maybe_slice = lib.maybe_indices_to_slice(indices, len(self))\n    if isinstance(maybe_slice, slice):\n        return self[maybe_slice]\n    taken = ExtensionIndex.take(self, indices, axis, allow_fill, fill_value, **kwargs)\n    freq = self.freq if is_period_dtype(self) else None\n    assert taken.freq == freq, (taken.freq, freq, taken)\n    return self._shallow_copy(taken, freq=freq)",
+                            "def _convert_tolerance(self, tolerance, target):\n    tolerance = np.asarray(to_timedelta(tolerance).to_numpy())\n    if target.size != tolerance.size and tolerance.size > 1:\n        raise ValueError('list-like tolerance size must match target index size')\n    return tolerance",
+                            "def tolist(self) -> List:\n    \"\"\"\n    Return a list of the underlying data.\n    \"\"\"\n    return list(self.astype(object))",
+                            "def min(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Return the minimum value of the Index or minimum along\n    an axis.\n\n    See Also\n    --------\n    numpy.ndarray.min\n    Series.min : Return the minimum value in a Series.\n    \"\"\"\n    nv.validate_min(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    if not len(self):\n        return self._na_value\n    i8 = self.asi8\n    try:\n        if len(i8) and self.is_monotonic:\n            if i8[0] != iNaT:\n                return self._box_func(i8[0])\n        if self.hasnans:\n            if skipna:\n                min_stamp = self[~self._isnan].asi8.min()\n            else:\n                return self._na_value\n        else:\n            min_stamp = i8.min()\n        return self._box_func(min_stamp)\n    except ValueError:\n        return self._na_value",
+                            "def argmin(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Returns the indices of the minimum values along an axis.\n\n    See `numpy.ndarray.argmin` for more information on the\n    `axis` parameter.\n\n    See Also\n    --------\n    numpy.ndarray.argmin\n    \"\"\"\n    nv.validate_argmin(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    i8 = self.asi8\n    if self.hasnans:\n        mask = self._isnan\n        if mask.all() or not skipna:\n            return -1\n        i8 = i8.copy()\n        i8[mask] = np.iinfo('int64').max\n    return i8.argmin()",
+                            "def max(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Return the maximum value of the Index or maximum along\n    an axis.\n\n    See Also\n    --------\n    numpy.ndarray.max\n    Series.max : Return the maximum value in a Series.\n    \"\"\"\n    nv.validate_max(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    if not len(self):\n        return self._na_value\n    i8 = self.asi8\n    try:\n        if len(i8) and self.is_monotonic:\n            if i8[-1] != iNaT:\n                return self._box_func(i8[-1])\n        if self.hasnans:\n            if skipna:\n                max_stamp = self[~self._isnan].asi8.max()\n            else:\n                return self._na_value\n        else:\n            max_stamp = i8.max()\n        return self._box_func(max_stamp)\n    except ValueError:\n        return self._na_value",
+                            "def argmax(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Returns the indices of the maximum values along an axis.\n\n    See `numpy.ndarray.argmax` for more information on the\n    `axis` parameter.\n\n    See Also\n    --------\n    numpy.ndarray.argmax\n    \"\"\"\n    nv.validate_argmax(args, kwargs)\n    nv.validate_minmax_axis(axis)\n    i8 = self.asi8\n    if self.hasnans:\n        mask = self._isnan\n        if mask.all() or not skipna:\n            return -1\n        i8 = i8.copy()\n        i8[mask] = 0\n    return i8.argmax()",
+                            "def _format_with_header(self, header, na_rep='NaT', **kwargs):\n    return header + list(self._format_native_types(na_rep, **kwargs))",
+                            "@property\ndef _formatter_func(self):\n    raise AbstractMethodError(self)",
+                            "def _format_attrs(self):\n    \"\"\"\n    Return a list of tuples of the (attr,formatted_value).\n    \"\"\"\n    attrs = super()._format_attrs()\n    for attrib in self._attributes:\n        if attrib == 'freq':\n            freq = self.freqstr\n            if freq is not None:\n                freq = repr(freq)\n            attrs.append(('freq', freq))\n    return attrs",
+                            "def _convert_scalar_indexer(self, key, kind=None):\n    \"\"\"\n    We don't allow integer or float indexing on datetime-like when using\n    loc.\n\n    Parameters\n    ----------\n    key : label of the slice bound\n    kind : {'ix', 'loc', 'getitem', 'iloc'} or None\n    \"\"\"\n    assert kind in ['ix', 'loc', 'getitem', 'iloc', None]\n    if is_scalar(key):\n        is_int = is_integer(key)\n        is_flt = is_float(key)\n        if kind in ['loc'] and (is_int or is_flt):\n            self._invalid_indexer('index', key)\n        elif kind in ['ix', 'getitem'] and is_flt:\n            self._invalid_indexer('index', key)\n    return super()._convert_scalar_indexer(key, kind=kind)",
+                            "def isin(self, values, level=None):\n    \"\"\"\n    Compute boolean array of whether each index value is found in the\n    passed set of values.\n\n    Parameters\n    ----------\n    values : set or sequence of values\n\n    Returns\n    -------\n    is_contained : ndarray (boolean dtype)\n    \"\"\"\n    if level is not None:\n        self._validate_index_level(level)\n    if not isinstance(values, type(self)):\n        try:\n            values = type(self)(values)\n        except ValueError:\n            return self.astype(object).isin(values)\n    return algorithms.isin(self.asi8, values.asi8)",
+                            "@Appender(_index_shared_docs['repeat'] % _index_doc_kwargs)\ndef repeat(self, repeats, axis=None):\n    nv.validate_repeat(tuple(), dict(axis=axis))\n    freq = self.freq if is_period_dtype(self) else None\n    return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)",
+                            "@Appender(_index_shared_docs['where'] % _index_doc_kwargs)\ndef where(self, cond, other=None):\n    other = _ensure_datetimelike_to_i8(other, to_utc=True)\n    values = _ensure_datetimelike_to_i8(self, to_utc=True)\n    result = np.where(cond, values, other).astype('i8')\n    result = self._ensure_localized(result, from_utc=True)\n    return self._shallow_copy(result)",
+                            "def _summary(self, name=None):\n    \"\"\"\n    Return a summarized representation.\n\n    Parameters\n    ----------\n    name : str\n        Name to use in the summary representation.\n\n    Returns\n    -------\n    str\n        Summarized representation of the index.\n    \"\"\"\n    formatter = self._formatter_func\n    if len(self) > 0:\n        index_summary = f', {formatter(self[0])} to {formatter(self[-1])}'\n    else:\n        index_summary = ''\n    if name is None:\n        name = type(self).__name__\n    result = f'{name}: {len(self)} entries{index_summary}'\n    if self.freq:\n        result += f'\\nFreq: {self.freqstr}'\n    result = result.replace(\"'\", '')\n    return result",
+                            "def _concat_same_dtype(self, to_concat, name):\n    \"\"\"\n    Concatenate to_concat which has the same class.\n    \"\"\"\n    attribs = self._get_attributes_dict()\n    attribs['name'] = name\n    if len({str(x.dtype) for x in to_concat}) != 1:\n        raise ValueError('to_concat must have the same tz')\n    new_data = type(self._values)._concat_same_type(to_concat).asi8\n    is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1\n    if not is_period_dtype(self) and (not is_diff_evenly_spaced):\n        attribs['freq'] = None\n    return self._simple_new(new_data, **attribs)",
+                            "@Appender(_index_shared_docs['astype'])\ndef astype(self, dtype, copy=True):\n    if is_dtype_equal(self.dtype, dtype) and copy is False:\n        return self\n    new_values = self._data.astype(dtype, copy=copy)\n    return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)",
+                            "def shift(self, periods=1, freq=None):\n    \"\"\"\n    Shift index by desired number of time frequency increments.\n\n    This method is for shifting the values of datetime-like indexes\n    by a specified time increment a given number of times.\n\n    Parameters\n    ----------\n    periods : int, default 1\n        Number of periods (or increments) to shift by,\n        can be positive or negative.\n\n        .. versionchanged:: 0.24.0\n\n    freq : pandas.DateOffset, pandas.Timedelta or string, optional\n        Frequency increment to shift by.\n        If None, the index is shifted by its own `freq` attribute.\n        Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.\n\n    Returns\n    -------\n    pandas.DatetimeIndex\n        Shifted index.\n\n    See Also\n    --------\n    Index.shift : Shift values of Index.\n    PeriodIndex.shift : Shift values of PeriodIndex.\n    \"\"\"\n    result = self._data._time_shift(periods, freq=freq)\n    return type(self)(result, name=self.name)",
+                            "def delete(self, loc):\n    new_i8s = np.delete(self.asi8, loc)\n    freq = None\n    if is_period_dtype(self):\n        freq = self.freq\n    elif is_integer(loc):\n        if loc in (0, -len(self), -1, len(self) - 1):\n            freq = self.freq\n    else:\n        if is_list_like(loc):\n            loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))\n        if isinstance(loc, slice) and loc.step in (1, None):\n            if loc.start in (0, None) or loc.stop in (len(self), None):\n                freq = self.freq\n    return self._shallow_copy(new_i8s, freq=freq)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_data",
+                            "freq",
+                            "freqstr",
+                            "_resolution",
+                            "_bool_ops",
+                            "_field_ops",
+                            "hasnans",
+                            "_hasnans",
+                            "_can_hold_na",
+                            "_na_value",
+                            "__add__",
+                            "__radd__",
+                            "__sub__",
+                            "__rsub__",
+                            "__pow__",
+                            "__rpow__",
+                            "__mul__",
+                            "__rmul__",
+                            "__floordiv__",
+                            "__rfloordiv__",
+                            "__mod__",
+                            "__rmod__",
+                            "__divmod__",
+                            "__rdivmod__",
+                            "__truediv__",
+                            "__rtruediv__"
+                        ],
+                        "class_decorators": [
+                            "inherit_names(['inferred_freq', '_isnan', '_resolution', 'resolution'], DatetimeLikeArrayMixin, cache=True)",
+                            "inherit_names(['__iter__', 'mean', 'freq', 'freqstr', '_ndarray_values', 'asi8', '_box_values'], DatetimeLikeArrayMixin)"
+                        ],
+                        "function_signatures": [
+                            "is_all_dates(self) -> bool",
+                            "unique(self, level=None)",
+                            "_create_comparison_method(cls, op)",
+                            "values(self)",
+                            "__array_wrap__(self, result, context=None)",
+                            "equals(self, other) -> bool",
+                            "_ensure_localized(self, arg, ambiguous='raise', nonexistent='raise', from_utc=False)",
+                            "__contains__(self, key)",
+                            "map(self, mapper, na_action=None)",
+                            "sort_values(self, return_indexer=False, ascending=True)",
+                            "take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs)",
+                            "_convert_tolerance(self, tolerance, target)",
+                            "tolist(self) -> List",
+                            "min(self, axis=None, skipna=True, *args, **kwargs)",
+                            "argmin(self, axis=None, skipna=True, *args, **kwargs)",
+                            "max(self, axis=None, skipna=True, *args, **kwargs)",
+                            "argmax(self, axis=None, skipna=True, *args, **kwargs)",
+                            "_format_with_header(self, header, na_rep='NaT', **kwargs)",
+                            "_formatter_func(self)",
+                            "_format_attrs(self)",
+                            "_convert_scalar_indexer(self, key, kind=None)",
+                            "isin(self, values, level=None)",
+                            "repeat(self, repeats, axis=None)",
+                            "where(self, cond, other=None)",
+                            "_summary(self, name=None)",
+                            "_concat_same_dtype(self, to_concat, name)",
+                            "astype(self, dtype, copy=True)",
+                            "shift(self, periods=1, freq=None)",
+                            "delete(self, loc)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin\nfrom pandas.core.arrays.datetimelike import (\n    DatetimeLikeArrayMixin,\n    _ensure_datetimelike_to_i8,\n)",
+                    "start_line": 31,
+                    "end_line": 35
+                },
+                {
+                    "snippet_code": "# --------------------------------------------------------------------",
+                    "start_line": 652,
+                    "end_line": 653
+                }
+            ],
+            "inscope_functions": [
+                "def _join_i8_wrapper(joinf, with_indexers: bool = True):\n    \"\"\"\n    Create the join wrapper methods.\n    \"\"\"\n\n    @staticmethod  # type: ignore\n    def wrapper(left, right):\n        if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):\n            left = left.view(\"i8\")\n        if isinstance(right, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):\n            right = right.view(\"i8\")\n\n        results = joinf(left, right)\n        if with_indexers:\n            # dtype should be timedelta64[ns] for TimedeltaIndex\n            #  and datetime64[ns] for DatetimeIndex\n            dtype = left.dtype.base\n\n            join_index, left_indexer, right_indexer = results\n            join_index = join_index.view(dtype)\n            return join_index, left_indexer, right_indexer\n        return results\n\n    return wrapper",
+                "@staticmethod  # type: ignore\ndef wrapper(left, right):\n    if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):\n        left = left.view(\"i8\")\n    if isinstance(right, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):\n        right = right.view(\"i8\")\n\n    results = joinf(left, right)\n    if with_indexers:\n        # dtype should be timedelta64[ns] for TimedeltaIndex\n        #  and datetime64[ns] for DatetimeIndex\n        dtype = left.dtype.base\n\n        join_index, left_indexer, right_indexer = results\n        join_index = join_index.view(dtype)\n        return join_index, left_indexer, right_indexer\n    return results",
+                "@property\ndef is_all_dates(self) -> bool:\n    return True",
+                "def unique(self, level=None):\n    if level is not None:\n        self._validate_index_level(level)\n\n    result = self._data.unique()\n\n    # Note: if `self` is already unique, then self.unique() should share\n    #  a `freq` with self.  If not already unique, then self.freq must be\n    #  None, so again sharing freq is correct.\n    return self._shallow_copy(result._data)",
+                "@classmethod\ndef _create_comparison_method(cls, op):\n    \"\"\"\n    Create a comparison method that dispatches to ``cls.values``.\n    \"\"\"\n    return make_wrapped_comparison_op(f\"__{op.__name__}__\")",
+                "@property\ndef values(self):\n    # Note: PeriodArray overrides this to return an ndarray of objects.\n    return self._data._data",
+                "def __array_wrap__(self, result, context=None):\n    \"\"\"\n    Gets called after a ufunc.\n    \"\"\"\n    result = lib.item_from_zerodim(result)\n    if is_bool_dtype(result) or lib.is_scalar(result):\n        return result\n\n    attrs = self._get_attributes_dict()\n    if not is_period_dtype(self) and attrs[\"freq\"]:\n        # no need to infer if freq is None\n        attrs[\"freq\"] = \"infer\"\n    return Index(result, **attrs)",
+                "def equals(self, other) -> bool:\n    \"\"\"\n    Determines if two Index objects contain the same elements.\n    \"\"\"\n    if self.is_(other):\n        return True\n\n    if not isinstance(other, ABCIndexClass):\n        return False\n    elif not isinstance(other, type(self)):\n        try:\n            other = type(self)(other)\n        except (ValueError, TypeError, OverflowError):\n            # e.g.\n            #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime\n            #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex\n            #  OverflowError -> Index([very_large_timedeltas])\n            return False\n\n    if not is_dtype_equal(self.dtype, other.dtype):\n        # have different timezone\n        return False\n\n    return np.array_equal(self.asi8, other.asi8)",
+                "def _ensure_localized(\n    self, arg, ambiguous=\"raise\", nonexistent=\"raise\", from_utc=False\n):\n    # See DatetimeLikeArrayMixin._ensure_localized.__doc__\n    if getattr(self, \"tz\", None):\n        # ensure_localized is only relevant for tz-aware DTI\n        result = self._data._ensure_localized(\n            arg, ambiguous=ambiguous, nonexistent=nonexistent, from_utc=from_utc\n        )\n        return type(self)._simple_new(result, name=self.name)\n    return arg",
+                "@Appender(_index_shared_docs[\"contains\"] % _index_doc_kwargs)\ndef __contains__(self, key):\n    try:\n        res = self.get_loc(key)\n        return (\n            is_scalar(res)\n            or isinstance(res, slice)\n            or (is_list_like(res) and len(res))\n        )\n    except (KeyError, TypeError, ValueError):\n        return False",
+                "def map(self, mapper, na_action=None):\n    try:\n        result = mapper(self)\n\n        # Try to use this result if we can\n        if isinstance(result, np.ndarray):\n            result = Index(result)\n\n        if not isinstance(result, Index):\n            raise TypeError(\"The map function must return an Index object\")\n        return result\n    except Exception:\n        return self.astype(object).map(mapper)",
+                "def sort_values(self, return_indexer=False, ascending=True):\n    \"\"\"\n    Return sorted copy of Index.\n    \"\"\"\n    if return_indexer:\n        _as = self.argsort()\n        if not ascending:\n            _as = _as[::-1]\n        sorted_index = self.take(_as)\n        return sorted_index, _as\n    else:\n        # NB: using asi8 instead of _ndarray_values matters in numpy 1.18\n        #  because the treatment of NaT has been changed to put NaT last\n        #  instead of first.\n        sorted_values = np.sort(self.asi8)\n        attribs = self._get_attributes_dict()\n        freq = attribs[\"freq\"]\n\n        if freq is not None and not is_period_dtype(self):\n            if freq.n > 0 and not ascending:\n                freq = freq * -1\n            elif freq.n < 0 and ascending:\n                freq = freq * -1\n        attribs[\"freq\"] = freq\n\n        if not ascending:\n            sorted_values = sorted_values[::-1]\n\n        return self._simple_new(sorted_values, **attribs)",
+                "@Appender(_index_shared_docs[\"take\"] % _index_doc_kwargs)\ndef take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):\n    nv.validate_take(tuple(), kwargs)\n    indices = ensure_int64(indices)\n\n    maybe_slice = lib.maybe_indices_to_slice(indices, len(self))\n    if isinstance(maybe_slice, slice):\n        return self[maybe_slice]\n\n    taken = ExtensionIndex.take(\n        self, indices, axis, allow_fill, fill_value, **kwargs\n    )\n\n    # keep freq in PeriodArray/Index, reset otherwise\n    freq = self.freq if is_period_dtype(self) else None\n    assert taken.freq == freq, (taken.freq, freq, taken)\n    return self._shallow_copy(taken, freq=freq)",
+                "def _convert_tolerance(self, tolerance, target):\n    tolerance = np.asarray(to_timedelta(tolerance).to_numpy())\n\n    if target.size != tolerance.size and tolerance.size > 1:\n        raise ValueError(\"list-like tolerance size must match target index size\")\n    return tolerance",
+                "def tolist(self) -> List:\n    \"\"\"\n    Return a list of the underlying data.\n    \"\"\"\n    return list(self.astype(object))",
+                "def min(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Return the minimum value of the Index or minimum along\n    an axis.\n\n    See Also\n    --------\n    numpy.ndarray.min\n    Series.min : Return the minimum value in a Series.\n    \"\"\"\n    nv.validate_min(args, kwargs)\n    nv.validate_minmax_axis(axis)\n\n    if not len(self):\n        return self._na_value\n\n    i8 = self.asi8\n    try:\n        # quick check\n        if len(i8) and self.is_monotonic:\n            if i8[0] != iNaT:\n                return self._box_func(i8[0])\n\n        if self.hasnans:\n            if skipna:\n                min_stamp = self[~self._isnan].asi8.min()\n            else:\n                return self._na_value\n        else:\n            min_stamp = i8.min()\n        return self._box_func(min_stamp)\n    except ValueError:\n        return self._na_value",
+                "def argmin(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Returns the indices of the minimum values along an axis.\n\n    See `numpy.ndarray.argmin` for more information on the\n    `axis` parameter.\n\n    See Also\n    --------\n    numpy.ndarray.argmin\n    \"\"\"\n    nv.validate_argmin(args, kwargs)\n    nv.validate_minmax_axis(axis)\n\n    i8 = self.asi8\n    if self.hasnans:\n        mask = self._isnan\n        if mask.all() or not skipna:\n            return -1\n        i8 = i8.copy()\n        i8[mask] = np.iinfo(\"int64\").max\n    return i8.argmin()",
+                "def max(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Return the maximum value of the Index or maximum along\n    an axis.\n\n    See Also\n    --------\n    numpy.ndarray.max\n    Series.max : Return the maximum value in a Series.\n    \"\"\"\n    nv.validate_max(args, kwargs)\n    nv.validate_minmax_axis(axis)\n\n    if not len(self):\n        return self._na_value\n\n    i8 = self.asi8\n    try:\n        # quick check\n        if len(i8) and self.is_monotonic:\n            if i8[-1] != iNaT:\n                return self._box_func(i8[-1])\n\n        if self.hasnans:\n            if skipna:\n                max_stamp = self[~self._isnan].asi8.max()\n            else:\n                return self._na_value\n        else:\n            max_stamp = i8.max()\n        return self._box_func(max_stamp)\n    except ValueError:\n        return self._na_value",
+                "def argmax(self, axis=None, skipna=True, *args, **kwargs):\n    \"\"\"\n    Returns the indices of the maximum values along an axis.\n\n    See `numpy.ndarray.argmax` for more information on the\n    `axis` parameter.\n\n    See Also\n    --------\n    numpy.ndarray.argmax\n    \"\"\"\n    nv.validate_argmax(args, kwargs)\n    nv.validate_minmax_axis(axis)\n\n    i8 = self.asi8\n    if self.hasnans:\n        mask = self._isnan\n        if mask.all() or not skipna:\n            return -1\n        i8 = i8.copy()\n        i8[mask] = 0\n    return i8.argmax()",
+                "def _format_with_header(self, header, na_rep=\"NaT\", **kwargs):\n    return header + list(self._format_native_types(na_rep, **kwargs))",
+                "@property\ndef _formatter_func(self):\n    raise AbstractMethodError(self)",
+                "def _format_attrs(self):\n    \"\"\"\n    Return a list of tuples of the (attr,formatted_value).\n    \"\"\"\n    attrs = super()._format_attrs()\n    for attrib in self._attributes:\n        if attrib == \"freq\":\n            freq = self.freqstr\n            if freq is not None:\n                freq = repr(freq)\n            attrs.append((\"freq\", freq))\n    return attrs",
+                "def _convert_scalar_indexer(self, key, kind=None):\n    \"\"\"\n    We don't allow integer or float indexing on datetime-like when using\n    loc.\n\n    Parameters\n    ----------\n    key : label of the slice bound\n    kind : {'ix', 'loc', 'getitem', 'iloc'} or None\n    \"\"\"\n\n    assert kind in [\"ix\", \"loc\", \"getitem\", \"iloc\", None]\n\n    # we don't allow integer/float indexing for loc\n    # we don't allow float indexing for ix/getitem\n    if is_scalar(key):\n        is_int = is_integer(key)\n        is_flt = is_float(key)\n        if kind in [\"loc\"] and (is_int or is_flt):\n            self._invalid_indexer(\"index\", key)\n        elif kind in [\"ix\", \"getitem\"] and is_flt:\n            self._invalid_indexer(\"index\", key)\n\n    return super()._convert_scalar_indexer(key, kind=kind)",
+                "def isin(self, values, level=None):\n    \"\"\"\n    Compute boolean array of whether each index value is found in the\n    passed set of values.\n\n    Parameters\n    ----------\n    values : set or sequence of values\n\n    Returns\n    -------\n    is_contained : ndarray (boolean dtype)\n    \"\"\"\n    if level is not None:\n        self._validate_index_level(level)\n\n    if not isinstance(values, type(self)):\n        try:\n            values = type(self)(values)\n        except ValueError:\n            return self.astype(object).isin(values)\n\n    return algorithms.isin(self.asi8, values.asi8)",
+                "@Appender(_index_shared_docs[\"repeat\"] % _index_doc_kwargs)\ndef repeat(self, repeats, axis=None):\n    nv.validate_repeat(tuple(), dict(axis=axis))\n    freq = self.freq if is_period_dtype(self) else None\n    return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)",
+                "@Appender(_index_shared_docs[\"where\"] % _index_doc_kwargs)\ndef where(self, cond, other=None):\n    other = _ensure_datetimelike_to_i8(other, to_utc=True)\n    values = _ensure_datetimelike_to_i8(self, to_utc=True)\n    result = np.where(cond, values, other).astype(\"i8\")\n\n    result = self._ensure_localized(result, from_utc=True)\n    return self._shallow_copy(result)",
+                "def _summary(self, name=None):\n    \"\"\"\n    Return a summarized representation.\n\n    Parameters\n    ----------\n    name : str\n        Name to use in the summary representation.\n\n    Returns\n    -------\n    str\n        Summarized representation of the index.\n    \"\"\"\n    formatter = self._formatter_func\n    if len(self) > 0:\n        index_summary = f\", {formatter(self[0])} to {formatter(self[-1])}\"\n    else:\n        index_summary = \"\"\n\n    if name is None:\n        name = type(self).__name__\n    result = f\"{name}: {len(self)} entries{index_summary}\"\n    if self.freq:\n        result += f\"\\nFreq: {self.freqstr}\"\n\n    # display as values, not quoted\n    result = result.replace(\"'\", \"\")\n    return result",
+                "def _concat_same_dtype(self, to_concat, name):\n    \"\"\"\n    Concatenate to_concat which has the same class.\n    \"\"\"\n    attribs = self._get_attributes_dict()\n    attribs[\"name\"] = name\n    # do not pass tz to set because tzlocal cannot be hashed\n    if len({str(x.dtype) for x in to_concat}) != 1:\n        raise ValueError(\"to_concat must have the same tz\")\n\n    new_data = type(self._values)._concat_same_type(to_concat).asi8\n\n    # GH 3232: If the concat result is evenly spaced, we can retain the\n    # original frequency\n    is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1\n    if not is_period_dtype(self) and not is_diff_evenly_spaced:\n        # reset freq\n        attribs[\"freq\"] = None\n\n    return self._simple_new(new_data, **attribs)",
+                "@Appender(_index_shared_docs[\"astype\"])\ndef astype(self, dtype, copy=True):\n    if is_dtype_equal(self.dtype, dtype) and copy is False:\n        # Ensure that self.astype(self.dtype) is self\n        return self\n\n    new_values = self._data.astype(dtype, copy=copy)\n\n    # pass copy=False because any copying will be done in the\n    #  _data.astype call above\n    return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)",
+                "def shift(self, periods=1, freq=None):\n    \"\"\"\n    Shift index by desired number of time frequency increments.\n\n    This method is for shifting the values of datetime-like indexes\n    by a specified time increment a given number of times.\n\n    Parameters\n    ----------\n    periods : int, default 1\n        Number of periods (or increments) to shift by,\n        can be positive or negative.\n\n        .. versionchanged:: 0.24.0\n\n    freq : pandas.DateOffset, pandas.Timedelta or string, optional\n        Frequency increment to shift by.\n        If None, the index is shifted by its own `freq` attribute.\n        Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.\n\n    Returns\n    -------\n    pandas.DatetimeIndex\n        Shifted index.\n\n    See Also\n    --------\n    Index.shift : Shift values of Index.\n    PeriodIndex.shift : Shift values of PeriodIndex.\n    \"\"\"\n    result = self._data._time_shift(periods, freq=freq)\n    return type(self)(result, name=self.name)",
+                "def delete(self, loc):\n    new_i8s = np.delete(self.asi8, loc)\n\n    freq = None\n    if is_period_dtype(self):\n        freq = self.freq\n    elif is_integer(loc):\n        if loc in (0, -len(self), -1, len(self) - 1):\n            freq = self.freq\n    else:\n        if is_list_like(loc):\n            loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))\n        if isinstance(loc, slice) and loc.step in (1, None):\n            if loc.start in (0, None) or loc.stop in (len(self), None):\n                freq = self.freq\n\n    return self._shallow_copy(new_i8s, freq=freq)",
+                "def _set_freq(self, freq):\n    \"\"\"\n    Set the _freq attribute on our underlying DatetimeArray.\n\n    Parameters\n    ----------\n    freq : DateOffset, None, or \"infer\"\n    \"\"\"\n    # GH#29843\n    if freq is None:\n        # Always valid\n        pass\n    elif len(self) == 0 and isinstance(freq, DateOffset):\n        # Always valid.  In the TimedeltaIndex case, we assume this\n        #  is a Tick offset.\n        pass\n    else:\n        # As an internal method, we can ensure this assertion always holds\n        assert freq == \"infer\"\n        freq = to_offset(self.inferred_freq)\n\n    self._data._freq = freq",
+                "@Appender(Index.difference.__doc__)\ndef difference(self, other, sort=None):\n    new_idx = super().difference(other, sort=sort)\n    new_idx._set_freq(None)\n    return new_idx",
+                "def intersection(self, other, sort=False):\n    \"\"\"\n    Specialized intersection for DatetimeIndex/TimedeltaIndex.\n\n    May be much faster than Index.intersection\n\n    Parameters\n    ----------\n    other : Same type as self or array-like\n    sort : False or None, default False\n        Sort the resulting index if possible.\n\n        .. versionadded:: 0.24.0\n\n        .. versionchanged:: 0.24.1\n\n           Changed the default to ``False`` to match the behaviour\n           from before 0.24.0.\n\n        .. versionchanged:: 0.25.0\n\n           The `sort` keyword is added\n\n    Returns\n    -------\n    y : Index or same type as self\n    \"\"\"\n    self._validate_sort_keyword(sort)\n    self._assert_can_do_setop(other)\n\n    if self.equals(other):\n        return self._get_reconciled_name_object(other)\n\n    if len(self) == 0:\n        return self.copy()\n    if len(other) == 0:\n        return other.copy()\n\n    if not isinstance(other, type(self)):\n        result = Index.intersection(self, other, sort=sort)\n        if isinstance(result, type(self)):\n            if result.freq is None:\n                result._set_freq(\"infer\")\n        return result\n\n    elif (\n        other.freq is None\n        or self.freq is None\n        or other.freq != self.freq\n        or not other.freq.is_anchored()\n        or (not self.is_monotonic or not other.is_monotonic)\n    ):\n        result = Index.intersection(self, other, sort=sort)\n\n        # Invalidate the freq of `result`, which may not be correct at\n        # this point, depending on the values.\n\n        result._set_freq(None)\n        result = self._shallow_copy(\n            result._data, name=result.name, dtype=result.dtype, freq=None\n        )\n        if result.freq is None:\n            result._set_freq(\"infer\")\n        return result\n\n    # to make our life easier, \"sort\" the two ranges\n    if self[0] <= other[0]:\n        left, right = self, other\n    else:\n        left, right = other, self\n\n    # after sorting, the intersection always starts with the right index\n    # and ends with the index of which the last elements is smallest\n    end = min(left[-1], right[-1])\n    start = right[0]\n\n    if end < start:\n        return type(self)(data=[])\n    else:\n        lslice = slice(*left.slice_locs(start, end))\n        left_chunk = left.values[lslice]\n        return self._shallow_copy(left_chunk)",
+                "def _can_fast_union(self, other) -> bool:\n    if not isinstance(other, type(self)):\n        return False\n\n    freq = self.freq\n\n    if freq is None or freq != other.freq:\n        return False\n\n    if not self.is_monotonic or not other.is_monotonic:\n        return False\n\n    if len(self) == 0 or len(other) == 0:\n        return True\n\n    # to make our life easier, \"sort\" the two ranges\n    if self[0] <= other[0]:\n        left, right = self, other\n    else:\n        left, right = other, self\n\n    right_start = right[0]\n    left_end = left[-1]\n\n    # Only need to \"adjoin\", not overlap\n    try:\n        return (right_start == left_end + freq) or right_start in left\n    except ValueError:\n        # if we are comparing a freq that does not propagate timezones\n        # this will raise\n        return False",
+                "def _fast_union(self, other, sort=None):\n    if len(other) == 0:\n        return self.view(type(self))\n\n    if len(self) == 0:\n        return other.view(type(self))\n\n    # to make our life easier, \"sort\" the two ranges\n    if self[0] <= other[0]:\n        left, right = self, other\n    elif sort is False:\n        # TDIs are not in the \"correct\" order and we don't want\n        #  to sort but want to remove overlaps\n        left, right = self, other\n        left_start = left[0]\n        loc = right.searchsorted(left_start, side=\"left\")\n        right_chunk = right.values[:loc]\n        dates = concat_compat((left.values, right_chunk))\n        return self._shallow_copy(dates)\n    else:\n        left, right = other, self\n\n    left_end = left[-1]\n    right_end = right[-1]\n\n    # concatenate\n    if left_end < right_end:\n        loc = right.searchsorted(left_end, side=\"right\")\n        right_chunk = right.values[loc:]\n        dates = concat_compat((left.values, right_chunk))\n        return self._shallow_copy(dates)\n    else:\n        return left",
+                "def _union(self, other, sort):\n    if not len(other) or self.equals(other) or not len(self):\n        return super()._union(other, sort=sort)\n\n    # We are called by `union`, which is responsible for this validation\n    assert isinstance(other, type(self))\n\n    this, other = self._maybe_utc_convert(other)\n\n    if this._can_fast_union(other):\n        return this._fast_union(other, sort=sort)\n    else:\n        result = Index._union(this, other, sort=sort)\n        if isinstance(result, type(self)):\n            assert result._data.dtype == this.dtype\n            if result.freq is None:\n                result._set_freq(\"infer\")\n        return result",
+                "def join(\n    self, other, how: str = \"left\", level=None, return_indexers=False, sort=False\n):\n    \"\"\"\n    See Index.join\n    \"\"\"\n    if self._is_convertible_to_index_for_join(other):\n        try:\n            other = type(self)(other)\n        except (TypeError, ValueError):\n            pass\n\n    this, other = self._maybe_utc_convert(other)\n    return Index.join(\n        this,\n        other,\n        how=how,\n        level=level,\n        return_indexers=return_indexers,\n        sort=sort,\n    )",
+                "def _maybe_utc_convert(self, other):\n    this = self\n    if not hasattr(self, \"tz\"):\n        return this, other\n\n    if isinstance(other, type(self)):\n        if self.tz is not None:\n            if other.tz is None:\n                raise TypeError(\"Cannot join tz-naive with tz-aware DatetimeIndex\")\n        elif other.tz is not None:\n            raise TypeError(\"Cannot join tz-naive with tz-aware DatetimeIndex\")\n\n        if not timezones.tz_compare(self.tz, other.tz):\n            this = self.tz_convert(\"UTC\")\n            other = other.tz_convert(\"UTC\")\n    return this, other",
+                "@classmethod\ndef _is_convertible_to_index_for_join(cls, other: Index) -> bool:\n    \"\"\"\n    return a boolean whether I can attempt conversion to a\n    DatetimeIndex/TimedeltaIndex\n    \"\"\"\n    if isinstance(other, cls):\n        return False\n    elif len(other) > 0 and other.inferred_type not in (\n        \"floating\",\n        \"mixed-integer\",\n        \"integer\",\n        \"integer-na\",\n        \"mixed-integer-float\",\n        \"mixed\",\n    ):\n        return True\n    return False",
+                "def _wrap_joined_index(self, joined, other):\n    name = get_op_result_name(self, other)\n    if (\n        isinstance(other, type(self))\n        and self.freq == other.freq\n        and self._can_fast_union(other)\n    ):\n        joined = self._shallow_copy(joined)\n        joined.name = name\n        return joined\n    else:\n        kwargs = {}\n        if hasattr(self, \"tz\"):\n            kwargs[\"tz\"] = getattr(other, \"tz\", None)\n        return self._simple_new(joined, name, **kwargs)",
+                "def _delegate_property_get(self, name, *args, **kwargs):\n    result = getattr(self._data, name)\n    if name not in self._raw_properties:\n        result = Index(result, name=self.name)\n    return result",
+                "def _delegate_property_set(self, name, value, *args, **kwargs):\n    setattr(self._data, name, value)",
+                "def _delegate_method(self, name, *args, **kwargs):\n    result = operator.methodcaller(name, *args, **kwargs)(self._data)\n    if name not in self._raw_methods:\n        result = Index(result, name=self.name)\n    return result"
+            ],
+            "inscope_function_signatures": [
+                "_join_i8_wrapper(joinf, with_indexers: bool=True)",
+                "wrapper(left, right)",
+                "is_all_dates(self) -> bool",
+                "unique(self, level=None)",
+                "_create_comparison_method(cls, op)",
+                "values(self)",
+                "__array_wrap__(self, result, context=None)",
+                "equals(self, other) -> bool",
+                "_ensure_localized(self, arg, ambiguous='raise', nonexistent='raise', from_utc=False)",
+                "__contains__(self, key)",
+                "map(self, mapper, na_action=None)",
+                "sort_values(self, return_indexer=False, ascending=True)",
+                "take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs)",
+                "_convert_tolerance(self, tolerance, target)",
+                "tolist(self) -> List",
+                "min(self, axis=None, skipna=True, *args, **kwargs)",
+                "argmin(self, axis=None, skipna=True, *args, **kwargs)",
+                "max(self, axis=None, skipna=True, *args, **kwargs)",
+                "argmax(self, axis=None, skipna=True, *args, **kwargs)",
+                "_format_with_header(self, header, na_rep='NaT', **kwargs)",
+                "_formatter_func(self)",
+                "_format_attrs(self)",
+                "_convert_scalar_indexer(self, key, kind=None)",
+                "isin(self, values, level=None)",
+                "repeat(self, repeats, axis=None)",
+                "where(self, cond, other=None)",
+                "_summary(self, name=None)",
+                "_concat_same_dtype(self, to_concat, name)",
+                "astype(self, dtype, copy=True)",
+                "shift(self, periods=1, freq=None)",
+                "delete(self, loc)",
+                "_set_freq(self, freq)",
+                "difference(self, other, sort=None)",
+                "intersection(self, other, sort=False)",
+                "_can_fast_union(self, other) -> bool",
+                "_fast_union(self, other, sort=None)",
+                "_union(self, other, sort)",
+                "join(self, other, how: str='left', level=None, return_indexers=False, sort=False)",
+                "_maybe_utc_convert(self, other)",
+                "_is_convertible_to_index_for_join(cls, other: Index) -> bool",
+                "_wrap_joined_index(self, joined, other)",
+                "_delegate_property_get(self, name, *args, **kwargs)",
+                "_delegate_property_set(self, name, value, *args, **kwargs)",
+                "_delegate_method(self, name, *args, **kwargs)"
+            ],
+            "variables_in_file": {
+                "_index_doc_kwargs": [
+                    486,
+                    492,
+                    51,
+                    245,
+                    187
+                ],
+                "dict": [
+                    488,
+                    51
+                ],
+                "ibase._index_doc_kwargs": [
+                    51
+                ],
+                "ibase": [
+                    51
+                ],
+                "bool": [
+                    105,
+                    745,
+                    881,
+                    150,
+                    54
+                ],
+                "isinstance": [
+                    642,
+                    902,
+                    157,
+                    159,
+                    816,
+                    824,
+                    700,
+                    61,
+                    702,
+                    63,
+                    193,
+                    206,
+                    209,
+                    478,
+                    612,
+                    868,
+                    746,
+                    886,
+                    251
+                ],
+                "left": [
+                    771,
+                    786,
+                    790,
+                    791,
+                    794,
+                    797,
+                    799,
+                    806,
+                    809,
+                    61,
+                    62,
+                    66,
+                    70,
+                    729,
+                    731,
+                    735,
+                    741,
+                    742,
+                    762,
+                    764,
+                    767
+                ],
+                "np.ndarray": [
+                    61,
+                    206,
+                    63
+                ],
+                "np": [
+                    611,
+                    229,
+                    173,
+                    206,
+                    269,
+                    335,
+                    496,
+                    601,
+                    61,
+                    63
+                ],
+                "ABCIndex": [
+                    61,
+                    63
+                ],
+                "ABCSeries": [
+                    61,
+                    63
+                ],
+                "DatetimeLikeArrayMixin": [
+                    101,
+                    82,
+                    87,
+                    61,
+                    63
+                ],
+                "left.view": [
+                    62
+                ],
+                "right": [
+                    64,
+                    736,
+                    66,
+                    800,
+                    804,
+                    805,
+                    735,
+                    786,
+                    790,
+                    793,
+                    792,
+                    729,
+                    762,
+                    731,
+                    764,
+                    797,
+                    766,
+                    63
+                ],
+                "right.view": [
+                    64
+                ],
+                "results": [
+                    72,
+                    66,
+                    75
+                ],
+                "joinf": [
+                    66
+                ],
+                "with_indexers": [
+                    67
+                ],
+                "dtype": [
+                    558,
+                    73,
+                    554,
+                    70
+                ],
+                "left.dtype.base": [
+                    70
+                ],
+                "left.dtype": [
+                    70
+                ],
+                "join_index": [
+                    72,
+                    73,
+                    74
+                ],
+                "left_indexer": [
+                    72,
+                    74
+                ],
+                "right_indexer": [
+                    72,
+                    74
+                ],
+                "join_index.view": [
+                    73
+                ],
+                "staticmethod": [
+                    59
+                ],
+                "wrapper": [
+                    77
+                ],
+                "ExtensionIndex": [
+                    89,
+                    254
+                ],
+                "ExtensionOpsMixin": [
+                    89
+                ],
+                "_data": [
+                    937,
+                    94
+                ],
+                "ExtensionArray": [
+                    937,
+                    94
+                ],
+                "freq": [
+                    642,
+                    259,
+                    260,
+                    261,
+                    771,
+                    648,
+                    649,
+                    651,
+                    412,
+                    413,
+                    414,
+                    415,
+                    594,
+                    603,
+                    605,
+                    95,
+                    608,
+                    614,
+                    231,
+                    616,
+                    233,
+                    234,
+                    235,
+                    236,
+                    237,
+                    238,
+                    489,
+                    490,
+                    749,
+                    751,
+                    639
+                ],
+                "Optional": [
+                    96,
+                    95
+                ],
+                "DateOffset": [
+                    642,
+                    95
+                ],
+                "freqstr": [
+                    96
+                ],
+                "str": [
+                    96,
+                    98,
+                    99,
+                    934,
+                    936,
+                    842,
+                    538
+                ],
+                "_resolution": [
+                    97
+                ],
+                "int": [
+                    97
+                ],
+                "_bool_ops": [
+                    98
+                ],
+                "List": [
+                    275,
+                    98,
+                    99
+                ],
+                "_field_ops": [
+                    99
+                ],
+                "hasnans": [
+                    101,
+                    102
+                ],
+                "cache_readonly": [
+                    101
+                ],
+                "DatetimeLikeArrayMixin._hasnans.fget": [
+                    101
+                ],
+                "DatetimeLikeArrayMixin._hasnans": [
+                    101
+                ],
+                "_hasnans": [
+                    102
+                ],
+                "property": [
+                    104,
+                    129,
+                    401
+                ],
+                "level": [
+                    109,
+                    110,
+                    858,
+                    475,
+                    476
+                ],
+                "self._validate_index_level": [
+                    476,
+                    110
+                ],
+                "self": [
+                    515,
+                    516,
+                    517,
+                    522,
+                    523,
+                    524,
+                    525,
+                    535,
+                    541,
+                    546,
+                    550,
+                    554,
+                    556,
+                    558,
+                    562,
+                    594,
+                    595,
+                    601,
+                    604,
+                    605,
+                    607,
+                    608,
+                    611,
+                    613,
+                    614,
+                    616,
+                    110,
+                    112,
+                    117,
+                    642,
+                    132,
+                    649,
+                    651,
+                    142,
+                    143,
+                    154,
+                    159,
+                    161,
+                    169,
+                    173,
+                    689,
+                    690,
+                    179,
+                    692,
+                    181,
+                    693,
+                    695,
+                    184,
+                    696,
+                    700,
+                    701,
+                    190,
+                    702,
+                    709,
+                    710,
+                    712,
+                    714,
+                    203,
+                    720,
+                    213,
+                    728,
+                    729,
+                    731,
+                    220,
+                    223,
+                    739,
+                    229,
+                    230,
+                    743,
+                    233,
+                    746,
+                    749,
+                    754,
+                    243,
+                    757,
+                    761,
+                    250,
+                    762,
+                    252,
+                    764,
+                    255,
+                    259,
+                    261,
+                    779,
+                    781,
+                    782,
+                    785,
+                    786,
+                    790,
+                    279,
+                    795,
+                    797,
+                    294,
+                    295,
+                    807,
+                    297,
+                    300,
+                    812,
+                    302,
+                    304,
+                    816,
+                    306,
+                    818,
+                    308,
+                    311,
+                    824,
+                    313,
+                    329,
+                    330,
+                    331,
+                    847,
+                    849,
+                    853,
+                    351,
+                    352,
+                    864,
+                    354,
+                    865,
+                    868,
+                    357,
+                    869,
+                    359,
+                    361,
+                    363,
+                    875,
+                    365,
+                    876,
+                    368,
+                    370,
+                    386,
+                    387,
+                    388,
+                    900,
+                    902,
+                    903,
+                    904,
+                    906,
+                    399,
+                    911,
+                    913,
+                    403,
+                    410,
+                    412,
+                    940,
+                    941,
+                    942,
+                    946,
+                    949,
+                    950,
+                    439,
+                    951,
+                    441,
+                    476,
+                    478,
+                    480,
+                    482,
+                    484,
+                    489,
+                    490,
+                    495,
+                    498,
+                    499
+                ],
+                "result": [
+                    138,
+                    523,
+                    139,
+                    140,
+                    525,
+                    952,
+                    528,
+                    529,
+                    146,
+                    940,
+                    942,
+                    943,
+                    951,
+                    181,
+                    949,
+                    823,
+                    184,
+                    824,
+                    825,
+                    826,
+                    827,
+                    701,
+                    702,
+                    703,
+                    704,
+                    705,
+                    828,
+                    714,
+                    203,
+                    206,
+                    207,
+                    719,
+                    209,
+                    594,
+                    211,
+                    595,
+                    720,
+                    721,
+                    723,
+                    724,
+                    725,
+                    112,
+                    496,
+                    498,
+                    499,
+                    117
+                ],
+                "self._data.unique": [
+                    112
+                ],
+                "self._data": [
+                    132,
+                    651,
+                    940,
+                    558,
+                    112,
+                    594,
+                    946,
+                    181,
+                    949
+                ],
+                "self._shallow_copy": [
+                    261,
+                    743,
+                    616,
+                    807,
+                    490,
+                    906,
+                    720,
+                    499,
+                    117,
+                    795
+                ],
+                "result._data": [
+                    721,
+                    117,
+                    825
+                ],
+                "make_wrapped_comparison_op": [
+                    124
+                ],
+                "op.__name__": [
+                    124
+                ],
+                "op": [
+                    124
+                ],
+                "classmethod": [
+                    880,
+                    119
+                ],
+                "self._data._data": [
+                    132
+                ],
+                "lib.item_from_zerodim": [
+                    138
+                ],
+                "lib": [
+                    250,
+                    611,
+                    138,
+                    139
+                ],
+                "is_bool_dtype": [
+                    139
+                ],
+                "lib.is_scalar": [
+                    139
+                ],
+                "attrs": [
+                    416,
+                    142,
+                    143,
+                    145,
+                    146,
+                    409,
+                    415
+                ],
+                "self._get_attributes_dict": [
+                    535,
+                    142,
+                    230
+                ],
+                "is_period_dtype": [
+                    546,
+                    259,
+                    233,
+                    489,
+                    143,
+                    604
+                ],
+                "Index": [
+                    714,
+                    942,
+                    207,
+                    656,
+                    209,
+                    146,
+                    562,
+                    626,
+                    627,
+                    628,
+                    823,
+                    854,
+                    881,
+                    951,
+                    701
+                ],
+                "self.is_": [
+                    154
+                ],
+                "other": [
+                    900,
+                    902,
+                    903,
+                    904,
+                    778,
+                    782,
+                    912,
+                    785,
+                    658,
+                    786,
+                    790,
+                    154,
+                    157,
+                    797,
+                    159,
+                    161,
+                    169,
+                    812,
+                    173,
+                    813,
+                    816,
+                    690,
+                    818,
+                    692,
+                    693,
+                    820,
+                    821,
+                    823,
+                    697,
+                    698,
+                    700,
+                    701,
+                    708,
+                    710,
+                    711,
+                    712,
+                    714,
+                    847,
+                    849,
+                    853,
+                    728,
+                    729,
+                    856,
+                    731,
+                    866,
+                    868,
+                    870,
+                    872,
+                    746,
+                    875,
+                    877,
+                    494,
+                    751,
+                    496,
+                    878,
+                    754,
+                    757,
+                    886,
+                    888,
+                    761,
+                    762,
+                    764
+                ],
+                "ABCIndexClass": [
+                    157
+                ],
+                "type": [
+                    902,
+                    522,
+                    779,
+                    782,
+                    541,
+                    159,
+                    161,
+                    816,
+                    824,
+                    184,
+                    700,
+                    702,
+                    849,
+                    595,
+                    478,
+                    480,
+                    739,
+                    868,
+                    746
+                ],
+                "ValueError": [
+                    481,
+                    162,
+                    196,
+                    772,
+                    272,
+                    369,
+                    850,
+                    312,
+                    539
+                ],
+                "TypeError": [
+                    162,
+                    196,
+                    871,
+                    873,
+                    210,
+                    850
+                ],
+                "OverflowError": [
+                    162
+                ],
+                "is_dtype_equal": [
+                    169,
+                    554
+                ],
+                "self.dtype": [
+                    169,
+                    554
+                ],
+                "other.dtype": [
+                    169
+                ],
+                "np.array_equal": [
+                    173
+                ],
+                "self.asi8": [
+                    354,
+                    386,
+                    484,
+                    229,
+                    329,
+                    297,
+                    490,
+                    173,
+                    601
+                ],
+                "other.asi8": [
+                    173
+                ],
+                "getattr": [
+                    912,
+                    179,
+                    940
+                ],
+                "self._data._ensure_localized": [
+                    181
+                ],
+                "arg": [
+                    185,
+                    182
+                ],
+                "ambiguous": [
+                    182
+                ],
+                "nonexistent": [
+                    182
+                ],
+                "from_utc": [
+                    182
+                ],
+                "_simple_new": [
+                    184
+                ],
+                "self.name": [
+                    942,
+                    562,
+                    595,
+                    951,
+                    184
+                ],
+                "res": [
+                    192,
+                    193,
+                    194,
+                    190
+                ],
+                "self.get_loc": [
+                    190
+                ],
+                "key": [
+                    435,
+                    436,
+                    437,
+                    439,
+                    441,
+                    443,
+                    190
+                ],
+                "is_scalar": [
+                    192,
+                    435
+                ],
+                "slice": [
+                    193,
+                    251,
+                    612,
+                    741
+                ],
+                "is_list_like": [
+                    194,
+                    610
+                ],
+                "len": [
+                    642,
+                    516,
+                    778,
+                    523,
+                    781,
+                    538,
+                    545,
+                    294,
+                    300,
+                    812,
+                    695,
+                    697,
+                    194,
+                    607,
+                    351,
+                    611,
+                    357,
+                    613,
+                    757,
+                    888,
+                    250
+                ],
+                "KeyError": [
+                    196
+                ],
+                "Appender": [
+                    486,
+                    552,
+                    492,
+                    656,
+                    245,
+                    187
+                ],
+                "_index_shared_docs": [
+                    486,
+                    552,
+                    492,
+                    245,
+                    187
+                ],
+                "mapper": [
+                    203,
+                    213
+                ],
+                "Exception": [
+                    212
+                ],
+                "map": [
+                    213
+                ],
+                "self.astype": [
+                    482,
+                    213,
+                    279
+                ],
+                "object": [
+                    482,
+                    213,
+                    279
+                ],
+                "return_indexer": [
+                    219
+                ],
+                "_as": [
+                    224,
+                    220,
+                    222,
+                    223
+                ],
+                "self.argsort": [
+                    220
+                ],
+                "ascending": [
+                    240,
+                    234,
+                    236,
+                    221
+                ],
+                "sorted_index": [
+                    224,
+                    223
+                ],
+                "self.take": [
+                    223
+                ],
+                "sorted_values": [
+                    241,
+                    243,
+                    229
+                ],
+                "np.sort": [
+                    229
+                ],
+                "attribs": [
+                    548,
+                    230,
+                    231,
+                    550,
+                    238,
+                    243,
+                    535,
+                    536
+                ],
+                "freq.n": [
+                    234,
+                    236
+                ],
+                "self._simple_new": [
+                    913,
+                    243,
+                    550
+                ],
+                "nv.validate_take": [
+                    247
+                ],
+                "nv": [
+                    384,
+                    291,
+                    292,
+                    326,
+                    327,
+                    488,
+                    247,
+                    348,
+                    349,
+                    383
+                ],
+                "tuple": [
+                    488,
+                    247
+                ],
+                "kwargs": [
+                    291,
+                    326,
+                    383,
+                    910,
+                    399,
+                    912,
+                    913,
+                    949,
+                    247,
+                    348,
+                    255
+                ],
+                "indices": [
+                    248,
+                    250,
+                    255
+                ],
+                "ensure_int64": [
+                    248,
+                    611
+                ],
+                "maybe_slice": [
+                    250,
+                    251,
+                    252
+                ],
+                "lib.maybe_indices_to_slice": [
+                    250,
+                    611
+                ],
+                "taken": [
+                    260,
+                    261,
+                    254
+                ],
+                "ExtensionIndex.take": [
+                    254
+                ],
+                "axis": [
+                    384,
+                    292,
+                    327,
+                    488,
+                    349,
+                    255
+                ],
+                "allow_fill": [
+                    255
+                ],
+                "fill_value": [
+                    255
+                ],
+                "self.freq": [
+                    608,
+                    259,
+                    709,
+                    614,
+                    710,
+                    903,
+                    489,
+                    524,
+                    749,
+                    605
+                ],
+                "taken.freq": [
+                    260
+                ],
+                "_can_hold_na": [
+                    263
+                ],
+                "_na_value": [
+                    265
+                ],
+                "NaT": [
+                    265
+                ],
+                "tolerance": [
+                    273,
+                    269,
+                    271
+                ],
+                "np.asarray": [
+                    269
+                ],
+                "to_numpy": [
+                    269
+                ],
+                "to_timedelta": [
+                    269
+                ],
+                "target.size": [
+                    271
+                ],
+                "target": [
+                    271
+                ],
+                "tolerance.size": [
+                    271
+                ],
+                "list": [
+                    399,
+                    279
+                ],
+                "nv.validate_min": [
+                    291
+                ],
+                "args": [
+                    291,
+                    326,
+                    949,
+                    348,
+                    383
+                ],
+                "nv.validate_minmax_axis": [
+                    384,
+                    292,
+                    349,
+                    327
+                ],
+                "self._na_value": [
+                    352,
+                    295,
+                    365,
+                    370,
+                    308,
+                    313
+                ],
+                "i8": [
+                    354,
+                    386,
+                    357,
+                    358,
+                    359,
+                    391,
+                    297,
+                    329,
+                    392,
+                    300,
+                    301,
+                    302,
+                    334,
+                    335,
+                    336,
+                    367,
+                    310,
+                    393
+                ],
+                "self.is_monotonic": [
+                    712,
+                    754,
+                    300,
+                    357
+                ],
+                "iNaT": [
+                    301,
+                    358
+                ],
+                "self._box_func": [
+                    368,
+                    359,
+                    302,
+                    311
+                ],
+                "self.hasnans": [
+                    304,
+                    361,
+                    330,
+                    387
+                ],
+                "skipna": [
+                    305,
+                    362,
+                    332,
+                    389
+                ],
+                "min_stamp": [
+                    306,
+                    310,
+                    311
+                ],
+                "asi8.min": [
+                    306
+                ],
+                "asi8": [
+                    306,
+                    363,
+                    541
+                ],
+                "self._isnan": [
+                    363,
+                    306,
+                    331,
+                    388
+                ],
+                "i8.min": [
+                    310
+                ],
+                "nv.validate_argmin": [
+                    326
+                ],
+                "mask": [
+                    388,
+                    389,
+                    392,
+                    331,
+                    332,
+                    335
+                ],
+                "mask.all": [
+                    332,
+                    389
+                ],
+                "i8.copy": [
+                    334,
+                    391
+                ],
+                "max": [
+                    335
+                ],
+                "np.iinfo": [
+                    335
+                ],
+                "i8.argmin": [
+                    336
+                ],
+                "nv.validate_max": [
+                    348
+                ],
+                "max_stamp": [
+                    368,
+                    363,
+                    367
+                ],
+                "asi8.max": [
+                    363
+                ],
+                "i8.max": [
+                    367
+                ],
+                "nv.validate_argmax": [
+                    383
+                ],
+                "i8.argmax": [
+                    393
+                ],
+                "header": [
+                    399
+                ],
+                "self._format_native_types": [
+                    399
+                ],
+                "na_rep": [
+                    399
+                ],
+                "AbstractMethodError": [
+                    403
+                ],
+                "_format_attrs": [
+                    409
+                ],
+                "super": [
+                    409,
+                    658,
+                    443,
+                    813
+                ],
+                "attrib": [
+                    410,
+                    411
+                ],
+                "self._attributes": [
+                    410
+                ],
+                "self.freqstr": [
+                    412,
+                    525
+                ],
+                "repr": [
+                    414
+                ],
+                "attrs.append": [
+                    415
+                ],
+                "kind": [
+                    440,
+                    443,
+                    438,
+                    431
+                ],
+                "is_int": [
+                    436,
+                    438
+                ],
+                "is_integer": [
+                    436,
+                    606
+                ],
+                "is_flt": [
+                    440,
+                    437,
+                    438
+                ],
+                "is_float": [
+                    437
+                ],
+                "self._invalid_indexer": [
+                    441,
+                    439
+                ],
+                "_convert_scalar_indexer": [
+                    443
+                ],
+                "__add__": [
+                    445
+                ],
+                "make_wrapped_arith_op": [
+                    448,
+                    449,
+                    450,
+                    451,
+                    452,
+                    453,
+                    454,
+                    455,
+                    456,
+                    457,
+                    458,
+                    459,
+                    460,
+                    445,
+                    446,
+                    447
+                ],
+                "__radd__": [
+                    446
+                ],
+                "__sub__": [
+                    447
+                ],
+                "__rsub__": [
+                    448
+                ],
+                "__pow__": [
+                    449
+                ],
+                "__rpow__": [
+                    450
+                ],
+                "__mul__": [
+                    451
+                ],
+                "__rmul__": [
+                    452
+                ],
+                "__floordiv__": [
+                    453
+                ],
+                "__rfloordiv__": [
+                    454
+                ],
+                "__mod__": [
+                    455
+                ],
+                "__rmod__": [
+                    456
+                ],
+                "__divmod__": [
+                    457
+                ],
+                "__rdivmod__": [
+                    458
+                ],
+                "__truediv__": [
+                    459
+                ],
+                "__rtruediv__": [
+                    460
+                ],
+                "values": [
+                    480,
+                    482,
+                    484,
+                    495,
+                    496,
+                    478
+                ],
+                "isin": [
+                    482
+                ],
+                "algorithms.isin": [
+                    484
+                ],
+                "algorithms": [
+                    484
+                ],
+                "values.asi8": [
+                    484
+                ],
+                "nv.validate_repeat": [
+                    488
+                ],
+                "self.asi8.repeat": [
+                    490
+                ],
+                "repeats": [
+                    490
+                ],
+                "_ensure_datetimelike_to_i8": [
+                    494,
+                    495
+                ],
+                "astype": [
+                    496
+                ],
+                "np.where": [
+                    496
+                ],
+                "cond": [
+                    496
+                ],
+                "self._ensure_localized": [
+                    498
+                ],
+                "formatter": [
+                    515,
+                    517
+                ],
+                "self._formatter_func": [
+                    515
+                ],
+                "index_summary": [
+                    523,
+                    517,
+                    519
+                ],
+                "name": [
+                    900,
+                    521,
+                    522,
+                    523,
+                    907,
+                    940,
+                    941,
+                    913,
+                    946,
+                    949,
+                    950,
+                    536
+                ],
+                "__name__": [
+                    522
+                ],
+                "result.replace": [
+                    528
+                ],
+                "x.dtype": [
+                    538
+                ],
+                "x": [
+                    538
+                ],
+                "to_concat": [
+                    538,
+                    541
+                ],
+                "new_data": [
+                    545,
+                    541,
+                    550
+                ],
+                "_concat_same_type": [
+                    541
+                ],
+                "self._values": [
+                    541
+                ],
+                "is_diff_evenly_spaced": [
+                    545,
+                    546
+                ],
+                "unique_deltas": [
+                    545
+                ],
+                "copy": [
+                    554,
+                    558
+                ],
+                "new_values": [
+                    562,
+                    558
+                ],
+                "self._data.astype": [
+                    558
+                ],
+                "new_values.dtype": [
+                    562
+                ],
+                "self._data._time_shift": [
+                    594
+                ],
+                "periods": [
+                    594
+                ],
+                "new_i8s": [
+                    616,
+                    601
+                ],
+                "np.delete": [
+                    601
+                ],
+                "loc": [
+                    610,
+                    611,
+                    612,
+                    613,
+                    804,
+                    805,
+                    793,
+                    792,
+                    601,
+                    606,
+                    607
+                ],
+                "np.array": [
+                    611
+                ],
+                "loc.step": [
+                    612
+                ],
+                "loc.start": [
+                    613
+                ],
+                "loc.stop": [
+                    613
+                ],
+                "inherit_names": [
+                    80,
+                    85
+                ],
+                "DatetimeIndexOpsMixin": [
+                    619
+                ],
+                "Int64Index": [
+                    619
+                ],
+                "_is_monotonic_increasing": [
+                    626
+                ],
+                "Index.is_monotonic_increasing": [
+                    626
+                ],
+                "_is_monotonic_decreasing": [
+                    627
+                ],
+                "Index.is_monotonic_decreasing": [
+                    627
+                ],
+                "_is_unique": [
+                    628
+                ],
+                "Index.is_unique": [
+                    628
+                ],
+                "to_offset": [
+                    649
+                ],
+                "self.inferred_freq": [
+                    649
+                ],
+                "self._data._freq": [
+                    651
+                ],
+                "new_idx": [
+                    658,
+                    659,
+                    660
+                ],
+                "difference": [
+                    658
+                ],
+                "sort": [
+                    714,
+                    813,
+                    689,
+                    658,
+                    787,
+                    821,
+                    823,
+                    860,
+                    701
+                ],
+                "new_idx._set_freq": [
+                    659
+                ],
+                "Index.difference.__doc__": [
+                    656
+                ],
+                "Index.difference": [
+                    656
+                ],
+                "self._validate_sort_keyword": [
+                    689
+                ],
+                "self._assert_can_do_setop": [
+                    690
+                ],
+                "self.equals": [
+                    692,
+                    812
+                ],
+                "self._get_reconciled_name_object": [
+                    693
+                ],
+                "self.copy": [
+                    696
+                ],
+                "other.copy": [
+                    698
+                ],
+                "Index.intersection": [
+                    714,
+                    701
+                ],
+                "result.freq": [
+                    826,
+                    723,
+                    703
+                ],
+                "result._set_freq": [
+                    704,
+                    827,
+                    724,
+                    719
+                ],
+                "other.freq": [
+                    708,
+                    710,
+                    903,
+                    711,
+                    751
+                ],
+                "other.freq.is_anchored": [
+                    711
+                ],
+                "other.is_monotonic": [
+                    712,
+                    754
+                ],
+                "result.name": [
+                    721
+                ],
+                "result.dtype": [
+                    721
+                ],
+                "end": [
+                    738,
+                    741,
+                    735
+                ],
+                "min": [
+                    735
+                ],
+                "start": [
+                    736,
+                    738,
+                    741
+                ],
+                "lslice": [
+                    741,
+                    742
+                ],
+                "left.slice_locs": [
+                    741
+                ],
+                "left_chunk": [
+                    742,
+                    743
+                ],
+                "left.values": [
+                    806,
+                    794,
+                    742
+                ],
+                "right_start": [
+                    771,
+                    766
+                ],
+                "left_end": [
+                    803,
+                    771,
+                    804,
+                    767,
+                    799
+                ],
+                "self.view": [
+                    779
+                ],
+                "other.view": [
+                    782
+                ],
+                "left_start": [
+                    792,
+                    791
+                ],
+                "right.searchsorted": [
+                    792,
+                    804
+                ],
+                "right_chunk": [
+                    793,
+                    794,
+                    805,
+                    806
+                ],
+                "right.values": [
+                    793,
+                    805
+                ],
+                "dates": [
+                    794,
+                    795,
+                    806,
+                    807
+                ],
+                "concat_compat": [
+                    794,
+                    806
+                ],
+                "right_end": [
+                    800,
+                    803
+                ],
+                "_union": [
+                    813
+                ],
+                "this": [
+                    864,
+                    866,
+                    876,
+                    855,
+                    878,
+                    818,
+                    820,
+                    821,
+                    853,
+                    823,
+                    825
+                ],
+                "self._maybe_utc_convert": [
+                    818,
+                    853
+                ],
+                "this._can_fast_union": [
+                    820
+                ],
+                "this._fast_union": [
+                    821
+                ],
+                "Index._union": [
+                    823
+                ],
+                "result._data.dtype": [
+                    825
+                ],
+                "this.dtype": [
+                    825
+                ],
+                "_join_precedence": [
+                    832
+                ],
+                "_inner_indexer": [
+                    834
+                ],
+                "_join_i8_wrapper": [
+                    834,
+                    835,
+                    836,
+                    837
+                ],
+                "libjoin.inner_join_indexer": [
+                    834
+                ],
+                "libjoin": [
+                    834,
+                    835,
+                    836,
+                    838
+                ],
+                "_outer_indexer": [
+                    835
+                ],
+                "libjoin.outer_join_indexer": [
+                    835
+                ],
+                "_left_indexer": [
+                    836
+                ],
+                "libjoin.left_join_indexer": [
+                    836
+                ],
+                "_left_indexer_unique": [
+                    837
+                ],
+                "libjoin.left_join_indexer_unique": [
+                    838
+                ],
+                "self._is_convertible_to_index_for_join": [
+                    847
+                ],
+                "Index.join": [
+                    854
+                ],
+                "how": [
+                    857
+                ],
+                "return_indexers": [
+                    859
+                ],
+                "hasattr": [
+                    865,
+                    911
+                ],
+                "self.tz": [
+                    875,
+                    869
+                ],
+                "other.tz": [
+                    872,
+                    875,
+                    870
+                ],
+                "timezones.tz_compare": [
+                    875
+                ],
+                "timezones": [
+                    875
+                ],
+                "self.tz_convert": [
+                    876
+                ],
+                "other.tz_convert": [
+                    877
+                ],
+                "cls": [
+                    886
+                ],
+                "other.inferred_type": [
+                    888
+                ],
+                "get_op_result_name": [
+                    900
+                ],
+                "self._can_fast_union": [
+                    904
+                ],
+                "joined": [
+                    913,
+                    906,
+                    907,
+                    908
+                ],
+                "joined.name": [
+                    907
+                ],
+                "PandasDelegate": [
+                    916
+                ],
+                "_raw_methods": [
+                    934
+                ],
+                "Set": [
+                    936,
+                    934
+                ],
+                "set": [
+                    936,
+                    934
+                ],
+                "_raw_properties": [
+                    936
+                ],
+                "self._raw_properties": [
+                    941
+                ],
+                "setattr": [
+                    946
+                ],
+                "value": [
+                    946
+                ],
+                "operator.methodcaller": [
+                    949
+                ],
+                "operator": [
+                    949
+                ],
+                "self._raw_methods": [
+                    950
+                ]
+            },
+            "filtered_variables_in_file": {
+                "_index_doc_kwargs": [
+                    486,
+                    492,
+                    51,
+                    245,
+                    187
+                ],
+                "ibase._index_doc_kwargs": [
+                    51
+                ],
+                "ibase": [
+                    51
+                ],
+                "left": [
+                    771,
+                    786,
+                    790,
+                    791,
+                    794,
+                    797,
+                    799,
+                    806,
+                    809,
+                    61,
+                    62,
+                    66,
+                    70,
+                    729,
+                    731,
+                    735,
+                    741,
+                    742,
+                    762,
+                    764,
+                    767
+                ],
+                "np.ndarray": [
+                    61,
+                    206,
+                    63
+                ],
+                "np": [
+                    611,
+                    229,
+                    173,
+                    206,
+                    269,
+                    335,
+                    496,
+                    601,
+                    61,
+                    63
+                ],
+                "ABCIndex": [
+                    61,
+                    63
+                ],
+                "ABCSeries": [
+                    61,
+                    63
+                ],
+                "DatetimeLikeArrayMixin": [
+                    101,
+                    82,
+                    87,
+                    61,
+                    63
+                ],
+                "left.view": [
+                    62
+                ],
+                "right": [
+                    64,
+                    736,
+                    66,
+                    800,
+                    804,
+                    805,
+                    735,
+                    786,
+                    790,
+                    793,
+                    792,
+                    729,
+                    762,
+                    731,
+                    764,
+                    797,
+                    766,
+                    63
+                ],
+                "right.view": [
+                    64
+                ],
+                "results": [
+                    72,
+                    66,
+                    75
+                ],
+                "joinf": [
+                    66
+                ],
+                "with_indexers": [
+                    67
+                ],
+                "dtype": [
+                    558,
+                    73,
+                    554,
+                    70
+                ],
+                "left.dtype.base": [
+                    70
+                ],
+                "left.dtype": [
+                    70
+                ],
+                "join_index": [
+                    72,
+                    73,
+                    74
+                ],
+                "left_indexer": [
+                    72,
+                    74
+                ],
+                "right_indexer": [
+                    72,
+                    74
+                ],
+                "join_index.view": [
+                    73
+                ],
+                "wrapper": [
+                    77
+                ],
+                "ExtensionIndex": [
+                    89,
+                    254
+                ],
+                "ExtensionOpsMixin": [
+                    89
+                ],
+                "_data": [
+                    937,
+                    94
+                ],
+                "ExtensionArray": [
+                    937,
+                    94
+                ],
+                "freq": [
+                    642,
+                    259,
+                    260,
+                    261,
+                    771,
+                    648,
+                    649,
+                    651,
+                    412,
+                    413,
+                    414,
+                    415,
+                    594,
+                    603,
+                    605,
+                    95,
+                    608,
+                    614,
+                    231,
+                    616,
+                    233,
+                    234,
+                    235,
+                    236,
+                    237,
+                    238,
+                    489,
+                    490,
+                    749,
+                    751,
+                    639
+                ],
+                "Optional": [
+                    96,
+                    95
+                ],
+                "DateOffset": [
+                    642,
+                    95
+                ],
+                "freqstr": [
+                    96
+                ],
+                "_resolution": [
+                    97
+                ],
+                "_bool_ops": [
+                    98
+                ],
+                "List": [
+                    275,
+                    98,
+                    99
+                ],
+                "_field_ops": [
+                    99
+                ],
+                "hasnans": [
+                    101,
+                    102
+                ],
+                "cache_readonly": [
+                    101
+                ],
+                "DatetimeLikeArrayMixin._hasnans.fget": [
+                    101
+                ],
+                "DatetimeLikeArrayMixin._hasnans": [
+                    101
+                ],
+                "_hasnans": [
+                    102
+                ],
+                "level": [
+                    109,
+                    110,
+                    858,
+                    475,
+                    476
+                ],
+                "self._validate_index_level": [
+                    476,
+                    110
+                ],
+                "self": [
+                    515,
+                    516,
+                    517,
+                    522,
+                    523,
+                    524,
+                    525,
+                    535,
+                    541,
+                    546,
+                    550,
+                    554,
+                    556,
+                    558,
+                    562,
+                    594,
+                    595,
+                    601,
+                    604,
+                    605,
+                    607,
+                    608,
+                    611,
+                    613,
+                    614,
+                    616,
+                    110,
+                    112,
+                    117,
+                    642,
+                    132,
+                    649,
+                    651,
+                    142,
+                    143,
+                    154,
+                    159,
+                    161,
+                    169,
+                    173,
+                    689,
+                    690,
+                    179,
+                    692,
+                    181,
+                    693,
+                    695,
+                    184,
+                    696,
+                    700,
+                    701,
+                    190,
+                    702,
+                    709,
+                    710,
+                    712,
+                    714,
+                    203,
+                    720,
+                    213,
+                    728,
+                    729,
+                    731,
+                    220,
+                    223,
+                    739,
+                    229,
+                    230,
+                    743,
+                    233,
+                    746,
+                    749,
+                    754,
+                    243,
+                    757,
+                    761,
+                    250,
+                    762,
+                    252,
+                    764,
+                    255,
+                    259,
+                    261,
+                    779,
+                    781,
+                    782,
+                    785,
+                    786,
+                    790,
+                    279,
+                    795,
+                    797,
+                    294,
+                    295,
+                    807,
+                    297,
+                    300,
+                    812,
+                    302,
+                    304,
+                    816,
+                    306,
+                    818,
+                    308,
+                    311,
+                    824,
+                    313,
+                    329,
+                    330,
+                    331,
+                    847,
+                    849,
+                    853,
+                    351,
+                    352,
+                    864,
+                    354,
+                    865,
+                    868,
+                    357,
+                    869,
+                    359,
+                    361,
+                    363,
+                    875,
+                    365,
+                    876,
+                    368,
+                    370,
+                    386,
+                    387,
+                    388,
+                    900,
+                    902,
+                    903,
+                    904,
+                    906,
+                    399,
+                    911,
+                    913,
+                    403,
+                    410,
+                    412,
+                    940,
+                    941,
+                    942,
+                    946,
+                    949,
+                    950,
+                    439,
+                    951,
+                    441,
+                    476,
+                    478,
+                    480,
+                    482,
+                    484,
+                    489,
+                    490,
+                    495,
+                    498,
+                    499
+                ],
+                "result": [
+                    138,
+                    523,
+                    139,
+                    140,
+                    525,
+                    952,
+                    528,
+                    529,
+                    146,
+                    940,
+                    942,
+                    943,
+                    951,
+                    181,
+                    949,
+                    823,
+                    184,
+                    824,
+                    825,
+                    826,
+                    827,
+                    701,
+                    702,
+                    703,
+                    704,
+                    705,
+                    828,
+                    714,
+                    203,
+                    206,
+                    207,
+                    719,
+                    209,
+                    594,
+                    211,
+                    595,
+                    720,
+                    721,
+                    723,
+                    724,
+                    725,
+                    112,
+                    496,
+                    498,
+                    499,
+                    117
+                ],
+                "self._data.unique": [
+                    112
+                ],
+                "self._data": [
+                    132,
+                    651,
+                    940,
+                    558,
+                    112,
+                    594,
+                    946,
+                    181,
+                    949
+                ],
+                "self._shallow_copy": [
+                    261,
+                    743,
+                    616,
+                    807,
+                    490,
+                    906,
+                    720,
+                    499,
+                    117,
+                    795
+                ],
+                "result._data": [
+                    721,
+                    117,
+                    825
+                ],
+                "make_wrapped_comparison_op": [
+                    124
+                ],
+                "op.__name__": [
+                    124
+                ],
+                "op": [
+                    124
+                ],
+                "self._data._data": [
+                    132
+                ],
+                "lib.item_from_zerodim": [
+                    138
+                ],
+                "lib": [
+                    250,
+                    611,
+                    138,
+                    139
+                ],
+                "is_bool_dtype": [
+                    139
+                ],
+                "lib.is_scalar": [
+                    139
+                ],
+                "attrs": [
+                    416,
+                    142,
+                    143,
+                    145,
+                    146,
+                    409,
+                    415
+                ],
+                "self._get_attributes_dict": [
+                    535,
+                    142,
+                    230
+                ],
+                "is_period_dtype": [
+                    546,
+                    259,
+                    233,
+                    489,
+                    143,
+                    604
+                ],
+                "Index": [
+                    714,
+                    942,
+                    207,
+                    656,
+                    209,
+                    146,
+                    562,
+                    626,
+                    627,
+                    628,
+                    823,
+                    854,
+                    881,
+                    951,
+                    701
+                ],
+                "self.is_": [
+                    154
+                ],
+                "other": [
+                    900,
+                    902,
+                    903,
+                    904,
+                    778,
+                    782,
+                    912,
+                    785,
+                    658,
+                    786,
+                    790,
+                    154,
+                    157,
+                    797,
+                    159,
+                    161,
+                    169,
+                    812,
+                    173,
+                    813,
+                    816,
+                    690,
+                    818,
+                    692,
+                    693,
+                    820,
+                    821,
+                    823,
+                    697,
+                    698,
+                    700,
+                    701,
+                    708,
+                    710,
+                    711,
+                    712,
+                    714,
+                    847,
+                    849,
+                    853,
+                    728,
+                    729,
+                    856,
+                    731,
+                    866,
+                    868,
+                    870,
+                    872,
+                    746,
+                    875,
+                    877,
+                    494,
+                    751,
+                    496,
+                    878,
+                    754,
+                    757,
+                    886,
+                    888,
+                    761,
+                    762,
+                    764
+                ],
+                "ABCIndexClass": [
+                    157
+                ],
+                "is_dtype_equal": [
+                    169,
+                    554
+                ],
+                "self.dtype": [
+                    169,
+                    554
+                ],
+                "other.dtype": [
+                    169
+                ],
+                "np.array_equal": [
+                    173
+                ],
+                "self.asi8": [
+                    354,
+                    386,
+                    484,
+                    229,
+                    329,
+                    297,
+                    490,
+                    173,
+                    601
+                ],
+                "other.asi8": [
+                    173
+                ],
+                "self._data._ensure_localized": [
+                    181
+                ],
+                "arg": [
+                    185,
+                    182
+                ],
+                "ambiguous": [
+                    182
+                ],
+                "nonexistent": [
+                    182
+                ],
+                "from_utc": [
+                    182
+                ],
+                "_simple_new": [
+                    184
+                ],
+                "self.name": [
+                    942,
+                    562,
+                    595,
+                    951,
+                    184
+                ],
+                "res": [
+                    192,
+                    193,
+                    194,
+                    190
+                ],
+                "self.get_loc": [
+                    190
+                ],
+                "key": [
+                    435,
+                    436,
+                    437,
+                    439,
+                    441,
+                    443,
+                    190
+                ],
+                "is_scalar": [
+                    192,
+                    435
+                ],
+                "is_list_like": [
+                    194,
+                    610
+                ],
+                "Appender": [
+                    486,
+                    552,
+                    492,
+                    656,
+                    245,
+                    187
+                ],
+                "_index_shared_docs": [
+                    486,
+                    552,
+                    492,
+                    245,
+                    187
+                ],
+                "mapper": [
+                    203,
+                    213
+                ],
+                "self.astype": [
+                    482,
+                    213,
+                    279
+                ],
+                "return_indexer": [
+                    219
+                ],
+                "_as": [
+                    224,
+                    220,
+                    222,
+                    223
+                ],
+                "self.argsort": [
+                    220
+                ],
+                "ascending": [
+                    240,
+                    234,
+                    236,
+                    221
+                ],
+                "sorted_index": [
+                    224,
+                    223
+                ],
+                "self.take": [
+                    223
+                ],
+                "sorted_values": [
+                    241,
+                    243,
+                    229
+                ],
+                "np.sort": [
+                    229
+                ],
+                "attribs": [
+                    548,
+                    230,
+                    231,
+                    550,
+                    238,
+                    243,
+                    535,
+                    536
+                ],
+                "freq.n": [
+                    234,
+                    236
+                ],
+                "self._simple_new": [
+                    913,
+                    243,
+                    550
+                ],
+                "nv.validate_take": [
+                    247
+                ],
+                "nv": [
+                    384,
+                    291,
+                    292,
+                    326,
+                    327,
+                    488,
+                    247,
+                    348,
+                    349,
+                    383
+                ],
+                "kwargs": [
+                    291,
+                    326,
+                    383,
+                    910,
+                    399,
+                    912,
+                    913,
+                    949,
+                    247,
+                    348,
+                    255
+                ],
+                "indices": [
+                    248,
+                    250,
+                    255
+                ],
+                "ensure_int64": [
+                    248,
+                    611
+                ],
+                "maybe_slice": [
+                    250,
+                    251,
+                    252
+                ],
+                "lib.maybe_indices_to_slice": [
+                    250,
+                    611
+                ],
+                "taken": [
+                    260,
+                    261,
+                    254
+                ],
+                "ExtensionIndex.take": [
+                    254
+                ],
+                "axis": [
+                    384,
+                    292,
+                    327,
+                    488,
+                    349,
+                    255
+                ],
+                "allow_fill": [
+                    255
+                ],
+                "fill_value": [
+                    255
+                ],
+                "self.freq": [
+                    608,
+                    259,
+                    709,
+                    614,
+                    710,
+                    903,
+                    489,
+                    524,
+                    749,
+                    605
+                ],
+                "taken.freq": [
+                    260
+                ],
+                "_can_hold_na": [
+                    263
+                ],
+                "_na_value": [
+                    265
+                ],
+                "NaT": [
+                    265
+                ],
+                "tolerance": [
+                    273,
+                    269,
+                    271
+                ],
+                "np.asarray": [
+                    269
+                ],
+                "to_numpy": [
+                    269
+                ],
+                "to_timedelta": [
+                    269
+                ],
+                "target.size": [
+                    271
+                ],
+                "target": [
+                    271
+                ],
+                "tolerance.size": [
+                    271
+                ],
+                "nv.validate_min": [
+                    291
+                ],
+                "args": [
+                    291,
+                    326,
+                    949,
+                    348,
+                    383
+                ],
+                "nv.validate_minmax_axis": [
+                    384,
+                    292,
+                    349,
+                    327
+                ],
+                "self._na_value": [
+                    352,
+                    295,
+                    365,
+                    370,
+                    308,
+                    313
+                ],
+                "i8": [
+                    354,
+                    386,
+                    357,
+                    358,
+                    359,
+                    391,
+                    297,
+                    329,
+                    392,
+                    300,
+                    301,
+                    302,
+                    334,
+                    335,
+                    336,
+                    367,
+                    310,
+                    393
+                ],
+                "self.is_monotonic": [
+                    712,
+                    754,
+                    300,
+                    357
+                ],
+                "iNaT": [
+                    301,
+                    358
+                ],
+                "self._box_func": [
+                    368,
+                    359,
+                    302,
+                    311
+                ],
+                "self.hasnans": [
+                    304,
+                    361,
+                    330,
+                    387
+                ],
+                "skipna": [
+                    305,
+                    362,
+                    332,
+                    389
+                ],
+                "min_stamp": [
+                    306,
+                    310,
+                    311
+                ],
+                "asi8.min": [
+                    306
+                ],
+                "asi8": [
+                    306,
+                    363,
+                    541
+                ],
+                "self._isnan": [
+                    363,
+                    306,
+                    331,
+                    388
+                ],
+                "i8.min": [
+                    310
+                ],
+                "nv.validate_argmin": [
+                    326
+                ],
+                "mask": [
+                    388,
+                    389,
+                    392,
+                    331,
+                    332,
+                    335
+                ],
+                "mask.all": [
+                    332,
+                    389
+                ],
+                "i8.copy": [
+                    334,
+                    391
+                ],
+                "np.iinfo": [
+                    335
+                ],
+                "i8.argmin": [
+                    336
+                ],
+                "nv.validate_max": [
+                    348
+                ],
+                "max_stamp": [
+                    368,
+                    363,
+                    367
+                ],
+                "asi8.max": [
+                    363
+                ],
+                "i8.max": [
+                    367
+                ],
+                "nv.validate_argmax": [
+                    383
+                ],
+                "i8.argmax": [
+                    393
+                ],
+                "header": [
+                    399
+                ],
+                "self._format_native_types": [
+                    399
+                ],
+                "na_rep": [
+                    399
+                ],
+                "AbstractMethodError": [
+                    403
+                ],
+                "_format_attrs": [
+                    409
+                ],
+                "attrib": [
+                    410,
+                    411
+                ],
+                "self._attributes": [
+                    410
+                ],
+                "self.freqstr": [
+                    412,
+                    525
+                ],
+                "attrs.append": [
+                    415
+                ],
+                "kind": [
+                    440,
+                    443,
+                    438,
+                    431
+                ],
+                "is_int": [
+                    436,
+                    438
+                ],
+                "is_integer": [
+                    436,
+                    606
+                ],
+                "is_flt": [
+                    440,
+                    437,
+                    438
+                ],
+                "is_float": [
+                    437
+                ],
+                "self._invalid_indexer": [
+                    441,
+                    439
+                ],
+                "_convert_scalar_indexer": [
+                    443
+                ],
+                "__add__": [
+                    445
+                ],
+                "make_wrapped_arith_op": [
+                    448,
+                    449,
+                    450,
+                    451,
+                    452,
+                    453,
+                    454,
+                    455,
+                    456,
+                    457,
+                    458,
+                    459,
+                    460,
+                    445,
+                    446,
+                    447
+                ],
+                "__radd__": [
+                    446
+                ],
+                "__sub__": [
+                    447
+                ],
+                "__rsub__": [
+                    448
+                ],
+                "__pow__": [
+                    449
+                ],
+                "__rpow__": [
+                    450
+                ],
+                "__mul__": [
+                    451
+                ],
+                "__rmul__": [
+                    452
+                ],
+                "__floordiv__": [
+                    453
+                ],
+                "__rfloordiv__": [
+                    454
+                ],
+                "__mod__": [
+                    455
+                ],
+                "__rmod__": [
+                    456
+                ],
+                "__divmod__": [
+                    457
+                ],
+                "__rdivmod__": [
+                    458
+                ],
+                "__truediv__": [
+                    459
+                ],
+                "__rtruediv__": [
+                    460
+                ],
+                "values": [
+                    480,
+                    482,
+                    484,
+                    495,
+                    496,
+                    478
+                ],
+                "isin": [
+                    482
+                ],
+                "algorithms.isin": [
+                    484
+                ],
+                "algorithms": [
+                    484
+                ],
+                "values.asi8": [
+                    484
+                ],
+                "nv.validate_repeat": [
+                    488
+                ],
+                "self.asi8.repeat": [
+                    490
+                ],
+                "repeats": [
+                    490
+                ],
+                "_ensure_datetimelike_to_i8": [
+                    494,
+                    495
+                ],
+                "astype": [
+                    496
+                ],
+                "np.where": [
+                    496
+                ],
+                "cond": [
+                    496
+                ],
+                "self._ensure_localized": [
+                    498
+                ],
+                "formatter": [
+                    515,
+                    517
+                ],
+                "self._formatter_func": [
+                    515
+                ],
+                "index_summary": [
+                    523,
+                    517,
+                    519
+                ],
+                "name": [
+                    900,
+                    521,
+                    522,
+                    523,
+                    907,
+                    940,
+                    941,
+                    913,
+                    946,
+                    949,
+                    950,
+                    536
+                ],
+                "result.replace": [
+                    528
+                ],
+                "x.dtype": [
+                    538
+                ],
+                "x": [
+                    538
+                ],
+                "to_concat": [
+                    538,
+                    541
+                ],
+                "new_data": [
+                    545,
+                    541,
+                    550
+                ],
+                "_concat_same_type": [
+                    541
+                ],
+                "self._values": [
+                    541
+                ],
+                "is_diff_evenly_spaced": [
+                    545,
+                    546
+                ],
+                "unique_deltas": [
+                    545
+                ],
+                "copy": [
+                    554,
+                    558
+                ],
+                "new_values": [
+                    562,
+                    558
+                ],
+                "self._data.astype": [
+                    558
+                ],
+                "new_values.dtype": [
+                    562
+                ],
+                "self._data._time_shift": [
+                    594
+                ],
+                "periods": [
+                    594
+                ],
+                "new_i8s": [
+                    616,
+                    601
+                ],
+                "np.delete": [
+                    601
+                ],
+                "loc": [
+                    610,
+                    611,
+                    612,
+                    613,
+                    804,
+                    805,
+                    793,
+                    792,
+                    601,
+                    606,
+                    607
+                ],
+                "np.array": [
+                    611
+                ],
+                "loc.step": [
+                    612
+                ],
+                "loc.start": [
+                    613
+                ],
+                "loc.stop": [
+                    613
+                ],
+                "inherit_names": [
+                    80,
+                    85
+                ],
+                "DatetimeIndexOpsMixin": [
+                    619
+                ],
+                "Int64Index": [
+                    619
+                ],
+                "_is_monotonic_increasing": [
+                    626
+                ],
+                "Index.is_monotonic_increasing": [
+                    626
+                ],
+                "_is_monotonic_decreasing": [
+                    627
+                ],
+                "Index.is_monotonic_decreasing": [
+                    627
+                ],
+                "_is_unique": [
+                    628
+                ],
+                "Index.is_unique": [
+                    628
+                ],
+                "to_offset": [
+                    649
+                ],
+                "self.inferred_freq": [
+                    649
+                ],
+                "self._data._freq": [
+                    651
+                ],
+                "new_idx": [
+                    658,
+                    659,
+                    660
+                ],
+                "difference": [
+                    658
+                ],
+                "sort": [
+                    714,
+                    813,
+                    689,
+                    658,
+                    787,
+                    821,
+                    823,
+                    860,
+                    701
+                ],
+                "new_idx._set_freq": [
+                    659
+                ],
+                "Index.difference.__doc__": [
+                    656
+                ],
+                "Index.difference": [
+                    656
+                ],
+                "self._validate_sort_keyword": [
+                    689
+                ],
+                "self._assert_can_do_setop": [
+                    690
+                ],
+                "self.equals": [
+                    692,
+                    812
+                ],
+                "self._get_reconciled_name_object": [
+                    693
+                ],
+                "self.copy": [
+                    696
+                ],
+                "other.copy": [
+                    698
+                ],
+                "Index.intersection": [
+                    714,
+                    701
+                ],
+                "result.freq": [
+                    826,
+                    723,
+                    703
+                ],
+                "result._set_freq": [
+                    704,
+                    827,
+                    724,
+                    719
+                ],
+                "other.freq": [
+                    708,
+                    710,
+                    903,
+                    711,
+                    751
+                ],
+                "other.freq.is_anchored": [
+                    711
+                ],
+                "other.is_monotonic": [
+                    712,
+                    754
+                ],
+                "result.name": [
+                    721
+                ],
+                "result.dtype": [
+                    721
+                ],
+                "end": [
+                    738,
+                    741,
+                    735
+                ],
+                "start": [
+                    736,
+                    738,
+                    741
+                ],
+                "lslice": [
+                    741,
+                    742
+                ],
+                "left.slice_locs": [
+                    741
+                ],
+                "left_chunk": [
+                    742,
+                    743
+                ],
+                "left.values": [
+                    806,
+                    794,
+                    742
+                ],
+                "right_start": [
+                    771,
+                    766
+                ],
+                "left_end": [
+                    803,
+                    771,
+                    804,
+                    767,
+                    799
+                ],
+                "self.view": [
+                    779
+                ],
+                "other.view": [
+                    782
+                ],
+                "left_start": [
+                    792,
+                    791
+                ],
+                "right.searchsorted": [
+                    792,
+                    804
+                ],
+                "right_chunk": [
+                    793,
+                    794,
+                    805,
+                    806
+                ],
+                "right.values": [
+                    793,
+                    805
+                ],
+                "dates": [
+                    794,
+                    795,
+                    806,
+                    807
+                ],
+                "concat_compat": [
+                    794,
+                    806
+                ],
+                "right_end": [
+                    800,
+                    803
+                ],
+                "_union": [
+                    813
+                ],
+                "this": [
+                    864,
+                    866,
+                    876,
+                    855,
+                    878,
+                    818,
+                    820,
+                    821,
+                    853,
+                    823,
+                    825
+                ],
+                "self._maybe_utc_convert": [
+                    818,
+                    853
+                ],
+                "this._can_fast_union": [
+                    820
+                ],
+                "this._fast_union": [
+                    821
+                ],
+                "Index._union": [
+                    823
+                ],
+                "result._data.dtype": [
+                    825
+                ],
+                "this.dtype": [
+                    825
+                ],
+                "_join_precedence": [
+                    832
+                ],
+                "_inner_indexer": [
+                    834
+                ],
+                "_join_i8_wrapper": [
+                    834,
+                    835,
+                    836,
+                    837
+                ],
+                "libjoin.inner_join_indexer": [
+                    834
+                ],
+                "libjoin": [
+                    834,
+                    835,
+                    836,
+                    838
+                ],
+                "_outer_indexer": [
+                    835
+                ],
+                "libjoin.outer_join_indexer": [
+                    835
+                ],
+                "_left_indexer": [
+                    836
+                ],
+                "libjoin.left_join_indexer": [
+                    836
+                ],
+                "_left_indexer_unique": [
+                    837
+                ],
+                "libjoin.left_join_indexer_unique": [
+                    838
+                ],
+                "self._is_convertible_to_index_for_join": [
+                    847
+                ],
+                "Index.join": [
+                    854
+                ],
+                "how": [
+                    857
+                ],
+                "return_indexers": [
+                    859
+                ],
+                "self.tz": [
+                    875,
+                    869
+                ],
+                "other.tz": [
+                    872,
+                    875,
+                    870
+                ],
+                "timezones.tz_compare": [
+                    875
+                ],
+                "timezones": [
+                    875
+                ],
+                "self.tz_convert": [
+                    876
+                ],
+                "other.tz_convert": [
+                    877
+                ],
+                "cls": [
+                    886
+                ],
+                "other.inferred_type": [
+                    888
+                ],
+                "get_op_result_name": [
+                    900
+                ],
+                "self._can_fast_union": [
+                    904
+                ],
+                "joined": [
+                    913,
+                    906,
+                    907,
+                    908
+                ],
+                "joined.name": [
+                    907
+                ],
+                "PandasDelegate": [
+                    916
+                ],
+                "_raw_methods": [
+                    934
+                ],
+                "Set": [
+                    936,
+                    934
+                ],
+                "_raw_properties": [
+                    936
+                ],
+                "self._raw_properties": [
+                    941
+                ],
+                "value": [
+                    946
+                ],
+                "operator.methodcaller": [
+                    949
+                ],
+                "operator": [
+                    949
+                ],
+                "self._raw_methods": [
+                    950
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_94/pandas/tests/indexes/datetimes/test_constructors.py",
+                "test_function": "test_shallow_copy_inherits_array_freq",
+                "test_function_code": "    @pytest.mark.parametrize(\n        \"index\",\n        [\n            pd.date_range(\"2016-01-01\", periods=5, tz=\"US/Pacific\"),\n            pd.timedelta_range(\"1 Day\", periods=5),\n        ],\n    )\n    def test_shallow_copy_inherits_array_freq(self, index):\n        # If we pass a DTA/TDA to shallow_copy and dont specify a freq,\n        #  we should inherit the array's freq, not our own.\n        array = index._data\n\n        arr = array[[0, 3, 2, 4, 1]]\n        assert arr.freq is None\n\n        result = index._shallow_copy(arr)\n        assert result.freq is None",
+                "test_error": "AssertionError: assert <Day> is None  +  where <Day> = DatetimeIndex(['2016-01-01 00:00:00-08:00', '2016-01-04 00:00:00-08:00',\\n               '2016-01-03 00:00:00-08:00', '...:00:00-08:00',\\n               '2016-01-02 00:00:00-08:00'],\\n              dtype='datetime64[ns, US/Pacific]', freq='D').freq",
+                "full_test_error": "self = <pandas.tests.indexes.datetimes.test_constructors.TestDatetimeIndex object at 0x1211fdf40>\nindex = DatetimeIndex(['2016-01-01 00:00:00-08:00', '2016-01-02 00:00:00-08:00',\n               '2016-01-03 00:00:00-08:00', '...:00:00-08:00',\n               '2016-01-05 00:00:00-08:00'],\n              dtype='datetime64[ns, US/Pacific]', freq='D')\n\n    @pytest.mark.parametrize(\n        \"index\",\n        [\n            pd.date_range(\"2016-01-01\", periods=5, tz=\"US/Pacific\"),\n            pd.timedelta_range(\"1 Day\", periods=5),\n        ],\n    )\n    def test_shallow_copy_inherits_array_freq(self, index):\n        # If we pass a DTA/TDA to shallow_copy and dont specify a freq,\n        #  we should inherit the array's freq, not our own.\n        array = index._data\n    \n        arr = array[[0, 3, 2, 4, 1]]\n        assert arr.freq is None\n    \n        result = index._shallow_copy(arr)\n>       assert result.freq is None\nE       AssertionError: assert <Day> is None\nE        +  where <Day> = DatetimeIndex(['2016-01-01 00:00:00-08:00', '2016-01-04 00:00:00-08:00',\\n               '2016-01-03 00:00:00-08:00', '...:00:00-08:00',\\n               '2016-01-02 00:00:00-08:00'],\\n              dtype='datetime64[ns, US/Pacific]', freq='D').freq\n\npandas/tests/indexes/datetimes/test_constructors.py:49: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('index', [pd.date_range('2016-01-01', periods=5, tz='US/Pacific'), pd.timedelta_range('1 Day', periods=5)])"
+                ]
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_94/pandas/tests/indexes/datetimes/test_constructors.py",
+                "test_function": "test_shallow_copy_inherits_array_freq",
+                "test_function_code": "    @pytest.mark.parametrize(\n        \"index\",\n        [\n            pd.date_range(\"2016-01-01\", periods=5, tz=\"US/Pacific\"),\n            pd.timedelta_range(\"1 Day\", periods=5),\n        ],\n    )\n    def test_shallow_copy_inherits_array_freq(self, index):\n        # If we pass a DTA/TDA to shallow_copy and dont specify a freq,\n        #  we should inherit the array's freq, not our own.\n        array = index._data\n\n        arr = array[[0, 3, 2, 4, 1]]\n        assert arr.freq is None\n\n        result = index._shallow_copy(arr)\n        assert result.freq is None",
+                "test_error": "AssertionError: assert <Day> is None  +  where <Day> = TimedeltaIndex(['1 days', '4 days', '3 days', '5 days', '2 days'], dtype='timedelta64[ns]', freq='D').freq",
+                "full_test_error": "self = <pandas.tests.indexes.datetimes.test_constructors.TestDatetimeIndex object at 0x121483700>\nindex = TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')\n\n    @pytest.mark.parametrize(\n        \"index\",\n        [\n            pd.date_range(\"2016-01-01\", periods=5, tz=\"US/Pacific\"),\n            pd.timedelta_range(\"1 Day\", periods=5),\n        ],\n    )\n    def test_shallow_copy_inherits_array_freq(self, index):\n        # If we pass a DTA/TDA to shallow_copy and dont specify a freq,\n        #  we should inherit the array's freq, not our own.\n        array = index._data\n    \n        arr = array[[0, 3, 2, 4, 1]]\n        assert arr.freq is None\n    \n        result = index._shallow_copy(arr)\n>       assert result.freq is None\nE       AssertionError: assert <Day> is None\nE        +  where <Day> = TimedeltaIndex(['1 days', '4 days', '3 days', '5 days', '2 days'], dtype='timedelta64[ns]', freq='D').freq\n\npandas/tests/indexes/datetimes/test_constructors.py:49: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('index', [pd.date_range('2016-01-01', periods=5, tz='US/Pacific'), pd.timedelta_range('1 Day', periods=5)])"
+                ]
+            }
+        ]
+    }
+}

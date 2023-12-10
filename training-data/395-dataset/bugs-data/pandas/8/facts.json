@@ -1,0 +1,1349 @@
+{
+    "1.1.1": "def replace(\n    self,\n    to_replace,\n    value,\n    inplace: bool = False,\n    regex: bool = False,\n    convert: bool = True,\n):\n    \n    inplace = validate_bool_kwarg(inplace, \"inplace\")\n    original_to_replace = to_replace\n\n    # If we cannot replace with own dtype, convert to ObjectBlock and\n    # retry\n    if not self._can_hold_element(to_replace):\n        if not isinstance(to_replace, list):\n            if inplace:\n                return [self]\n            return [self.copy()]\n\n        to_replace = [x for x in to_replace if self._can_hold_element(x)]\n        if not len(to_replace):\n            # GH#28084 avoid costly checks since we can infer\n            #  that there is nothing to replace in this block\n            if inplace:\n                return [self]\n            return [self.copy()]\n\n        if len(to_replace) == 1:\n            # _can_hold_element checks have reduced this back to the\n            #  scalar case and we can avoid a costly object cast\n            return self.replace(\n                to_replace[0], value, inplace=inplace, regex=regex, convert=convert,\n            )\n\n        # GH 22083, TypeError or ValueError occurred within error handling\n        # causes infinite loop. Cast and retry only if not objectblock.\n        if is_object_dtype(self):\n            raise AssertionError\n\n        # try again with a compatible block\n        block = self.astype(object)\n        return block.replace(\n            to_replace=to_replace,\n            value=value,\n            inplace=inplace,\n            regex=regex,\n            convert=convert,\n        )\n\n    values = self.values\n    if lib.is_scalar(to_replace) and isinstance(values, np.ndarray):\n        # The only non-DatetimeLike class that also has a non-trivial\n        #  try_coerce_args is ObjectBlock, but that overrides replace,\n        #  so does not get here.\n        to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)\n\n    mask = missing.mask_missing(values, to_replace)\n\n    if not mask.any():\n        if inplace:\n            return [self]\n        return [self.copy()]\n\n    try:\n        blocks = self.putmask(mask, value, inplace=inplace)\n        # Note: it is _not_ the case that self._can_hold_element(value)\n        #  is always true at this point.  In particular, that can fail\n        #  for:\n        #   \"2u\" with bool-dtype, float-dtype\n        #   0.5 with int64-dtype\n        #   np.nan with int64-dtype\n    except (TypeError, ValueError):\n        # GH 22083, TypeError or ValueError occurred within error handling\n        # causes infinite loop. Cast and retry only if not objectblock.\n        if is_object_dtype(self):\n            raise\n\n        assert not self._can_hold_element(value), value\n\n        # try again with a compatible block\n        block = self.astype(object)\n        return block.replace(\n            to_replace=original_to_replace,\n            value=value,\n            inplace=inplace,\n            regex=regex,\n            convert=convert,\n        )\n    if convert:\n        blocks = [b.convert(numeric=False, copy=not inplace) for b in blocks]\n    return blocks\n",
+    "1.1.2": "replace the to_replace value with value, possible to create new\nblocks here this is just a call to putmask. regex is not used here.\nIt is used in ObjectBlocks.  It is here for API compatibility.",
+    "1.2.1": "class Block(PandasObject)",
+    "1.2.2": "Canonical n-dimensional unit of homogeneous dtype contained in a pandas\ndata structure\n\nIndex-ignorant; let the container take care of that",
+    "1.2.3": [
+        "dtype(self)",
+        "astype(self, dtype, copy: bool=False, errors: str='raise')",
+        "convert(self, copy: bool=True, datetime: bool=True, numeric: bool=True, timedelta: bool=True, coerce: bool=False)",
+        "_can_hold_element(self, element: Any) -> bool",
+        "copy(self, deep: bool=True)",
+        "replace(self, to_replace, value, inplace: bool=False, regex: bool=False, convert: bool=True)",
+        "putmask(self, mask, new, inplace: bool=False, axis: int=0, transpose: bool=False) -> List['Block']"
+    ],
+    "1.3.1": "/Volumes/JerrySSD/bgp_envs/repos/pandas_8/pandas/core/internals/blocks.py",
+    "1.3.2": [
+        "dtype(self)",
+        "astype(self, dtype, copy: bool=False, errors: str='raise')",
+        "convert(self, copy: bool=True, datetime: bool=True, numeric: bool=True, timedelta: bool=True, coerce: bool=False)",
+        "_can_hold_element(self, element: Any) -> bool",
+        "copy(self, deep: bool=True)",
+        "replace(self, to_replace, value, inplace: bool=False, regex: bool=False, convert: bool=True)",
+        "putmask(self, mask, new, inplace: bool=False, axis: int=0, transpose: bool=False) -> List['Block']",
+        "putmask(self, mask, new, inplace: bool=False, axis: int=0, transpose: bool=False) -> List['Block']",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "astype(self, dtype, copy: bool=False, errors: str='raise')",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "replace(self, to_replace, value, inplace=False, regex=False, convert=True)",
+        "convert(self, copy: bool=True, datetime: bool=True, numeric: bool=True, timedelta: bool=True, coerce: bool=False)",
+        "_can_hold_element(self, element: Any) -> bool",
+        "replace(self, to_replace, value, inplace=False, regex=False, convert=True)",
+        "replace(self, to_replace, value, inplace: bool=False, regex: bool=False, convert: bool=True)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n        tm.assert_frame_equal(result, df)",
+        "    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n        tm.assert_frame_equal(result, df)",
+        "    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n        tm.assert_frame_equal(result, df)",
+        "    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n        tm.assert_frame_equal(result, df)"
+    ],
+    "1.4.2": [
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_8/pandas/tests/frame/methods/test_replace.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_8/pandas/tests/frame/methods/test_replace.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_8/pandas/tests/frame/methods/test_replace.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_8/pandas/tests/frame/methods/test_replace.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: Attributes of DataFrame.iloc[:, 0] (column name=\"0\") are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  object\nE       [right]: float64"
+        ],
+        [
+            "E       AssertionError: Attributes of DataFrame.iloc[:, 0] (column name=\"0\") are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  object\nE       [right]: float64"
+        ],
+        [
+            "E       AssertionError: Attributes of DataFrame.iloc[:, 0] (column name=\"0\") are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  object\nE       [right]: float64"
+        ],
+        [
+            "E       AssertionError: Attributes of DataFrame.iloc[:, 0] (column name=\"0\") are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  object\nE       [right]: float64"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.frame.methods.test_replace.TestDataFrameReplace object at 0x112328760>\ndtype = 'float', value = nan\n\n    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n>       tm.assert_frame_equal(result, df)",
+            "\npandas/tests/frame/methods/test_replace.py:1390: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.frame.methods.test_replace.TestDataFrameReplace object at 0x1125101f0>\ndtype = 'float64', value = nan\n\n    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n>       tm.assert_frame_equal(result, df)",
+            "\npandas/tests/frame/methods/test_replace.py:1390: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.frame.methods.test_replace.TestDataFrameReplace object at 0x1127b5a60>\ndtype = 'float', value = <NA>\n\n    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n>       tm.assert_frame_equal(result, df)",
+            "\npandas/tests/frame/methods/test_replace.py:1390: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.frame.methods.test_replace.TestDataFrameReplace object at 0x1124bd1c0>\ndtype = 'float64', value = <NA>\n\n    @pytest.mark.parametrize(\"dtype\", [\"float\", \"float64\", \"int64\", \"Int64\", \"boolean\"])\n    @pytest.mark.parametrize(\"value\", [np.nan, pd.NA])\n    def test_replace_no_replacement_dtypes(self, dtype, value):\n        # https://github.com/pandas-dev/pandas/issues/32988\n        df = pd.DataFrame(np.eye(2), dtype=dtype)\n        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)\n>       tm.assert_frame_equal(result, df)",
+            "\npandas/tests/frame/methods/test_replace.py:1390: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method FloatBlock._can_hold_element of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self": "FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64",
+                "self.copy": "<bound method Block.copy of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.replace": "<bound method Block.replace of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.values": "array([[1., 0.],\n       [0., 1.]])",
+                "self.putmask": "<bound method Block.putmask of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[-inf, inf]",
+                "block": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "block.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[-inf, inf]",
+                "self._can_hold_element": "<bound method ObjectBlock._can_hold_element of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "self.copy": "<bound method Block.copy of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "self.putmask": "<bound method Block.putmask of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            },
+            {
+                "original_to_replace": "[-inf, inf]",
+                "values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "values.dtype": "dtype('O')",
+                "mask": "array([[False, False],\n       [False, False]])"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method IntBlock._can_hold_element of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self": "IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64",
+                "self.copy": "<bound method Block.copy of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.replace": "<bound method Block.replace of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.values": "array([[1, 0],\n       [0, 1]])",
+                "self.putmask": "<bound method Block.putmask of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method FloatBlock._can_hold_element of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self": "FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64",
+                "self.copy": "<bound method Block.copy of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.replace": "<bound method Block.replace of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.values": "array([[1., 0.],\n       [0., 1.]])",
+                "self.putmask": "<bound method Block.putmask of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[-inf, inf]",
+                "block": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "block.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[-inf, inf]",
+                "self._can_hold_element": "<bound method ObjectBlock._can_hold_element of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "self.copy": "<bound method Block.copy of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "self.putmask": "<bound method Block.putmask of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            },
+            {
+                "original_to_replace": "[-inf, inf]",
+                "values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "values.dtype": "dtype('O')",
+                "mask": "array([[False, False],\n       [False, False]])"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method IntBlock._can_hold_element of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self": "IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64",
+                "self.copy": "<bound method Block.copy of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.replace": "<bound method Block.replace of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.values": "array([[1, 0],\n       [0, 1]])",
+                "self.putmask": "<bound method Block.putmask of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "mask.any": "<bound method BooleanArray.any of <BooleanArray>\n[False, False]\nLength: 2, dtype: boolean>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "FloatBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list",
+                "block": "ObjectBlock",
+                "block.replace": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ObjectBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "ndarray",
+                "values.dtype": "dtype",
+                "mask": "ndarray"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "IntBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "FloatBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list",
+                "block": "ObjectBlock",
+                "block.replace": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ObjectBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "ndarray",
+                "values.dtype": "dtype",
+                "mask": "ndarray"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "IntBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "mask.any": "method"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method FloatBlock._can_hold_element of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self": "FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64",
+                "self.copy": "<bound method Block.copy of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.replace": "<bound method Block.replace of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.values": "array([[1., 0.],\n       [0., 1.]])",
+                "self.putmask": "<bound method Block.putmask of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[-inf, inf]",
+                "block": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "block.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[-inf, inf]",
+                "self._can_hold_element": "<bound method ObjectBlock._can_hold_element of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "self.copy": "<bound method Block.copy of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "self.putmask": "<bound method Block.putmask of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            },
+            {
+                "original_to_replace": "[-inf, inf]",
+                "values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "values.dtype": "dtype('O')",
+                "mask": "array([[False, False],\n       [False, False]])",
+                "blocks": "[[FloatBlock: slice(0, 1, 1), 1 x 2, dtype: float64, FloatBlock: slice(1, 2, 1), 1 x 2, dtype: float64]]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method IntBlock._can_hold_element of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self": "IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64",
+                "self.copy": "<bound method Block.copy of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.replace": "<bound method Block.replace of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.values": "array([[1, 0],\n       [0, 1]])",
+                "self.putmask": "<bound method Block.putmask of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "value": "nan",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method FloatBlock._can_hold_element of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self": "FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64",
+                "self.copy": "<bound method Block.copy of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.replace": "<bound method Block.replace of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>",
+                "self.values": "array([[1., 0.],\n       [0., 1.]])",
+                "self.putmask": "<bound method Block.putmask of FloatBlock: slice(0, 2, 1), 2 x 2, dtype: float64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[-inf, inf]",
+                "block": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "block.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[-inf, inf]",
+                "self._can_hold_element": "<bound method ObjectBlock._can_hold_element of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self": "ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object",
+                "self.copy": "<bound method Block.copy of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.replace": "<bound method ObjectBlock.replace of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>",
+                "self.values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "self.putmask": "<bound method Block.putmask of ObjectBlock: slice(0, 2, 1), 2 x 2, dtype: object>"
+            },
+            {
+                "original_to_replace": "[-inf, inf]",
+                "values": "array([[1.0, 0.0],\n       [0.0, 1.0]], dtype=object)",
+                "values.dtype": "dtype('O')",
+                "mask": "array([[False, False],\n       [False, False]])",
+                "blocks": "[[FloatBlock: slice(0, 1, 1), 1 x 2, dtype: float64, FloatBlock: slice(1, 2, 1), 1 x 2, dtype: float64]]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method IntBlock._can_hold_element of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self": "IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64",
+                "self.copy": "<bound method Block.copy of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.replace": "<bound method Block.replace of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>",
+                "self.values": "array([[1, 0],\n       [0, 1]])",
+                "self.putmask": "<bound method Block.putmask of IntBlock: slice(0, 2, 1), 2 x 2, dtype: int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "to_replace": "[]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[1, 0]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: Int64]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>",
+                "self.values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
+                "values.dtype": "Int64Dtype()",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: Int64]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[True, False]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(0, 1, 1), 1 x 2, dtype: boolean]"
+            }
+        ],
+        [
+            {
+                "inplace": "False",
+                "to_replace": "[None, -inf, inf]",
+                "self._can_hold_element": "<bound method ExtensionBlock._can_hold_element of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self": "ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean",
+                "self.copy": "<bound method Block.copy of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.replace": "<bound method Block.replace of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "value": "<NA>",
+                "regex": "False",
+                "convert": "True",
+                "self.astype": "<bound method Block.astype of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>",
+                "self.values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "self.putmask": "<bound method ExtensionBlock.putmask of ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean>"
+            },
+            {
+                "original_to_replace": "[None, -inf, inf]",
+                "values": "<BooleanArray>\n[False, True]\nLength: 2, dtype: boolean",
+                "values.dtype": "BooleanDtype",
+                "mask": "<BooleanArray>\n[False, False]\nLength: 2, dtype: boolean",
+                "blocks": "[ExtensionBlock: slice(1, 2, 1), 1 x 2, dtype: boolean]"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "FloatBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list",
+                "block": "ObjectBlock",
+                "block.replace": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ObjectBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "ndarray",
+                "values.dtype": "dtype",
+                "mask": "ndarray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "IntBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "float",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "FloatBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list",
+                "block": "ObjectBlock",
+                "block.replace": "method"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ObjectBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "ndarray",
+                "values.dtype": "dtype",
+                "mask": "ndarray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "IntBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "ndarray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "to_replace": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "IntegerArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "IntegerArray",
+                "values.dtype": "Int64Dtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ],
+        [
+            {
+                "inplace": "bool",
+                "to_replace": "list",
+                "self._can_hold_element": "method",
+                "self": "ExtensionBlock",
+                "self.copy": "method",
+                "self.replace": "method",
+                "value": "NAType",
+                "regex": "bool",
+                "convert": "bool",
+                "self.astype": "method",
+                "self.values": "BooleanArray",
+                "self.putmask": "method"
+            },
+            {
+                "original_to_replace": "list",
+                "values": "BooleanArray",
+                "values.dtype": "BooleanDtype",
+                "mask": "BooleanArray",
+                "blocks": "list"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "\n"
+    ],
+    "3.1.2": [
+        "\n"
+    ]
+}

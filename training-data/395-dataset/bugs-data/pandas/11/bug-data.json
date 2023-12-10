@@ -1,0 +1,3370 @@
+{
+    "pandas:11": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_11/pandas/core/reshape/concat.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_make_concat_multiindex",
+                    "function_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n\n    if (levels is None and isinstance(keys[0], tuple)) or (\n        levels is not None and len(levels) > 1\n    ):\n        zipped = list(zip(*keys))\n        if names is None:\n            names = [None] * len(zipped)\n\n        if levels is None:\n            _, levels = factorize_from_iterables(zipped)\n        else:\n            levels = [ensure_index(x) for x in levels]\n    else:\n        zipped = [keys]\n        if names is None:\n            names = [None]\n\n        if levels is None:\n            levels = [ensure_index(keys)]\n        else:\n            levels = [ensure_index(x) for x in levels]\n\n    if not all_indexes_same(indexes):\n        codes_list = []\n\n        # things are potentially different sizes, so compute the exact codes\n        # for each level and pass those to MultiIndex.from_arrays\n\n        for hlevel, level in zip(zipped, levels):\n            to_concat = []\n            for key, index in zip(hlevel, indexes):\n                try:\n                    i = level.get_loc(key)\n                except KeyError as err:\n                    raise ValueError(f\"Key {key} not in level {level}\") from err\n\n                to_concat.append(np.repeat(i, len(index)))\n            codes_list.append(np.concatenate(to_concat))\n\n        concat_index = _concat_indexes(indexes)\n\n        # these go at the end\n        if isinstance(concat_index, MultiIndex):\n            levels.extend(concat_index.levels)\n            codes_list.extend(concat_index.codes)\n        else:\n            codes, categories = factorize_from_iterable(concat_index)\n            levels.append(categories)\n            codes_list.append(codes)\n\n        if len(names) == len(levels):\n            names = list(names)\n        else:\n            # make sure that all of the passed indices have the same nlevels\n            if not len({idx.nlevels for idx in indexes}) == 1:\n                raise AssertionError(\n                    \"Cannot concat indices that do not have the same number of levels\"\n                )\n\n            # also copies\n            names = names + get_consensus_names(indexes)\n\n        return MultiIndex(\n            levels=levels, codes=codes_list, names=names, verify_integrity=False\n        )\n\n    new_index = indexes[0]\n    n = len(new_index)\n    kpieces = len(indexes)\n\n    # also copies\n    new_names = list(names)\n    new_levels = list(levels)\n\n    # construct codes\n    new_codes = []\n\n    # do something a bit more speedy\n\n    for hlevel, level in zip(zipped, levels):\n        hlevel = ensure_index(hlevel)\n        mapped = level.get_indexer(hlevel)\n\n        mask = mapped == -1\n        if mask.any():\n            raise ValueError(f\"Values not found in passed level: {hlevel[mask]!s}\")\n\n        new_codes.append(np.repeat(mapped, n))\n\n    if isinstance(new_index, MultiIndex):\n        new_levels.extend(new_index.levels)\n        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])\n    else:\n        new_levels.append(new_index)\n        new_codes.append(np.tile(np.arange(n), kpieces))\n\n    if len(new_names) < len(new_levels):\n        new_names.extend(new_index.names)\n\n    return MultiIndex(\n        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False\n    )\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 590,
+                    "variables": {
+                        "levels": [
+                            608,
+                            609,
+                            641,
+                            611,
+                            663,
+                            619,
+                            670,
+                            654,
+                            592,
+                            593,
+                            634,
+                            599,
+                            600,
+                            602,
+                            638
+                        ],
+                        "isinstance": [
+                            592,
+                            633,
+                            680
+                        ],
+                        "keys": [
+                            592,
+                            609,
+                            595,
+                            604
+                        ],
+                        "tuple": [
+                            592
+                        ],
+                        "len": [
+                            641,
+                            645,
+                            687,
+                            593,
+                            658,
+                            627,
+                            659,
+                            597
+                        ],
+                        "zipped": [
+                            619,
+                            595,
+                            597,
+                            600,
+                            604,
+                            670
+                        ],
+                        "list": [
+                            642,
+                            595,
+                            662,
+                            663
+                        ],
+                        "zip": [
+                            619,
+                            595,
+                            621,
+                            670
+                        ],
+                        "names": [
+                            641,
+                            642,
+                            651,
+                            654,
+                            596,
+                            597,
+                            662,
+                            605,
+                            606
+                        ],
+                        "_": [
+                            600
+                        ],
+                        "factorize_from_iterables": [
+                            600
+                        ],
+                        "ensure_index": [
+                            609,
+                            602,
+                            611,
+                            671
+                        ],
+                        "x": [
+                            602,
+                            611
+                        ],
+                        "all_indexes_same": [
+                            613
+                        ],
+                        "indexes": [
+                            613,
+                            645,
+                            651,
+                            621,
+                            657,
+                            659,
+                            630
+                        ],
+                        "codes_list": [
+                            614,
+                            654,
+                            628,
+                            635,
+                            639
+                        ],
+                        "hlevel": [
+                            672,
+                            676,
+                            619,
+                            621,
+                            670,
+                            671
+                        ],
+                        "level": [
+                            672,
+                            619,
+                            623,
+                            625,
+                            670
+                        ],
+                        "to_concat": [
+                            628,
+                            627,
+                            620
+                        ],
+                        "key": [
+                            625,
+                            621,
+                            623
+                        ],
+                        "index": [
+                            627,
+                            621
+                        ],
+                        "i": [
+                            627,
+                            623
+                        ],
+                        "level.get_loc": [
+                            623
+                        ],
+                        "KeyError": [
+                            624
+                        ],
+                        "ValueError": [
+                            625,
+                            676
+                        ],
+                        "err": [
+                            625
+                        ],
+                        "to_concat.append": [
+                            627
+                        ],
+                        "np.repeat": [
+                            627,
+                            678
+                        ],
+                        "np": [
+                            678,
+                            682,
+                            685,
+                            627,
+                            628
+                        ],
+                        "codes_list.append": [
+                            628,
+                            639
+                        ],
+                        "np.concatenate": [
+                            628
+                        ],
+                        "concat_index": [
+                            630,
+                            633,
+                            634,
+                            635,
+                            637
+                        ],
+                        "_concat_indexes": [
+                            630
+                        ],
+                        "MultiIndex": [
+                            680,
+                            653,
+                            590,
+                            690,
+                            633
+                        ],
+                        "levels.extend": [
+                            634
+                        ],
+                        "concat_index.levels": [
+                            634
+                        ],
+                        "codes_list.extend": [
+                            635
+                        ],
+                        "concat_index.codes": [
+                            635
+                        ],
+                        "codes": [
+                            637,
+                            639
+                        ],
+                        "categories": [
+                            637,
+                            638
+                        ],
+                        "factorize_from_iterable": [
+                            637
+                        ],
+                        "levels.append": [
+                            638
+                        ],
+                        "idx.nlevels": [
+                            645
+                        ],
+                        "idx": [
+                            645
+                        ],
+                        "AssertionError": [
+                            646
+                        ],
+                        "get_consensus_names": [
+                            651
+                        ],
+                        "new_index": [
+                            680,
+                            681,
+                            682,
+                            684,
+                            688,
+                            657,
+                            658
+                        ],
+                        "n": [
+                            658,
+                            685,
+                            678
+                        ],
+                        "kpieces": [
+                            682,
+                            659,
+                            685
+                        ],
+                        "new_names": [
+                            688,
+                            691,
+                            662,
+                            687
+                        ],
+                        "new_levels": [
+                            681,
+                            684,
+                            687,
+                            691,
+                            663
+                        ],
+                        "new_codes": [
+                            678,
+                            682,
+                            685,
+                            691,
+                            666
+                        ],
+                        "mapped": [
+                            672,
+                            674,
+                            678
+                        ],
+                        "level.get_indexer": [
+                            672
+                        ],
+                        "mask": [
+                            674,
+                            675,
+                            676
+                        ],
+                        "mask.any": [
+                            675
+                        ],
+                        "new_codes.append": [
+                            685,
+                            678
+                        ],
+                        "new_levels.extend": [
+                            681
+                        ],
+                        "new_index.levels": [
+                            681
+                        ],
+                        "new_codes.extend": [
+                            682
+                        ],
+                        "np.tile": [
+                            682,
+                            685
+                        ],
+                        "lab": [
+                            682
+                        ],
+                        "new_index.codes": [
+                            682
+                        ],
+                        "new_levels.append": [
+                            684
+                        ],
+                        "np.arange": [
+                            685
+                        ],
+                        "new_names.extend": [
+                            688
+                        ],
+                        "new_index.names": [
+                            688
+                        ]
+                    },
+                    "filtered_variables": {
+                        "levels": [
+                            608,
+                            609,
+                            641,
+                            611,
+                            663,
+                            619,
+                            670,
+                            654,
+                            592,
+                            593,
+                            634,
+                            599,
+                            600,
+                            602,
+                            638
+                        ],
+                        "keys": [
+                            592,
+                            609,
+                            595,
+                            604
+                        ],
+                        "zipped": [
+                            619,
+                            595,
+                            597,
+                            600,
+                            604,
+                            670
+                        ],
+                        "names": [
+                            641,
+                            642,
+                            651,
+                            654,
+                            596,
+                            597,
+                            662,
+                            605,
+                            606
+                        ],
+                        "_": [
+                            600
+                        ],
+                        "factorize_from_iterables": [
+                            600
+                        ],
+                        "ensure_index": [
+                            609,
+                            602,
+                            611,
+                            671
+                        ],
+                        "x": [
+                            602,
+                            611
+                        ],
+                        "all_indexes_same": [
+                            613
+                        ],
+                        "indexes": [
+                            613,
+                            645,
+                            651,
+                            621,
+                            657,
+                            659,
+                            630
+                        ],
+                        "codes_list": [
+                            614,
+                            654,
+                            628,
+                            635,
+                            639
+                        ],
+                        "hlevel": [
+                            672,
+                            676,
+                            619,
+                            621,
+                            670,
+                            671
+                        ],
+                        "level": [
+                            672,
+                            619,
+                            623,
+                            625,
+                            670
+                        ],
+                        "to_concat": [
+                            628,
+                            627,
+                            620
+                        ],
+                        "key": [
+                            625,
+                            621,
+                            623
+                        ],
+                        "index": [
+                            627,
+                            621
+                        ],
+                        "i": [
+                            627,
+                            623
+                        ],
+                        "level.get_loc": [
+                            623
+                        ],
+                        "err": [
+                            625
+                        ],
+                        "to_concat.append": [
+                            627
+                        ],
+                        "np.repeat": [
+                            627,
+                            678
+                        ],
+                        "np": [
+                            678,
+                            682,
+                            685,
+                            627,
+                            628
+                        ],
+                        "codes_list.append": [
+                            628,
+                            639
+                        ],
+                        "np.concatenate": [
+                            628
+                        ],
+                        "concat_index": [
+                            630,
+                            633,
+                            634,
+                            635,
+                            637
+                        ],
+                        "_concat_indexes": [
+                            630
+                        ],
+                        "MultiIndex": [
+                            680,
+                            653,
+                            590,
+                            690,
+                            633
+                        ],
+                        "levels.extend": [
+                            634
+                        ],
+                        "concat_index.levels": [
+                            634
+                        ],
+                        "codes_list.extend": [
+                            635
+                        ],
+                        "concat_index.codes": [
+                            635
+                        ],
+                        "codes": [
+                            637,
+                            639
+                        ],
+                        "categories": [
+                            637,
+                            638
+                        ],
+                        "factorize_from_iterable": [
+                            637
+                        ],
+                        "levels.append": [
+                            638
+                        ],
+                        "idx.nlevels": [
+                            645
+                        ],
+                        "idx": [
+                            645
+                        ],
+                        "get_consensus_names": [
+                            651
+                        ],
+                        "new_index": [
+                            680,
+                            681,
+                            682,
+                            684,
+                            688,
+                            657,
+                            658
+                        ],
+                        "n": [
+                            658,
+                            685,
+                            678
+                        ],
+                        "kpieces": [
+                            682,
+                            659,
+                            685
+                        ],
+                        "new_names": [
+                            688,
+                            691,
+                            662,
+                            687
+                        ],
+                        "new_levels": [
+                            681,
+                            684,
+                            687,
+                            691,
+                            663
+                        ],
+                        "new_codes": [
+                            678,
+                            682,
+                            685,
+                            691,
+                            666
+                        ],
+                        "mapped": [
+                            672,
+                            674,
+                            678
+                        ],
+                        "level.get_indexer": [
+                            672
+                        ],
+                        "mask": [
+                            674,
+                            675,
+                            676
+                        ],
+                        "mask.any": [
+                            675
+                        ],
+                        "new_codes.append": [
+                            685,
+                            678
+                        ],
+                        "new_levels.extend": [
+                            681
+                        ],
+                        "new_index.levels": [
+                            681
+                        ],
+                        "new_codes.extend": [
+                            682
+                        ],
+                        "np.tile": [
+                            682,
+                            685
+                        ],
+                        "lab": [
+                            682
+                        ],
+                        "new_index.codes": [
+                            682
+                        ],
+                        "new_levels.append": [
+                            684
+                        ],
+                        "np.arange": [
+                            685
+                        ],
+                        "new_names.extend": [
+                            688
+                        ],
+                        "new_index.names": [
+                            688
+                        ]
+                    },
+                    "diff_line_number": 622,
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {
+                                "levels": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "keys": {
+                                    "variable_value": "Index(['f', 'e', 'f'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "3"
+                                },
+                                "zipped": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "names": {
+                                    "variable_value": "FrozenList([None])",
+                                    "variable_type": "FrozenList",
+                                    "variable_shape": "1"
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "factorize_from_iterables": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "ensure_index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "all_indexes_same": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "indexes": {
+                                    "variable_value": "[Index(['a', 'b'], dtype='object'), Index(['c'], dtype='object'), Index(['d'], dtype='object')]",
+                                    "variable_type": "list",
+                                    "variable_shape": "3"
+                                },
+                                "codes_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "hlevel": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "level": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_concat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "key": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "level.get_loc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "err": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_concat.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.repeat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "codes_list.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.concatenate": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat_index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_concat_indexes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "MultiIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "levels.extend": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "concat_index.levels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "codes_list.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat_index.codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "categories": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "factorize_from_iterable": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "levels.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "idx.nlevels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "idx": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "get_consensus_names": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "kpieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_names": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_levels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mapped": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "level.get_indexer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mask": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mask.any": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_codes.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_levels.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index.levels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_codes.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.tile": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "lab": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index.codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_levels.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.arange": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_names.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index.names": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "levels": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "keys": {
+                                    "variable_value": "Index(['f', 'e', 'f'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "3"
+                                },
+                                "zipped": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "names": {
+                                    "variable_value": "FrozenList([None])",
+                                    "variable_type": "FrozenList",
+                                    "variable_shape": "1"
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "factorize_from_iterables": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "ensure_index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "all_indexes_same": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "indexes": {
+                                    "variable_value": "[Index(['a', 'b'], dtype='object'), Index(['c'], dtype='object'), Index(['d'], dtype='object')]",
+                                    "variable_type": "list",
+                                    "variable_shape": "3"
+                                },
+                                "codes_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "hlevel": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "level": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_concat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "key": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mask": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mask.any": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nonzero": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_concat.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.repeat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "codes_list.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.concatenate": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat_index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_concat_indexes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "MultiIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "levels.extend": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "concat_index.levels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "codes_list.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat_index.codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "categories": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "factorize_from_iterable": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "levels.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "idx.nlevels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "idx": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "get_consensus_names": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "kpieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_names": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_levels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mapped": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "level.get_indexer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_codes.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_levels.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index.levels": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_codes.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.tile": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "lab": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index.codes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_levels.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.arange": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_names.extend": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_index.names": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "@overload\ndef concat(\n    objs: Union[Iterable[\"DataFrame\"], Mapping[Label, \"DataFrame\"]],\n    axis=0,\n    join: str = \"outer\",\n    ignore_index: bool = False,\n    keys=None,\n    levels=None,\n    names=None,\n    verify_integrity: bool = False,\n    sort: bool = False,\n    copy: bool = True,\n) -> \"DataFrame\":\n    ...",
+                "@overload\ndef concat(\n    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],\n    axis=0,\n    join: str = \"outer\",\n    ignore_index: bool = False,\n    keys=None,\n    levels=None,\n    names=None,\n    verify_integrity: bool = False,\n    sort: bool = False,\n    copy: bool = True,\n) -> FrameOrSeriesUnion:\n    ...",
+                "def concat(\n    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],\n    axis=0,\n    join=\"outer\",\n    ignore_index: bool = False,\n    keys=None,\n    levels=None,\n    names=None,\n    verify_integrity: bool = False,\n    sort: bool = False,\n    copy: bool = True,\n) -> FrameOrSeriesUnion:\n    \"\"\"\n    Concatenate pandas objects along a particular axis with optional set logic\n    along the other axes.\n\n    Can also add a layer of hierarchical indexing on the concatenation axis,\n    which may be useful if the labels are the same (or overlapping) on\n    the passed axis number.\n\n    Parameters\n    ----------\n    objs : a sequence or mapping of Series or DataFrame objects\n        If a mapping is passed, the sorted keys will be used as the `keys`\n        argument, unless it is passed, in which case the values will be\n        selected (see below). Any None objects will be dropped silently unless\n        they are all None in which case a ValueError will be raised.\n    axis : {0/'index', 1/'columns'}, default 0\n        The axis to concatenate along.\n    join : {'inner', 'outer'}, default 'outer'\n        How to handle indexes on other axis (or axes).\n    ignore_index : bool, default False\n        If True, do not use the index values along the concatenation axis. The\n        resulting axis will be labeled 0, ..., n - 1. This is useful if you are\n        concatenating objects where the concatenation axis does not have\n        meaningful indexing information. Note the index values on the other\n        axes are still respected in the join.\n    keys : sequence, default None\n        If multiple levels passed, should contain tuples. Construct\n        hierarchical index using the passed keys as the outermost level.\n    levels : list of sequences, default None\n        Specific levels (unique values) to use for constructing a\n        MultiIndex. Otherwise they will be inferred from the keys.\n    names : list, default None\n        Names for the levels in the resulting hierarchical index.\n    verify_integrity : bool, default False\n        Check whether the new concatenated axis contains duplicates. This can\n        be very expensive relative to the actual data concatenation.\n    sort : bool, default False\n        Sort non-concatenation axis if it is not already aligned when `join`\n        is 'outer'.\n        This has no effect when ``join='inner'``, which already preserves\n        the order of the non-concatenation axis.\n\n        .. versionadded:: 0.23.0\n        .. versionchanged:: 1.0.0\n\n           Changed to not sort by default.\n\n    copy : bool, default True\n        If False, do not copy data unnecessarily.\n\n    Returns\n    -------\n    object, type of objs\n        When concatenating all ``Series`` along the index (axis=0), a\n        ``Series`` is returned. When ``objs`` contains at least one\n        ``DataFrame``, a ``DataFrame`` is returned. When concatenating along\n        the columns (axis=1), a ``DataFrame`` is returned.\n\n    See Also\n    --------\n    Series.append : Concatenate Series.\n    DataFrame.append : Concatenate DataFrames.\n    DataFrame.join : Join DataFrames using indexes.\n    DataFrame.merge : Merge DataFrames by indexes or columns.\n\n    Notes\n    -----\n    The keys, levels, and names arguments are all optional.\n\n    A walkthrough of how this method fits in with other tools for combining\n    pandas objects can be found `here\n    <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.\n\n    Examples\n    --------\n    Combine two ``Series``.\n\n    >>> s1 = pd.Series(['a', 'b'])\n    >>> s2 = pd.Series(['c', 'd'])\n    >>> pd.concat([s1, s2])\n    0    a\n    1    b\n    0    c\n    1    d\n    dtype: object\n\n    Clear the existing index and reset it in the result\n    by setting the ``ignore_index`` option to ``True``.\n\n    >>> pd.concat([s1, s2], ignore_index=True)\n    0    a\n    1    b\n    2    c\n    3    d\n    dtype: object\n\n    Add a hierarchical index at the outermost level of\n    the data with the ``keys`` option.\n\n    >>> pd.concat([s1, s2], keys=['s1', 's2'])\n    s1  0    a\n        1    b\n    s2  0    c\n        1    d\n    dtype: object\n\n    Label the index keys you create with the ``names`` option.\n\n    >>> pd.concat([s1, s2], keys=['s1', 's2'],\n    ...           names=['Series name', 'Row ID'])\n    Series name  Row ID\n    s1           0         a\n                 1         b\n    s2           0         c\n                 1         d\n    dtype: object\n\n    Combine two ``DataFrame`` objects with identical columns.\n\n    >>> df1 = pd.DataFrame([['a', 1], ['b', 2]],\n    ...                    columns=['letter', 'number'])\n    >>> df1\n      letter  number\n    0      a       1\n    1      b       2\n    >>> df2 = pd.DataFrame([['c', 3], ['d', 4]],\n    ...                    columns=['letter', 'number'])\n    >>> df2\n      letter  number\n    0      c       3\n    1      d       4\n    >>> pd.concat([df1, df2])\n      letter  number\n    0      a       1\n    1      b       2\n    0      c       3\n    1      d       4\n\n    Combine ``DataFrame`` objects with overlapping columns\n    and return everything. Columns outside the intersection will\n    be filled with ``NaN`` values.\n\n    >>> df3 = pd.DataFrame([['c', 3, 'cat'], ['d', 4, 'dog']],\n    ...                    columns=['letter', 'number', 'animal'])\n    >>> df3\n      letter  number animal\n    0      c       3    cat\n    1      d       4    dog\n    >>> pd.concat([df1, df3], sort=False)\n      letter  number animal\n    0      a       1    NaN\n    1      b       2    NaN\n    0      c       3    cat\n    1      d       4    dog\n\n    Combine ``DataFrame`` objects with overlapping columns\n    and return only those that are shared by passing ``inner`` to\n    the ``join`` keyword argument.\n\n    >>> pd.concat([df1, df3], join=\"inner\")\n      letter  number\n    0      a       1\n    1      b       2\n    0      c       3\n    1      d       4\n\n    Combine ``DataFrame`` objects horizontally along the x axis by\n    passing in ``axis=1``.\n\n    >>> df4 = pd.DataFrame([['bird', 'polly'], ['monkey', 'george']],\n    ...                    columns=['animal', 'name'])\n    >>> pd.concat([df1, df4], axis=1)\n      letter  number  animal    name\n    0      a       1    bird   polly\n    1      b       2  monkey  george\n\n    Prevent the result from including duplicate index values with the\n    ``verify_integrity`` option.\n\n    >>> df5 = pd.DataFrame([1], index=['a'])\n    >>> df5\n       0\n    a  1\n    >>> df6 = pd.DataFrame([2], index=['a'])\n    >>> df6\n       0\n    a  2\n    >>> pd.concat([df5, df6], verify_integrity=True)\n    Traceback (most recent call last):\n        ...\n    ValueError: Indexes have overlapping values: ['a']\n    \"\"\"\n    op = _Concatenator(\n        objs,\n        axis=axis,\n        ignore_index=ignore_index,\n        join=join,\n        keys=keys,\n        levels=levels,\n        names=names,\n        verify_integrity=verify_integrity,\n        copy=copy,\n        sort=sort,\n    )\n\n    return op.get_result()",
+                "def _concat_indexes(indexes) -> Index:\n    return indexes[0].append(indexes[1:])",
+                "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n\n    if (levels is None and isinstance(keys[0], tuple)) or (\n        levels is not None and len(levels) > 1\n    ):\n        zipped = list(zip(*keys))\n        if names is None:\n            names = [None] * len(zipped)\n\n        if levels is None:\n            _, levels = factorize_from_iterables(zipped)\n        else:\n            levels = [ensure_index(x) for x in levels]\n    else:\n        zipped = [keys]\n        if names is None:\n            names = [None]\n\n        if levels is None:\n            levels = [ensure_index(keys)]\n        else:\n            levels = [ensure_index(x) for x in levels]\n\n    if not all_indexes_same(indexes):\n        codes_list = []\n\n        # things are potentially different sizes, so compute the exact codes\n        # for each level and pass those to MultiIndex.from_arrays\n\n        for hlevel, level in zip(zipped, levels):\n            to_concat = []\n            for key, index in zip(hlevel, indexes):\n                try:\n                    i = level.get_loc(key)\n                except KeyError as err:\n                    raise ValueError(f\"Key {key} not in level {level}\") from err\n\n                to_concat.append(np.repeat(i, len(index)))\n            codes_list.append(np.concatenate(to_concat))\n\n        concat_index = _concat_indexes(indexes)\n\n        # these go at the end\n        if isinstance(concat_index, MultiIndex):\n            levels.extend(concat_index.levels)\n            codes_list.extend(concat_index.codes)\n        else:\n            codes, categories = factorize_from_iterable(concat_index)\n            levels.append(categories)\n            codes_list.append(codes)\n\n        if len(names) == len(levels):\n            names = list(names)\n        else:\n            # make sure that all of the passed indices have the same nlevels\n            if not len({idx.nlevels for idx in indexes}) == 1:\n                raise AssertionError(\n                    \"Cannot concat indices that do not have the same number of levels\"\n                )\n\n            # also copies\n            names = names + get_consensus_names(indexes)\n\n        return MultiIndex(\n            levels=levels, codes=codes_list, names=names, verify_integrity=False\n        )\n\n    new_index = indexes[0]\n    n = len(new_index)\n    kpieces = len(indexes)\n\n    # also copies\n    new_names = list(names)\n    new_levels = list(levels)\n\n    # construct codes\n    new_codes = []\n\n    # do something a bit more speedy\n\n    for hlevel, level in zip(zipped, levels):\n        hlevel = ensure_index(hlevel)\n        mapped = level.get_indexer(hlevel)\n\n        mask = mapped == -1\n        if mask.any():\n            raise ValueError(f\"Values not found in passed level: {hlevel[mask]!s}\")\n\n        new_codes.append(np.repeat(mapped, n))\n\n    if isinstance(new_index, MultiIndex):\n        new_levels.extend(new_index.levels)\n        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])\n    else:\n        new_levels.append(new_index)\n        new_codes.append(np.tile(np.arange(n), kpieces))\n\n    if len(new_names) < len(new_levels):\n        new_names.extend(new_index.names)\n\n    return MultiIndex(\n        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False\n    )",
+                "def __init__(\n    self,\n    objs,\n    axis=0,\n    join: str = \"outer\",\n    keys=None,\n    levels=None,\n    names=None,\n    ignore_index: bool = False,\n    verify_integrity: bool = False,\n    copy: bool = True,\n    sort=False,\n):\n    if isinstance(objs, (NDFrame, str)):\n        raise TypeError(\n            \"first argument must be an iterable of pandas \"\n            f'objects, you passed an object of type \"{type(objs).__name__}\"'\n        )\n\n    if join == \"outer\":\n        self.intersect = False\n    elif join == \"inner\":\n        self.intersect = True\n    else:  # pragma: no cover\n        raise ValueError(\n            \"Only can inner (intersect) or outer (union) join the other axis\"\n        )\n\n    if isinstance(objs, abc.Mapping):\n        if keys is None:\n            keys = list(objs.keys())\n        objs = [objs[k] for k in keys]\n    else:\n        objs = list(objs)\n\n    if len(objs) == 0:\n        raise ValueError(\"No objects to concatenate\")\n\n    if keys is None:\n        objs = list(com.not_none(*objs))\n    else:\n        # #1649\n        clean_keys = []\n        clean_objs = []\n        for k, v in zip(keys, objs):\n            if v is None:\n                continue\n            clean_keys.append(k)\n            clean_objs.append(v)\n        objs = clean_objs\n        name = getattr(keys, \"name\", None)\n        keys = Index(clean_keys, name=name)\n\n    if len(objs) == 0:\n        raise ValueError(\"All objects passed were None\")\n\n    # consolidate data & figure out what our result ndim is going to be\n    ndims = set()\n    for obj in objs:\n        if not isinstance(obj, (Series, DataFrame)):\n            msg = (\n                f\"cannot concatenate object of type '{type(obj)}'; \"\n                \"only Series and DataFrame objs are valid\"\n            )\n            raise TypeError(msg)\n\n        # consolidate\n        obj._consolidate(inplace=True)\n        ndims.add(obj.ndim)\n\n    # get the sample\n    # want the highest ndim that we have, and must be non-empty\n    # unless all objs are empty\n    sample = None\n    if len(ndims) > 1:\n        max_ndim = max(ndims)\n        for obj in objs:\n            if obj.ndim == max_ndim and np.sum(obj.shape):\n                sample = obj\n                break\n\n    else:\n        # filter out the empties if we have not multi-index possibilities\n        # note to keep empty Series as it affect to result columns / name\n        non_empties = [\n            obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, Series)\n        ]\n\n        if len(non_empties) and (\n            keys is None and names is None and levels is None and not self.intersect\n        ):\n            objs = non_empties\n            sample = objs[0]\n\n    if sample is None:\n        sample = objs[0]\n    self.objs = objs\n\n    # Standardize axis parameter to int\n    if isinstance(sample, Series):\n        axis = DataFrame._get_axis_number(axis)\n    else:\n        axis = sample._get_axis_number(axis)\n\n    # Need to flip BlockManager axis in the DataFrame special case\n    self._is_frame = isinstance(sample, ABCDataFrame)\n    if self._is_frame:\n        axis = DataFrame._get_block_manager_axis(axis)\n\n    self._is_series = isinstance(sample, ABCSeries)\n    if not 0 <= axis <= sample.ndim:\n        raise AssertionError(\n            f\"axis must be between 0 and {sample.ndim}, input was {axis}\"\n        )\n\n    # if we have mixed ndims, then convert to highest ndim\n    # creating column numbers as needed\n    if len(ndims) > 1:\n        current_column = 0\n        max_ndim = sample.ndim\n        self.objs, objs = [], self.objs\n        for obj in objs:\n\n            ndim = obj.ndim\n            if ndim == max_ndim:\n                pass\n\n            elif ndim != max_ndim - 1:\n                raise ValueError(\n                    \"cannot concatenate unaligned mixed \"\n                    \"dimensional NDFrame objects\"\n                )\n\n            else:\n                name = getattr(obj, \"name\", None)\n                if ignore_index or name is None:\n                    name = current_column\n                    current_column += 1\n\n                # doing a row-wise concatenation so need everything\n                # to line up\n                if self._is_frame and axis == 1:\n                    name = 0\n                obj = sample._constructor({name: obj})\n\n            self.objs.append(obj)\n\n    # note: this is the BlockManager axis (since DataFrame is transposed)\n    self.bm_axis = axis\n    self.axis = 1 - self.bm_axis if self._is_frame else 0\n    self.keys = keys\n    self.names = names or getattr(keys, \"names\", None)\n    self.levels = levels\n    self.sort = sort\n\n    self.ignore_index = ignore_index\n    self.verify_integrity = verify_integrity\n    self.copy = copy\n\n    self.new_axes = self._get_new_axes()",
+                "def get_result(self):\n\n    # series only\n    if self._is_series:\n\n        # stack blocks\n        if self.bm_axis == 0:\n            name = com.consensus_name_attr(self.objs)\n            cons = self.objs[0]._constructor\n\n            arrs = [ser._values for ser in self.objs]\n\n            res = concat_compat(arrs, axis=0)\n            result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)\n            return result.__finalize__(self, method=\"concat\")\n\n        # combine as columns in a frame\n        else:\n            data = dict(zip(range(len(self.objs)), self.objs))\n            cons = DataFrame\n\n            index, columns = self.new_axes\n            df = cons(data, index=index)\n            df.columns = columns\n            return df.__finalize__(self, method=\"concat\")\n\n    # combine block managers\n    else:\n        mgrs_indexers = []\n        for obj in self.objs:\n            indexers = {}\n            for ax, new_labels in enumerate(self.new_axes):\n                # ::-1 to convert BlockManager ax to DataFrame ax\n                if ax == self.bm_axis:\n                    # Suppress reindexing on concat axis\n                    continue\n\n                # 1-ax to convert BlockManager axis to DataFrame axis\n                obj_labels = obj.axes[1 - ax]\n                if not new_labels.equals(obj_labels):\n                    indexers[ax] = obj_labels.reindex(new_labels)[1]\n\n            mgrs_indexers.append((obj._mgr, indexers))\n\n        new_data = concatenate_block_managers(\n            mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy\n        )\n        if not self.copy:\n            new_data._consolidate_inplace()\n\n        cons = self.objs[0]._constructor\n        return cons(new_data).__finalize__(self, method=\"concat\")",
+                "def _get_result_dim(self) -> int:\n    if self._is_series and self.bm_axis == 1:\n        return 2\n    else:\n        return self.objs[0].ndim",
+                "def _get_new_axes(self) -> List[Index]:\n    ndim = self._get_result_dim()\n    return [\n        self._get_concat_axis() if i == self.bm_axis else self._get_comb_axis(i)\n        for i in range(ndim)\n    ]",
+                "def _get_comb_axis(self, i: int) -> Index:\n    data_axis = self.objs[0]._get_block_manager_axis(i)\n    return get_objs_combined_axis(\n        self.objs,\n        axis=data_axis,\n        intersect=self.intersect,\n        sort=self.sort,\n        copy=self.copy,\n    )",
+                "def _get_concat_axis(self) -> Index:\n    \"\"\"\n    Return index to be used along concatenation axis.\n    \"\"\"\n    if self._is_series:\n        if self.bm_axis == 0:\n            indexes = [x.index for x in self.objs]\n        elif self.ignore_index:\n            idx = ibase.default_index(len(self.objs))\n            return idx\n        elif self.keys is None:\n            names: List[Label] = [None] * len(self.objs)\n            num = 0\n            has_names = False\n            for i, x in enumerate(self.objs):\n                if not isinstance(x, Series):\n                    raise TypeError(\n                        f\"Cannot concatenate type 'Series' with \"\n                        f\"object of type '{type(x).__name__}'\"\n                    )\n                if x.name is not None:\n                    names[i] = x.name\n                    has_names = True\n                else:\n                    names[i] = num\n                    num += 1\n            if has_names:\n                return Index(names)\n            else:\n                return ibase.default_index(len(self.objs))\n        else:\n            return ensure_index(self.keys).set_names(self.names)\n    else:\n        indexes = [x.axes[self.axis] for x in self.objs]\n\n    if self.ignore_index:\n        idx = ibase.default_index(sum(len(i) for i in indexes))\n        return idx\n\n    if self.keys is None:\n        concat_axis = _concat_indexes(indexes)\n    else:\n        concat_axis = _make_concat_multiindex(\n            indexes, self.keys, self.levels, self.names\n        )\n\n    self._maybe_check_integrity(concat_axis)\n\n    return concat_axis",
+                "def _maybe_check_integrity(self, concat_index: Index):\n    if self.verify_integrity:\n        if not concat_index.is_unique:\n            overlap = concat_index[concat_index.duplicated()].unique()\n            raise ValueError(f\"Indexes have overlapping values: {overlap}\")"
+            ],
+            "inscope_function_signatures": [
+                "concat(objs: Union[Iterable['DataFrame'], Mapping[Label, 'DataFrame']], axis=0, join: str='outer', ignore_index: bool=False, keys=None, levels=None, names=None, verify_integrity: bool=False, sort: bool=False, copy: bool=True) -> 'DataFrame'",
+                "concat(objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]], axis=0, join: str='outer', ignore_index: bool=False, keys=None, levels=None, names=None, verify_integrity: bool=False, sort: bool=False, copy: bool=True) -> FrameOrSeriesUnion",
+                "concat(objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]], axis=0, join='outer', ignore_index: bool=False, keys=None, levels=None, names=None, verify_integrity: bool=False, sort: bool=False, copy: bool=True) -> FrameOrSeriesUnion",
+                "_concat_indexes(indexes) -> Index",
+                "_make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex",
+                "__init__(self, objs, axis=0, join: str='outer', keys=None, levels=None, names=None, ignore_index: bool=False, verify_integrity: bool=False, copy: bool=True, sort=False)",
+                "get_result(self)",
+                "_get_result_dim(self) -> int",
+                "_get_new_axes(self) -> List[Index]",
+                "_get_comb_axis(self, i: int) -> Index",
+                "_get_concat_axis(self) -> Index",
+                "_maybe_check_integrity(self, concat_index: Index)"
+            ],
+            "variables_in_file": {
+                "Union": [
+                    53,
+                    68,
+                    37
+                ],
+                "Iterable": [
+                    53,
+                    68,
+                    37
+                ],
+                "Mapping": [
+                    53,
+                    68,
+                    37
+                ],
+                "Label": [
+                    540,
+                    53,
+                    68,
+                    37
+                ],
+                "str": [
+                    296,
+                    305,
+                    55,
+                    39
+                ],
+                "bool": [
+                    71,
+                    40,
+                    75,
+                    44,
+                    45,
+                    46,
+                    76,
+                    77,
+                    300,
+                    301,
+                    302,
+                    56,
+                    60,
+                    61,
+                    62
+                ],
+                "overload": [
+                    51,
+                    35
+                ],
+                "FrameOrSeriesUnion": [
+                    68,
+                    53,
+                    78,
+                    63
+                ],
+                "op": [
+                    284,
+                    271
+                ],
+                "_Concatenator": [
+                    271
+                ],
+                "objs": [
+                    384,
+                    387,
+                    388,
+                    272,
+                    412,
+                    413,
+                    305,
+                    308,
+                    320,
+                    322,
+                    323,
+                    325,
+                    327,
+                    331,
+                    336,
+                    341,
+                    345,
+                    350,
+                    368,
+                    377,
+                    383
+                ],
+                "axis": [
+                    392,
+                    394,
+                    399,
+                    273,
+                    402,
+                    433,
+                    404,
+                    440
+                ],
+                "ignore_index": [
+                    274,
+                    427,
+                    447
+                ],
+                "join": [
+                    313,
+                    275,
+                    311
+                ],
+                "keys": [
+                    321,
+                    322,
+                    323,
+                    609,
+                    330,
+                    336,
+                    592,
+                    595,
+                    276,
+                    342,
+                    343,
+                    442,
+                    443,
+                    604,
+                    381
+                ],
+                "levels": [
+                    608,
+                    609,
+                    641,
+                    611,
+                    663,
+                    619,
+                    670,
+                    654,
+                    592,
+                    593,
+                    277,
+                    634,
+                    599,
+                    600,
+                    602,
+                    444,
+                    381,
+                    638
+                ],
+                "names": [
+                    641,
+                    642,
+                    605,
+                    550,
+                    553,
+                    651,
+                    556,
+                    654,
+                    596,
+                    597,
+                    278,
+                    662,
+                    443,
+                    540,
+                    381,
+                    606
+                ],
+                "verify_integrity": [
+                    448,
+                    279
+                ],
+                "copy": [
+                    280,
+                    449
+                ],
+                "sort": [
+                    281,
+                    445
+                ],
+                "op.get_result": [
+                    284
+                ],
+                "isinstance": [
+                    320,
+                    544,
+                    391,
+                    680,
+                    397,
+                    592,
+                    305,
+                    401,
+                    633,
+                    377,
+                    351
+                ],
+                "NDFrame": [
+                    305
+                ],
+                "TypeError": [
+                    545,
+                    306,
+                    356
+                ],
+                "__name__": [
+                    547,
+                    308
+                ],
+                "type": [
+                    353,
+                    547,
+                    308
+                ],
+                "self.intersect": [
+                    312,
+                    314,
+                    524,
+                    381
+                ],
+                "self": [
+                    513,
+                    515,
+                    388,
+                    520,
+                    522,
+                    524,
+                    397,
+                    398,
+                    525,
+                    526,
+                    401,
+                    533,
+                    534,
+                    535,
+                    536,
+                    537,
+                    539,
+                    412,
+                    540,
+                    543,
+                    568,
+                    558,
+                    560,
+                    433,
+                    562,
+                    564,
+                    437,
+                    440,
+                    312,
+                    442,
+                    441,
+                    444,
+                    314,
+                    443,
+                    447,
+                    448,
+                    449,
+                    445,
+                    451,
+                    572,
+                    575,
+                    580,
+                    456,
+                    459,
+                    460,
+                    461,
+                    463,
+                    466,
+                    467,
+                    471,
+                    474,
+                    477,
+                    482,
+                    484,
+                    486,
+                    498,
+                    500,
+                    503,
+                    504,
+                    507,
+                    381,
+                    510
+                ],
+                "ValueError": [
+                    420,
+                    676,
+                    583,
+                    328,
+                    625,
+                    346,
+                    316
+                ],
+                "abc.Mapping": [
+                    320
+                ],
+                "abc": [
+                    320
+                ],
+                "list": [
+                    322,
+                    642,
+                    325,
+                    331,
+                    595,
+                    662,
+                    663
+                ],
+                "objs.keys": [
+                    322
+                ],
+                "k": [
+                    336,
+                    339,
+                    323
+                ],
+                "len": [
+                    641,
+                    645,
+                    327,
+                    409,
+                    366,
+                    537,
+                    558,
+                    593,
+                    658,
+                    627,
+                    659,
+                    565,
+                    597,
+                    471,
+                    687,
+                    345,
+                    380,
+                    540
+                ],
+                "com.not_none": [
+                    331
+                ],
+                "com": [
+                    331,
+                    460
+                ],
+                "clean_keys": [
+                    339,
+                    334,
+                    343
+                ],
+                "clean_objs": [
+                    340,
+                    341,
+                    335
+                ],
+                "v": [
+                    336,
+                    337,
+                    340
+                ],
+                "zip": [
+                    619,
+                    621,
+                    336,
+                    595,
+                    471,
+                    670
+                ],
+                "clean_keys.append": [
+                    339
+                ],
+                "clean_objs.append": [
+                    340
+                ],
+                "name": [
+                    426,
+                    427,
+                    428,
+                    460,
+                    434,
+                    435,
+                    466,
+                    342,
+                    343
+                ],
+                "getattr": [
+                    426,
+                    443,
+                    342
+                ],
+                "Index": [
+                    512,
+                    579,
+                    519,
+                    586,
+                    556,
+                    529,
+                    343
+                ],
+                "ndims": [
+                    360,
+                    366,
+                    367,
+                    409,
+                    349
+                ],
+                "set": [
+                    349
+                ],
+                "obj": [
+                    353,
+                    482,
+                    359,
+                    360,
+                    415,
+                    426,
+                    491,
+                    495,
+                    368,
+                    369,
+                    370,
+                    435,
+                    437,
+                    377,
+                    413,
+                    350,
+                    351
+                ],
+                "Series": [
+                    391,
+                    377,
+                    544,
+                    351
+                ],
+                "DataFrame": [
+                    392,
+                    399,
+                    472,
+                    351
+                ],
+                "msg": [
+                    352,
+                    356
+                ],
+                "obj._consolidate": [
+                    359
+                ],
+                "ndims.add": [
+                    360
+                ],
+                "obj.ndim": [
+                    360,
+                    369,
+                    415
+                ],
+                "sample": [
+                    384,
+                    386,
+                    387,
+                    391,
+                    394,
+                    365,
+                    397,
+                    401,
+                    370,
+                    402,
+                    404,
+                    435,
+                    411
+                ],
+                "max_ndim": [
+                    416,
+                    419,
+                    367,
+                    369,
+                    411
+                ],
+                "max": [
+                    367
+                ],
+                "np.sum": [
+                    369
+                ],
+                "np": [
+                    678,
+                    682,
+                    685,
+                    369,
+                    627,
+                    628
+                ],
+                "obj.shape": [
+                    369,
+                    377
+                ],
+                "non_empties": [
+                    376,
+                    380,
+                    383
+                ],
+                "sum": [
+                    377,
+                    565
+                ],
+                "self.objs": [
+                    482,
+                    503,
+                    388,
+                    535,
+                    520,
+                    522,
+                    460,
+                    461,
+                    558,
+                    463,
+                    562,
+                    437,
+                    471,
+                    537,
+                    412,
+                    540,
+                    510,
+                    543
+                ],
+                "DataFrame._get_axis_number": [
+                    392
+                ],
+                "sample._get_axis_number": [
+                    394
+                ],
+                "self._is_frame": [
+                    433,
+                    441,
+                    397,
+                    398
+                ],
+                "ABCDataFrame": [
+                    397
+                ],
+                "DataFrame._get_block_manager_axis": [
+                    399
+                ],
+                "self._is_series": [
+                    456,
+                    401,
+                    507,
+                    533
+                ],
+                "ABCSeries": [
+                    401
+                ],
+                "sample.ndim": [
+                    402,
+                    411,
+                    404
+                ],
+                "AssertionError": [
+                    403,
+                    646
+                ],
+                "current_column": [
+                    410,
+                    428,
+                    429
+                ],
+                "ndim": [
+                    416,
+                    513,
+                    419,
+                    516,
+                    510,
+                    415
+                ],
+                "sample._constructor": [
+                    435
+                ],
+                "self.objs.append": [
+                    437
+                ],
+                "self.bm_axis": [
+                    515,
+                    486,
+                    459,
+                    498,
+                    534,
+                    440,
+                    441,
+                    507
+                ],
+                "self.axis": [
+                    441,
+                    562
+                ],
+                "self.keys": [
+                    560,
+                    568,
+                    442,
+                    539,
+                    572
+                ],
+                "self.names": [
+                    560,
+                    443,
+                    572
+                ],
+                "self.levels": [
+                    444,
+                    572
+                ],
+                "self.sort": [
+                    525,
+                    445
+                ],
+                "self.ignore_index": [
+                    536,
+                    564,
+                    447
+                ],
+                "self.verify_integrity": [
+                    448,
+                    580
+                ],
+                "self.copy": [
+                    449,
+                    498,
+                    500,
+                    526
+                ],
+                "self.new_axes": [
+                    451,
+                    484,
+                    498,
+                    466,
+                    474
+                ],
+                "self._get_new_axes": [
+                    451
+                ],
+                "com.consensus_name_attr": [
+                    460
+                ],
+                "cons": [
+                    504,
+                    461,
+                    466,
+                    503,
+                    472,
+                    475
+                ],
+                "_constructor": [
+                    461,
+                    503
+                ],
+                "arrs": [
+                    465,
+                    463
+                ],
+                "ser._values": [
+                    463
+                ],
+                "ser": [
+                    463
+                ],
+                "res": [
+                    465,
+                    466
+                ],
+                "concat_compat": [
+                    465
+                ],
+                "result": [
+                    466,
+                    467
+                ],
+                "res.dtype": [
+                    466
+                ],
+                "result.__finalize__": [
+                    467
+                ],
+                "data": [
+                    475,
+                    471
+                ],
+                "dict": [
+                    471
+                ],
+                "range": [
+                    516,
+                    471
+                ],
+                "index": [
+                    627,
+                    474,
+                    475,
+                    621
+                ],
+                "columns": [
+                    474,
+                    476
+                ],
+                "df": [
+                    475,
+                    476,
+                    477
+                ],
+                "df.columns": [
+                    476
+                ],
+                "df.__finalize__": [
+                    477
+                ],
+                "mgrs_indexers": [
+                    481,
+                    498,
+                    495
+                ],
+                "indexers": [
+                    483,
+                    493,
+                    495
+                ],
+                "ax": [
+                    491,
+                    484,
+                    493,
+                    486
+                ],
+                "new_labels": [
+                    493,
+                    484,
+                    492
+                ],
+                "enumerate": [
+                    484,
+                    543
+                ],
+                "obj_labels": [
+                    491,
+                    492,
+                    493
+                ],
+                "obj.axes": [
+                    491
+                ],
+                "new_labels.equals": [
+                    492
+                ],
+                "obj_labels.reindex": [
+                    493
+                ],
+                "mgrs_indexers.append": [
+                    495
+                ],
+                "obj._mgr": [
+                    495
+                ],
+                "new_data": [
+                    504,
+                    497,
+                    501
+                ],
+                "concatenate_block_managers": [
+                    497
+                ],
+                "new_data._consolidate_inplace": [
+                    501
+                ],
+                "__finalize__": [
+                    504
+                ],
+                "int": [
+                    506,
+                    519
+                ],
+                "self._get_result_dim": [
+                    513
+                ],
+                "i": [
+                    515,
+                    516,
+                    550,
+                    520,
+                    553,
+                    623,
+                    627,
+                    565,
+                    543
+                ],
+                "self._get_concat_axis": [
+                    515
+                ],
+                "self._get_comb_axis": [
+                    515
+                ],
+                "List": [
+                    512,
+                    540
+                ],
+                "data_axis": [
+                    520,
+                    523
+                ],
+                "_get_block_manager_axis": [
+                    520
+                ],
+                "get_objs_combined_axis": [
+                    521
+                ],
+                "indexes": [
+                    613,
+                    645,
+                    587,
+                    651,
+                    621,
+                    657,
+                    562,
+                    659,
+                    565,
+                    630,
+                    535,
+                    569,
+                    572
+                ],
+                "x.index": [
+                    535
+                ],
+                "x": [
+                    544,
+                    547,
+                    611,
+                    549,
+                    550,
+                    562,
+                    535,
+                    602,
+                    543
+                ],
+                "idx": [
+                    645,
+                    565,
+                    566,
+                    537,
+                    538
+                ],
+                "ibase.default_index": [
+                    537,
+                    565,
+                    558
+                ],
+                "ibase": [
+                    537,
+                    565,
+                    558
+                ],
+                "num": [
+                    553,
+                    554,
+                    541
+                ],
+                "has_names": [
+                    555,
+                    542,
+                    551
+                ],
+                "x.name": [
+                    549,
+                    550
+                ],
+                "set_names": [
+                    560
+                ],
+                "ensure_index": [
+                    609,
+                    611,
+                    560,
+                    602,
+                    671
+                ],
+                "x.axes": [
+                    562
+                ],
+                "concat_axis": [
+                    577,
+                    569,
+                    571,
+                    575
+                ],
+                "_concat_indexes": [
+                    569,
+                    630
+                ],
+                "_make_concat_multiindex": [
+                    571
+                ],
+                "self._maybe_check_integrity": [
+                    575
+                ],
+                "concat_index.is_unique": [
+                    581
+                ],
+                "concat_index": [
+                    581,
+                    582,
+                    630,
+                    633,
+                    634,
+                    635,
+                    637
+                ],
+                "overlap": [
+                    582,
+                    583
+                ],
+                "unique": [
+                    582
+                ],
+                "concat_index.duplicated": [
+                    582
+                ],
+                "append": [
+                    587
+                ],
+                "tuple": [
+                    592
+                ],
+                "zipped": [
+                    619,
+                    595,
+                    597,
+                    600,
+                    604,
+                    670
+                ],
+                "_": [
+                    600
+                ],
+                "factorize_from_iterables": [
+                    600
+                ],
+                "all_indexes_same": [
+                    613
+                ],
+                "codes_list": [
+                    614,
+                    654,
+                    628,
+                    635,
+                    639
+                ],
+                "hlevel": [
+                    672,
+                    676,
+                    619,
+                    621,
+                    670,
+                    671
+                ],
+                "level": [
+                    672,
+                    619,
+                    623,
+                    625,
+                    670
+                ],
+                "to_concat": [
+                    628,
+                    627,
+                    620
+                ],
+                "key": [
+                    625,
+                    621,
+                    623
+                ],
+                "level.get_loc": [
+                    623
+                ],
+                "KeyError": [
+                    624
+                ],
+                "err": [
+                    625
+                ],
+                "to_concat.append": [
+                    627
+                ],
+                "np.repeat": [
+                    627,
+                    678
+                ],
+                "codes_list.append": [
+                    628,
+                    639
+                ],
+                "np.concatenate": [
+                    628
+                ],
+                "MultiIndex": [
+                    680,
+                    653,
+                    590,
+                    690,
+                    633
+                ],
+                "levels.extend": [
+                    634
+                ],
+                "concat_index.levels": [
+                    634
+                ],
+                "codes_list.extend": [
+                    635
+                ],
+                "concat_index.codes": [
+                    635
+                ],
+                "codes": [
+                    637,
+                    639
+                ],
+                "categories": [
+                    637,
+                    638
+                ],
+                "factorize_from_iterable": [
+                    637
+                ],
+                "levels.append": [
+                    638
+                ],
+                "idx.nlevels": [
+                    645
+                ],
+                "get_consensus_names": [
+                    651
+                ],
+                "new_index": [
+                    680,
+                    681,
+                    682,
+                    684,
+                    688,
+                    657,
+                    658
+                ],
+                "n": [
+                    658,
+                    685,
+                    678
+                ],
+                "kpieces": [
+                    682,
+                    659,
+                    685
+                ],
+                "new_names": [
+                    688,
+                    691,
+                    662,
+                    687
+                ],
+                "new_levels": [
+                    681,
+                    684,
+                    687,
+                    691,
+                    663
+                ],
+                "new_codes": [
+                    678,
+                    682,
+                    685,
+                    691,
+                    666
+                ],
+                "mapped": [
+                    672,
+                    674,
+                    678
+                ],
+                "level.get_indexer": [
+                    672
+                ],
+                "mask": [
+                    674,
+                    675,
+                    676
+                ],
+                "mask.any": [
+                    675
+                ],
+                "new_codes.append": [
+                    685,
+                    678
+                ],
+                "new_levels.extend": [
+                    681
+                ],
+                "new_index.levels": [
+                    681
+                ],
+                "new_codes.extend": [
+                    682
+                ],
+                "np.tile": [
+                    682,
+                    685
+                ],
+                "lab": [
+                    682
+                ],
+                "new_index.codes": [
+                    682
+                ],
+                "new_levels.append": [
+                    684
+                ],
+                "np.arange": [
+                    685
+                ],
+                "new_names.extend": [
+                    688
+                ],
+                "new_index.names": [
+                    688
+                ]
+            },
+            "filtered_variables_in_file": {
+                "Union": [
+                    53,
+                    68,
+                    37
+                ],
+                "Iterable": [
+                    53,
+                    68,
+                    37
+                ],
+                "Mapping": [
+                    53,
+                    68,
+                    37
+                ],
+                "Label": [
+                    540,
+                    53,
+                    68,
+                    37
+                ],
+                "overload": [
+                    51,
+                    35
+                ],
+                "FrameOrSeriesUnion": [
+                    68,
+                    53,
+                    78,
+                    63
+                ],
+                "op": [
+                    284,
+                    271
+                ],
+                "_Concatenator": [
+                    271
+                ],
+                "objs": [
+                    384,
+                    387,
+                    388,
+                    272,
+                    412,
+                    413,
+                    305,
+                    308,
+                    320,
+                    322,
+                    323,
+                    325,
+                    327,
+                    331,
+                    336,
+                    341,
+                    345,
+                    350,
+                    368,
+                    377,
+                    383
+                ],
+                "axis": [
+                    392,
+                    394,
+                    399,
+                    273,
+                    402,
+                    433,
+                    404,
+                    440
+                ],
+                "ignore_index": [
+                    274,
+                    427,
+                    447
+                ],
+                "join": [
+                    313,
+                    275,
+                    311
+                ],
+                "keys": [
+                    321,
+                    322,
+                    323,
+                    609,
+                    330,
+                    336,
+                    592,
+                    595,
+                    276,
+                    342,
+                    343,
+                    442,
+                    443,
+                    604,
+                    381
+                ],
+                "levels": [
+                    608,
+                    609,
+                    641,
+                    611,
+                    663,
+                    619,
+                    670,
+                    654,
+                    592,
+                    593,
+                    277,
+                    634,
+                    599,
+                    600,
+                    602,
+                    444,
+                    381,
+                    638
+                ],
+                "names": [
+                    641,
+                    642,
+                    605,
+                    550,
+                    553,
+                    651,
+                    556,
+                    654,
+                    596,
+                    597,
+                    278,
+                    662,
+                    443,
+                    540,
+                    381,
+                    606
+                ],
+                "verify_integrity": [
+                    448,
+                    279
+                ],
+                "copy": [
+                    280,
+                    449
+                ],
+                "sort": [
+                    281,
+                    445
+                ],
+                "op.get_result": [
+                    284
+                ],
+                "NDFrame": [
+                    305
+                ],
+                "self.intersect": [
+                    312,
+                    314,
+                    524,
+                    381
+                ],
+                "self": [
+                    513,
+                    515,
+                    388,
+                    520,
+                    522,
+                    524,
+                    397,
+                    398,
+                    525,
+                    526,
+                    401,
+                    533,
+                    534,
+                    535,
+                    536,
+                    537,
+                    539,
+                    412,
+                    540,
+                    543,
+                    568,
+                    558,
+                    560,
+                    433,
+                    562,
+                    564,
+                    437,
+                    440,
+                    312,
+                    442,
+                    441,
+                    444,
+                    314,
+                    443,
+                    447,
+                    448,
+                    449,
+                    445,
+                    451,
+                    572,
+                    575,
+                    580,
+                    456,
+                    459,
+                    460,
+                    461,
+                    463,
+                    466,
+                    467,
+                    471,
+                    474,
+                    477,
+                    482,
+                    484,
+                    486,
+                    498,
+                    500,
+                    503,
+                    504,
+                    507,
+                    381,
+                    510
+                ],
+                "abc.Mapping": [
+                    320
+                ],
+                "abc": [
+                    320
+                ],
+                "objs.keys": [
+                    322
+                ],
+                "k": [
+                    336,
+                    339,
+                    323
+                ],
+                "com.not_none": [
+                    331
+                ],
+                "com": [
+                    331,
+                    460
+                ],
+                "clean_keys": [
+                    339,
+                    334,
+                    343
+                ],
+                "clean_objs": [
+                    340,
+                    341,
+                    335
+                ],
+                "v": [
+                    336,
+                    337,
+                    340
+                ],
+                "clean_keys.append": [
+                    339
+                ],
+                "clean_objs.append": [
+                    340
+                ],
+                "name": [
+                    426,
+                    427,
+                    428,
+                    460,
+                    434,
+                    435,
+                    466,
+                    342,
+                    343
+                ],
+                "Index": [
+                    512,
+                    579,
+                    519,
+                    586,
+                    556,
+                    529,
+                    343
+                ],
+                "ndims": [
+                    360,
+                    366,
+                    367,
+                    409,
+                    349
+                ],
+                "obj": [
+                    353,
+                    482,
+                    359,
+                    360,
+                    415,
+                    426,
+                    491,
+                    495,
+                    368,
+                    369,
+                    370,
+                    435,
+                    437,
+                    377,
+                    413,
+                    350,
+                    351
+                ],
+                "Series": [
+                    391,
+                    377,
+                    544,
+                    351
+                ],
+                "DataFrame": [
+                    392,
+                    399,
+                    472,
+                    351
+                ],
+                "msg": [
+                    352,
+                    356
+                ],
+                "obj._consolidate": [
+                    359
+                ],
+                "ndims.add": [
+                    360
+                ],
+                "obj.ndim": [
+                    360,
+                    369,
+                    415
+                ],
+                "sample": [
+                    384,
+                    386,
+                    387,
+                    391,
+                    394,
+                    365,
+                    397,
+                    401,
+                    370,
+                    402,
+                    404,
+                    435,
+                    411
+                ],
+                "max_ndim": [
+                    416,
+                    419,
+                    367,
+                    369,
+                    411
+                ],
+                "np.sum": [
+                    369
+                ],
+                "np": [
+                    678,
+                    682,
+                    685,
+                    369,
+                    627,
+                    628
+                ],
+                "obj.shape": [
+                    369,
+                    377
+                ],
+                "non_empties": [
+                    376,
+                    380,
+                    383
+                ],
+                "self.objs": [
+                    482,
+                    503,
+                    388,
+                    535,
+                    520,
+                    522,
+                    460,
+                    461,
+                    558,
+                    463,
+                    562,
+                    437,
+                    471,
+                    537,
+                    412,
+                    540,
+                    510,
+                    543
+                ],
+                "DataFrame._get_axis_number": [
+                    392
+                ],
+                "sample._get_axis_number": [
+                    394
+                ],
+                "self._is_frame": [
+                    433,
+                    441,
+                    397,
+                    398
+                ],
+                "ABCDataFrame": [
+                    397
+                ],
+                "DataFrame._get_block_manager_axis": [
+                    399
+                ],
+                "self._is_series": [
+                    456,
+                    401,
+                    507,
+                    533
+                ],
+                "ABCSeries": [
+                    401
+                ],
+                "sample.ndim": [
+                    402,
+                    411,
+                    404
+                ],
+                "current_column": [
+                    410,
+                    428,
+                    429
+                ],
+                "ndim": [
+                    416,
+                    513,
+                    419,
+                    516,
+                    510,
+                    415
+                ],
+                "sample._constructor": [
+                    435
+                ],
+                "self.objs.append": [
+                    437
+                ],
+                "self.bm_axis": [
+                    515,
+                    486,
+                    459,
+                    498,
+                    534,
+                    440,
+                    441,
+                    507
+                ],
+                "self.axis": [
+                    441,
+                    562
+                ],
+                "self.keys": [
+                    560,
+                    568,
+                    442,
+                    539,
+                    572
+                ],
+                "self.names": [
+                    560,
+                    443,
+                    572
+                ],
+                "self.levels": [
+                    444,
+                    572
+                ],
+                "self.sort": [
+                    525,
+                    445
+                ],
+                "self.ignore_index": [
+                    536,
+                    564,
+                    447
+                ],
+                "self.verify_integrity": [
+                    448,
+                    580
+                ],
+                "self.copy": [
+                    449,
+                    498,
+                    500,
+                    526
+                ],
+                "self.new_axes": [
+                    451,
+                    484,
+                    498,
+                    466,
+                    474
+                ],
+                "self._get_new_axes": [
+                    451
+                ],
+                "com.consensus_name_attr": [
+                    460
+                ],
+                "cons": [
+                    504,
+                    461,
+                    466,
+                    503,
+                    472,
+                    475
+                ],
+                "_constructor": [
+                    461,
+                    503
+                ],
+                "arrs": [
+                    465,
+                    463
+                ],
+                "ser._values": [
+                    463
+                ],
+                "ser": [
+                    463
+                ],
+                "res": [
+                    465,
+                    466
+                ],
+                "concat_compat": [
+                    465
+                ],
+                "result": [
+                    466,
+                    467
+                ],
+                "res.dtype": [
+                    466
+                ],
+                "result.__finalize__": [
+                    467
+                ],
+                "data": [
+                    475,
+                    471
+                ],
+                "index": [
+                    627,
+                    474,
+                    475,
+                    621
+                ],
+                "columns": [
+                    474,
+                    476
+                ],
+                "df": [
+                    475,
+                    476,
+                    477
+                ],
+                "df.columns": [
+                    476
+                ],
+                "df.__finalize__": [
+                    477
+                ],
+                "mgrs_indexers": [
+                    481,
+                    498,
+                    495
+                ],
+                "indexers": [
+                    483,
+                    493,
+                    495
+                ],
+                "ax": [
+                    491,
+                    484,
+                    493,
+                    486
+                ],
+                "new_labels": [
+                    493,
+                    484,
+                    492
+                ],
+                "obj_labels": [
+                    491,
+                    492,
+                    493
+                ],
+                "obj.axes": [
+                    491
+                ],
+                "new_labels.equals": [
+                    492
+                ],
+                "obj_labels.reindex": [
+                    493
+                ],
+                "mgrs_indexers.append": [
+                    495
+                ],
+                "obj._mgr": [
+                    495
+                ],
+                "new_data": [
+                    504,
+                    497,
+                    501
+                ],
+                "concatenate_block_managers": [
+                    497
+                ],
+                "new_data._consolidate_inplace": [
+                    501
+                ],
+                "__finalize__": [
+                    504
+                ],
+                "self._get_result_dim": [
+                    513
+                ],
+                "i": [
+                    515,
+                    516,
+                    550,
+                    520,
+                    553,
+                    623,
+                    627,
+                    565,
+                    543
+                ],
+                "self._get_concat_axis": [
+                    515
+                ],
+                "self._get_comb_axis": [
+                    515
+                ],
+                "List": [
+                    512,
+                    540
+                ],
+                "data_axis": [
+                    520,
+                    523
+                ],
+                "_get_block_manager_axis": [
+                    520
+                ],
+                "get_objs_combined_axis": [
+                    521
+                ],
+                "indexes": [
+                    613,
+                    645,
+                    587,
+                    651,
+                    621,
+                    657,
+                    562,
+                    659,
+                    565,
+                    630,
+                    535,
+                    569,
+                    572
+                ],
+                "x.index": [
+                    535
+                ],
+                "x": [
+                    544,
+                    547,
+                    611,
+                    549,
+                    550,
+                    562,
+                    535,
+                    602,
+                    543
+                ],
+                "idx": [
+                    645,
+                    565,
+                    566,
+                    537,
+                    538
+                ],
+                "ibase.default_index": [
+                    537,
+                    565,
+                    558
+                ],
+                "ibase": [
+                    537,
+                    565,
+                    558
+                ],
+                "num": [
+                    553,
+                    554,
+                    541
+                ],
+                "has_names": [
+                    555,
+                    542,
+                    551
+                ],
+                "x.name": [
+                    549,
+                    550
+                ],
+                "set_names": [
+                    560
+                ],
+                "ensure_index": [
+                    609,
+                    611,
+                    560,
+                    602,
+                    671
+                ],
+                "x.axes": [
+                    562
+                ],
+                "concat_axis": [
+                    577,
+                    569,
+                    571,
+                    575
+                ],
+                "_concat_indexes": [
+                    569,
+                    630
+                ],
+                "_make_concat_multiindex": [
+                    571
+                ],
+                "self._maybe_check_integrity": [
+                    575
+                ],
+                "concat_index.is_unique": [
+                    581
+                ],
+                "concat_index": [
+                    581,
+                    582,
+                    630,
+                    633,
+                    634,
+                    635,
+                    637
+                ],
+                "overlap": [
+                    582,
+                    583
+                ],
+                "unique": [
+                    582
+                ],
+                "concat_index.duplicated": [
+                    582
+                ],
+                "append": [
+                    587
+                ],
+                "zipped": [
+                    619,
+                    595,
+                    597,
+                    600,
+                    604,
+                    670
+                ],
+                "_": [
+                    600
+                ],
+                "factorize_from_iterables": [
+                    600
+                ],
+                "all_indexes_same": [
+                    613
+                ],
+                "codes_list": [
+                    614,
+                    654,
+                    628,
+                    635,
+                    639
+                ],
+                "hlevel": [
+                    672,
+                    676,
+                    619,
+                    621,
+                    670,
+                    671
+                ],
+                "level": [
+                    672,
+                    619,
+                    623,
+                    625,
+                    670
+                ],
+                "to_concat": [
+                    628,
+                    627,
+                    620
+                ],
+                "key": [
+                    625,
+                    621,
+                    623
+                ],
+                "level.get_loc": [
+                    623
+                ],
+                "err": [
+                    625
+                ],
+                "to_concat.append": [
+                    627
+                ],
+                "np.repeat": [
+                    627,
+                    678
+                ],
+                "codes_list.append": [
+                    628,
+                    639
+                ],
+                "np.concatenate": [
+                    628
+                ],
+                "MultiIndex": [
+                    680,
+                    653,
+                    590,
+                    690,
+                    633
+                ],
+                "levels.extend": [
+                    634
+                ],
+                "concat_index.levels": [
+                    634
+                ],
+                "codes_list.extend": [
+                    635
+                ],
+                "concat_index.codes": [
+                    635
+                ],
+                "codes": [
+                    637,
+                    639
+                ],
+                "categories": [
+                    637,
+                    638
+                ],
+                "factorize_from_iterable": [
+                    637
+                ],
+                "levels.append": [
+                    638
+                ],
+                "idx.nlevels": [
+                    645
+                ],
+                "get_consensus_names": [
+                    651
+                ],
+                "new_index": [
+                    680,
+                    681,
+                    682,
+                    684,
+                    688,
+                    657,
+                    658
+                ],
+                "n": [
+                    658,
+                    685,
+                    678
+                ],
+                "kpieces": [
+                    682,
+                    659,
+                    685
+                ],
+                "new_names": [
+                    688,
+                    691,
+                    662,
+                    687
+                ],
+                "new_levels": [
+                    681,
+                    684,
+                    687,
+                    691,
+                    663
+                ],
+                "new_codes": [
+                    678,
+                    682,
+                    685,
+                    691,
+                    666
+                ],
+                "mapped": [
+                    672,
+                    674,
+                    678
+                ],
+                "level.get_indexer": [
+                    672
+                ],
+                "mask": [
+                    674,
+                    675,
+                    676
+                ],
+                "mask.any": [
+                    675
+                ],
+                "new_codes.append": [
+                    685,
+                    678
+                ],
+                "new_levels.extend": [
+                    681
+                ],
+                "new_index.levels": [
+                    681
+                ],
+                "new_codes.extend": [
+                    682
+                ],
+                "np.tile": [
+                    682,
+                    685
+                ],
+                "lab": [
+                    682
+                ],
+                "new_index.codes": [
+                    682
+                ],
+                "new_levels.append": [
+                    684
+                ],
+                "np.arange": [
+                    685
+                ],
+                "new_names.extend": [
+                    688
+                ],
+                "new_index.names": [
+                    688
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_11/pandas/tests/reshape/test_concat.py",
+                "test_function": "test_duplicate_keys",
+                "test_function_code": "@pytest.mark.parametrize(\"keys\", [[\"e\", \"f\", \"f\"], [\"f\", \"e\", \"f\"]])\ndef test_duplicate_keys(keys):\n    # GH 33654\n    df = DataFrame({\"a\": [1, 2, 3], \"b\": [4, 5, 6]})\n    s1 = Series([7, 8, 9], name=\"c\")\n    s2 = Series([10, 11, 12], name=\"d\")\n    result = concat([df, s1, s2], axis=1, keys=keys)\n    expected_values = [[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]]\n    expected_columns = pd.MultiIndex.from_tuples(\n        [(keys[0], \"a\"), (keys[0], \"b\"), (keys[1], \"c\"), (keys[2], \"d\")]\n    )\n    expected = DataFrame(expected_values, columns=expected_columns)\n    tm.assert_frame_equal(result, expected)",
+                "test_error": "TypeError: int() argument must be a string, a bytes-like object or a number, not 'slice'",
+                "full_test_error": "keys = ['e', 'f', 'f']\n\n    @pytest.mark.parametrize(\"keys\", [[\"e\", \"f\", \"f\"], [\"f\", \"e\", \"f\"]])\n    def test_duplicate_keys(keys):\n        # GH 33654\n        df = DataFrame({\"a\": [1, 2, 3], \"b\": [4, 5, 6]})\n        s1 = Series([7, 8, 9], name=\"c\")\n        s2 = Series([10, 11, 12], name=\"d\")\n>       result = concat([df, s1, s2], axis=1, keys=keys)\n\npandas/tests/reshape/test_concat.py:2813: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/concat.py:271: in concat\n    op = _Concatenator(\npandas/core/reshape/concat.py:451: in __init__\n    self.new_axes = self._get_new_axes()\npandas/core/reshape/concat.py:514: in _get_new_axes\n    return [\npandas/core/reshape/concat.py:515: in <listcomp>\n    self._get_concat_axis() if i == self.bm_axis else self._get_comb_axis(i)\npandas/core/reshape/concat.py:571: in _get_concat_axis\n    concat_axis = _make_concat_multiindex(\npandas/core/reshape/concat.py:653: in _make_concat_multiindex\n    return MultiIndex(\npandas/core/indexes/multi.py:283: in __new__\n    result._set_codes(codes, copy=copy, validate=False)\npandas/core/indexes/multi.py:884: in _set_codes\n    new_codes = FrozenList(\npandas/core/indexes/multi.py:885: in <genexpr>\n    _coerce_indexer_frozen(level_codes, lev, copy=copy).view()\npandas/core/indexes/multi.py:3686: in _coerce_indexer_frozen\n    array_like = coerce_indexer_dtype(array_like, categories)\npandas/core/dtypes/cast.py:845: in coerce_indexer_dtype\n    return ensure_int8(indexer)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   return arr.astype(np.int8, copy=copy)\nE   TypeError: int() argument must be a string, a bytes-like object or a number, not 'slice'\n\npandas/_libs/algos_common_helper.pxi:61: TypeError",
+                "traceback": "pandas/core/reshape/concat.py:271: in concat\n    op = _Concatenator(\npandas/core/reshape/concat.py:451: in __init__\n    self.new_axes = self._get_new_axes()\npandas/core/reshape/concat.py:514: in _get_new_axes\n    return [\npandas/core/reshape/concat.py:515: in <listcomp>\n    self._get_concat_axis() if i == self.bm_axis else self._get_comb_axis(i)\npandas/core/reshape/concat.py:571: in _get_concat_axis\n    concat_axis = _make_concat_multiindex(\npandas/core/reshape/concat.py:653: in _make_concat_multiindex\n    return MultiIndex(\npandas/core/indexes/multi.py:283: in __new__\n    result._set_codes(codes, copy=copy, validate=False)\npandas/core/indexes/multi.py:884: in _set_codes\n    new_codes = FrozenList(\npandas/core/indexes/multi.py:885: in <genexpr>\n    _coerce_indexer_frozen(level_codes, lev, copy=copy).view()\npandas/core/indexes/multi.py:3686: in _coerce_indexer_frozen\n    array_like = coerce_indexer_dtype(array_like, categories)\npandas/core/dtypes/cast.py:845: in coerce_indexer_dtype\n    return ensure_int8(indexer)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   return arr.astype(np.int8, copy=copy)\nE   TypeError: int() argument must be a string, a bytes-like object or a number, not 'slice'\n\npandas/_libs/algos_common_helper.pxi:61: TypeError",
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('keys', [['e', 'f', 'f'], ['f', 'e', 'f']])"
+                ]
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_11/pandas/tests/reshape/test_concat.py",
+                "test_function": "test_duplicate_keys",
+                "test_function_code": "@pytest.mark.parametrize(\"keys\", [[\"e\", \"f\", \"f\"], [\"f\", \"e\", \"f\"]])\ndef test_duplicate_keys(keys):\n    # GH 33654\n    df = DataFrame({\"a\": [1, 2, 3], \"b\": [4, 5, 6]})\n    s1 = Series([7, 8, 9], name=\"c\")\n    s2 = Series([10, 11, 12], name=\"d\")\n    result = concat([df, s1, s2], axis=1, keys=keys)\n    expected_values = [[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]]\n    expected_columns = pd.MultiIndex.from_tuples(\n        [(keys[0], \"a\"), (keys[0], \"b\"), (keys[1], \"c\"), (keys[2], \"d\")]\n    )\n    expected = DataFrame(expected_values, columns=expected_columns)\n    tm.assert_frame_equal(result, expected)",
+                "test_error": "AssertionError: Number of manager items must equal union of block items # manager items: 10, # tot_items: 4",
+                "full_test_error": "keys = ['f', 'e', 'f']\n\n    @pytest.mark.parametrize(\"keys\", [[\"e\", \"f\", \"f\"], [\"f\", \"e\", \"f\"]])\n    def test_duplicate_keys(keys):\n        # GH 33654\n        df = DataFrame({\"a\": [1, 2, 3], \"b\": [4, 5, 6]})\n        s1 = Series([7, 8, 9], name=\"c\")\n        s2 = Series([10, 11, 12], name=\"d\")\n>       result = concat([df, s1, s2], axis=1, keys=keys)\n\npandas/tests/reshape/test_concat.py:2813: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/concat.py:284: in concat\n    return op.get_result()\npandas/core/reshape/concat.py:497: in get_result\n    new_data = concatenate_block_managers(\npandas/core/internals/concat.py:84: in concatenate_block_managers\n    return BlockManager(blocks, axes)\npandas/core/internals/managers.py:136: in __init__\n    self._verify_integrity()\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <[ValueError('all arrays must be same length') raised in repr()] BlockManager object at 0x115b8c6a0>\n\n    def _verify_integrity(self) -> None:\n        mgr_shape = self.shape\n        tot_items = sum(len(x.mgr_locs) for x in self.blocks)\n        for block in self.blocks:\n            if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:\n                raise construction_error(tot_items, block.shape[1:], self.axes)\n        if len(self.items) != tot_items:\n>           raise AssertionError(\n                \"Number of manager items must equal union of \"\n                f\"block items\\n# manager items: {len(self.items)}, # \"\n                f\"tot_items: {tot_items}\"\n            )\nE           AssertionError: Number of manager items must equal union of block items\nE           # manager items: 10, # tot_items: 4\n\npandas/core/internals/managers.py:323: AssertionError",
+                "traceback": "pandas/core/reshape/concat.py:284: in concat\n    return op.get_result()\npandas/core/reshape/concat.py:497: in get_result\n    new_data = concatenate_block_managers(\npandas/core/internals/concat.py:84: in concatenate_block_managers\n    return BlockManager(blocks, axes)\npandas/core/internals/managers.py:136: in __init__\n    self._verify_integrity()",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <[ValueError('all arrays must be same length') raised in repr()] BlockManager object at 0x115b8c6a0>\n\n    def _verify_integrity(self) -> None:\n        mgr_shape = self.shape\n        tot_items = sum(len(x.mgr_locs) for x in self.blocks)\n        for block in self.blocks:\n            if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:\n                raise construction_error(tot_items, block.shape[1:], self.axes)\n        if len(self.items) != tot_items:\n>           raise AssertionError(\n                \"Number of manager items must equal union of \"\n                f\"block items\\n# manager items: {len(self.items)}, # \"\n                f\"tot_items: {tot_items}\"\n            )\nE           AssertionError: Number of manager items must equal union of block items\nE           # manager items: 10, # tot_items: 4\n\npandas/core/internals/managers.py:323: AssertionError",
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('keys', [['e', 'f', 'f'], ['f', 'e', 'f']])"
+                ]
+            }
+        ]
+    }
+}

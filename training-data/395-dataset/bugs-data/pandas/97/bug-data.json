@@ -1,0 +1,3326 @@
+{
+    "pandas:97": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_97/pandas/core/indexes/timedeltas.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_union",
+                    "function_code": "def _union(self, other: \"TimedeltaIndex\", sort):\n    if len(other) == 0 or self.equals(other) or len(self) == 0:\n        return super()._union(other, sort=sort)\n\n    # We are called by `union`, which is responsible for this validation\n    assert isinstance(other, TimedeltaIndex)\n\n    this, other = self, other\n\n    if this._can_fast_union(other):\n        return this._fast_union(other)\n    else:\n        result = Index._union(this, other, sort=sort)\n        if isinstance(result, TimedeltaIndex):\n            if result.freq is None:\n                result._set_freq(\"infer\")\n        return result\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 250,
+                    "variables": {
+                        "len": [
+                            251
+                        ],
+                        "other": [
+                            257,
+                            259,
+                            260,
+                            262,
+                            251,
+                            252,
+                            255
+                        ],
+                        "self.equals": [
+                            251
+                        ],
+                        "self": [
+                            257,
+                            251
+                        ],
+                        "_union": [
+                            252
+                        ],
+                        "super": [
+                            252
+                        ],
+                        "sort": [
+                            252,
+                            262
+                        ],
+                        "isinstance": [
+                            263,
+                            255
+                        ],
+                        "TimedeltaIndex": [
+                            263,
+                            255
+                        ],
+                        "this": [
+                            257,
+                            259,
+                            260,
+                            262
+                        ],
+                        "this._can_fast_union": [
+                            259
+                        ],
+                        "this._fast_union": [
+                            260
+                        ],
+                        "result": [
+                            262,
+                            263,
+                            264,
+                            265,
+                            266
+                        ],
+                        "Index._union": [
+                            262
+                        ],
+                        "Index": [
+                            262
+                        ],
+                        "result.freq": [
+                            264
+                        ],
+                        "result._set_freq": [
+                            265
+                        ]
+                    },
+                    "filtered_variables": {
+                        "other": [
+                            257,
+                            259,
+                            260,
+                            262,
+                            251,
+                            252,
+                            255
+                        ],
+                        "self.equals": [
+                            251
+                        ],
+                        "self": [
+                            257,
+                            251
+                        ],
+                        "_union": [
+                            252
+                        ],
+                        "sort": [
+                            252,
+                            262
+                        ],
+                        "TimedeltaIndex": [
+                            263,
+                            255
+                        ],
+                        "this": [
+                            257,
+                            259,
+                            260,
+                            262
+                        ],
+                        "this._can_fast_union": [
+                            259
+                        ],
+                        "this._fast_union": [
+                            260
+                        ],
+                        "result": [
+                            262,
+                            263,
+                            264,
+                            265,
+                            266
+                        ],
+                        "Index._union": [
+                            262
+                        ],
+                        "Index": [
+                            262
+                        ],
+                        "result.freq": [
+                            264
+                        ],
+                        "result._set_freq": [
+                            265
+                        ]
+                    },
+                    "diff_line_number": 260,
+                    "class_data": {
+                        "signature": "class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin)",
+                        "docstring": "Immutable ndarray of timedelta64 data, represented internally as int64, and\nwhich can be boxed to timedelta objects.\n\nParameters\n----------\ndata  : array-like (1-dimensional), optional\n    Optional timedelta-like data to construct index with.\nunit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional\n    Which is an integer/float number.\nfreq : str or pandas offset object, optional\n    One of pandas date offset strings or corresponding objects. The string\n    'infer' can be passed in order to set the frequency of the index as the\n    inferred frequency upon creation.\ncopy  : bool\n    Make a copy of input ndarray.\nname : object\n    Name to be stored in the index.\n\nAttributes\n----------\ndays\nseconds\nmicroseconds\nnanoseconds\ncomponents\ninferred_freq\n\nMethods\n-------\nto_pytimedelta\nto_series\nround\nfloor\nceil\nto_frame\nmean\n\nSee Also\n--------\nIndex : The base pandas Index type.\nTimedelta : Represents a duration between two dates or times.\nDatetimeIndex : Index of datetime64 data.\nPeriodIndex : Index of Period data.\ntimedelta_range : Create a fixed-frequency TimedeltaIndex.\n\nNotes\n-----\nTo learn more about the frequency strings, please see `this link\n<https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __new__(cls, data=None, unit=None, freq=None, closed=None, dtype=_TD_DTYPE, copy=False, name=None):\n    name = maybe_extract_name(name, data, cls)\n    if is_scalar(data):\n        raise TypeError(f'{cls.__name__}() must be called with a collection of some kind, {repr(data)} was passed')\n    if unit in {'Y', 'y', 'M'}:\n        raise ValueError(\"Units 'M' and 'Y' are no longer supported, as they do not represent unambiguous timedelta values durations.\")\n    if isinstance(data, TimedeltaArray):\n        if copy:\n            data = data.copy()\n        return cls._simple_new(data, name=name, freq=freq)\n    if isinstance(data, TimedeltaIndex) and freq is None and (name is None):\n        if copy:\n            return data.copy()\n        else:\n            return data._shallow_copy()\n    tdarr = TimedeltaArray._from_sequence(data, freq=freq, unit=unit, dtype=dtype, copy=copy)\n    return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)",
+                            "@classmethod\ndef _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):\n    if not isinstance(values, TimedeltaArray):\n        values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)\n    elif freq is None:\n        freq = values.freq\n    assert isinstance(values, TimedeltaArray), type(values)\n    assert dtype == _TD_DTYPE, dtype\n    assert values.dtype == 'm8[ns]', values.dtype\n    tdarr = TimedeltaArray._simple_new(values._data, freq=freq)\n    result = object.__new__(cls)\n    result._data = tdarr\n    result._name = name\n    result._index_data = tdarr._data\n    result._reset_identity()\n    return result",
+                            "def __setstate__(self, state):\n    \"\"\"Necessary for making this object picklable\"\"\"\n    if isinstance(state, dict):\n        super().__setstate__(state)\n    else:\n        raise Exception('invalid pickle state')",
+                            "@property\ndef _formatter_func(self):\n    from pandas.io.formats.format import _get_format_timedelta64\n    return _get_format_timedelta64(self, box=True)",
+                            "def __getitem__(self, key):\n    result = self._data.__getitem__(key)\n    if is_scalar(result):\n        return result\n    return type(self)(result, name=self.name)",
+                            "@Appender(_index_shared_docs['astype'])\ndef astype(self, dtype, copy=True):\n    dtype = pandas_dtype(dtype)\n    if is_timedelta64_dtype(dtype) and (not is_timedelta64_ns_dtype(dtype)):\n        result = self._data.astype(dtype, copy=copy)\n        if self.hasnans:\n            return Index(result, name=self.name)\n        return Index(result.astype('i8'), name=self.name)\n    return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)",
+                            "def _union(self, other: 'TimedeltaIndex', sort):\n    if len(other) == 0 or self.equals(other) or len(self) == 0:\n        return super()._union(other, sort=sort)\n    assert isinstance(other, TimedeltaIndex)\n    this, other = (self, other)\n    if this._can_fast_union(other):\n        return this._fast_union(other)\n    else:\n        result = Index._union(this, other, sort=sort)\n        if isinstance(result, TimedeltaIndex):\n            if result.freq is None:\n                result._set_freq('infer')\n        return result",
+                            "def _fast_union(self, other):\n    if len(other) == 0:\n        return self.view(type(self))\n    if len(self) == 0:\n        return other.view(type(self))\n    if self[0] <= other[0]:\n        left, right = (self, other)\n    else:\n        left, right = (other, self)\n    left_end = left[-1]\n    right_end = right[-1]\n    if left_end < right_end:\n        loc = right.searchsorted(left_end, side='right')\n        right_chunk = right.values[loc:]\n        dates = concat_compat((left.values, right_chunk))\n        return self._shallow_copy(dates)\n    else:\n        return left",
+                            "def _maybe_promote(self, other):\n    if other.inferred_type == 'timedelta':\n        other = TimedeltaIndex(other)\n    return (self, other)",
+                            "def get_value(self, series, key):\n    \"\"\"\n    Fast lookup of value from 1-dimensional ndarray. Only use this if you\n    know what you're doing\n    \"\"\"\n    if _is_convertible_to_td(key):\n        key = Timedelta(key)\n        return self.get_value_maybe_box(series, key)\n    try:\n        value = Index.get_value(self, series, key)\n    except KeyError:\n        try:\n            loc = self._get_string_slice(key)\n            return series[loc]\n        except (TypeError, ValueError, KeyError):\n            pass\n        try:\n            return self.get_value_maybe_box(series, key)\n        except (TypeError, ValueError, KeyError):\n            raise KeyError(key)\n    else:\n        return com.maybe_box(self, value, series, key)",
+                            "def get_value_maybe_box(self, series, key: Timedelta):\n    values = self._engine.get_value(com.values_from_object(series), key)\n    return com.maybe_box(self, values, series, key)",
+                            "def get_loc(self, key, method=None, tolerance=None):\n    \"\"\"\n    Get integer location for requested label\n\n    Returns\n    -------\n    loc : int\n    \"\"\"\n    if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):\n        raise TypeError\n    if isna(key):\n        key = NaT\n    if tolerance is not None:\n        tolerance = self._convert_tolerance(tolerance, np.asarray(key))\n    if _is_convertible_to_td(key) or key is NaT:\n        key = Timedelta(key)\n        return Index.get_loc(self, key, method, tolerance)\n    try:\n        return Index.get_loc(self, key, method, tolerance)\n    except (KeyError, ValueError, TypeError):\n        try:\n            return self._get_string_slice(key)\n        except (TypeError, KeyError, ValueError):\n            pass\n        try:\n            stamp = Timedelta(key)\n            return Index.get_loc(self, stamp, method, tolerance)\n        except (KeyError, ValueError):\n            raise KeyError(key)",
+                            "def _maybe_cast_slice_bound(self, label, side, kind):\n    \"\"\"\n    If label is a string, cast it to timedelta according to resolution.\n\n    Parameters\n    ----------\n    label : object\n    side : {'left', 'right'}\n    kind : {'ix', 'loc', 'getitem'}\n\n    Returns\n    -------\n    label : object\n    \"\"\"\n    assert kind in ['ix', 'loc', 'getitem', None]\n    if isinstance(label, str):\n        parsed = Timedelta(label)\n        lbound = parsed.round(parsed.resolution_string)\n        if side == 'left':\n            return lbound\n        else:\n            return lbound + to_offset(parsed.resolution_string) - Timedelta(1, 'ns')\n    elif is_integer(label) or is_float(label):\n        self._invalid_indexer('slice', label)\n    return label",
+                            "def _get_string_slice(self, key):\n    if is_integer(key) or is_float(key) or key is NaT:\n        self._invalid_indexer('slice', key)\n    loc = self._partial_td_slice(key)\n    return loc",
+                            "def _partial_td_slice(self, key):\n    if not isinstance(key, str):\n        return key\n    raise NotImplementedError",
+                            "@Substitution(klass='TimedeltaIndex')\n@Appender(_shared_docs['searchsorted'])\ndef searchsorted(self, value, side='left', sorter=None):\n    if isinstance(value, (np.ndarray, Index)):\n        value = np.array(value, dtype=_TD_DTYPE, copy=False)\n    else:\n        value = Timedelta(value).asm8.view(_TD_DTYPE)\n    return self.values.searchsorted(value, side=side, sorter=sorter)",
+                            "def is_type_compatible(self, typ) -> bool:\n    return typ == self.inferred_type or typ == 'timedelta'",
+                            "@property\ndef inferred_type(self) -> str:\n    return 'timedelta64'",
+                            "def insert(self, loc, item):\n    \"\"\"\n    Make new Index inserting new item at location\n\n    Parameters\n    ----------\n    loc : int\n    item : object\n        If not either a Python datetime or a numpy integer-like, returned\n        Index dtype will be object rather than datetime.\n\n    Returns\n    -------\n    new_index : Index\n    \"\"\"\n    if _is_convertible_to_td(item):\n        try:\n            item = Timedelta(item)\n        except ValueError:\n            pass\n    elif is_scalar(item) and isna(item):\n        item = self._na_value\n    freq = None\n    if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):\n        if self.freq is not None:\n            if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:\n                freq = self.freq\n            elif loc == len(self) and item - self.freq == self[-1]:\n                freq = self.freq\n        item = Timedelta(item).asm8.view(_TD_DTYPE)\n    try:\n        new_tds = np.concatenate((self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8))\n        return self._shallow_copy(new_tds, freq=freq)\n    except (AttributeError, TypeError):\n        if isinstance(item, str):\n            return self.astype(object).insert(loc, item)\n        raise TypeError('cannot insert TimedeltaIndex with incompatible label')"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_typ",
+                            "_engine_type",
+                            "_comparables",
+                            "_attributes",
+                            "_is_numeric_dtype",
+                            "_infer_as_myclass",
+                            "_unpickle_compat"
+                        ],
+                        "class_decorators": [
+                            "inherit_names(['_bool_ops', '_object_ops', '_field_ops', '_datetimelike_ops', '_datetimelike_methods', '_other_ops'], TimedeltaArray)",
+                            "delegate_names(TimedeltaArray, TimedeltaDelegateMixin._delegated_properties, typ='property')",
+                            "delegate_names(TimedeltaArray, TimedeltaDelegateMixin._delegated_methods, typ='method', overwrite=True)"
+                        ],
+                        "function_signatures": [
+                            "__new__(cls, data=None, unit=None, freq=None, closed=None, dtype=_TD_DTYPE, copy=False, name=None)",
+                            "_simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE)",
+                            "__setstate__(self, state)",
+                            "_formatter_func(self)",
+                            "__getitem__(self, key)",
+                            "astype(self, dtype, copy=True)",
+                            "_union(self, other: 'TimedeltaIndex', sort)",
+                            "_fast_union(self, other)",
+                            "_maybe_promote(self, other)",
+                            "get_value(self, series, key)",
+                            "get_value_maybe_box(self, series, key: Timedelta)",
+                            "get_loc(self, key, method=None, tolerance=None)",
+                            "_maybe_cast_slice_bound(self, label, side, kind)",
+                            "_get_string_slice(self, key)",
+                            "_partial_td_slice(self, key)",
+                            "searchsorted(self, value, side='left', sorter=None)",
+                            "is_type_compatible(self, typ) -> bool",
+                            "inferred_type(self) -> str",
+                            "insert(self, loc, item)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": "<bound method DatetimeTimedeltaMixin._can_fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": "<bound method TimedeltaIndex._fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": "<bound method DatetimeTimedeltaMixin._can_fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": "<bound method TimedeltaIndex._fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": "<bound method DatetimeTimedeltaMixin._can_fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": "<bound method TimedeltaIndex._fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.equals": {
+                                    "variable_value": "<bound method DatetimeIndexOpsMixin.equals of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "_union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "TimedeltaIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "this": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "this._can_fast_union": {
+                                    "variable_value": "<bound method DatetimeTimedeltaMixin._can_fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "this._fast_union": {
+                                    "variable_value": "<bound method TimedeltaIndex._fast_union of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index._union": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result._set_freq": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "_fast_union",
+                    "function_code": "def _fast_union(self, other):\n    if len(other) == 0:\n        return self.view(type(self))\n\n    if len(self) == 0:\n        return other.view(type(self))\n\n    # to make our life easier, \"sort\" the two ranges\n    if self[0] <= other[0]:\n        left, right = self, other\n    else:\n        left, right = other, self\n\n    left_end = left[-1]\n    right_end = right[-1]\n\n    # concatenate\n    if left_end < right_end:\n        loc = right.searchsorted(left_end, side=\"right\")\n        right_chunk = right.values[loc:]\n        dates = concat_compat((left.values, right_chunk))\n        return self._shallow_copy(dates)\n    else:\n        return left\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 268,
+                    "variables": {
+                        "len": [
+                            272,
+                            269
+                        ],
+                        "other": [
+                            269,
+                            273,
+                            276,
+                            277,
+                            279
+                        ],
+                        "self.view": [
+                            270
+                        ],
+                        "self": [
+                            289,
+                            270,
+                            272,
+                            273,
+                            276,
+                            277,
+                            279
+                        ],
+                        "type": [
+                            273,
+                            270
+                        ],
+                        "other.view": [
+                            273
+                        ],
+                        "left": [
+                            288,
+                            291,
+                            277,
+                            279,
+                            281
+                        ],
+                        "right": [
+                            277,
+                            279,
+                            282,
+                            286,
+                            287
+                        ],
+                        "left_end": [
+                            281,
+                            285,
+                            286
+                        ],
+                        "right_end": [
+                            282,
+                            285
+                        ],
+                        "loc": [
+                            286,
+                            287
+                        ],
+                        "right.searchsorted": [
+                            286
+                        ],
+                        "right_chunk": [
+                            288,
+                            287
+                        ],
+                        "right.values": [
+                            287
+                        ],
+                        "dates": [
+                            288,
+                            289
+                        ],
+                        "concat_compat": [
+                            288
+                        ],
+                        "left.values": [
+                            288
+                        ],
+                        "self._shallow_copy": [
+                            289
+                        ]
+                    },
+                    "filtered_variables": {
+                        "other": [
+                            269,
+                            273,
+                            276,
+                            277,
+                            279
+                        ],
+                        "self.view": [
+                            270
+                        ],
+                        "self": [
+                            289,
+                            270,
+                            272,
+                            273,
+                            276,
+                            277,
+                            279
+                        ],
+                        "other.view": [
+                            273
+                        ],
+                        "left": [
+                            288,
+                            291,
+                            277,
+                            279,
+                            281
+                        ],
+                        "right": [
+                            277,
+                            279,
+                            282,
+                            286,
+                            287
+                        ],
+                        "left_end": [
+                            281,
+                            285,
+                            286
+                        ],
+                        "right_end": [
+                            282,
+                            285
+                        ],
+                        "loc": [
+                            286,
+                            287
+                        ],
+                        "right.searchsorted": [
+                            286
+                        ],
+                        "right_chunk": [
+                            288,
+                            287
+                        ],
+                        "right.values": [
+                            287
+                        ],
+                        "dates": [
+                            288,
+                            289
+                        ],
+                        "concat_compat": [
+                            288
+                        ],
+                        "left.values": [
+                            288
+                        ],
+                        "self._shallow_copy": [
+                            289
+                        ]
+                    },
+                    "diff_line_number": 268,
+                    "class_data": {
+                        "signature": "class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin)",
+                        "docstring": "Immutable ndarray of timedelta64 data, represented internally as int64, and\nwhich can be boxed to timedelta objects.\n\nParameters\n----------\ndata  : array-like (1-dimensional), optional\n    Optional timedelta-like data to construct index with.\nunit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional\n    Which is an integer/float number.\nfreq : str or pandas offset object, optional\n    One of pandas date offset strings or corresponding objects. The string\n    'infer' can be passed in order to set the frequency of the index as the\n    inferred frequency upon creation.\ncopy  : bool\n    Make a copy of input ndarray.\nname : object\n    Name to be stored in the index.\n\nAttributes\n----------\ndays\nseconds\nmicroseconds\nnanoseconds\ncomponents\ninferred_freq\n\nMethods\n-------\nto_pytimedelta\nto_series\nround\nfloor\nceil\nto_frame\nmean\n\nSee Also\n--------\nIndex : The base pandas Index type.\nTimedelta : Represents a duration between two dates or times.\nDatetimeIndex : Index of datetime64 data.\nPeriodIndex : Index of Period data.\ntimedelta_range : Create a fixed-frequency TimedeltaIndex.\n\nNotes\n-----\nTo learn more about the frequency strings, please see `this link\n<https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __new__(cls, data=None, unit=None, freq=None, closed=None, dtype=_TD_DTYPE, copy=False, name=None):\n    name = maybe_extract_name(name, data, cls)\n    if is_scalar(data):\n        raise TypeError(f'{cls.__name__}() must be called with a collection of some kind, {repr(data)} was passed')\n    if unit in {'Y', 'y', 'M'}:\n        raise ValueError(\"Units 'M' and 'Y' are no longer supported, as they do not represent unambiguous timedelta values durations.\")\n    if isinstance(data, TimedeltaArray):\n        if copy:\n            data = data.copy()\n        return cls._simple_new(data, name=name, freq=freq)\n    if isinstance(data, TimedeltaIndex) and freq is None and (name is None):\n        if copy:\n            return data.copy()\n        else:\n            return data._shallow_copy()\n    tdarr = TimedeltaArray._from_sequence(data, freq=freq, unit=unit, dtype=dtype, copy=copy)\n    return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)",
+                            "@classmethod\ndef _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):\n    if not isinstance(values, TimedeltaArray):\n        values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)\n    elif freq is None:\n        freq = values.freq\n    assert isinstance(values, TimedeltaArray), type(values)\n    assert dtype == _TD_DTYPE, dtype\n    assert values.dtype == 'm8[ns]', values.dtype\n    tdarr = TimedeltaArray._simple_new(values._data, freq=freq)\n    result = object.__new__(cls)\n    result._data = tdarr\n    result._name = name\n    result._index_data = tdarr._data\n    result._reset_identity()\n    return result",
+                            "def __setstate__(self, state):\n    \"\"\"Necessary for making this object picklable\"\"\"\n    if isinstance(state, dict):\n        super().__setstate__(state)\n    else:\n        raise Exception('invalid pickle state')",
+                            "@property\ndef _formatter_func(self):\n    from pandas.io.formats.format import _get_format_timedelta64\n    return _get_format_timedelta64(self, box=True)",
+                            "def __getitem__(self, key):\n    result = self._data.__getitem__(key)\n    if is_scalar(result):\n        return result\n    return type(self)(result, name=self.name)",
+                            "@Appender(_index_shared_docs['astype'])\ndef astype(self, dtype, copy=True):\n    dtype = pandas_dtype(dtype)\n    if is_timedelta64_dtype(dtype) and (not is_timedelta64_ns_dtype(dtype)):\n        result = self._data.astype(dtype, copy=copy)\n        if self.hasnans:\n            return Index(result, name=self.name)\n        return Index(result.astype('i8'), name=self.name)\n    return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)",
+                            "def _union(self, other: 'TimedeltaIndex', sort):\n    if len(other) == 0 or self.equals(other) or len(self) == 0:\n        return super()._union(other, sort=sort)\n    assert isinstance(other, TimedeltaIndex)\n    this, other = (self, other)\n    if this._can_fast_union(other):\n        return this._fast_union(other)\n    else:\n        result = Index._union(this, other, sort=sort)\n        if isinstance(result, TimedeltaIndex):\n            if result.freq is None:\n                result._set_freq('infer')\n        return result",
+                            "def _fast_union(self, other):\n    if len(other) == 0:\n        return self.view(type(self))\n    if len(self) == 0:\n        return other.view(type(self))\n    if self[0] <= other[0]:\n        left, right = (self, other)\n    else:\n        left, right = (other, self)\n    left_end = left[-1]\n    right_end = right[-1]\n    if left_end < right_end:\n        loc = right.searchsorted(left_end, side='right')\n        right_chunk = right.values[loc:]\n        dates = concat_compat((left.values, right_chunk))\n        return self._shallow_copy(dates)\n    else:\n        return left",
+                            "def _maybe_promote(self, other):\n    if other.inferred_type == 'timedelta':\n        other = TimedeltaIndex(other)\n    return (self, other)",
+                            "def get_value(self, series, key):\n    \"\"\"\n    Fast lookup of value from 1-dimensional ndarray. Only use this if you\n    know what you're doing\n    \"\"\"\n    if _is_convertible_to_td(key):\n        key = Timedelta(key)\n        return self.get_value_maybe_box(series, key)\n    try:\n        value = Index.get_value(self, series, key)\n    except KeyError:\n        try:\n            loc = self._get_string_slice(key)\n            return series[loc]\n        except (TypeError, ValueError, KeyError):\n            pass\n        try:\n            return self.get_value_maybe_box(series, key)\n        except (TypeError, ValueError, KeyError):\n            raise KeyError(key)\n    else:\n        return com.maybe_box(self, value, series, key)",
+                            "def get_value_maybe_box(self, series, key: Timedelta):\n    values = self._engine.get_value(com.values_from_object(series), key)\n    return com.maybe_box(self, values, series, key)",
+                            "def get_loc(self, key, method=None, tolerance=None):\n    \"\"\"\n    Get integer location for requested label\n\n    Returns\n    -------\n    loc : int\n    \"\"\"\n    if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):\n        raise TypeError\n    if isna(key):\n        key = NaT\n    if tolerance is not None:\n        tolerance = self._convert_tolerance(tolerance, np.asarray(key))\n    if _is_convertible_to_td(key) or key is NaT:\n        key = Timedelta(key)\n        return Index.get_loc(self, key, method, tolerance)\n    try:\n        return Index.get_loc(self, key, method, tolerance)\n    except (KeyError, ValueError, TypeError):\n        try:\n            return self._get_string_slice(key)\n        except (TypeError, KeyError, ValueError):\n            pass\n        try:\n            stamp = Timedelta(key)\n            return Index.get_loc(self, stamp, method, tolerance)\n        except (KeyError, ValueError):\n            raise KeyError(key)",
+                            "def _maybe_cast_slice_bound(self, label, side, kind):\n    \"\"\"\n    If label is a string, cast it to timedelta according to resolution.\n\n    Parameters\n    ----------\n    label : object\n    side : {'left', 'right'}\n    kind : {'ix', 'loc', 'getitem'}\n\n    Returns\n    -------\n    label : object\n    \"\"\"\n    assert kind in ['ix', 'loc', 'getitem', None]\n    if isinstance(label, str):\n        parsed = Timedelta(label)\n        lbound = parsed.round(parsed.resolution_string)\n        if side == 'left':\n            return lbound\n        else:\n            return lbound + to_offset(parsed.resolution_string) - Timedelta(1, 'ns')\n    elif is_integer(label) or is_float(label):\n        self._invalid_indexer('slice', label)\n    return label",
+                            "def _get_string_slice(self, key):\n    if is_integer(key) or is_float(key) or key is NaT:\n        self._invalid_indexer('slice', key)\n    loc = self._partial_td_slice(key)\n    return loc",
+                            "def _partial_td_slice(self, key):\n    if not isinstance(key, str):\n        return key\n    raise NotImplementedError",
+                            "@Substitution(klass='TimedeltaIndex')\n@Appender(_shared_docs['searchsorted'])\ndef searchsorted(self, value, side='left', sorter=None):\n    if isinstance(value, (np.ndarray, Index)):\n        value = np.array(value, dtype=_TD_DTYPE, copy=False)\n    else:\n        value = Timedelta(value).asm8.view(_TD_DTYPE)\n    return self.values.searchsorted(value, side=side, sorter=sorter)",
+                            "def is_type_compatible(self, typ) -> bool:\n    return typ == self.inferred_type or typ == 'timedelta'",
+                            "@property\ndef inferred_type(self) -> str:\n    return 'timedelta64'",
+                            "def insert(self, loc, item):\n    \"\"\"\n    Make new Index inserting new item at location\n\n    Parameters\n    ----------\n    loc : int\n    item : object\n        If not either a Python datetime or a numpy integer-like, returned\n        Index dtype will be object rather than datetime.\n\n    Returns\n    -------\n    new_index : Index\n    \"\"\"\n    if _is_convertible_to_td(item):\n        try:\n            item = Timedelta(item)\n        except ValueError:\n            pass\n    elif is_scalar(item) and isna(item):\n        item = self._na_value\n    freq = None\n    if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):\n        if self.freq is not None:\n            if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:\n                freq = self.freq\n            elif loc == len(self) and item - self.freq == self[-1]:\n                freq = self.freq\n        item = Timedelta(item).asm8.view(_TD_DTYPE)\n    try:\n        new_tds = np.concatenate((self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8))\n        return self._shallow_copy(new_tds, freq=freq)\n    except (AttributeError, TypeError):\n        if isinstance(item, str):\n            return self.astype(object).insert(loc, item)\n        raise TypeError('cannot insert TimedeltaIndex with incompatible label')"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_typ",
+                            "_engine_type",
+                            "_comparables",
+                            "_attributes",
+                            "_is_numeric_dtype",
+                            "_infer_as_myclass",
+                            "_unpickle_compat"
+                        ],
+                        "class_decorators": [
+                            "inherit_names(['_bool_ops', '_object_ops', '_field_ops', '_datetimelike_ops', '_datetimelike_methods', '_other_ops'], TimedeltaArray)",
+                            "delegate_names(TimedeltaArray, TimedeltaDelegateMixin._delegated_properties, typ='property')",
+                            "delegate_names(TimedeltaArray, TimedeltaDelegateMixin._delegated_methods, typ='method', overwrite=True)"
+                        ],
+                        "function_signatures": [
+                            "__new__(cls, data=None, unit=None, freq=None, closed=None, dtype=_TD_DTYPE, copy=False, name=None)",
+                            "_simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE)",
+                            "__setstate__(self, state)",
+                            "_formatter_func(self)",
+                            "__getitem__(self, key)",
+                            "astype(self, dtype, copy=True)",
+                            "_union(self, other: 'TimedeltaIndex', sort)",
+                            "_fast_union(self, other)",
+                            "_maybe_promote(self, other)",
+                            "get_value(self, series, key)",
+                            "get_value_maybe_box(self, series, key: Timedelta)",
+                            "get_loc(self, key, method=None, tolerance=None)",
+                            "_maybe_cast_slice_bound(self, label, side, kind)",
+                            "_get_string_slice(self, key)",
+                            "_partial_td_slice(self, key)",
+                            "searchsorted(self, value, side='left', sorter=None)",
+                            "is_type_compatible(self, typ) -> bool",
+                            "inferred_type(self) -> str",
+                            "insert(self, loc, item)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "other.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left_end": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right_end": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "loc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right.searchsorted": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right_chunk": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dates": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat_compat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._shallow_copy": {
+                                    "variable_value": "<bound method NumericIndex._shallow_copy of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "other.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "right": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "left_end": {
+                                    "variable_value": "Timedelta('3 days 00:00:00')",
+                                    "variable_type": "Timedelta",
+                                    "variable_shape": null
+                                },
+                                "right_end": {
+                                    "variable_value": "Timedelta('5 days 00:00:00')",
+                                    "variable_type": "Timedelta",
+                                    "variable_shape": null
+                                },
+                                "loc": {
+                                    "variable_value": "0",
+                                    "variable_type": "int64",
+                                    "variable_shape": "()"
+                                },
+                                "right.searchsorted": {
+                                    "variable_value": "<bound method TimedeltaIndex.searchsorted of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "right_chunk": {
+                                    "variable_value": "array([345600000000000, 432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "2"
+                                },
+                                "right.values": {
+                                    "variable_value": "array([345600000000000, 432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "2"
+                                },
+                                "dates": {
+                                    "variable_value": "array([ 86400000000000, 172800000000000, 259200000000000, 345600000000000,\n       432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "5"
+                                },
+                                "concat_compat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left.values": {
+                                    "variable_value": "array([ 86400000000000, 172800000000000, 259200000000000],\n      dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "3"
+                                },
+                                "self._shallow_copy": {
+                                    "variable_value": "<bound method NumericIndex._shallow_copy of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "other.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left_end": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right_end": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "loc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right.searchsorted": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right_chunk": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dates": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat_compat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._shallow_copy": {
+                                    "variable_value": "<bound method NumericIndex._shallow_copy of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "other.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "right": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "left_end": {
+                                    "variable_value": "Timedelta('3 days 00:00:00')",
+                                    "variable_type": "Timedelta",
+                                    "variable_shape": null
+                                },
+                                "right_end": {
+                                    "variable_value": "Timedelta('5 days 00:00:00')",
+                                    "variable_type": "Timedelta",
+                                    "variable_shape": null
+                                },
+                                "loc": {
+                                    "variable_value": "0",
+                                    "variable_type": "int64",
+                                    "variable_shape": "()"
+                                },
+                                "right.searchsorted": {
+                                    "variable_value": "<bound method TimedeltaIndex.searchsorted of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "right_chunk": {
+                                    "variable_value": "array([345600000000000, 432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "2"
+                                },
+                                "right.values": {
+                                    "variable_value": "array([345600000000000, 432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "2"
+                                },
+                                "dates": {
+                                    "variable_value": "array([ 86400000000000, 172800000000000, 259200000000000, 345600000000000,\n       432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "5"
+                                },
+                                "concat_compat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left.values": {
+                                    "variable_value": "array([ 86400000000000, 172800000000000, 259200000000000],\n      dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "3"
+                                },
+                                "self._shallow_copy": {
+                                    "variable_value": "<bound method NumericIndex._shallow_copy of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "other.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sort": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "left_start": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "loc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right.searchsorted": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right_chunk": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dates": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat_compat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._shallow_copy": {
+                                    "variable_value": "<bound method NumericIndex._shallow_copy of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left_end": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "right_end": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "other": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "self.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "other.view": {
+                                    "variable_value": "<bound method Index.view of TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left": {
+                                    "variable_value": "TimedeltaIndex(['1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "3"
+                                },
+                                "right": {
+                                    "variable_value": "TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                                    "variable_type": "TimedeltaIndex",
+                                    "variable_shape": "2"
+                                },
+                                "sort": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "left_start": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "loc": {
+                                    "variable_value": "0",
+                                    "variable_type": "int64",
+                                    "variable_shape": "()"
+                                },
+                                "right.searchsorted": {
+                                    "variable_value": "<bound method TimedeltaIndex.searchsorted of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "right_chunk": {
+                                    "variable_value": "array([345600000000000, 432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "2"
+                                },
+                                "right.values": {
+                                    "variable_value": "array([345600000000000, 432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "2"
+                                },
+                                "dates": {
+                                    "variable_value": "array([ 86400000000000, 172800000000000, 259200000000000, 345600000000000,\n       432000000000000], dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "5"
+                                },
+                                "concat_compat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "left.values": {
+                                    "variable_value": "array([ 86400000000000, 172800000000000, 259200000000000],\n      dtype='timedelta64[ns]')",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "3"
+                                },
+                                "self._shallow_copy": {
+                                    "variable_value": "<bound method NumericIndex._shallow_copy of TimedeltaIndex(['4 days', '5 days'], dtype='timedelta64[ns]', freq='D')>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "left_end": {
+                                    "variable_value": "Timedelta('3 days 00:00:00')",
+                                    "variable_type": "Timedelta",
+                                    "variable_shape": null
+                                },
+                                "right_end": {
+                                    "variable_value": "Timedelta('5 days 00:00:00')",
+                                    "variable_type": "Timedelta",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def timedelta_range(\n    start=None, end=None, periods=None, freq=None, name=None, closed=None\n) -> TimedeltaIndex:\n    \"\"\"\n    Return a fixed frequency TimedeltaIndex, with day as the default\n    frequency.\n\n    Parameters\n    ----------\n    start : str or timedelta-like, default None\n        Left bound for generating timedeltas.\n    end : str or timedelta-like, default None\n        Right bound for generating timedeltas.\n    periods : int, default None\n        Number of periods to generate.\n    freq : str or DateOffset, default 'D'\n        Frequency strings can have multiples, e.g. '5H'.\n    name : str, default None\n        Name of the resulting TimedeltaIndex.\n    closed : str, default None\n        Make the interval closed with respect to the given frequency to\n        the 'left', 'right', or both sides (None).\n\n    Returns\n    -------\n    rng : TimedeltaIndex\n\n    Notes\n    -----\n    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,\n    exactly three must be specified. If ``freq`` is omitted, the resulting\n    ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between\n    ``start`` and ``end`` (closed on both sides).\n\n    To learn more about the frequency strings, please see `this link\n    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.\n\n    Examples\n    --------\n\n    >>> pd.timedelta_range(start='1 day', periods=4)\n    TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],\n                   dtype='timedelta64[ns]', freq='D')\n\n    The ``closed`` parameter specifies which endpoint is included.  The default\n    behavior is to include both endpoints.\n\n    >>> pd.timedelta_range(start='1 day', periods=4, closed='right')\n    TimedeltaIndex(['2 days', '3 days', '4 days'],\n                   dtype='timedelta64[ns]', freq='D')\n\n    The ``freq`` parameter specifies the frequency of the TimedeltaIndex.\n    Only fixed frequencies can be passed, non-fixed frequencies such as\n    'M' (month end) will raise.\n\n    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6H')\n    TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',\n                    '1 days 18:00:00', '2 days 00:00:00'],\n                   dtype='timedelta64[ns]', freq='6H')\n\n    Specify ``start``, ``end``, and ``periods``; the frequency is generated\n    automatically (linearly spaced).\n\n    >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)\n    TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',\n                '5 days 00:00:00'],\n               dtype='timedelta64[ns]', freq=None)\n    \"\"\"\n    if freq is None and com.any_none(periods, start, end):\n        freq = \"D\"\n\n    freq, freq_infer = dtl.maybe_infer_freq(freq)\n    tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)\n    return TimedeltaIndex._simple_new(tdarr._data, freq=tdarr.freq, name=name)",
+                "def __new__(\n    cls,\n    data=None,\n    unit=None,\n    freq=None,\n    closed=None,\n    dtype=_TD_DTYPE,\n    copy=False,\n    name=None,\n):\n    name = maybe_extract_name(name, data, cls)\n\n    if is_scalar(data):\n        raise TypeError(\n            f\"{cls.__name__}() must be called with a \"\n            f\"collection of some kind, {repr(data)} was passed\"\n        )\n\n    if unit in {\"Y\", \"y\", \"M\"}:\n        raise ValueError(\n            \"Units 'M' and 'Y' are no longer supported, as they do not \"\n            \"represent unambiguous timedelta values durations.\"\n        )\n\n    if isinstance(data, TimedeltaArray):\n        if copy:\n            data = data.copy()\n        return cls._simple_new(data, name=name, freq=freq)\n\n    if isinstance(data, TimedeltaIndex) and freq is None and name is None:\n        if copy:\n            return data.copy()\n        else:\n            return data._shallow_copy()\n\n    # - Cases checked above all return/raise before reaching here - #\n\n    tdarr = TimedeltaArray._from_sequence(\n        data, freq=freq, unit=unit, dtype=dtype, copy=copy\n    )\n    return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)",
+                "@classmethod\ndef _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):\n    # `dtype` is passed by _shallow_copy in corner cases, should always\n    #  be timedelta64[ns] if present\n    if not isinstance(values, TimedeltaArray):\n        values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)\n    else:\n        if freq is None:\n            freq = values.freq\n    assert isinstance(values, TimedeltaArray), type(values)\n    assert dtype == _TD_DTYPE, dtype\n    assert values.dtype == \"m8[ns]\", values.dtype\n\n    tdarr = TimedeltaArray._simple_new(values._data, freq=freq)\n    result = object.__new__(cls)\n    result._data = tdarr\n    result._name = name\n    # For groupby perf. See note in indexes/base about _index_data\n    result._index_data = tdarr._data\n\n    result._reset_identity()\n    return result",
+                "def __setstate__(self, state):\n    \"\"\"Necessary for making this object picklable\"\"\"\n    if isinstance(state, dict):\n        super().__setstate__(state)\n    else:\n        raise Exception(\"invalid pickle state\")",
+                "@property\ndef _formatter_func(self):\n    from pandas.io.formats.format import _get_format_timedelta64\n\n    return _get_format_timedelta64(self, box=True)",
+                "def __getitem__(self, key):\n    result = self._data.__getitem__(key)\n    if is_scalar(result):\n        return result\n    return type(self)(result, name=self.name)",
+                "@Appender(_index_shared_docs[\"astype\"])\ndef astype(self, dtype, copy=True):\n    dtype = pandas_dtype(dtype)\n    if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):\n        # Have to repeat the check for 'timedelta64' (not ns) dtype\n        #  so that we can return a numeric index, since pandas will return\n        #  a TimedeltaIndex when dtype='timedelta'\n        result = self._data.astype(dtype, copy=copy)\n        if self.hasnans:\n            return Index(result, name=self.name)\n        return Index(result.astype(\"i8\"), name=self.name)\n    return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)",
+                "def _union(self, other: \"TimedeltaIndex\", sort):\n    if len(other) == 0 or self.equals(other) or len(self) == 0:\n        return super()._union(other, sort=sort)\n\n    # We are called by `union`, which is responsible for this validation\n    assert isinstance(other, TimedeltaIndex)\n\n    this, other = self, other\n\n    if this._can_fast_union(other):\n        return this._fast_union(other)\n    else:\n        result = Index._union(this, other, sort=sort)\n        if isinstance(result, TimedeltaIndex):\n            if result.freq is None:\n                result._set_freq(\"infer\")\n        return result",
+                "def _fast_union(self, other):\n    if len(other) == 0:\n        return self.view(type(self))\n\n    if len(self) == 0:\n        return other.view(type(self))\n\n    # to make our life easier, \"sort\" the two ranges\n    if self[0] <= other[0]:\n        left, right = self, other\n    else:\n        left, right = other, self\n\n    left_end = left[-1]\n    right_end = right[-1]\n\n    # concatenate\n    if left_end < right_end:\n        loc = right.searchsorted(left_end, side=\"right\")\n        right_chunk = right.values[loc:]\n        dates = concat_compat((left.values, right_chunk))\n        return self._shallow_copy(dates)\n    else:\n        return left",
+                "def _maybe_promote(self, other):\n    if other.inferred_type == \"timedelta\":\n        other = TimedeltaIndex(other)\n    return self, other",
+                "def get_value(self, series, key):\n    \"\"\"\n    Fast lookup of value from 1-dimensional ndarray. Only use this if you\n    know what you're doing\n    \"\"\"\n\n    if _is_convertible_to_td(key):\n        key = Timedelta(key)\n        return self.get_value_maybe_box(series, key)\n\n    try:\n        value = Index.get_value(self, series, key)\n    except KeyError:\n        try:\n            loc = self._get_string_slice(key)\n            return series[loc]\n        except (TypeError, ValueError, KeyError):\n            pass\n\n        try:\n            return self.get_value_maybe_box(series, key)\n        except (TypeError, ValueError, KeyError):\n            raise KeyError(key)\n    else:\n        return com.maybe_box(self, value, series, key)",
+                "def get_value_maybe_box(self, series, key: Timedelta):\n    values = self._engine.get_value(com.values_from_object(series), key)\n    return com.maybe_box(self, values, series, key)",
+                "def get_loc(self, key, method=None, tolerance=None):\n    \"\"\"\n    Get integer location for requested label\n\n    Returns\n    -------\n    loc : int\n    \"\"\"\n    if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):\n        # GH#20464 datetime check here is to ensure we don't allow\n        #   datetime objects to be incorrectly treated as timedelta\n        #   objects; NaT is a special case because it plays a double role\n        #   as Not-A-Timedelta\n        raise TypeError\n\n    if isna(key):\n        key = NaT\n\n    if tolerance is not None:\n        # try converting tolerance now, so errors don't get swallowed by\n        # the try/except clauses below\n        tolerance = self._convert_tolerance(tolerance, np.asarray(key))\n\n    if _is_convertible_to_td(key) or key is NaT:\n        key = Timedelta(key)\n        return Index.get_loc(self, key, method, tolerance)\n\n    try:\n        return Index.get_loc(self, key, method, tolerance)\n    except (KeyError, ValueError, TypeError):\n        try:\n            return self._get_string_slice(key)\n        except (TypeError, KeyError, ValueError):\n            pass\n\n        try:\n            stamp = Timedelta(key)\n            return Index.get_loc(self, stamp, method, tolerance)\n        except (KeyError, ValueError):\n            raise KeyError(key)",
+                "def _maybe_cast_slice_bound(self, label, side, kind):\n    \"\"\"\n    If label is a string, cast it to timedelta according to resolution.\n\n    Parameters\n    ----------\n    label : object\n    side : {'left', 'right'}\n    kind : {'ix', 'loc', 'getitem'}\n\n    Returns\n    -------\n    label : object\n    \"\"\"\n    assert kind in [\"ix\", \"loc\", \"getitem\", None]\n\n    if isinstance(label, str):\n        parsed = Timedelta(label)\n        lbound = parsed.round(parsed.resolution_string)\n        if side == \"left\":\n            return lbound\n        else:\n            return lbound + to_offset(parsed.resolution_string) - Timedelta(1, \"ns\")\n    elif is_integer(label) or is_float(label):\n        self._invalid_indexer(\"slice\", label)\n\n    return label",
+                "def _get_string_slice(self, key):\n    if is_integer(key) or is_float(key) or key is NaT:\n        self._invalid_indexer(\"slice\", key)\n    loc = self._partial_td_slice(key)\n    return loc",
+                "def _partial_td_slice(self, key):\n\n    # given a key, try to figure out a location for a partial slice\n    if not isinstance(key, str):\n        return key\n\n    raise NotImplementedError",
+                "@Substitution(klass=\"TimedeltaIndex\")\n@Appender(_shared_docs[\"searchsorted\"])\ndef searchsorted(self, value, side=\"left\", sorter=None):\n    if isinstance(value, (np.ndarray, Index)):\n        value = np.array(value, dtype=_TD_DTYPE, copy=False)\n    else:\n        value = Timedelta(value).asm8.view(_TD_DTYPE)\n\n    return self.values.searchsorted(value, side=side, sorter=sorter)",
+                "def is_type_compatible(self, typ) -> bool:\n    return typ == self.inferred_type or typ == \"timedelta\"",
+                "@property\ndef inferred_type(self) -> str:\n    return \"timedelta64\"",
+                "def insert(self, loc, item):\n    \"\"\"\n    Make new Index inserting new item at location\n\n    Parameters\n    ----------\n    loc : int\n    item : object\n        If not either a Python datetime or a numpy integer-like, returned\n        Index dtype will be object rather than datetime.\n\n    Returns\n    -------\n    new_index : Index\n    \"\"\"\n    # try to convert if possible\n    if _is_convertible_to_td(item):\n        try:\n            item = Timedelta(item)\n        except ValueError:\n            # e.g. str that can't be parsed to timedelta\n            pass\n    elif is_scalar(item) and isna(item):\n        # GH 18295\n        item = self._na_value\n\n    freq = None\n    if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):\n\n        # check freq can be preserved on edge cases\n        if self.freq is not None:\n            if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:\n                freq = self.freq\n            elif (loc == len(self)) and item - self.freq == self[-1]:\n                freq = self.freq\n        item = Timedelta(item).asm8.view(_TD_DTYPE)\n\n    try:\n        new_tds = np.concatenate(\n            (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)\n        )\n        return self._shallow_copy(new_tds, freq=freq)\n\n    except (AttributeError, TypeError):\n\n        # fall back to object index\n        if isinstance(item, str):\n            return self.astype(object).insert(loc, item)\n        raise TypeError(\"cannot insert TimedeltaIndex with incompatible label\")"
+            ],
+            "inscope_function_signatures": [
+                "timedelta_range(start=None, end=None, periods=None, freq=None, name=None, closed=None) -> TimedeltaIndex",
+                "__new__(cls, data=None, unit=None, freq=None, closed=None, dtype=_TD_DTYPE, copy=False, name=None)",
+                "_simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE)",
+                "__setstate__(self, state)",
+                "_formatter_func(self)",
+                "__getitem__(self, key)",
+                "astype(self, dtype, copy=True)",
+                "_union(self, other: 'TimedeltaIndex', sort)",
+                "_fast_union(self, other)",
+                "_maybe_promote(self, other)",
+                "get_value(self, series, key)",
+                "get_value_maybe_box(self, series, key: Timedelta)",
+                "get_loc(self, key, method=None, tolerance=None)",
+                "_maybe_cast_slice_bound(self, label, side, kind)",
+                "_get_string_slice(self, key)",
+                "_partial_td_slice(self, key)",
+                "searchsorted(self, value, side='left', sorter=None)",
+                "is_type_compatible(self, typ) -> bool",
+                "inferred_type(self) -> str",
+                "insert(self, loc, item)"
+            ],
+            "variables_in_file": {
+                "DatetimelikeDelegateMixin": [
+                    38
+                ],
+                "_raw_properties": [
+                    43,
+                    46
+                ],
+                "_raw_methods": [
+                    49,
+                    44
+                ],
+                "_delegated_properties": [
+                    46
+                ],
+                "TimedeltaArray._datetimelike_ops": [
+                    46
+                ],
+                "TimedeltaArray": [
+                    192,
+                    66,
+                    196,
+                    165,
+                    69,
+                    555,
+                    46,
+                    48,
+                    178,
+                    187,
+                    188,
+                    63
+                ],
+                "list": [
+                    49,
+                    46
+                ],
+                "_delegated_methods": [
+                    47
+                ],
+                "TimedeltaArray._datetimelike_methods": [
+                    48
+                ],
+                "DatetimeTimedeltaMixin": [
+                    75
+                ],
+                "dtl.TimelikeOps": [
+                    75
+                ],
+                "dtl": [
+                    554,
+                    75
+                ],
+                "TimedeltaDelegateMixin": [
+                    66,
+                    75,
+                    70
+                ],
+                "_typ": [
+                    129
+                ],
+                "_engine_type": [
+                    131
+                ],
+                "libindex.TimedeltaEngine": [
+                    131
+                ],
+                "libindex": [
+                    131
+                ],
+                "_comparables": [
+                    133
+                ],
+                "_attributes": [
+                    134
+                ],
+                "_is_numeric_dtype": [
+                    135
+                ],
+                "_infer_as_myclass": [
+                    136
+                ],
+                "_TD_DTYPE": [
+                    193,
+                    417,
+                    463,
+                    147,
+                    184,
+                    415
+                ],
+                "name": [
+                    199,
+                    168,
+                    170,
+                    556,
+                    181,
+                    151
+                ],
+                "maybe_extract_name": [
+                    151
+                ],
+                "data": [
+                    165,
+                    167,
+                    168,
+                    170,
+                    172,
+                    174,
+                    179,
+                    151,
+                    153,
+                    156
+                ],
+                "cls": [
+                    197,
+                    168,
+                    181,
+                    151,
+                    155
+                ],
+                "is_scalar": [
+                    153,
+                    450,
+                    455,
+                    231
+                ],
+                "TypeError": [
+                    357,
+                    360,
+                    314,
+                    341,
+                    471,
+                    154,
+                    476,
+                    319
+                ],
+                "cls.__name__": [
+                    155
+                ],
+                "repr": [
+                    156
+                ],
+                "unit": [
+                    179,
+                    159
+                ],
+                "ValueError": [
+                    160,
+                    357,
+                    360,
+                    447,
+                    366,
+                    314,
+                    319
+                ],
+                "isinstance": [
+                    192,
+                    385,
+                    165,
+                    263,
+                    455,
+                    170,
+                    336,
+                    210,
+                    406,
+                    474,
+                    187,
+                    414,
+                    255
+                ],
+                "copy": [
+                    166,
+                    171,
+                    179,
+                    244,
+                    248
+                ],
+                "data.copy": [
+                    172,
+                    167
+                ],
+                "cls._simple_new": [
+                    168,
+                    181
+                ],
+                "freq": [
+                    196,
+                    454,
+                    551,
+                    168,
+                    552,
+                    170,
+                    554,
+                    460,
+                    555,
+                    462,
+                    179,
+                    469,
+                    188,
+                    190,
+                    191
+                ],
+                "TimedeltaIndex": [
+                    480,
+                    255,
+                    485,
+                    263,
+                    295,
+                    170,
+                    556,
+                    479
+                ],
+                "data._shallow_copy": [
+                    174
+                ],
+                "tdarr": [
+                    196,
+                    198,
+                    201,
+                    555,
+                    556,
+                    178,
+                    181
+                ],
+                "TimedeltaArray._from_sequence": [
+                    178
+                ],
+                "dtype": [
+                    193,
+                    239,
+                    240,
+                    179,
+                    244,
+                    248,
+                    188
+                ],
+                "tdarr._data": [
+                    201,
+                    556,
+                    181
+                ],
+                "tdarr.freq": [
+                    556,
+                    181
+                ],
+                "values": [
+                    192,
+                    194,
+                    196,
+                    325,
+                    326,
+                    187,
+                    188,
+                    191
+                ],
+                "TimedeltaArray._simple_new": [
+                    196,
+                    188
+                ],
+                "values.freq": [
+                    191
+                ],
+                "type": [
+                    192,
+                    233,
+                    270,
+                    273
+                ],
+                "values.dtype": [
+                    194
+                ],
+                "values._data": [
+                    196
+                ],
+                "result": [
+                    197,
+                    198,
+                    199,
+                    230,
+                    201,
+                    231,
+                    203,
+                    204,
+                    232,
+                    233,
+                    262,
+                    263,
+                    264,
+                    265,
+                    266,
+                    244,
+                    246,
+                    247
+                ],
+                "object.__new__": [
+                    197
+                ],
+                "object": [
+                    475,
+                    197
+                ],
+                "result._data": [
+                    198
+                ],
+                "result._name": [
+                    199
+                ],
+                "result._index_data": [
+                    201
+                ],
+                "result._reset_identity": [
+                    203
+                ],
+                "classmethod": [
+                    183
+                ],
+                "state": [
+                    210,
+                    211
+                ],
+                "dict": [
+                    210
+                ],
+                "__setstate__": [
+                    211,
+                    215
+                ],
+                "super": [
+                    211,
+                    252
+                ],
+                "Exception": [
+                    213
+                ],
+                "_unpickle_compat": [
+                    215
+                ],
+                "_get_format_timedelta64": [
+                    224
+                ],
+                "self": [
+                    257,
+                    393,
+                    270,
+                    399,
+                    272,
+                    273,
+                    400,
+                    276,
+                    277,
+                    279,
+                    289,
+                    419,
+                    422,
+                    296,
+                    306,
+                    309,
+                    312,
+                    318,
+                    322,
+                    452,
+                    325,
+                    326,
+                    458,
+                    459,
+                    460,
+                    461,
+                    462,
+                    467,
+                    469,
+                    475,
+                    349,
+                    224,
+                    353,
+                    356,
+                    230,
+                    359,
+                    233,
+                    365,
+                    244,
+                    245,
+                    246,
+                    247,
+                    248,
+                    251
+                ],
+                "property": [
+                    424,
+                    220
+                ],
+                "self._data.__getitem__": [
+                    230
+                ],
+                "self._data": [
+                    244,
+                    230
+                ],
+                "key": [
+                    398,
+                    399,
+                    400,
+                    406,
+                    407,
+                    304,
+                    305,
+                    306,
+                    309,
+                    312,
+                    318,
+                    320,
+                    322,
+                    325,
+                    326,
+                    336,
+                    343,
+                    344,
+                    349,
+                    351,
+                    352,
+                    353,
+                    356,
+                    230,
+                    359,
+                    364,
+                    367
+                ],
+                "self.name": [
+                    233,
+                    246,
+                    247
+                ],
+                "pandas_dtype": [
+                    239
+                ],
+                "is_timedelta64_dtype": [
+                    240
+                ],
+                "is_timedelta64_ns_dtype": [
+                    240
+                ],
+                "self._data.astype": [
+                    244
+                ],
+                "self.hasnans": [
+                    245
+                ],
+                "Index": [
+                    353,
+                    356,
+                    262,
+                    365,
+                    309,
+                    246,
+                    247,
+                    414
+                ],
+                "result.astype": [
+                    247
+                ],
+                "DatetimeIndexOpsMixin.astype": [
+                    248
+                ],
+                "DatetimeIndexOpsMixin": [
+                    248
+                ],
+                "Appender": [
+                    412,
+                    237
+                ],
+                "_index_shared_docs": [
+                    237
+                ],
+                "len": [
+                    459,
+                    461,
+                    269,
+                    272,
+                    251
+                ],
+                "other": [
+                    257,
+                    259,
+                    260,
+                    262,
+                    294,
+                    295,
+                    296,
+                    269,
+                    273,
+                    276,
+                    277,
+                    279,
+                    251,
+                    252,
+                    255
+                ],
+                "self.equals": [
+                    251
+                ],
+                "_union": [
+                    252
+                ],
+                "sort": [
+                    252,
+                    262
+                ],
+                "this": [
+                    257,
+                    259,
+                    260,
+                    262
+                ],
+                "this._can_fast_union": [
+                    259
+                ],
+                "this._fast_union": [
+                    260
+                ],
+                "Index._union": [
+                    262
+                ],
+                "result.freq": [
+                    264
+                ],
+                "result._set_freq": [
+                    265
+                ],
+                "self.view": [
+                    270
+                ],
+                "other.view": [
+                    273
+                ],
+                "left": [
+                    288,
+                    291,
+                    277,
+                    279,
+                    281
+                ],
+                "right": [
+                    277,
+                    279,
+                    282,
+                    286,
+                    287
+                ],
+                "left_end": [
+                    281,
+                    285,
+                    286
+                ],
+                "right_end": [
+                    282,
+                    285
+                ],
+                "loc": [
+                    459,
+                    461,
+                    400,
+                    401,
+                    467,
+                    312,
+                    313,
+                    475,
+                    286,
+                    287
+                ],
+                "right.searchsorted": [
+                    286
+                ],
+                "right_chunk": [
+                    288,
+                    287
+                ],
+                "right.values": [
+                    287
+                ],
+                "dates": [
+                    288,
+                    289
+                ],
+                "concat_compat": [
+                    288
+                ],
+                "left.values": [
+                    288
+                ],
+                "self._shallow_copy": [
+                    289,
+                    469
+                ],
+                "other.inferred_type": [
+                    294
+                ],
+                "_is_convertible_to_td": [
+                    304,
+                    444,
+                    351
+                ],
+                "Timedelta": [
+                    352,
+                    417,
+                    386,
+                    324,
+                    391,
+                    455,
+                    364,
+                    463,
+                    305,
+                    446
+                ],
+                "self.get_value_maybe_box": [
+                    306,
+                    318
+                ],
+                "series": [
+                    322,
+                    325,
+                    326,
+                    306,
+                    309,
+                    313,
+                    318
+                ],
+                "value": [
+                    417,
+                    322,
+                    419,
+                    309,
+                    414,
+                    415
+                ],
+                "Index.get_value": [
+                    309
+                ],
+                "KeyError": [
+                    320,
+                    357,
+                    360,
+                    366,
+                    367,
+                    310,
+                    314,
+                    319
+                ],
+                "self._get_string_slice": [
+                    312,
+                    359
+                ],
+                "com.maybe_box": [
+                    322,
+                    326
+                ],
+                "com": [
+                    322,
+                    325,
+                    326,
+                    551
+                ],
+                "self._engine.get_value": [
+                    325
+                ],
+                "self._engine": [
+                    325
+                ],
+                "com.values_from_object": [
+                    325
+                ],
+                "is_list_like": [
+                    336
+                ],
+                "datetime": [
+                    336
+                ],
+                "NaT": [
+                    336,
+                    344,
+                    398,
+                    351
+                ],
+                "isna": [
+                    450,
+                    455,
+                    343
+                ],
+                "tolerance": [
+                    353,
+                    356,
+                    365,
+                    346,
+                    349
+                ],
+                "self._convert_tolerance": [
+                    349
+                ],
+                "np.asarray": [
+                    349
+                ],
+                "np": [
+                    466,
+                    467,
+                    349,
+                    414,
+                    415
+                ],
+                "Index.get_loc": [
+                    353,
+                    356,
+                    365
+                ],
+                "method": [
+                    353,
+                    356,
+                    365
+                ],
+                "stamp": [
+                    364,
+                    365
+                ],
+                "kind": [
+                    383
+                ],
+                "label": [
+                    385,
+                    386,
+                    392,
+                    393,
+                    395
+                ],
+                "str": [
+                    385,
+                    474,
+                    425,
+                    406
+                ],
+                "parsed": [
+                    386,
+                    387,
+                    391
+                ],
+                "lbound": [
+                    387,
+                    389,
+                    391
+                ],
+                "parsed.round": [
+                    387
+                ],
+                "parsed.resolution_string": [
+                    387,
+                    391
+                ],
+                "side": [
+                    419,
+                    388
+                ],
+                "to_offset": [
+                    391
+                ],
+                "is_integer": [
+                    392,
+                    398
+                ],
+                "is_float": [
+                    392,
+                    398
+                ],
+                "self._invalid_indexer": [
+                    393,
+                    399
+                ],
+                "self._partial_td_slice": [
+                    400
+                ],
+                "NotImplementedError": [
+                    409
+                ],
+                "np.ndarray": [
+                    414
+                ],
+                "np.array": [
+                    415
+                ],
+                "asm8.view": [
+                    417,
+                    463
+                ],
+                "asm8": [
+                    417,
+                    463
+                ],
+                "self.values.searchsorted": [
+                    419
+                ],
+                "self.values": [
+                    419
+                ],
+                "sorter": [
+                    419
+                ],
+                "Substitution": [
+                    411
+                ],
+                "_shared_docs": [
+                    412
+                ],
+                "typ": [
+                    422
+                ],
+                "self.inferred_type": [
+                    422
+                ],
+                "bool": [
+                    421
+                ],
+                "item": [
+                    450,
+                    452,
+                    455,
+                    459,
+                    461,
+                    463,
+                    467,
+                    474,
+                    475,
+                    444,
+                    446
+                ],
+                "self._na_value": [
+                    452
+                ],
+                "self.freq": [
+                    458,
+                    459,
+                    460,
+                    461,
+                    462
+                ],
+                "new_tds": [
+                    466,
+                    469
+                ],
+                "np.concatenate": [
+                    466
+                ],
+                "asi8": [
+                    467
+                ],
+                "item.view": [
+                    467
+                ],
+                "np.int64": [
+                    467
+                ],
+                "AttributeError": [
+                    471
+                ],
+                "insert": [
+                    475
+                ],
+                "self.astype": [
+                    475
+                ],
+                "inherit_names": [
+                    54
+                ],
+                "delegate_names": [
+                    65,
+                    68
+                ],
+                "TimedeltaDelegateMixin._delegated_properties": [
+                    66
+                ],
+                "TimedeltaDelegateMixin._delegated_methods": [
+                    70
+                ],
+                "TimedeltaIndex._add_comparison_ops": [
+                    479
+                ],
+                "TimedeltaIndex._add_logical_methods_disabled": [
+                    480
+                ],
+                "com.any_none": [
+                    551
+                ],
+                "periods": [
+                    555,
+                    551
+                ],
+                "start": [
+                    555,
+                    551
+                ],
+                "end": [
+                    555,
+                    551
+                ],
+                "freq_infer": [
+                    554
+                ],
+                "dtl.maybe_infer_freq": [
+                    554
+                ],
+                "TimedeltaArray._generate_range": [
+                    555
+                ],
+                "closed": [
+                    555
+                ],
+                "TimedeltaIndex._simple_new": [
+                    556
+                ]
+            },
+            "filtered_variables_in_file": {
+                "DatetimelikeDelegateMixin": [
+                    38
+                ],
+                "_raw_properties": [
+                    43,
+                    46
+                ],
+                "_raw_methods": [
+                    49,
+                    44
+                ],
+                "_delegated_properties": [
+                    46
+                ],
+                "TimedeltaArray._datetimelike_ops": [
+                    46
+                ],
+                "TimedeltaArray": [
+                    192,
+                    66,
+                    196,
+                    165,
+                    69,
+                    555,
+                    46,
+                    48,
+                    178,
+                    187,
+                    188,
+                    63
+                ],
+                "_delegated_methods": [
+                    47
+                ],
+                "TimedeltaArray._datetimelike_methods": [
+                    48
+                ],
+                "DatetimeTimedeltaMixin": [
+                    75
+                ],
+                "dtl.TimelikeOps": [
+                    75
+                ],
+                "dtl": [
+                    554,
+                    75
+                ],
+                "TimedeltaDelegateMixin": [
+                    66,
+                    75,
+                    70
+                ],
+                "_typ": [
+                    129
+                ],
+                "_engine_type": [
+                    131
+                ],
+                "libindex.TimedeltaEngine": [
+                    131
+                ],
+                "libindex": [
+                    131
+                ],
+                "_comparables": [
+                    133
+                ],
+                "_attributes": [
+                    134
+                ],
+                "_is_numeric_dtype": [
+                    135
+                ],
+                "_infer_as_myclass": [
+                    136
+                ],
+                "_TD_DTYPE": [
+                    193,
+                    417,
+                    463,
+                    147,
+                    184,
+                    415
+                ],
+                "name": [
+                    199,
+                    168,
+                    170,
+                    556,
+                    181,
+                    151
+                ],
+                "maybe_extract_name": [
+                    151
+                ],
+                "data": [
+                    165,
+                    167,
+                    168,
+                    170,
+                    172,
+                    174,
+                    179,
+                    151,
+                    153,
+                    156
+                ],
+                "cls": [
+                    197,
+                    168,
+                    181,
+                    151,
+                    155
+                ],
+                "is_scalar": [
+                    153,
+                    450,
+                    455,
+                    231
+                ],
+                "cls.__name__": [
+                    155
+                ],
+                "unit": [
+                    179,
+                    159
+                ],
+                "copy": [
+                    166,
+                    171,
+                    179,
+                    244,
+                    248
+                ],
+                "data.copy": [
+                    172,
+                    167
+                ],
+                "cls._simple_new": [
+                    168,
+                    181
+                ],
+                "freq": [
+                    196,
+                    454,
+                    551,
+                    168,
+                    552,
+                    170,
+                    554,
+                    460,
+                    555,
+                    462,
+                    179,
+                    469,
+                    188,
+                    190,
+                    191
+                ],
+                "TimedeltaIndex": [
+                    480,
+                    255,
+                    485,
+                    263,
+                    295,
+                    170,
+                    556,
+                    479
+                ],
+                "data._shallow_copy": [
+                    174
+                ],
+                "tdarr": [
+                    196,
+                    198,
+                    201,
+                    555,
+                    556,
+                    178,
+                    181
+                ],
+                "TimedeltaArray._from_sequence": [
+                    178
+                ],
+                "dtype": [
+                    193,
+                    239,
+                    240,
+                    179,
+                    244,
+                    248,
+                    188
+                ],
+                "tdarr._data": [
+                    201,
+                    556,
+                    181
+                ],
+                "tdarr.freq": [
+                    556,
+                    181
+                ],
+                "values": [
+                    192,
+                    194,
+                    196,
+                    325,
+                    326,
+                    187,
+                    188,
+                    191
+                ],
+                "TimedeltaArray._simple_new": [
+                    196,
+                    188
+                ],
+                "values.freq": [
+                    191
+                ],
+                "values.dtype": [
+                    194
+                ],
+                "values._data": [
+                    196
+                ],
+                "result": [
+                    197,
+                    198,
+                    199,
+                    230,
+                    201,
+                    231,
+                    203,
+                    204,
+                    232,
+                    233,
+                    262,
+                    263,
+                    264,
+                    265,
+                    266,
+                    244,
+                    246,
+                    247
+                ],
+                "object.__new__": [
+                    197
+                ],
+                "result._data": [
+                    198
+                ],
+                "result._name": [
+                    199
+                ],
+                "result._index_data": [
+                    201
+                ],
+                "result._reset_identity": [
+                    203
+                ],
+                "state": [
+                    210,
+                    211
+                ],
+                "__setstate__": [
+                    211,
+                    215
+                ],
+                "_unpickle_compat": [
+                    215
+                ],
+                "_get_format_timedelta64": [
+                    224
+                ],
+                "self": [
+                    257,
+                    393,
+                    270,
+                    399,
+                    272,
+                    273,
+                    400,
+                    276,
+                    277,
+                    279,
+                    289,
+                    419,
+                    422,
+                    296,
+                    306,
+                    309,
+                    312,
+                    318,
+                    322,
+                    452,
+                    325,
+                    326,
+                    458,
+                    459,
+                    460,
+                    461,
+                    462,
+                    467,
+                    469,
+                    475,
+                    349,
+                    224,
+                    353,
+                    356,
+                    230,
+                    359,
+                    233,
+                    365,
+                    244,
+                    245,
+                    246,
+                    247,
+                    248,
+                    251
+                ],
+                "self._data.__getitem__": [
+                    230
+                ],
+                "self._data": [
+                    244,
+                    230
+                ],
+                "key": [
+                    398,
+                    399,
+                    400,
+                    406,
+                    407,
+                    304,
+                    305,
+                    306,
+                    309,
+                    312,
+                    318,
+                    320,
+                    322,
+                    325,
+                    326,
+                    336,
+                    343,
+                    344,
+                    349,
+                    351,
+                    352,
+                    353,
+                    356,
+                    230,
+                    359,
+                    364,
+                    367
+                ],
+                "self.name": [
+                    233,
+                    246,
+                    247
+                ],
+                "pandas_dtype": [
+                    239
+                ],
+                "is_timedelta64_dtype": [
+                    240
+                ],
+                "is_timedelta64_ns_dtype": [
+                    240
+                ],
+                "self._data.astype": [
+                    244
+                ],
+                "self.hasnans": [
+                    245
+                ],
+                "Index": [
+                    353,
+                    356,
+                    262,
+                    365,
+                    309,
+                    246,
+                    247,
+                    414
+                ],
+                "result.astype": [
+                    247
+                ],
+                "DatetimeIndexOpsMixin.astype": [
+                    248
+                ],
+                "DatetimeIndexOpsMixin": [
+                    248
+                ],
+                "Appender": [
+                    412,
+                    237
+                ],
+                "_index_shared_docs": [
+                    237
+                ],
+                "other": [
+                    257,
+                    259,
+                    260,
+                    262,
+                    294,
+                    295,
+                    296,
+                    269,
+                    273,
+                    276,
+                    277,
+                    279,
+                    251,
+                    252,
+                    255
+                ],
+                "self.equals": [
+                    251
+                ],
+                "_union": [
+                    252
+                ],
+                "sort": [
+                    252,
+                    262
+                ],
+                "this": [
+                    257,
+                    259,
+                    260,
+                    262
+                ],
+                "this._can_fast_union": [
+                    259
+                ],
+                "this._fast_union": [
+                    260
+                ],
+                "Index._union": [
+                    262
+                ],
+                "result.freq": [
+                    264
+                ],
+                "result._set_freq": [
+                    265
+                ],
+                "self.view": [
+                    270
+                ],
+                "other.view": [
+                    273
+                ],
+                "left": [
+                    288,
+                    291,
+                    277,
+                    279,
+                    281
+                ],
+                "right": [
+                    277,
+                    279,
+                    282,
+                    286,
+                    287
+                ],
+                "left_end": [
+                    281,
+                    285,
+                    286
+                ],
+                "right_end": [
+                    282,
+                    285
+                ],
+                "loc": [
+                    459,
+                    461,
+                    400,
+                    401,
+                    467,
+                    312,
+                    313,
+                    475,
+                    286,
+                    287
+                ],
+                "right.searchsorted": [
+                    286
+                ],
+                "right_chunk": [
+                    288,
+                    287
+                ],
+                "right.values": [
+                    287
+                ],
+                "dates": [
+                    288,
+                    289
+                ],
+                "concat_compat": [
+                    288
+                ],
+                "left.values": [
+                    288
+                ],
+                "self._shallow_copy": [
+                    289,
+                    469
+                ],
+                "other.inferred_type": [
+                    294
+                ],
+                "_is_convertible_to_td": [
+                    304,
+                    444,
+                    351
+                ],
+                "Timedelta": [
+                    352,
+                    417,
+                    386,
+                    324,
+                    391,
+                    455,
+                    364,
+                    463,
+                    305,
+                    446
+                ],
+                "self.get_value_maybe_box": [
+                    306,
+                    318
+                ],
+                "series": [
+                    322,
+                    325,
+                    326,
+                    306,
+                    309,
+                    313,
+                    318
+                ],
+                "value": [
+                    417,
+                    322,
+                    419,
+                    309,
+                    414,
+                    415
+                ],
+                "Index.get_value": [
+                    309
+                ],
+                "self._get_string_slice": [
+                    312,
+                    359
+                ],
+                "com.maybe_box": [
+                    322,
+                    326
+                ],
+                "com": [
+                    322,
+                    325,
+                    326,
+                    551
+                ],
+                "self._engine.get_value": [
+                    325
+                ],
+                "self._engine": [
+                    325
+                ],
+                "com.values_from_object": [
+                    325
+                ],
+                "is_list_like": [
+                    336
+                ],
+                "datetime": [
+                    336
+                ],
+                "NaT": [
+                    336,
+                    344,
+                    398,
+                    351
+                ],
+                "isna": [
+                    450,
+                    455,
+                    343
+                ],
+                "tolerance": [
+                    353,
+                    356,
+                    365,
+                    346,
+                    349
+                ],
+                "self._convert_tolerance": [
+                    349
+                ],
+                "np.asarray": [
+                    349
+                ],
+                "np": [
+                    466,
+                    467,
+                    349,
+                    414,
+                    415
+                ],
+                "Index.get_loc": [
+                    353,
+                    356,
+                    365
+                ],
+                "method": [
+                    353,
+                    356,
+                    365
+                ],
+                "stamp": [
+                    364,
+                    365
+                ],
+                "kind": [
+                    383
+                ],
+                "label": [
+                    385,
+                    386,
+                    392,
+                    393,
+                    395
+                ],
+                "parsed": [
+                    386,
+                    387,
+                    391
+                ],
+                "lbound": [
+                    387,
+                    389,
+                    391
+                ],
+                "parsed.round": [
+                    387
+                ],
+                "parsed.resolution_string": [
+                    387,
+                    391
+                ],
+                "side": [
+                    419,
+                    388
+                ],
+                "to_offset": [
+                    391
+                ],
+                "is_integer": [
+                    392,
+                    398
+                ],
+                "is_float": [
+                    392,
+                    398
+                ],
+                "self._invalid_indexer": [
+                    393,
+                    399
+                ],
+                "self._partial_td_slice": [
+                    400
+                ],
+                "np.ndarray": [
+                    414
+                ],
+                "np.array": [
+                    415
+                ],
+                "asm8.view": [
+                    417,
+                    463
+                ],
+                "asm8": [
+                    417,
+                    463
+                ],
+                "self.values.searchsorted": [
+                    419
+                ],
+                "self.values": [
+                    419
+                ],
+                "sorter": [
+                    419
+                ],
+                "Substitution": [
+                    411
+                ],
+                "_shared_docs": [
+                    412
+                ],
+                "typ": [
+                    422
+                ],
+                "self.inferred_type": [
+                    422
+                ],
+                "item": [
+                    450,
+                    452,
+                    455,
+                    459,
+                    461,
+                    463,
+                    467,
+                    474,
+                    475,
+                    444,
+                    446
+                ],
+                "self._na_value": [
+                    452
+                ],
+                "self.freq": [
+                    458,
+                    459,
+                    460,
+                    461,
+                    462
+                ],
+                "new_tds": [
+                    466,
+                    469
+                ],
+                "np.concatenate": [
+                    466
+                ],
+                "asi8": [
+                    467
+                ],
+                "item.view": [
+                    467
+                ],
+                "np.int64": [
+                    467
+                ],
+                "insert": [
+                    475
+                ],
+                "self.astype": [
+                    475
+                ],
+                "inherit_names": [
+                    54
+                ],
+                "delegate_names": [
+                    65,
+                    68
+                ],
+                "TimedeltaDelegateMixin._delegated_properties": [
+                    66
+                ],
+                "TimedeltaDelegateMixin._delegated_methods": [
+                    70
+                ],
+                "TimedeltaIndex._add_comparison_ops": [
+                    479
+                ],
+                "TimedeltaIndex._add_logical_methods_disabled": [
+                    480
+                ],
+                "com.any_none": [
+                    551
+                ],
+                "periods": [
+                    555,
+                    551
+                ],
+                "start": [
+                    555,
+                    551
+                ],
+                "end": [
+                    555,
+                    551
+                ],
+                "freq_infer": [
+                    554
+                ],
+                "dtl.maybe_infer_freq": [
+                    554
+                ],
+                "TimedeltaArray._generate_range": [
+                    555
+                ],
+                "closed": [
+                    555
+                ],
+                "TimedeltaIndex._simple_new": [
+                    556
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_97/pandas/tests/indexes/timedeltas/test_setops.py",
+                "test_function": "test_union_sort_false",
+                "test_function_code": "    def test_union_sort_false(self):\n        tdi = timedelta_range(\"1day\", periods=5)\n\n        left = tdi[3:]\n        right = tdi[:3]\n\n        # Check that we are testing the desired code path\n        assert left._can_fast_union(right)\n\n        result = left.union(right)\n        tm.assert_index_equal(result, tdi)\n\n        result = left.union(right, sort=False)\n        expected = pd.TimedeltaIndex([\"4 Days\", \"5 Days\", \"1 Days\", \"2 Day\", \"3 Days\"])\n        tm.assert_index_equal(result, expected)",
+                "test_error": "AssertionError: Index are different  Index values are different (100.0 %) [left]:  TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D') [right]: TimedeltaIndex(['4 days', '5 days', '1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq=None)",
+                "full_test_error": "self = <pandas.tests.indexes.timedeltas.test_setops.TestTimedeltaIndex object at 0x11553d730>\n\n    def test_union_sort_false(self):\n        tdi = timedelta_range(\"1day\", periods=5)\n    \n        left = tdi[3:]\n        right = tdi[:3]\n    \n        # Check that we are testing the desired code path\n        assert left._can_fast_union(right)\n    \n        result = left.union(right)\n        tm.assert_index_equal(result, tdi)\n    \n        result = left.union(right, sort=False)\n        expected = pd.TimedeltaIndex([\"4 Days\", \"5 Days\", \"1 Days\", \"2 Day\", \"3 Days\"])\n>       tm.assert_index_equal(result, expected)\nE       AssertionError: Index are different\nE       \nE       Index values are different (100.0 %)\nE       [left]:  TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')\nE       [right]: TimedeltaIndex(['4 days', '5 days', '1 days', '2 days', '3 days'], dtype='timedelta64[ns]', freq=None)\n\npandas/tests/indexes/timedeltas/test_setops.py:39: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

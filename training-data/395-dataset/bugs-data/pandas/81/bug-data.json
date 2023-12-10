@@ -1,0 +1,2649 @@
+{
+    "pandas:81": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_81/pandas/core/arrays/integer.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "astype",
+                    "function_code": "def astype(self, dtype, copy=True):\n    \"\"\"\n    Cast to a NumPy array or IntegerArray with 'dtype'.\n\n    Parameters\n    ----------\n    dtype : str or dtype\n        Typecode or data-type to which the array is cast.\n    copy : bool, default True\n        Whether to copy the data, even if not necessary. If False,\n        a copy is made only if the old dtype does not match the\n        new dtype.\n\n    Returns\n    -------\n    array : ndarray or IntegerArray\n        NumPy ndarray or IntergerArray with 'dtype' for its dtype.\n\n    Raises\n    ------\n    TypeError\n        if incompatible type with an IntegerDtype, equivalent of same_kind\n        casting\n    \"\"\"\n\n    # if we are astyping to an existing IntegerDtype we can fastpath\n    if isinstance(dtype, _IntegerDtype):\n        result = self._data.astype(dtype.numpy_dtype, copy=False)\n        return type(self)(result, mask=self._mask, copy=False)\n\n    # coerce\n    if is_float_dtype(dtype):\n        # In astype, we consider dtype=float to also mean na_value=np.nan\n        kwargs = dict(na_value=np.nan)\n    else:\n        kwargs = {}\n\n    data = self.to_numpy(dtype=dtype, **kwargs)\n    return astype_nansafe(data, dtype, copy=False)\n",
+                    "decorators": [],
+                    "docstring": "Cast to a NumPy array or IntegerArray with 'dtype'.\n\nParameters\n----------\ndtype : str or dtype\n    Typecode or data-type to which the array is cast.\ncopy : bool, default True\n    Whether to copy the data, even if not necessary. If False,\n    a copy is made only if the old dtype does not match the\n    new dtype.\n\nReturns\n-------\narray : ndarray or IntegerArray\n    NumPy ndarray or IntergerArray with 'dtype' for its dtype.\n\nRaises\n------\nTypeError\n    if incompatible type with an IntegerDtype, equivalent of same_kind\n    casting",
+                    "start_line": 419,
+                    "variables": {
+                        "isinstance": [
+                            445
+                        ],
+                        "dtype": [
+                            450,
+                            456,
+                            457,
+                            445,
+                            446
+                        ],
+                        "_IntegerDtype": [
+                            445
+                        ],
+                        "result": [
+                            446,
+                            447
+                        ],
+                        "self._data.astype": [
+                            446
+                        ],
+                        "self._data": [
+                            446
+                        ],
+                        "self": [
+                            456,
+                            446,
+                            447
+                        ],
+                        "dtype.numpy_dtype": [
+                            446
+                        ],
+                        "type": [
+                            447
+                        ],
+                        "self._mask": [
+                            447
+                        ],
+                        "is_float_dtype": [
+                            450
+                        ],
+                        "kwargs": [
+                            456,
+                            452,
+                            454
+                        ],
+                        "dict": [
+                            452
+                        ],
+                        "np.nan": [
+                            452
+                        ],
+                        "np": [
+                            452
+                        ],
+                        "data": [
+                            456,
+                            457
+                        ],
+                        "self.to_numpy": [
+                            456
+                        ],
+                        "astype_nansafe": [
+                            457
+                        ]
+                    },
+                    "filtered_variables": {
+                        "dtype": [
+                            450,
+                            456,
+                            457,
+                            445,
+                            446
+                        ],
+                        "_IntegerDtype": [
+                            445
+                        ],
+                        "result": [
+                            446,
+                            447
+                        ],
+                        "self._data.astype": [
+                            446
+                        ],
+                        "self._data": [
+                            446
+                        ],
+                        "self": [
+                            456,
+                            446,
+                            447
+                        ],
+                        "dtype.numpy_dtype": [
+                            446
+                        ],
+                        "self._mask": [
+                            447
+                        ],
+                        "is_float_dtype": [
+                            450
+                        ],
+                        "kwargs": [
+                            456,
+                            452,
+                            454
+                        ],
+                        "np.nan": [
+                            452
+                        ],
+                        "np": [
+                            452
+                        ],
+                        "data": [
+                            456,
+                            457
+                        ],
+                        "self.to_numpy": [
+                            456
+                        ],
+                        "astype_nansafe": [
+                            457
+                        ]
+                    },
+                    "diff_line_number": 442,
+                    "class_data": {
+                        "signature": "class IntegerArray(BaseMaskedArray)",
+                        "docstring": "Array of integer (optional missing) values.\n\n.. versionadded:: 0.24.0\n\n.. versionchanged:: 1.0.0\n\n   Now uses :attr:`pandas.NA` as the missing value rather\n   than :attr:`numpy.nan`.\n\n.. warning::\n\n   IntegerArray is currently experimental, and its API or internal\n   implementation may change without warning.\n\nWe represent an IntegerArray with 2 numpy arrays:\n\n- data: contains a numpy integer array of the appropriate dtype\n- mask: a boolean array holding a mask on the data, True is missing\n\nTo construct an IntegerArray from generic array-like input, use\n:func:`pandas.array` with one of the integer dtypes (see examples).\n\nSee :ref:`integer_na` for more.\n\nParameters\n----------\nvalues : numpy.ndarray\n    A 1-d integer-dtype array.\nmask : numpy.ndarray\n    A 1-d boolean-dtype array indicating missing values.\ncopy : bool, default False\n    Whether to copy the `values` and `mask`.\n\nAttributes\n----------\nNone\n\nMethods\n-------\nNone\n\nReturns\n-------\nIntegerArray\n\nExamples\n--------\nCreate an IntegerArray with :func:`pandas.array`.\n\n>>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())\n>>> int_array\n<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: Int32\n\nString aliases for the dtypes are also available. They are capitalized.\n\n>>> pd.array([1, None, 3], dtype='Int32')\n<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: Int32\n\n>>> pd.array([1, None, 3], dtype='UInt16')\n<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: UInt16",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "@cache_readonly\ndef dtype(self):\n    return _dtypes[str(self._data.dtype)]",
+                            "def __init__(self, values, mask, copy=False):\n    if not (isinstance(values, np.ndarray) and is_integer_dtype(values.dtype)):\n        raise TypeError(\"values should be integer numpy array. Use the 'integer_array' function instead\")\n    if not (isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype)):\n        raise TypeError(\"mask should be boolean numpy array. Use the 'integer_array' function instead\")\n    if copy:\n        values = values.copy()\n        mask = mask.copy()\n    self._data = values\n    self._mask = mask",
+                            "@classmethod\ndef _from_sequence(cls, scalars, dtype=None, copy=False):\n    return integer_array(scalars, dtype=dtype, copy=copy)",
+                            "@classmethod\ndef _from_sequence_of_strings(cls, strings, dtype=None, copy=False):\n    scalars = to_numeric(strings, errors='raise')\n    return cls._from_sequence(scalars, dtype, copy)",
+                            "@classmethod\ndef _from_factorized(cls, values, original):\n    return integer_array(values, dtype=original.dtype)",
+                            "def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):\n    if method == 'reduce':\n        raise NotImplementedError(\"The 'reduce' method is not supported.\")\n    out = kwargs.get('out', ())\n    for x in inputs + out:\n        if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):\n            return NotImplemented\n    result = ops.maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)\n    if result is not NotImplemented:\n        return result\n    mask = np.zeros(len(self), dtype=bool)\n    inputs2 = []\n    for x in inputs:\n        if isinstance(x, IntegerArray):\n            mask |= x._mask\n            inputs2.append(x._data)\n        else:\n            inputs2.append(x)\n\n    def reconstruct(x):\n        if is_integer_dtype(x.dtype):\n            m = mask.copy()\n            return IntegerArray(x, m)\n        else:\n            x[mask] = np.nan\n        return x\n    result = getattr(ufunc, method)(*inputs2, **kwargs)\n    if isinstance(result, tuple):\n        tuple((reconstruct(x) for x in result))\n    else:\n        return reconstruct(result)",
+                            "def __setitem__(self, key, value):\n    _is_scalar = is_scalar(value)\n    if _is_scalar:\n        value = [value]\n    value, mask = coerce_to_array(value, dtype=self.dtype)\n    if _is_scalar:\n        value = value[0]\n        mask = mask[0]\n    self._data[key] = value\n    self._mask[key] = mask",
+                            "def astype(self, dtype, copy=True):\n    \"\"\"\n    Cast to a NumPy array or IntegerArray with 'dtype'.\n\n    Parameters\n    ----------\n    dtype : str or dtype\n        Typecode or data-type to which the array is cast.\n    copy : bool, default True\n        Whether to copy the data, even if not necessary. If False,\n        a copy is made only if the old dtype does not match the\n        new dtype.\n\n    Returns\n    -------\n    array : ndarray or IntegerArray\n        NumPy ndarray or IntergerArray with 'dtype' for its dtype.\n\n    Raises\n    ------\n    TypeError\n        if incompatible type with an IntegerDtype, equivalent of same_kind\n        casting\n    \"\"\"\n    if isinstance(dtype, _IntegerDtype):\n        result = self._data.astype(dtype.numpy_dtype, copy=False)\n        return type(self)(result, mask=self._mask, copy=False)\n    if is_float_dtype(dtype):\n        kwargs = dict(na_value=np.nan)\n    else:\n        kwargs = {}\n    data = self.to_numpy(dtype=dtype, **kwargs)\n    return astype_nansafe(data, dtype, copy=False)",
+                            "@property\ndef _ndarray_values(self) -> np.ndarray:\n    \"\"\"Internal pandas method for lossy conversion to a NumPy ndarray.\n\n    This method is not part of the pandas interface.\n\n    The expectation is that this is cheap to compute, and is primarily\n    used for interacting with our indexers.\n    \"\"\"\n    return self._data",
+                            "def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:\n    return (self.to_numpy(na_value=np.nan), np.nan)",
+                            "def _values_for_argsort(self) -> np.ndarray:\n    \"\"\"Return values for sorting.\n\n    Returns\n    -------\n    ndarray\n        The transformed values should maintain the ordering between values\n        within the array.\n\n    See Also\n    --------\n    ExtensionArray.argsort\n    \"\"\"\n    data = self._data.copy()\n    data[self._mask] = data.min() - 1\n    return data",
+                            "@classmethod\ndef _create_comparison_method(cls, op):\n    op_name = op.__name__\n\n    @unpack_zerodim_and_defer(op.__name__)\n    def cmp_method(self, other):\n        from pandas.arrays import BooleanArray\n        mask = None\n        if isinstance(other, (BooleanArray, IntegerArray)):\n            other, mask = (other._data, other._mask)\n        elif is_list_like(other):\n            other = np.asarray(other)\n            if other.ndim > 1:\n                raise NotImplementedError('can only perform ops with 1-d structures')\n            if len(self) != len(other):\n                raise ValueError('Lengths must match to compare')\n        if other is libmissing.NA:\n            result = np.zeros(self._data.shape, dtype='bool')\n            mask = np.ones(self._data.shape, dtype='bool')\n        else:\n            with warnings.catch_warnings():\n                warnings.filterwarnings('ignore', 'elementwise', FutureWarning)\n                with np.errstate(all='ignore'):\n                    method = getattr(self._data, f'__{op_name}__')\n                    result = method(other)\n                if result is NotImplemented:\n                    result = invalid_comparison(self._data, other, op)\n        if mask is None:\n            mask = self._mask.copy()\n        else:\n            mask = self._mask | mask\n        return BooleanArray(result, mask)\n    name = f'__{op.__name__}__'\n    return set_function_name(cmp_method, name, cls)",
+                            "def _reduce(self, name, skipna=True, **kwargs):\n    data = self._data\n    mask = self._mask\n    if self._hasna:\n        data = self.to_numpy('float64', na_value=np.nan)\n    op = getattr(nanops, 'nan' + name)\n    result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)\n    if np.isnan(result):\n        return libmissing.NA\n    if name in ['any', 'all']:\n        pass\n    elif name in ['sum', 'min', 'max', 'prod']:\n        int_result = int(result)\n        if int_result == result:\n            result = int_result\n    return result",
+                            "def _maybe_mask_result(self, result, mask, other, op_name):\n    \"\"\"\n    Parameters\n    ----------\n    result : array-like\n    mask : array-like bool\n    other : scalar or array-like\n    op_name : str\n    \"\"\"\n    if (is_float_dtype(other) or is_float(other)) or op_name in ['rtruediv', 'truediv']:\n        result[mask] = np.nan\n        return result\n    return type(self)(result, mask, copy=False)",
+                            "@classmethod\ndef _create_arithmetic_method(cls, op):\n    op_name = op.__name__\n\n    @unpack_zerodim_and_defer(op.__name__)\n    def integer_arithmetic_method(self, other):\n        omask = None\n        if getattr(other, 'ndim', 0) > 1:\n            raise NotImplementedError('can only perform ops with 1-d structures')\n        if isinstance(other, IntegerArray):\n            other, omask = (other._data, other._mask)\n        elif is_list_like(other):\n            other = np.asarray(other)\n            if other.ndim > 1:\n                raise NotImplementedError('can only perform ops with 1-d structures')\n            if len(self) != len(other):\n                raise ValueError('Lengths must match')\n            if not (is_float_dtype(other) or is_integer_dtype(other)):\n                raise TypeError('can only perform ops with numeric values')\n        elif not (is_float(other) or is_integer(other) or other is libmissing.NA):\n            raise TypeError('can only perform ops with numeric values')\n        if omask is None:\n            mask = self._mask.copy()\n            if other is libmissing.NA:\n                mask |= True\n        else:\n            mask = self._mask | omask\n        if op_name == 'pow':\n            mask = np.where((self._data == 1) & ~self._mask, False, mask)\n            if omask is not None:\n                mask = np.where((other == 0) & ~omask, False, mask)\n            elif other is not libmissing.NA:\n                mask = np.where(other == 0, False, mask)\n        elif op_name == 'rpow':\n            if omask is not None:\n                mask = np.where((other == 1) & ~omask, False, mask)\n            elif other is not libmissing.NA:\n                mask = np.where(other == 1, False, mask)\n            mask = np.where((self._data == 0) & ~self._mask, False, mask)\n        if other is libmissing.NA:\n            result = np.ones_like(self._data)\n        else:\n            with np.errstate(all='ignore'):\n                result = op(self._data, other)\n        if op_name == 'divmod':\n            div, mod = result\n            return (self._maybe_mask_result(div, mask, other, 'floordiv'), self._maybe_mask_result(mod, mask, other, 'mod'))\n        return self._maybe_mask_result(result, mask, other, op_name)\n    name = f'__{op.__name__}__'\n    return set_function_name(integer_arithmetic_method, name, cls)",
+                            "def reconstruct(x):\n    if is_integer_dtype(x.dtype):\n        m = mask.copy()\n        return IntegerArray(x, m)\n    else:\n        x[mask] = np.nan\n    return x",
+                            "@unpack_zerodim_and_defer(op.__name__)\ndef cmp_method(self, other):\n    from pandas.arrays import BooleanArray\n    mask = None\n    if isinstance(other, (BooleanArray, IntegerArray)):\n        other, mask = (other._data, other._mask)\n    elif is_list_like(other):\n        other = np.asarray(other)\n        if other.ndim > 1:\n            raise NotImplementedError('can only perform ops with 1-d structures')\n        if len(self) != len(other):\n            raise ValueError('Lengths must match to compare')\n    if other is libmissing.NA:\n        result = np.zeros(self._data.shape, dtype='bool')\n        mask = np.ones(self._data.shape, dtype='bool')\n    else:\n        with warnings.catch_warnings():\n            warnings.filterwarnings('ignore', 'elementwise', FutureWarning)\n            with np.errstate(all='ignore'):\n                method = getattr(self._data, f'__{op_name}__')\n                result = method(other)\n            if result is NotImplemented:\n                result = invalid_comparison(self._data, other, op)\n    if mask is None:\n        mask = self._mask.copy()\n    else:\n        mask = self._mask | mask\n    return BooleanArray(result, mask)",
+                            "@unpack_zerodim_and_defer(op.__name__)\ndef integer_arithmetic_method(self, other):\n    omask = None\n    if getattr(other, 'ndim', 0) > 1:\n        raise NotImplementedError('can only perform ops with 1-d structures')\n    if isinstance(other, IntegerArray):\n        other, omask = (other._data, other._mask)\n    elif is_list_like(other):\n        other = np.asarray(other)\n        if other.ndim > 1:\n            raise NotImplementedError('can only perform ops with 1-d structures')\n        if len(self) != len(other):\n            raise ValueError('Lengths must match')\n        if not (is_float_dtype(other) or is_integer_dtype(other)):\n            raise TypeError('can only perform ops with numeric values')\n    elif not (is_float(other) or is_integer(other) or other is libmissing.NA):\n        raise TypeError('can only perform ops with numeric values')\n    if omask is None:\n        mask = self._mask.copy()\n        if other is libmissing.NA:\n            mask |= True\n    else:\n        mask = self._mask | omask\n    if op_name == 'pow':\n        mask = np.where((self._data == 1) & ~self._mask, False, mask)\n        if omask is not None:\n            mask = np.where((other == 0) & ~omask, False, mask)\n        elif other is not libmissing.NA:\n            mask = np.where(other == 0, False, mask)\n    elif op_name == 'rpow':\n        if omask is not None:\n            mask = np.where((other == 1) & ~omask, False, mask)\n        elif other is not libmissing.NA:\n            mask = np.where(other == 1, False, mask)\n        mask = np.where((self._data == 0) & ~self._mask, False, mask)\n    if other is libmissing.NA:\n        result = np.ones_like(self._data)\n    else:\n        with np.errstate(all='ignore'):\n            result = op(self._data, other)\n    if op_name == 'divmod':\n        div, mod = result\n        return (self._maybe_mask_result(div, mask, other, 'floordiv'), self._maybe_mask_result(mod, mask, other, 'mod'))\n    return self._maybe_mask_result(result, mask, other, op_name)"
+                        ],
+                        "constructor_variables": [
+                            "_mask",
+                            "_data",
+                            "values",
+                            "mask"
+                        ],
+                        "class_level_variables": [
+                            "_internal_fill_value",
+                            "_HANDLED_TYPES"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "dtype(self)",
+                            "__init__(self, values, mask, copy=False)",
+                            "_from_sequence(cls, scalars, dtype=None, copy=False)",
+                            "_from_sequence_of_strings(cls, strings, dtype=None, copy=False)",
+                            "_from_factorized(cls, values, original)",
+                            "__array_ufunc__(self, ufunc, method, *inputs, **kwargs)",
+                            "__setitem__(self, key, value)",
+                            "astype(self, dtype, copy=True)",
+                            "_ndarray_values(self) -> np.ndarray",
+                            "_values_for_factorize(self) -> Tuple[np.ndarray, Any]",
+                            "_values_for_argsort(self) -> np.ndarray",
+                            "_create_comparison_method(cls, op)",
+                            "_reduce(self, name, skipna=True, **kwargs)",
+                            "_maybe_mask_result(self, result, mask, other, op_name)",
+                            "_create_arithmetic_method(cls, op)",
+                            "reconstruct(x)",
+                            "cmp_method(self, other)",
+                            "integer_arithmetic_method(self, other)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "dtype": {
+                                    "variable_value": "'boolean'",
+                                    "variable_type": "str",
+                                    "variable_shape": "7"
+                                },
+                                "_IntegerDtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._data.astype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._data": {
+                                    "variable_value": "array([ 1,  0, -1,  2,  1])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "5"
+                                },
+                                "self": {
+                                    "variable_value": "<IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64",
+                                    "variable_type": "IntegerArray",
+                                    "variable_shape": "5"
+                                },
+                                "dtype.numpy_dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._mask": {
+                                    "variable_value": "array([False, False, False, False,  True])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "5"
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "kwargs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "data": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.to_numpy": {
+                                    "variable_value": "<bound method BaseMaskedArray.to_numpy of <IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "astype_nansafe": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "dtype": {
+                                    "variable_value": "'boolean'",
+                                    "variable_type": "str",
+                                    "variable_shape": "7"
+                                },
+                                "pandas_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_IntegerDtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._data.astype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._data": {
+                                    "variable_value": "array([ 1,  0, -1,  2,  1])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "5"
+                                },
+                                "self": {
+                                    "variable_value": "<IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64",
+                                    "variable_type": "IntegerArray",
+                                    "variable_shape": "5"
+                                },
+                                "dtype.numpy_dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._mask": {
+                                    "variable_value": "array([False, False, False, False,  True])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "5"
+                                },
+                                "BooleanDtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "BooleanArray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "kwargs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "data": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.to_numpy": {
+                                    "variable_value": "<bound method BaseMaskedArray.to_numpy of <IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "astype_nansafe": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "from pandas.core.dtypes.common import (\n    is_bool_dtype,\n    is_float,\n    is_float_dtype,\n    is_integer,\n    is_integer_dtype,\n    is_list_like,\n    is_object_dtype,\n    is_scalar,\n)",
+                    "start_line": 13,
+                    "end_line": 22
+                }
+            ],
+            "inscope_functions": [
+                "def integer_array(values, dtype=None, copy=False):\n    \"\"\"\n    Infer and return an integer array of the values.\n\n    Parameters\n    ----------\n    values : 1D list-like\n    dtype : dtype, optional\n        dtype to coerce\n    copy : bool, default False\n\n    Returns\n    -------\n    IntegerArray\n\n    Raises\n    ------\n    TypeError if incompatible types\n    \"\"\"\n    values, mask = coerce_to_array(values, dtype=dtype, copy=copy)\n    return IntegerArray(values, mask)",
+                "def safe_cast(values, dtype, copy):\n    \"\"\"\n    Safely cast the values to the dtype if they\n    are equivalent, meaning floats must be equivalent to the\n    ints.\n\n    \"\"\"\n\n    try:\n        return values.astype(dtype, casting=\"safe\", copy=copy)\n    except TypeError:\n\n        casted = values.astype(dtype, copy=copy)\n        if (casted == values).all():\n            return casted\n\n        raise TypeError(\n            f\"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}\"\n        )",
+                "def coerce_to_array(values, dtype, mask=None, copy=False):\n    \"\"\"\n    Coerce the input values array to numpy arrays with a mask\n\n    Parameters\n    ----------\n    values : 1D list-like\n    dtype : integer dtype\n    mask : bool 1D array, optional\n    copy : bool, default False\n        if True, copy the input\n\n    Returns\n    -------\n    tuple of (values, mask)\n    \"\"\"\n    # if values is integer numpy array, preserve it's dtype\n    if dtype is None and hasattr(values, \"dtype\"):\n        if is_integer_dtype(values.dtype):\n            dtype = values.dtype\n\n    if dtype is not None:\n        if isinstance(dtype, str) and (\n            dtype.startswith(\"Int\") or dtype.startswith(\"UInt\")\n        ):\n            # Avoid DeprecationWarning from NumPy about np.dtype(\"Int64\")\n            # https://github.com/numpy/numpy/pull/7476\n            dtype = dtype.lower()\n\n        if not issubclass(type(dtype), _IntegerDtype):\n            try:\n                dtype = _dtypes[str(np.dtype(dtype))]\n            except KeyError:\n                raise ValueError(f\"invalid dtype specified {dtype}\")\n\n    if isinstance(values, IntegerArray):\n        values, mask = values._data, values._mask\n        if dtype is not None:\n            values = values.astype(dtype.numpy_dtype, copy=False)\n\n        if copy:\n            values = values.copy()\n            mask = mask.copy()\n        return values, mask\n\n    values = np.array(values, copy=copy)\n    if is_object_dtype(values):\n        inferred_type = lib.infer_dtype(values, skipna=True)\n        if inferred_type == \"empty\":\n            values = np.empty(len(values))\n            values.fill(np.nan)\n        elif inferred_type not in [\n            \"floating\",\n            \"integer\",\n            \"mixed-integer\",\n            \"integer-na\",\n            \"mixed-integer-float\",\n        ]:\n            raise TypeError(f\"{values.dtype} cannot be converted to an IntegerDtype\")\n\n    elif is_bool_dtype(values) and is_integer_dtype(dtype):\n        values = np.array(values, dtype=int, copy=copy)\n\n    elif not (is_integer_dtype(values) or is_float_dtype(values)):\n        raise TypeError(f\"{values.dtype} cannot be converted to an IntegerDtype\")\n\n    if mask is None:\n        mask = isna(values)\n    else:\n        assert len(mask) == len(values)\n\n    if not values.ndim == 1:\n        raise TypeError(\"values must be a 1D list-like\")\n    if not mask.ndim == 1:\n        raise TypeError(\"mask must be a 1D list-like\")\n\n    # infer dtype if needed\n    if dtype is None:\n        dtype = np.dtype(\"int64\")\n    else:\n        dtype = dtype.type\n\n    # if we are float, let's make sure that we can\n    # safely cast\n\n    # we copy as need to coerce here\n    if mask.any():\n        values = values.copy()\n        values[mask] = 1\n        values = safe_cast(values, dtype, copy=False)\n    else:\n        values = safe_cast(values, dtype, copy=False)\n\n    return values, mask",
+                "def __repr__(self) -> str:\n    sign = \"U\" if self.is_unsigned_integer else \"\"\n    return f\"{sign}Int{8 * self.itemsize}Dtype()\"",
+                "@cache_readonly\ndef is_signed_integer(self):\n    return self.kind == \"i\"",
+                "@cache_readonly\ndef is_unsigned_integer(self):\n    return self.kind == \"u\"",
+                "@property\ndef _is_numeric(self):\n    return True",
+                "@cache_readonly\ndef numpy_dtype(self):\n    \"\"\" Return an instance of our numpy dtype \"\"\"\n    return np.dtype(self.type)",
+                "@cache_readonly\ndef kind(self):\n    return self.numpy_dtype.kind",
+                "@cache_readonly\ndef itemsize(self):\n    \"\"\" Return the number of bytes in this dtype \"\"\"\n    return self.numpy_dtype.itemsize",
+                "@classmethod\ndef construct_array_type(cls):\n    \"\"\"\n    Return the array type associated with this dtype.\n\n    Returns\n    -------\n    type\n    \"\"\"\n    return IntegerArray",
+                "def __from_arrow__(self, array):\n    \"\"\"Construct IntegerArray from passed pyarrow Array/ChunkedArray\"\"\"\n    import pyarrow\n    from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask\n\n    if isinstance(array, pyarrow.Array):\n        chunks = [array]\n    else:\n        # pyarrow.ChunkedArray\n        chunks = array.chunks\n\n    results = []\n    for arr in chunks:\n        data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)\n        int_arr = IntegerArray(data.copy(), ~mask, copy=False)\n        results.append(int_arr)\n\n    return IntegerArray._concat_same_type(results)",
+                "@cache_readonly\ndef dtype(self):\n    return _dtypes[str(self._data.dtype)]",
+                "def __init__(self, values, mask, copy=False):\n    if not (isinstance(values, np.ndarray) and is_integer_dtype(values.dtype)):\n        raise TypeError(\n            \"values should be integer numpy array. Use \"\n            \"the 'integer_array' function instead\"\n        )\n    if not (isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype)):\n        raise TypeError(\n            \"mask should be boolean numpy array. Use \"\n            \"the 'integer_array' function instead\"\n        )\n\n    if copy:\n        values = values.copy()\n        mask = mask.copy()\n\n    self._data = values\n    self._mask = mask",
+                "@classmethod\ndef _from_sequence(cls, scalars, dtype=None, copy=False):\n    return integer_array(scalars, dtype=dtype, copy=copy)",
+                "@classmethod\ndef _from_sequence_of_strings(cls, strings, dtype=None, copy=False):\n    scalars = to_numeric(strings, errors=\"raise\")\n    return cls._from_sequence(scalars, dtype, copy)",
+                "@classmethod\ndef _from_factorized(cls, values, original):\n    return integer_array(values, dtype=original.dtype)",
+                "def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):\n    # For IntegerArray inputs, we apply the ufunc to ._data\n    # and mask the result.\n    if method == \"reduce\":\n        # Not clear how to handle missing values in reductions. Raise.\n        raise NotImplementedError(\"The 'reduce' method is not supported.\")\n    out = kwargs.get(\"out\", ())\n\n    for x in inputs + out:\n        if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):\n            return NotImplemented\n\n    # for binary ops, use our custom dunder methods\n    result = ops.maybe_dispatch_ufunc_to_dunder_op(\n        self, ufunc, method, *inputs, **kwargs\n    )\n    if result is not NotImplemented:\n        return result\n\n    mask = np.zeros(len(self), dtype=bool)\n    inputs2 = []\n    for x in inputs:\n        if isinstance(x, IntegerArray):\n            mask |= x._mask\n            inputs2.append(x._data)\n        else:\n            inputs2.append(x)\n\n    def reconstruct(x):\n        # we don't worry about scalar `x` here, since we\n        # raise for reduce up above.\n\n        if is_integer_dtype(x.dtype):\n            m = mask.copy()\n            return IntegerArray(x, m)\n        else:\n            x[mask] = np.nan\n        return x\n\n    result = getattr(ufunc, method)(*inputs2, **kwargs)\n    if isinstance(result, tuple):\n        tuple(reconstruct(x) for x in result)\n    else:\n        return reconstruct(result)",
+                "def __setitem__(self, key, value):\n    _is_scalar = is_scalar(value)\n    if _is_scalar:\n        value = [value]\n    value, mask = coerce_to_array(value, dtype=self.dtype)\n\n    if _is_scalar:\n        value = value[0]\n        mask = mask[0]\n\n    self._data[key] = value\n    self._mask[key] = mask",
+                "def astype(self, dtype, copy=True):\n    \"\"\"\n    Cast to a NumPy array or IntegerArray with 'dtype'.\n\n    Parameters\n    ----------\n    dtype : str or dtype\n        Typecode or data-type to which the array is cast.\n    copy : bool, default True\n        Whether to copy the data, even if not necessary. If False,\n        a copy is made only if the old dtype does not match the\n        new dtype.\n\n    Returns\n    -------\n    array : ndarray or IntegerArray\n        NumPy ndarray or IntergerArray with 'dtype' for its dtype.\n\n    Raises\n    ------\n    TypeError\n        if incompatible type with an IntegerDtype, equivalent of same_kind\n        casting\n    \"\"\"\n\n    # if we are astyping to an existing IntegerDtype we can fastpath\n    if isinstance(dtype, _IntegerDtype):\n        result = self._data.astype(dtype.numpy_dtype, copy=False)\n        return type(self)(result, mask=self._mask, copy=False)\n\n    # coerce\n    if is_float_dtype(dtype):\n        # In astype, we consider dtype=float to also mean na_value=np.nan\n        kwargs = dict(na_value=np.nan)\n    else:\n        kwargs = {}\n\n    data = self.to_numpy(dtype=dtype, **kwargs)\n    return astype_nansafe(data, dtype, copy=False)",
+                "@property\ndef _ndarray_values(self) -> np.ndarray:\n    \"\"\"Internal pandas method for lossy conversion to a NumPy ndarray.\n\n    This method is not part of the pandas interface.\n\n    The expectation is that this is cheap to compute, and is primarily\n    used for interacting with our indexers.\n    \"\"\"\n    return self._data",
+                "def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:\n    # TODO: https://github.com/pandas-dev/pandas/issues/30037\n    # use masked algorithms, rather than object-dtype / np.nan.\n    return self.to_numpy(na_value=np.nan), np.nan",
+                "def _values_for_argsort(self) -> np.ndarray:\n    \"\"\"Return values for sorting.\n\n    Returns\n    -------\n    ndarray\n        The transformed values should maintain the ordering between values\n        within the array.\n\n    See Also\n    --------\n    ExtensionArray.argsort\n    \"\"\"\n    data = self._data.copy()\n    data[self._mask] = data.min() - 1\n    return data",
+                "@classmethod\ndef _create_comparison_method(cls, op):\n    op_name = op.__name__\n\n    @unpack_zerodim_and_defer(op.__name__)\n    def cmp_method(self, other):\n        from pandas.arrays import BooleanArray\n\n        mask = None\n\n        if isinstance(other, (BooleanArray, IntegerArray)):\n            other, mask = other._data, other._mask\n\n        elif is_list_like(other):\n            other = np.asarray(other)\n            if other.ndim > 1:\n                raise NotImplementedError(\n                    \"can only perform ops with 1-d structures\"\n                )\n            if len(self) != len(other):\n                raise ValueError(\"Lengths must match to compare\")\n\n        if other is libmissing.NA:\n            # numpy does not handle pd.NA well as \"other\" scalar (it returns\n            # a scalar False instead of an array)\n            # This may be fixed by NA.__array_ufunc__. Revisit this check\n            # once that's implemented.\n            result = np.zeros(self._data.shape, dtype=\"bool\")\n            mask = np.ones(self._data.shape, dtype=\"bool\")\n        else:\n            with warnings.catch_warnings():\n                # numpy may show a FutureWarning:\n                #     elementwise comparison failed; returning scalar instead,\n                #     but in the future will perform elementwise comparison\n                # before returning NotImplemented. We fall back to the correct\n                # behavior today, so that should be fine to ignore.\n                warnings.filterwarnings(\"ignore\", \"elementwise\", FutureWarning)\n                with np.errstate(all=\"ignore\"):\n                    method = getattr(self._data, f\"__{op_name}__\")\n                    result = method(other)\n\n                if result is NotImplemented:\n                    result = invalid_comparison(self._data, other, op)\n\n        # nans propagate\n        if mask is None:\n            mask = self._mask.copy()\n        else:\n            mask = self._mask | mask\n\n        return BooleanArray(result, mask)\n\n    name = f\"__{op.__name__}__\"\n    return set_function_name(cmp_method, name, cls)",
+                "def _reduce(self, name, skipna=True, **kwargs):\n    data = self._data\n    mask = self._mask\n\n    # coerce to a nan-aware float if needed\n    # (we explicitly use NaN within reductions)\n    if self._hasna:\n        data = self.to_numpy(\"float64\", na_value=np.nan)\n\n    op = getattr(nanops, \"nan\" + name)\n    result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)\n\n    if np.isnan(result):\n        return libmissing.NA\n\n    # if we have a boolean op, don't coerce\n    if name in [\"any\", \"all\"]:\n        pass\n\n    # if we have a preservable numeric op,\n    # provide coercion back to an integer type if possible\n    elif name in [\"sum\", \"min\", \"max\", \"prod\"]:\n        int_result = int(result)\n        if int_result == result:\n            result = int_result\n\n    return result",
+                "def _maybe_mask_result(self, result, mask, other, op_name):\n    \"\"\"\n    Parameters\n    ----------\n    result : array-like\n    mask : array-like bool\n    other : scalar or array-like\n    op_name : str\n    \"\"\"\n\n    # if we have a float operand we are by-definition\n    # a float result\n    # or our op is a divide\n    if (is_float_dtype(other) or is_float(other)) or (\n        op_name in [\"rtruediv\", \"truediv\"]\n    ):\n        result[mask] = np.nan\n        return result\n\n    return type(self)(result, mask, copy=False)",
+                "@classmethod\ndef _create_arithmetic_method(cls, op):\n    op_name = op.__name__\n\n    @unpack_zerodim_and_defer(op.__name__)\n    def integer_arithmetic_method(self, other):\n\n        omask = None\n\n        if getattr(other, \"ndim\", 0) > 1:\n            raise NotImplementedError(\"can only perform ops with 1-d structures\")\n\n        if isinstance(other, IntegerArray):\n            other, omask = other._data, other._mask\n\n        elif is_list_like(other):\n            other = np.asarray(other)\n            if other.ndim > 1:\n                raise NotImplementedError(\n                    \"can only perform ops with 1-d structures\"\n                )\n            if len(self) != len(other):\n                raise ValueError(\"Lengths must match\")\n            if not (is_float_dtype(other) or is_integer_dtype(other)):\n                raise TypeError(\"can only perform ops with numeric values\")\n\n        else:\n            if not (is_float(other) or is_integer(other) or other is libmissing.NA):\n                raise TypeError(\"can only perform ops with numeric values\")\n\n        if omask is None:\n            mask = self._mask.copy()\n            if other is libmissing.NA:\n                mask |= True\n        else:\n            mask = self._mask | omask\n\n        if op_name == \"pow\":\n            # 1 ** x is 1.\n            mask = np.where((self._data == 1) & ~self._mask, False, mask)\n            # x ** 0 is 1.\n            if omask is not None:\n                mask = np.where((other == 0) & ~omask, False, mask)\n            elif other is not libmissing.NA:\n                mask = np.where(other == 0, False, mask)\n\n        elif op_name == \"rpow\":\n            # 1 ** x is 1.\n            if omask is not None:\n                mask = np.where((other == 1) & ~omask, False, mask)\n            elif other is not libmissing.NA:\n                mask = np.where(other == 1, False, mask)\n            # x ** 0 is 1.\n            mask = np.where((self._data == 0) & ~self._mask, False, mask)\n\n        if other is libmissing.NA:\n            result = np.ones_like(self._data)\n        else:\n            with np.errstate(all=\"ignore\"):\n                result = op(self._data, other)\n\n        # divmod returns a tuple\n        if op_name == \"divmod\":\n            div, mod = result\n            return (\n                self._maybe_mask_result(div, mask, other, \"floordiv\"),\n                self._maybe_mask_result(mod, mask, other, \"mod\"),\n            )\n\n        return self._maybe_mask_result(result, mask, other, op_name)\n\n    name = f\"__{op.__name__}__\"\n    return set_function_name(integer_arithmetic_method, name, cls)",
+                "def reconstruct(x):\n    # we don't worry about scalar `x` here, since we\n    # raise for reduce up above.\n\n    if is_integer_dtype(x.dtype):\n        m = mask.copy()\n        return IntegerArray(x, m)\n    else:\n        x[mask] = np.nan\n    return x",
+                "@unpack_zerodim_and_defer(op.__name__)\ndef cmp_method(self, other):\n    from pandas.arrays import BooleanArray\n\n    mask = None\n\n    if isinstance(other, (BooleanArray, IntegerArray)):\n        other, mask = other._data, other._mask\n\n    elif is_list_like(other):\n        other = np.asarray(other)\n        if other.ndim > 1:\n            raise NotImplementedError(\n                \"can only perform ops with 1-d structures\"\n            )\n        if len(self) != len(other):\n            raise ValueError(\"Lengths must match to compare\")\n\n    if other is libmissing.NA:\n        # numpy does not handle pd.NA well as \"other\" scalar (it returns\n        # a scalar False instead of an array)\n        # This may be fixed by NA.__array_ufunc__. Revisit this check\n        # once that's implemented.\n        result = np.zeros(self._data.shape, dtype=\"bool\")\n        mask = np.ones(self._data.shape, dtype=\"bool\")\n    else:\n        with warnings.catch_warnings():\n            # numpy may show a FutureWarning:\n            #     elementwise comparison failed; returning scalar instead,\n            #     but in the future will perform elementwise comparison\n            # before returning NotImplemented. We fall back to the correct\n            # behavior today, so that should be fine to ignore.\n            warnings.filterwarnings(\"ignore\", \"elementwise\", FutureWarning)\n            with np.errstate(all=\"ignore\"):\n                method = getattr(self._data, f\"__{op_name}__\")\n                result = method(other)\n\n            if result is NotImplemented:\n                result = invalid_comparison(self._data, other, op)\n\n    # nans propagate\n    if mask is None:\n        mask = self._mask.copy()\n    else:\n        mask = self._mask | mask\n\n    return BooleanArray(result, mask)",
+                "@unpack_zerodim_and_defer(op.__name__)\ndef integer_arithmetic_method(self, other):\n\n    omask = None\n\n    if getattr(other, \"ndim\", 0) > 1:\n        raise NotImplementedError(\"can only perform ops with 1-d structures\")\n\n    if isinstance(other, IntegerArray):\n        other, omask = other._data, other._mask\n\n    elif is_list_like(other):\n        other = np.asarray(other)\n        if other.ndim > 1:\n            raise NotImplementedError(\n                \"can only perform ops with 1-d structures\"\n            )\n        if len(self) != len(other):\n            raise ValueError(\"Lengths must match\")\n        if not (is_float_dtype(other) or is_integer_dtype(other)):\n            raise TypeError(\"can only perform ops with numeric values\")\n\n    else:\n        if not (is_float(other) or is_integer(other) or other is libmissing.NA):\n            raise TypeError(\"can only perform ops with numeric values\")\n\n    if omask is None:\n        mask = self._mask.copy()\n        if other is libmissing.NA:\n            mask |= True\n    else:\n        mask = self._mask | omask\n\n    if op_name == \"pow\":\n        # 1 ** x is 1.\n        mask = np.where((self._data == 1) & ~self._mask, False, mask)\n        # x ** 0 is 1.\n        if omask is not None:\n            mask = np.where((other == 0) & ~omask, False, mask)\n        elif other is not libmissing.NA:\n            mask = np.where(other == 0, False, mask)\n\n    elif op_name == \"rpow\":\n        # 1 ** x is 1.\n        if omask is not None:\n            mask = np.where((other == 1) & ~omask, False, mask)\n        elif other is not libmissing.NA:\n            mask = np.where(other == 1, False, mask)\n        # x ** 0 is 1.\n        mask = np.where((self._data == 0) & ~self._mask, False, mask)\n\n    if other is libmissing.NA:\n        result = np.ones_like(self._data)\n    else:\n        with np.errstate(all=\"ignore\"):\n            result = op(self._data, other)\n\n    # divmod returns a tuple\n    if op_name == \"divmod\":\n        div, mod = result\n        return (\n            self._maybe_mask_result(div, mask, other, \"floordiv\"),\n            self._maybe_mask_result(mod, mask, other, \"mod\"),\n        )\n\n    return self._maybe_mask_result(result, mask, other, op_name)"
+            ],
+            "inscope_function_signatures": [
+                "integer_array(values, dtype=None, copy=False)",
+                "safe_cast(values, dtype, copy)",
+                "coerce_to_array(values, dtype, mask=None, copy=False)",
+                "__repr__(self) -> str",
+                "is_signed_integer(self)",
+                "is_unsigned_integer(self)",
+                "_is_numeric(self)",
+                "numpy_dtype(self)",
+                "kind(self)",
+                "itemsize(self)",
+                "construct_array_type(cls)",
+                "__from_arrow__(self, array)",
+                "dtype(self)",
+                "__init__(self, values, mask, copy=False)",
+                "_from_sequence(cls, scalars, dtype=None, copy=False)",
+                "_from_sequence_of_strings(cls, strings, dtype=None, copy=False)",
+                "_from_factorized(cls, values, original)",
+                "__array_ufunc__(self, ufunc, method, *inputs, **kwargs)",
+                "__setitem__(self, key, value)",
+                "astype(self, dtype, copy=True)",
+                "_ndarray_values(self) -> np.ndarray",
+                "_values_for_factorize(self) -> Tuple[np.ndarray, Any]",
+                "_values_for_argsort(self) -> np.ndarray",
+                "_create_comparison_method(cls, op)",
+                "_reduce(self, name, skipna=True, **kwargs)",
+                "_maybe_mask_result(self, result, mask, other, op_name)",
+                "_create_arithmetic_method(cls, op)",
+                "reconstruct(x)",
+                "cmp_method(self, other)",
+                "integer_arithmetic_method(self, other)"
+            ],
+            "variables_in_file": {
+                "ExtensionDtype": [
+                    34
+                ],
+                "name": [
+                    544,
+                    545,
+                    44,
+                    556,
+                    563,
+                    568,
+                    667,
+                    668
+                ],
+                "str": [
+                    325,
+                    44,
+                    176,
+                    49,
+                    185
+                ],
+                "base": [
+                    45
+                ],
+                "type": [
+                    706,
+                    742,
+                    778,
+                    46,
+                    718,
+                    594,
+                    754,
+                    694,
+                    183,
+                    730,
+                    766,
+                    447
+                ],
+                "Type": [
+                    46
+                ],
+                "na_value": [
+                    47
+                ],
+                "libmissing.NA": [
+                    514,
+                    646,
+                    651,
+                    623,
+                    560,
+                    47,
+                    628,
+                    639
+                ],
+                "libmissing": [
+                    514,
+                    646,
+                    651,
+                    623,
+                    560,
+                    47,
+                    628,
+                    639
+                ],
+                "sign": [
+                    50,
+                    51
+                ],
+                "self.is_unsigned_integer": [
+                    50
+                ],
+                "self": [
+                    519,
+                    520,
+                    649,
+                    652,
+                    655,
+                    530,
+                    661,
+                    534,
+                    662,
+                    665,
+                    410,
+                    538,
+                    540,
+                    416,
+                    417,
+                    548,
+                    549,
+                    553,
+                    554,
+                    50,
+                    51,
+                    55,
+                    59,
+                    446,
+                    447,
+                    68,
+                    325,
+                    72,
+                    456,
+                    77,
+                    594,
+                    468,
+                    343,
+                    344,
+                    473,
+                    103,
+                    488,
+                    489,
+                    617,
+                    631,
+                    370,
+                    627,
+                    375,
+                    635,
+                    380,
+                    511
+                ],
+                "self.itemsize": [
+                    51
+                ],
+                "self.kind": [
+                    59,
+                    55
+                ],
+                "cache_readonly": [
+                    65,
+                    323,
+                    70,
+                    74,
+                    53,
+                    57
+                ],
+                "property": [
+                    459,
+                    61
+                ],
+                "np.dtype": [
+                    232,
+                    185,
+                    68,
+                    150
+                ],
+                "np": [
+                    640,
+                    770,
+                    645,
+                    519,
+                    520,
+                    647,
+                    649,
+                    652,
+                    397,
+                    654,
+                    782,
+                    529,
+                    150,
+                    554,
+                    559,
+                    185,
+                    698,
+                    68,
+                    452,
+                    710,
+                    199,
+                    328,
+                    203,
+                    204,
+                    333,
+                    460,
+                    591,
+                    722,
+                    470,
+                    215,
+                    473,
+                    475,
+                    734,
+                    612,
+                    359,
+                    232,
+                    746,
+                    758,
+                    506,
+                    635,
+                    380,
+                    638
+                ],
+                "self.type": [
+                    68,
+                    103
+                ],
+                "self.numpy_dtype.kind": [
+                    72
+                ],
+                "self.numpy_dtype": [
+                    72,
+                    77
+                ],
+                "self.numpy_dtype.itemsize": [
+                    77
+                ],
+                "IntegerArray": [
+                    608,
+                    672,
+                    130,
+                    104,
+                    107,
+                    395,
+                    671,
+                    370,
+                    502,
+                    88,
+                    189,
+                    383
+                ],
+                "classmethod": [
+                    355,
+                    492,
+                    79,
+                    596,
+                    346,
+                    350
+                ],
+                "isinstance": [
+                    608,
+                    383,
+                    328,
+                    333,
+                    176,
+                    401,
+                    370,
+                    502,
+                    445,
+                    189,
+                    95
+                ],
+                "array": [
+                    96,
+                    99,
+                    95
+                ],
+                "pyarrow.Array": [
+                    95
+                ],
+                "pyarrow": [
+                    95
+                ],
+                "chunks": [
+                    96,
+                    99,
+                    102
+                ],
+                "array.chunks": [
+                    99
+                ],
+                "results": [
+                    105,
+                    107,
+                    101
+                ],
+                "arr": [
+                    102,
+                    103
+                ],
+                "data": [
+                    548,
+                    103,
+                    104,
+                    457,
+                    456,
+                    488,
+                    489,
+                    490,
+                    554,
+                    557
+                ],
+                "mask": [
+                    384,
+                    129,
+                    130,
+                    640,
+                    645,
+                    647,
+                    520,
+                    649,
+                    394,
+                    397,
+                    661,
+                    662,
+                    537,
+                    410,
+                    538,
+                    540,
+                    665,
+                    414,
+                    542,
+                    417,
+                    549,
+                    557,
+                    190,
+                    196,
+                    197,
+                    333,
+                    591,
+                    594,
+                    341,
+                    344,
+                    220,
+                    221,
+                    223,
+                    227,
+                    503,
+                    103,
+                    104,
+                    631,
+                    240,
+                    242,
+                    627,
+                    500,
+                    629,
+                    247,
+                    635,
+                    380,
+                    638
+                ],
+                "pyarrow_array_to_numpy_and_mask": [
+                    103
+                ],
+                "int_arr": [
+                    104,
+                    105
+                ],
+                "data.copy": [
+                    104
+                ],
+                "results.append": [
+                    105
+                ],
+                "IntegerArray._concat_same_type": [
+                    107
+                ],
+                "values": [
+                    129,
+                    130,
+                    142,
+                    145,
+                    146,
+                    150,
+                    171,
+                    172,
+                    173,
+                    189,
+                    190,
+                    192,
+                    195,
+                    197,
+                    199,
+                    200,
+                    201,
+                    328,
+                    203,
+                    204,
+                    212,
+                    340,
+                    214,
+                    215,
+                    343,
+                    217,
+                    218,
+                    221,
+                    223,
+                    225,
+                    357,
+                    241,
+                    242,
+                    243,
+                    245,
+                    247
+                ],
+                "coerce_to_array": [
+                    129,
+                    410
+                ],
+                "dtype": [
+                    129,
+                    142,
+                    145,
+                    150,
+                    171,
+                    173,
+                    175,
+                    176,
+                    177,
+                    181,
+                    183,
+                    185,
+                    187,
+                    445,
+                    446,
+                    191,
+                    192,
+                    450,
+                    456,
+                    457,
+                    214,
+                    348,
+                    353,
+                    231,
+                    232,
+                    234,
+                    243,
+                    245
+                ],
+                "copy": [
+                    129,
+                    194,
+                    353,
+                    199,
+                    142,
+                    145,
+                    339,
+                    215,
+                    348
+                ],
+                "values.astype": [
+                    192,
+                    145,
+                    142
+                ],
+                "TypeError": [
+                    226,
+                    228,
+                    329,
+                    620,
+                    334,
+                    143,
+                    624,
+                    212,
+                    149,
+                    218
+                ],
+                "casted": [
+                    145,
+                    146,
+                    147
+                ],
+                "all": [
+                    146
+                ],
+                "values.dtype": [
+                    328,
+                    172,
+                    173,
+                    212,
+                    150,
+                    218
+                ],
+                "hasattr": [
+                    171
+                ],
+                "is_integer_dtype": [
+                    328,
+                    393,
+                    619,
+                    172,
+                    214,
+                    217
+                ],
+                "dtype.startswith": [
+                    177
+                ],
+                "dtype.lower": [
+                    181
+                ],
+                "issubclass": [
+                    183
+                ],
+                "_IntegerDtype": [
+                    768,
+                    708,
+                    744,
+                    780,
+                    720,
+                    756,
+                    183,
+                    696,
+                    732,
+                    445
+                ],
+                "_dtypes": [
+                    185,
+                    789,
+                    325
+                ],
+                "KeyError": [
+                    186
+                ],
+                "ValueError": [
+                    512,
+                    618,
+                    187
+                ],
+                "values._data": [
+                    190
+                ],
+                "values._mask": [
+                    190
+                ],
+                "dtype.numpy_dtype": [
+                    192,
+                    446
+                ],
+                "values.copy": [
+                    241,
+                    195,
+                    340
+                ],
+                "mask.copy": [
+                    394,
+                    196,
+                    341
+                ],
+                "np.array": [
+                    215,
+                    199
+                ],
+                "is_object_dtype": [
+                    200
+                ],
+                "inferred_type": [
+                    201,
+                    202,
+                    205
+                ],
+                "lib.infer_dtype": [
+                    201
+                ],
+                "lib": [
+                    201
+                ],
+                "np.empty": [
+                    203
+                ],
+                "len": [
+                    223,
+                    617,
+                    203,
+                    380,
+                    511
+                ],
+                "values.fill": [
+                    204
+                ],
+                "np.nan": [
+                    452,
+                    554,
+                    204,
+                    397,
+                    591,
+                    473
+                ],
+                "is_bool_dtype": [
+                    333,
+                    214
+                ],
+                "int": [
+                    569,
+                    215
+                ],
+                "is_float_dtype": [
+                    217,
+                    450,
+                    619,
+                    588
+                ],
+                "isna": [
+                    221
+                ],
+                "values.ndim": [
+                    225
+                ],
+                "mask.ndim": [
+                    227
+                ],
+                "dtype.type": [
+                    234
+                ],
+                "mask.any": [
+                    240
+                ],
+                "safe_cast": [
+                    243,
+                    245
+                ],
+                "BaseMaskedArray": [
+                    250
+                ],
+                "_internal_fill_value": [
+                    321
+                ],
+                "self._data.dtype": [
+                    325
+                ],
+                "self._data": [
+                    416,
+                    548,
+                    325,
+                    519,
+                    488,
+                    520,
+                    649,
+                    652,
+                    655,
+                    530,
+                    468,
+                    534,
+                    343,
+                    635,
+                    446
+                ],
+                "np.ndarray": [
+                    359,
+                    328,
+                    460,
+                    333,
+                    470,
+                    475
+                ],
+                "mask.dtype": [
+                    333
+                ],
+                "self._mask": [
+                    417,
+                    549,
+                    489,
+                    649,
+                    627,
+                    631,
+                    344,
+                    538,
+                    635,
+                    540,
+                    447
+                ],
+                "integer_array": [
+                    348,
+                    357
+                ],
+                "scalars": [
+                    352,
+                    353,
+                    348
+                ],
+                "to_numeric": [
+                    352
+                ],
+                "strings": [
+                    352
+                ],
+                "cls._from_sequence": [
+                    353
+                ],
+                "cls": [
+                    353,
+                    668,
+                    545
+                ],
+                "original.dtype": [
+                    357
+                ],
+                "original": [
+                    357
+                ],
+                "_HANDLED_TYPES": [
+                    359
+                ],
+                "numbers.Number": [
+                    359
+                ],
+                "numbers": [
+                    359
+                ],
+                "method": [
+                    364,
+                    400,
+                    530,
+                    531,
+                    375
+                ],
+                "NotImplementedError": [
+                    606,
+                    614,
+                    508,
+                    366
+                ],
+                "out": [
+                    369,
+                    367
+                ],
+                "kwargs.get": [
+                    367
+                ],
+                "kwargs": [
+                    452,
+                    454,
+                    456,
+                    557,
+                    367,
+                    400,
+                    375
+                ],
+                "x": [
+                    384,
+                    385,
+                    387,
+                    393,
+                    395,
+                    397,
+                    398,
+                    369,
+                    370,
+                    402,
+                    382,
+                    383
+                ],
+                "inputs": [
+                    369,
+                    382,
+                    375
+                ],
+                "self._HANDLED_TYPES": [
+                    370
+                ],
+                "NotImplemented": [
+                    377,
+                    371,
+                    533
+                ],
+                "result": [
+                    519,
+                    652,
+                    655,
+                    400,
+                    401,
+                    402,
+                    531,
+                    404,
+                    533,
+                    534,
+                    659,
+                    665,
+                    542,
+                    557,
+                    559,
+                    569,
+                    570,
+                    571,
+                    573,
+                    446,
+                    447,
+                    591,
+                    592,
+                    594,
+                    374,
+                    377,
+                    378
+                ],
+                "ops.maybe_dispatch_ufunc_to_dunder_op": [
+                    374
+                ],
+                "ops": [
+                    374
+                ],
+                "ufunc": [
+                    400,
+                    375
+                ],
+                "np.zeros": [
+                    380,
+                    519
+                ],
+                "bool": [
+                    380
+                ],
+                "inputs2": [
+                    400,
+                    385,
+                    387,
+                    381
+                ],
+                "x._mask": [
+                    384
+                ],
+                "inputs2.append": [
+                    385,
+                    387
+                ],
+                "x._data": [
+                    385
+                ],
+                "x.dtype": [
+                    393
+                ],
+                "m": [
+                    394,
+                    395
+                ],
+                "getattr": [
+                    400,
+                    530,
+                    556,
+                    605
+                ],
+                "tuple": [
+                    401,
+                    402
+                ],
+                "reconstruct": [
+                    402,
+                    404
+                ],
+                "_is_scalar": [
+                    408,
+                    412,
+                    407
+                ],
+                "is_scalar": [
+                    407
+                ],
+                "value": [
+                    416,
+                    407,
+                    409,
+                    410,
+                    413
+                ],
+                "self.dtype": [
+                    410
+                ],
+                "key": [
+                    416,
+                    417
+                ],
+                "self._data.astype": [
+                    446
+                ],
+                "dict": [
+                    452
+                ],
+                "self.to_numpy": [
+                    456,
+                    473,
+                    554
+                ],
+                "astype_nansafe": [
+                    457
+                ],
+                "Tuple": [
+                    470
+                ],
+                "Any": [
+                    470
+                ],
+                "self._data.copy": [
+                    488
+                ],
+                "data.min": [
+                    489
+                ],
+                "op_name": [
+                    642,
+                    589,
+                    494,
+                    530,
+                    658,
+                    665,
+                    598,
+                    633
+                ],
+                "op.__name__": [
+                    544,
+                    494,
+                    496,
+                    598,
+                    600,
+                    667
+                ],
+                "op": [
+                    544,
+                    556,
+                    557,
+                    494,
+                    655,
+                    496,
+                    534,
+                    598,
+                    600,
+                    667
+                ],
+                "other": [
+                    640,
+                    514,
+                    645,
+                    646,
+                    647,
+                    651,
+                    639,
+                    655,
+                    531,
+                    661,
+                    534,
+                    662,
+                    665,
+                    588,
+                    605,
+                    608,
+                    609,
+                    611,
+                    612,
+                    613,
+                    617,
+                    619,
+                    623,
+                    628,
+                    502,
+                    503,
+                    505,
+                    506,
+                    507,
+                    638,
+                    511
+                ],
+                "BooleanArray": [
+                    502,
+                    542
+                ],
+                "other._data": [
+                    609,
+                    503
+                ],
+                "other._mask": [
+                    609,
+                    503
+                ],
+                "is_list_like": [
+                    505,
+                    611
+                ],
+                "np.asarray": [
+                    506,
+                    612
+                ],
+                "other.ndim": [
+                    507,
+                    613
+                ],
+                "self._data.shape": [
+                    520,
+                    519
+                ],
+                "np.ones": [
+                    520
+                ],
+                "warnings.catch_warnings": [
+                    522
+                ],
+                "warnings": [
+                    528,
+                    522
+                ],
+                "warnings.filterwarnings": [
+                    528
+                ],
+                "FutureWarning": [
+                    528
+                ],
+                "np.errstate": [
+                    529,
+                    654
+                ],
+                "invalid_comparison": [
+                    534
+                ],
+                "self._mask.copy": [
+                    538,
+                    627
+                ],
+                "unpack_zerodim_and_defer": [
+                    496,
+                    600
+                ],
+                "set_function_name": [
+                    545,
+                    668
+                ],
+                "cmp_method": [
+                    545
+                ],
+                "self._hasna": [
+                    553
+                ],
+                "nanops": [
+                    556
+                ],
+                "skipna": [
+                    557
+                ],
+                "np.isnan": [
+                    559
+                ],
+                "int_result": [
+                    569,
+                    570,
+                    571
+                ],
+                "is_float": [
+                    588,
+                    623
+                ],
+                "omask": [
+                    609,
+                    644,
+                    645,
+                    626,
+                    631,
+                    603,
+                    637,
+                    638
+                ],
+                "is_integer": [
+                    623
+                ],
+                "np.where": [
+                    640,
+                    645,
+                    647,
+                    649,
+                    635,
+                    638
+                ],
+                "np.ones_like": [
+                    652
+                ],
+                "div": [
+                    659,
+                    661
+                ],
+                "mod": [
+                    659,
+                    662
+                ],
+                "self._maybe_mask_result": [
+                    665,
+                    661,
+                    662
+                ],
+                "integer_arithmetic_method": [
+                    668
+                ],
+                "IntegerArray._add_arithmetic_ops": [
+                    671
+                ],
+                "IntegerArray._add_comparison_ops": [
+                    672
+                ],
+                "_dtype_docstring": [
+                    736,
+                    675,
+                    772,
+                    712,
+                    748,
+                    784,
+                    724,
+                    760,
+                    700
+                ],
+                "Int8Dtype": [
+                    693,
+                    790
+                ],
+                "register_extension_dtype": [
+                    705,
+                    741,
+                    777,
+                    717,
+                    753,
+                    693,
+                    729,
+                    765
+                ],
+                "np.int8": [
+                    698
+                ],
+                "_dtype_docstring.format": [
+                    736,
+                    772,
+                    712,
+                    748,
+                    784,
+                    724,
+                    760,
+                    700
+                ],
+                "Int16Dtype": [
+                    705,
+                    791
+                ],
+                "np.int16": [
+                    710
+                ],
+                "Int32Dtype": [
+                    792,
+                    717
+                ],
+                "np.int32": [
+                    722
+                ],
+                "Int64Dtype": [
+                    729,
+                    793
+                ],
+                "np.int64": [
+                    734
+                ],
+                "UInt8Dtype": [
+                    794,
+                    741
+                ],
+                "np.uint8": [
+                    746
+                ],
+                "UInt16Dtype": [
+                    753,
+                    795
+                ],
+                "np.uint16": [
+                    758
+                ],
+                "UInt32Dtype": [
+                    796,
+                    765
+                ],
+                "np.uint32": [
+                    770
+                ],
+                "UInt64Dtype": [
+                    777,
+                    797
+                ],
+                "np.uint64": [
+                    782
+                ]
+            },
+            "filtered_variables_in_file": {
+                "ExtensionDtype": [
+                    34
+                ],
+                "name": [
+                    544,
+                    545,
+                    44,
+                    556,
+                    563,
+                    568,
+                    667,
+                    668
+                ],
+                "base": [
+                    45
+                ],
+                "Type": [
+                    46
+                ],
+                "na_value": [
+                    47
+                ],
+                "libmissing.NA": [
+                    514,
+                    646,
+                    651,
+                    623,
+                    560,
+                    47,
+                    628,
+                    639
+                ],
+                "libmissing": [
+                    514,
+                    646,
+                    651,
+                    623,
+                    560,
+                    47,
+                    628,
+                    639
+                ],
+                "sign": [
+                    50,
+                    51
+                ],
+                "self.is_unsigned_integer": [
+                    50
+                ],
+                "self": [
+                    519,
+                    520,
+                    649,
+                    652,
+                    655,
+                    530,
+                    661,
+                    534,
+                    662,
+                    665,
+                    410,
+                    538,
+                    540,
+                    416,
+                    417,
+                    548,
+                    549,
+                    553,
+                    554,
+                    50,
+                    51,
+                    55,
+                    59,
+                    446,
+                    447,
+                    68,
+                    325,
+                    72,
+                    456,
+                    77,
+                    594,
+                    468,
+                    343,
+                    344,
+                    473,
+                    103,
+                    488,
+                    489,
+                    617,
+                    631,
+                    370,
+                    627,
+                    375,
+                    635,
+                    380,
+                    511
+                ],
+                "self.itemsize": [
+                    51
+                ],
+                "self.kind": [
+                    59,
+                    55
+                ],
+                "cache_readonly": [
+                    65,
+                    323,
+                    70,
+                    74,
+                    53,
+                    57
+                ],
+                "np.dtype": [
+                    232,
+                    185,
+                    68,
+                    150
+                ],
+                "np": [
+                    640,
+                    770,
+                    645,
+                    519,
+                    520,
+                    647,
+                    649,
+                    652,
+                    397,
+                    654,
+                    782,
+                    529,
+                    150,
+                    554,
+                    559,
+                    185,
+                    698,
+                    68,
+                    452,
+                    710,
+                    199,
+                    328,
+                    203,
+                    204,
+                    333,
+                    460,
+                    591,
+                    722,
+                    470,
+                    215,
+                    473,
+                    475,
+                    734,
+                    612,
+                    359,
+                    232,
+                    746,
+                    758,
+                    506,
+                    635,
+                    380,
+                    638
+                ],
+                "self.type": [
+                    68,
+                    103
+                ],
+                "self.numpy_dtype.kind": [
+                    72
+                ],
+                "self.numpy_dtype": [
+                    72,
+                    77
+                ],
+                "self.numpy_dtype.itemsize": [
+                    77
+                ],
+                "IntegerArray": [
+                    608,
+                    672,
+                    130,
+                    104,
+                    107,
+                    395,
+                    671,
+                    370,
+                    502,
+                    88,
+                    189,
+                    383
+                ],
+                "array": [
+                    96,
+                    99,
+                    95
+                ],
+                "pyarrow.Array": [
+                    95
+                ],
+                "pyarrow": [
+                    95
+                ],
+                "chunks": [
+                    96,
+                    99,
+                    102
+                ],
+                "array.chunks": [
+                    99
+                ],
+                "results": [
+                    105,
+                    107,
+                    101
+                ],
+                "arr": [
+                    102,
+                    103
+                ],
+                "data": [
+                    548,
+                    103,
+                    104,
+                    457,
+                    456,
+                    488,
+                    489,
+                    490,
+                    554,
+                    557
+                ],
+                "mask": [
+                    384,
+                    129,
+                    130,
+                    640,
+                    645,
+                    647,
+                    520,
+                    649,
+                    394,
+                    397,
+                    661,
+                    662,
+                    537,
+                    410,
+                    538,
+                    540,
+                    665,
+                    414,
+                    542,
+                    417,
+                    549,
+                    557,
+                    190,
+                    196,
+                    197,
+                    333,
+                    591,
+                    594,
+                    341,
+                    344,
+                    220,
+                    221,
+                    223,
+                    227,
+                    503,
+                    103,
+                    104,
+                    631,
+                    240,
+                    242,
+                    627,
+                    500,
+                    629,
+                    247,
+                    635,
+                    380,
+                    638
+                ],
+                "pyarrow_array_to_numpy_and_mask": [
+                    103
+                ],
+                "int_arr": [
+                    104,
+                    105
+                ],
+                "data.copy": [
+                    104
+                ],
+                "results.append": [
+                    105
+                ],
+                "IntegerArray._concat_same_type": [
+                    107
+                ],
+                "values": [
+                    129,
+                    130,
+                    142,
+                    145,
+                    146,
+                    150,
+                    171,
+                    172,
+                    173,
+                    189,
+                    190,
+                    192,
+                    195,
+                    197,
+                    199,
+                    200,
+                    201,
+                    328,
+                    203,
+                    204,
+                    212,
+                    340,
+                    214,
+                    215,
+                    343,
+                    217,
+                    218,
+                    221,
+                    223,
+                    225,
+                    357,
+                    241,
+                    242,
+                    243,
+                    245,
+                    247
+                ],
+                "coerce_to_array": [
+                    129,
+                    410
+                ],
+                "dtype": [
+                    129,
+                    142,
+                    145,
+                    150,
+                    171,
+                    173,
+                    175,
+                    176,
+                    177,
+                    181,
+                    183,
+                    185,
+                    187,
+                    445,
+                    446,
+                    191,
+                    192,
+                    450,
+                    456,
+                    457,
+                    214,
+                    348,
+                    353,
+                    231,
+                    232,
+                    234,
+                    243,
+                    245
+                ],
+                "copy": [
+                    129,
+                    194,
+                    353,
+                    199,
+                    142,
+                    145,
+                    339,
+                    215,
+                    348
+                ],
+                "values.astype": [
+                    192,
+                    145,
+                    142
+                ],
+                "casted": [
+                    145,
+                    146,
+                    147
+                ],
+                "values.dtype": [
+                    328,
+                    172,
+                    173,
+                    212,
+                    150,
+                    218
+                ],
+                "is_integer_dtype": [
+                    328,
+                    393,
+                    619,
+                    172,
+                    214,
+                    217
+                ],
+                "dtype.startswith": [
+                    177
+                ],
+                "dtype.lower": [
+                    181
+                ],
+                "_IntegerDtype": [
+                    768,
+                    708,
+                    744,
+                    780,
+                    720,
+                    756,
+                    183,
+                    696,
+                    732,
+                    445
+                ],
+                "_dtypes": [
+                    185,
+                    789,
+                    325
+                ],
+                "values._data": [
+                    190
+                ],
+                "values._mask": [
+                    190
+                ],
+                "dtype.numpy_dtype": [
+                    192,
+                    446
+                ],
+                "values.copy": [
+                    241,
+                    195,
+                    340
+                ],
+                "mask.copy": [
+                    394,
+                    196,
+                    341
+                ],
+                "np.array": [
+                    215,
+                    199
+                ],
+                "is_object_dtype": [
+                    200
+                ],
+                "inferred_type": [
+                    201,
+                    202,
+                    205
+                ],
+                "lib.infer_dtype": [
+                    201
+                ],
+                "lib": [
+                    201
+                ],
+                "np.empty": [
+                    203
+                ],
+                "values.fill": [
+                    204
+                ],
+                "np.nan": [
+                    452,
+                    554,
+                    204,
+                    397,
+                    591,
+                    473
+                ],
+                "is_bool_dtype": [
+                    333,
+                    214
+                ],
+                "is_float_dtype": [
+                    217,
+                    450,
+                    619,
+                    588
+                ],
+                "isna": [
+                    221
+                ],
+                "values.ndim": [
+                    225
+                ],
+                "mask.ndim": [
+                    227
+                ],
+                "dtype.type": [
+                    234
+                ],
+                "mask.any": [
+                    240
+                ],
+                "safe_cast": [
+                    243,
+                    245
+                ],
+                "BaseMaskedArray": [
+                    250
+                ],
+                "_internal_fill_value": [
+                    321
+                ],
+                "self._data.dtype": [
+                    325
+                ],
+                "self._data": [
+                    416,
+                    548,
+                    325,
+                    519,
+                    488,
+                    520,
+                    649,
+                    652,
+                    655,
+                    530,
+                    468,
+                    534,
+                    343,
+                    635,
+                    446
+                ],
+                "np.ndarray": [
+                    359,
+                    328,
+                    460,
+                    333,
+                    470,
+                    475
+                ],
+                "mask.dtype": [
+                    333
+                ],
+                "self._mask": [
+                    417,
+                    549,
+                    489,
+                    649,
+                    627,
+                    631,
+                    344,
+                    538,
+                    635,
+                    540,
+                    447
+                ],
+                "integer_array": [
+                    348,
+                    357
+                ],
+                "scalars": [
+                    352,
+                    353,
+                    348
+                ],
+                "to_numeric": [
+                    352
+                ],
+                "strings": [
+                    352
+                ],
+                "cls._from_sequence": [
+                    353
+                ],
+                "cls": [
+                    353,
+                    668,
+                    545
+                ],
+                "original.dtype": [
+                    357
+                ],
+                "original": [
+                    357
+                ],
+                "_HANDLED_TYPES": [
+                    359
+                ],
+                "numbers.Number": [
+                    359
+                ],
+                "numbers": [
+                    359
+                ],
+                "method": [
+                    364,
+                    400,
+                    530,
+                    531,
+                    375
+                ],
+                "out": [
+                    369,
+                    367
+                ],
+                "kwargs.get": [
+                    367
+                ],
+                "kwargs": [
+                    452,
+                    454,
+                    456,
+                    557,
+                    367,
+                    400,
+                    375
+                ],
+                "x": [
+                    384,
+                    385,
+                    387,
+                    393,
+                    395,
+                    397,
+                    398,
+                    369,
+                    370,
+                    402,
+                    382,
+                    383
+                ],
+                "inputs": [
+                    369,
+                    382,
+                    375
+                ],
+                "self._HANDLED_TYPES": [
+                    370
+                ],
+                "result": [
+                    519,
+                    652,
+                    655,
+                    400,
+                    401,
+                    402,
+                    531,
+                    404,
+                    533,
+                    534,
+                    659,
+                    665,
+                    542,
+                    557,
+                    559,
+                    569,
+                    570,
+                    571,
+                    573,
+                    446,
+                    447,
+                    591,
+                    592,
+                    594,
+                    374,
+                    377,
+                    378
+                ],
+                "ops.maybe_dispatch_ufunc_to_dunder_op": [
+                    374
+                ],
+                "ops": [
+                    374
+                ],
+                "ufunc": [
+                    400,
+                    375
+                ],
+                "np.zeros": [
+                    380,
+                    519
+                ],
+                "inputs2": [
+                    400,
+                    385,
+                    387,
+                    381
+                ],
+                "x._mask": [
+                    384
+                ],
+                "inputs2.append": [
+                    385,
+                    387
+                ],
+                "x._data": [
+                    385
+                ],
+                "x.dtype": [
+                    393
+                ],
+                "m": [
+                    394,
+                    395
+                ],
+                "reconstruct": [
+                    402,
+                    404
+                ],
+                "_is_scalar": [
+                    408,
+                    412,
+                    407
+                ],
+                "is_scalar": [
+                    407
+                ],
+                "value": [
+                    416,
+                    407,
+                    409,
+                    410,
+                    413
+                ],
+                "self.dtype": [
+                    410
+                ],
+                "key": [
+                    416,
+                    417
+                ],
+                "self._data.astype": [
+                    446
+                ],
+                "self.to_numpy": [
+                    456,
+                    473,
+                    554
+                ],
+                "astype_nansafe": [
+                    457
+                ],
+                "Tuple": [
+                    470
+                ],
+                "Any": [
+                    470
+                ],
+                "self._data.copy": [
+                    488
+                ],
+                "data.min": [
+                    489
+                ],
+                "op_name": [
+                    642,
+                    589,
+                    494,
+                    530,
+                    658,
+                    665,
+                    598,
+                    633
+                ],
+                "op.__name__": [
+                    544,
+                    494,
+                    496,
+                    598,
+                    600,
+                    667
+                ],
+                "op": [
+                    544,
+                    556,
+                    557,
+                    494,
+                    655,
+                    496,
+                    534,
+                    598,
+                    600,
+                    667
+                ],
+                "other": [
+                    640,
+                    514,
+                    645,
+                    646,
+                    647,
+                    651,
+                    639,
+                    655,
+                    531,
+                    661,
+                    534,
+                    662,
+                    665,
+                    588,
+                    605,
+                    608,
+                    609,
+                    611,
+                    612,
+                    613,
+                    617,
+                    619,
+                    623,
+                    628,
+                    502,
+                    503,
+                    505,
+                    506,
+                    507,
+                    638,
+                    511
+                ],
+                "BooleanArray": [
+                    502,
+                    542
+                ],
+                "other._data": [
+                    609,
+                    503
+                ],
+                "other._mask": [
+                    609,
+                    503
+                ],
+                "is_list_like": [
+                    505,
+                    611
+                ],
+                "np.asarray": [
+                    506,
+                    612
+                ],
+                "other.ndim": [
+                    507,
+                    613
+                ],
+                "self._data.shape": [
+                    520,
+                    519
+                ],
+                "np.ones": [
+                    520
+                ],
+                "warnings.catch_warnings": [
+                    522
+                ],
+                "warnings": [
+                    528,
+                    522
+                ],
+                "warnings.filterwarnings": [
+                    528
+                ],
+                "np.errstate": [
+                    529,
+                    654
+                ],
+                "invalid_comparison": [
+                    534
+                ],
+                "self._mask.copy": [
+                    538,
+                    627
+                ],
+                "unpack_zerodim_and_defer": [
+                    496,
+                    600
+                ],
+                "set_function_name": [
+                    545,
+                    668
+                ],
+                "cmp_method": [
+                    545
+                ],
+                "self._hasna": [
+                    553
+                ],
+                "nanops": [
+                    556
+                ],
+                "skipna": [
+                    557
+                ],
+                "np.isnan": [
+                    559
+                ],
+                "int_result": [
+                    569,
+                    570,
+                    571
+                ],
+                "is_float": [
+                    588,
+                    623
+                ],
+                "omask": [
+                    609,
+                    644,
+                    645,
+                    626,
+                    631,
+                    603,
+                    637,
+                    638
+                ],
+                "is_integer": [
+                    623
+                ],
+                "np.where": [
+                    640,
+                    645,
+                    647,
+                    649,
+                    635,
+                    638
+                ],
+                "np.ones_like": [
+                    652
+                ],
+                "div": [
+                    659,
+                    661
+                ],
+                "mod": [
+                    659,
+                    662
+                ],
+                "self._maybe_mask_result": [
+                    665,
+                    661,
+                    662
+                ],
+                "integer_arithmetic_method": [
+                    668
+                ],
+                "IntegerArray._add_arithmetic_ops": [
+                    671
+                ],
+                "IntegerArray._add_comparison_ops": [
+                    672
+                ],
+                "_dtype_docstring": [
+                    736,
+                    675,
+                    772,
+                    712,
+                    748,
+                    784,
+                    724,
+                    760,
+                    700
+                ],
+                "Int8Dtype": [
+                    693,
+                    790
+                ],
+                "register_extension_dtype": [
+                    705,
+                    741,
+                    777,
+                    717,
+                    753,
+                    693,
+                    729,
+                    765
+                ],
+                "np.int8": [
+                    698
+                ],
+                "_dtype_docstring.format": [
+                    736,
+                    772,
+                    712,
+                    748,
+                    784,
+                    724,
+                    760,
+                    700
+                ],
+                "Int16Dtype": [
+                    705,
+                    791
+                ],
+                "np.int16": [
+                    710
+                ],
+                "Int32Dtype": [
+                    792,
+                    717
+                ],
+                "np.int32": [
+                    722
+                ],
+                "Int64Dtype": [
+                    729,
+                    793
+                ],
+                "np.int64": [
+                    734
+                ],
+                "UInt8Dtype": [
+                    794,
+                    741
+                ],
+                "np.uint8": [
+                    746
+                ],
+                "UInt16Dtype": [
+                    753,
+                    795
+                ],
+                "np.uint16": [
+                    758
+                ],
+                "UInt32Dtype": [
+                    796,
+                    765
+                ],
+                "np.uint32": [
+                    770
+                ],
+                "UInt64Dtype": [
+                    777,
+                    797
+                ],
+                "np.uint64": [
+                    782
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_81/pandas/tests/arrays/test_integer.py",
+                "test_function": "test_astype_boolean",
+                "test_function_code": "    def test_astype_boolean(self):\n        # https://github.com/pandas-dev/pandas/issues/31102\n        a = pd.array([1, 0, -1, 2, None], dtype=\"Int64\")\n        result = a.astype(\"boolean\")\n        expected = pd.array([True, False, True, True, None], dtype=\"boolean\")\n        tm.assert_extension_array_equal(result, expected)",
+                "test_error": "ValueError: cannot convert to 'boolean'-dtype NumPy array with missing values. Specify an appropriate 'na_value' for this dtype.",
+                "full_test_error": "self = <pandas.tests.arrays.test_integer.TestCasting object at 0x119caeee0>\n\n    def test_astype_boolean(self):\n        # https://github.com/pandas-dev/pandas/issues/31102\n        a = pd.array([1, 0, -1, 2, None], dtype=\"Int64\")\n>       result = a.astype(\"boolean\")\n\npandas/tests/arrays/test_integer.py:686: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/arrays/integer.py:456: in astype\n    data = self.to_numpy(dtype=dtype, **kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64\ndtype = 'boolean', copy = False, na_value = <NA>\n\n    def to_numpy(\n        self, dtype=None, copy=False, na_value: \"Scalar\" = lib.no_default,\n    ):\n        \"\"\"\n        Convert to a NumPy Array.\n    \n        By default converts to an object-dtype NumPy array. Specify the `dtype` and\n        `na_value` keywords to customize the conversion.\n    \n        Parameters\n        ----------\n        dtype : dtype, default object\n            The numpy dtype to convert to.\n        copy : bool, default False\n            Whether to ensure that the returned value is a not a view on\n            the array. Note that ``copy=False`` does not *ensure* that\n            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that\n            a copy is made, even if not strictly necessary. This is typically\n            only possible when no missing values are present and `dtype`\n            is the equivalent numpy dtype.\n        na_value : scalar, optional\n             Scalar missing value indicator to use in numpy array. Defaults\n             to the native missing value indicator of this array (pd.NA).\n    \n        Returns\n        -------\n        numpy.ndarray\n    \n        Examples\n        --------\n        An object-dtype is the default result\n    \n        >>> a = pd.array([True, False, pd.NA], dtype=\"boolean\")\n        >>> a.to_numpy()\n        array([True, False, NA], dtype=object)\n    \n        When no missing values are present, an equivalent dtype can be used.\n    \n        >>> pd.array([True, False], dtype=\"boolean\").to_numpy(dtype=\"bool\")\n        array([ True, False])\n        >>> pd.array([1, 2], dtype=\"Int64\").to_numpy(\"int64\")\n        array([1, 2])\n    \n        However, requesting such dtype will raise a ValueError if\n        missing values are present and the default missing value :attr:`NA`\n        is used.\n    \n        >>> a = pd.array([True, False, pd.NA], dtype=\"boolean\")\n        >>> a\n        <BooleanArray>\n        [True, False, NA]\n        Length: 3, dtype: boolean\n    \n        >>> a.to_numpy(dtype=\"bool\")\n        Traceback (most recent call last):\n        ...\n        ValueError: cannot convert to bool numpy array in presence of missing values\n    \n        Specify a valid `na_value` instead\n    \n        >>> a.to_numpy(dtype=\"bool\", na_value=False)\n        array([ True, False, False])\n        \"\"\"\n        if na_value is lib.no_default:\n            na_value = libmissing.NA\n        if dtype is None:\n            dtype = object\n        if self._hasna:\n            if (\n                not (is_object_dtype(dtype) or is_string_dtype(dtype))\n                and na_value is libmissing.NA\n            ):\n>               raise ValueError(\n                    f\"cannot convert to '{dtype}'-dtype NumPy array \"\n                    \"with missing values. Specify an appropriate 'na_value' \"\n                    \"for this dtype.\"\n                )\nE               ValueError: cannot convert to 'boolean'-dtype NumPy array with missing values. Specify an appropriate 'na_value' for this dtype.\n\npandas/core/arrays/masked.py:125: ValueError",
+                "traceback": "pandas/core/arrays/integer.py:456: in astype\n    data = self.to_numpy(dtype=dtype, **kwargs)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64\ndtype = 'boolean', copy = False, na_value = <NA>\n\n    def to_numpy(\n        self, dtype=None, copy=False, na_value: \"Scalar\" = lib.no_default,\n    ):\n        \"\"\"\n        Convert to a NumPy Array.\n    \n        By default converts to an object-dtype NumPy array. Specify the `dtype` and\n        `na_value` keywords to customize the conversion.\n    \n        Parameters\n        ----------\n        dtype : dtype, default object\n            The numpy dtype to convert to.\n        copy : bool, default False\n            Whether to ensure that the returned value is a not a view on\n            the array. Note that ``copy=False`` does not *ensure* that\n            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that\n            a copy is made, even if not strictly necessary. This is typically\n            only possible when no missing values are present and `dtype`\n            is the equivalent numpy dtype.\n        na_value : scalar, optional\n             Scalar missing value indicator to use in numpy array. Defaults\n             to the native missing value indicator of this array (pd.NA).\n    \n        Returns\n        -------\n        numpy.ndarray\n    \n        Examples\n        --------\n        An object-dtype is the default result\n    \n        >>> a = pd.array([True, False, pd.NA], dtype=\"boolean\")\n        >>> a.to_numpy()\n        array([True, False, NA], dtype=object)\n    \n        When no missing values are present, an equivalent dtype can be used.\n    \n        >>> pd.array([True, False], dtype=\"boolean\").to_numpy(dtype=\"bool\")\n        array([ True, False])\n        >>> pd.array([1, 2], dtype=\"Int64\").to_numpy(\"int64\")\n        array([1, 2])\n    \n        However, requesting such dtype will raise a ValueError if\n        missing values are present and the default missing value :attr:`NA`\n        is used.\n    \n        >>> a = pd.array([True, False, pd.NA], dtype=\"boolean\")\n        >>> a\n        <BooleanArray>\n        [True, False, NA]\n        Length: 3, dtype: boolean\n    \n        >>> a.to_numpy(dtype=\"bool\")\n        Traceback (most recent call last):\n        ...\n        ValueError: cannot convert to bool numpy array in presence of missing values\n    \n        Specify a valid `na_value` instead\n    \n        >>> a.to_numpy(dtype=\"bool\", na_value=False)\n        array([ True, False, False])\n        \"\"\"\n        if na_value is lib.no_default:\n            na_value = libmissing.NA\n        if dtype is None:\n            dtype = object\n        if self._hasna:\n            if (\n                not (is_object_dtype(dtype) or is_string_dtype(dtype))\n                and na_value is libmissing.NA\n            ):\n>               raise ValueError(\n                    f\"cannot convert to '{dtype}'-dtype NumPy array \"\n                    \"with missing values. Specify an appropriate 'na_value' \"\n                    \"for this dtype.\"\n                )\nE               ValueError: cannot convert to 'boolean'-dtype NumPy array with missing values. Specify an appropriate 'na_value' for this dtype.\n\npandas/core/arrays/masked.py:125: ValueError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

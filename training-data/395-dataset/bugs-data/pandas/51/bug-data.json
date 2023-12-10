@@ -1,0 +1,2502 @@
+{
+    "pandas:51": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_51/pandas/core/indexes/category.py": {
+            "buggy_functions": [],
+            "snippets": [
+                {
+                    "snippet_code": "import pandas.core.missing as missing",
+                    "start_line": 31,
+                    "end_line": 32
+                }
+            ],
+            "inscope_functions": [
+                "@property\ndef _engine_type(self):\n    # self.codes can have dtype int8, int16, int32 or int64, so we need\n    # to return the corresponding engine type (libindex.Int8Engine, etc.).\n    return {\n        np.int8: libindex.Int8Engine,\n        np.int16: libindex.Int16Engine,\n        np.int32: libindex.Int32Engine,\n        np.int64: libindex.Int64Engine,\n    }[self.codes.dtype.type]",
+                "def __new__(\n    cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None\n):\n\n    dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)\n\n    name = maybe_extract_name(name, data, cls)\n\n    if not is_categorical_dtype(data):\n        # don't allow scalars\n        # if data is None, then categories must be provided\n        if is_scalar(data):\n            if data is not None or categories is None:\n                raise cls._scalar_data_error(data)\n            data = []\n\n    assert isinstance(dtype, CategoricalDtype), dtype\n    if not isinstance(data, Categorical) or data.dtype != dtype:\n        data = Categorical(data, dtype=dtype)\n\n    data = data.copy() if copy else data\n\n    return cls._simple_new(data, name=name)",
+                "def _create_from_codes(self, codes, dtype=None, name=None):\n    \"\"\"\n    *this is an internal non-public method*\n\n    create the correct categorical from codes\n\n    Parameters\n    ----------\n    codes : new codes\n    dtype: CategoricalDtype, defaults to existing\n    name : optional name attribute, defaults to existing\n\n    Returns\n    -------\n    CategoricalIndex\n    \"\"\"\n    if dtype is None:\n        dtype = self.dtype\n    if name is None:\n        name = self.name\n    cat = Categorical.from_codes(codes, dtype=dtype)\n    return CategoricalIndex(cat, name=name)",
+                "@classmethod\ndef _simple_new(cls, values: Categorical, name: Label = None):\n    assert isinstance(values, Categorical), type(values)\n    result = object.__new__(cls)\n\n    result._data = values\n    result.name = name\n\n    result._reset_identity()\n    result._no_setting_name = False\n    return result",
+                "@Appender(Index._shallow_copy.__doc__)\ndef _shallow_copy(self, values=None, name: Label = no_default):\n    name = self.name if name is no_default else name\n\n    if values is None:\n        values = self.values\n\n    cat = Categorical(values, dtype=self.dtype)\n\n    return type(self)._simple_new(cat, name=name)",
+                "def _is_dtype_compat(self, other) -> bool:\n    \"\"\"\n    *this is an internal non-public method*\n\n    provide a comparison between the dtype of self and other (coercing if\n    needed)\n\n    Raises\n    ------\n    TypeError if the dtypes are not compatible\n    \"\"\"\n    if is_categorical_dtype(other):\n        if isinstance(other, CategoricalIndex):\n            other = other._values\n        if not other.is_dtype_equal(self):\n            raise TypeError(\n                \"categories must match existing categories when appending\"\n            )\n    else:\n        values = other\n        if not is_list_like(values):\n            values = [values]\n        cat = Categorical(other, dtype=self.dtype)\n        other = CategoricalIndex(cat)\n        if not other.isin(values).all():\n            raise TypeError(\n                \"cannot append a non-category item to a CategoricalIndex\"\n            )\n\n    return other",
+                "def equals(self, other) -> bool:\n    \"\"\"\n    Determine if two CategoricalIndex objects contain the same elements.\n\n    Returns\n    -------\n    bool\n        If two CategoricalIndex objects have equal elements True,\n        otherwise False.\n    \"\"\"\n    if self.is_(other):\n        return True\n\n    if not isinstance(other, Index):\n        return False\n\n    try:\n        other = self._is_dtype_compat(other)\n        if isinstance(other, type(self)):\n            other = other._data\n        return self._data.equals(other)\n    except (TypeError, ValueError):\n        pass\n\n    return False",
+                "@property\ndef _formatter_func(self):\n    return self.categories._formatter_func",
+                "def _format_attrs(self):\n    \"\"\"\n    Return a list of tuples of the (attr,formatted_value)\n    \"\"\"\n    max_categories = (\n        10\n        if get_option(\"display.max_categories\") == 0\n        else get_option(\"display.max_categories\")\n    )\n    attrs = [\n        (\n            \"categories\",\n            ibase.default_pprint(self.categories, max_seq_items=max_categories),\n        ),\n        (\"ordered\", self.ordered),\n    ]\n    if self.name is not None:\n        attrs.append((\"name\", ibase.default_pprint(self.name)))\n    attrs.append((\"dtype\", f\"'{self.dtype.name}'\"))\n    max_seq_items = get_option(\"display.max_seq_items\") or len(self)\n    if len(self) > max_seq_items:\n        attrs.append((\"length\", len(self)))\n    return attrs",
+                "@property\ndef inferred_type(self) -> str:\n    return \"categorical\"",
+                "@property\ndef values(self):\n    \"\"\" return the underlying data, which is a Categorical \"\"\"\n    return self._data",
+                "@property\ndef _has_complex_internals(self) -> bool:\n    # used to avoid libreduction code paths, which raise or require conversion\n    return True",
+                "@Appender(Index.__contains__.__doc__)\ndef __contains__(self, key: Any) -> bool:\n    # if key is a NaN, check if any NaN is in self.\n    if is_scalar(key) and isna(key):\n        return self.hasnans\n\n    hash(key)\n    return contains(self, key, container=self._engine)",
+                "def __array__(self, dtype=None) -> np.ndarray:\n    \"\"\" the array interface, return my values \"\"\"\n    return np.array(self._data, dtype=dtype)",
+                "@Appender(Index.astype.__doc__)\ndef astype(self, dtype, copy=True):\n    if is_interval_dtype(dtype):\n        from pandas import IntervalIndex\n\n        return IntervalIndex(np.array(self))\n    elif is_categorical_dtype(dtype):\n        # GH 18630\n        dtype = self.dtype.update_dtype(dtype)\n        if dtype == self.dtype:\n            return self.copy() if copy else self\n\n    return Index.astype(self, dtype=dtype, copy=copy)",
+                "@cache_readonly\ndef _isnan(self):\n    \"\"\" return if each value is nan\"\"\"\n    return self._data.codes == -1",
+                "@Appender(Index.fillna.__doc__)\ndef fillna(self, value, downcast=None):\n    self._assert_can_do_op(value)\n    return CategoricalIndex(self._data.fillna(value), name=self.name)",
+                "@cache_readonly\ndef _engine(self):\n    # we are going to look things up with the codes themselves.\n    # To avoid a reference cycle, bind `codes` to a local variable, so\n    # `self` is not passed into the lambda.\n    codes = self.codes\n    return self._engine_type(lambda: codes, len(self))",
+                "@Appender(Index.unique.__doc__)\ndef unique(self, level=None):\n    if level is not None:\n        self._validate_index_level(level)\n    result = self.values.unique()\n    # Use _simple_new instead of _shallow_copy to ensure we keep dtype\n    #  of result, not self.\n    return type(self)._simple_new(result, name=self.name)",
+                "@Appender(Index.duplicated.__doc__)\ndef duplicated(self, keep=\"first\"):\n    codes = self.codes.astype(\"i8\")\n    return duplicated_int64(codes, keep)",
+                "def _to_safe_for_reshape(self):\n    \"\"\" convert to object if we are a categorical \"\"\"\n    return self.astype(\"object\")",
+                "def _maybe_cast_indexer(self, key):\n    code = self.categories.get_loc(key)\n    code = self.codes.dtype.type(code)\n    return code",
+                "@Appender(Index.where.__doc__)\ndef where(self, cond, other=None):\n    # TODO: Investigate an alternative implementation with\n    # 1. copy the underlying Categorical\n    # 2. setitem with `cond` and `other`\n    # 3. Rebuild CategoricalIndex.\n    if other is None:\n        other = self._na_value\n    values = np.where(cond, self.values, other)\n    cat = Categorical(values, dtype=self.dtype)\n    return type(self)._simple_new(cat, name=self.name)",
+                "def reindex(self, target, method=None, level=None, limit=None, tolerance=None):\n    \"\"\"\n    Create index with target's values (move/add/delete values as necessary)\n\n    Returns\n    -------\n    new_index : pd.Index\n        Resulting index\n    indexer : np.ndarray or None\n        Indices of output values in original index\n\n    \"\"\"\n    if method is not None:\n        raise NotImplementedError(\n            \"argument method is not implemented for CategoricalIndex.reindex\"\n        )\n    if level is not None:\n        raise NotImplementedError(\n            \"argument level is not implemented for CategoricalIndex.reindex\"\n        )\n    if limit is not None:\n        raise NotImplementedError(\n            \"argument limit is not implemented for CategoricalIndex.reindex\"\n        )\n\n    target = ibase.ensure_index(target)\n\n    missing: List[int]\n    if self.equals(target):\n        indexer = None\n        missing = []\n    else:\n        indexer, missing = self.get_indexer_non_unique(np.array(target))\n\n    if len(self.codes) and indexer is not None:\n        new_target = self.take(indexer)\n    else:\n        new_target = target\n\n    # filling in missing if needed\n    if len(missing):\n        cats = self.categories.get_indexer(target)\n\n        if (cats == -1).any():\n            # coerce to a regular index here!\n            result = Index(np.array(self), name=self.name)\n            new_target, indexer, _ = result._reindex_non_unique(np.array(target))\n        else:\n\n            codes = new_target.codes.copy()\n            codes[indexer == -1] = cats[missing]\n            new_target = self._create_from_codes(codes)\n\n    # we always want to return an Index type here\n    # to be consistent with .reindex for other index types (e.g. they don't\n    # coerce based on the actual values, only on the dtype)\n    # unless we had an initial Categorical to begin with\n    # in which case we are going to conform to the passed Categorical\n    new_target = np.asarray(new_target)\n    if is_categorical_dtype(target):\n        new_target = target._shallow_copy(new_target, name=self.name)\n    else:\n        new_target = Index(new_target, name=self.name)\n\n    return new_target, indexer",
+                "def _reindex_non_unique(self, target):\n    \"\"\"\n    reindex from a non-unique; which CategoricalIndex's are almost\n    always\n    \"\"\"\n    new_target, indexer = self.reindex(target)\n    new_indexer = None\n\n    check = indexer == -1\n    if check.any():\n        new_indexer = np.arange(len(self.take(indexer)))\n        new_indexer[check] = -1\n\n    cats = self.categories.get_indexer(target)\n    if not (cats == -1).any():\n        # .reindex returns normal Index. Revert to CategoricalIndex if\n        # all targets are included in my categories\n        new_target = self._shallow_copy(new_target)\n\n    return new_target, indexer, new_indexer",
+                "@Appender(_index_shared_docs[\"get_indexer\"] % _index_doc_kwargs)\ndef get_indexer(self, target, method=None, limit=None, tolerance=None):\n    method = missing.clean_reindex_fill_method(method)\n    target = ibase.ensure_index(target)\n\n    if self.is_unique and self.equals(target):\n        return np.arange(len(self), dtype=\"intp\")\n\n    if method == \"pad\" or method == \"backfill\":\n        raise NotImplementedError(\n            \"method='pad' and method='backfill' not \"\n            \"implemented yet for CategoricalIndex\"\n        )\n    elif method == \"nearest\":\n        raise NotImplementedError(\n            \"method='nearest' not implemented yet for CategoricalIndex\"\n        )\n\n    if isinstance(target, CategoricalIndex) and self.values.is_dtype_equal(target):\n        if self.values.equals(target.values):\n            # we have the same codes\n            codes = target.codes\n        else:\n            codes = _recode_for_categories(\n                target.codes, target.categories, self.values.categories\n            )\n    else:\n        if isinstance(target, CategoricalIndex):\n            code_indexer = self.categories.get_indexer(target.categories)\n            codes = take_1d(code_indexer, target.codes, fill_value=-1)\n        else:\n            codes = self.categories.get_indexer(target)\n\n    indexer, _ = self._engine.get_indexer_non_unique(codes)\n    return ensure_platform_int(indexer)",
+                "@Appender(_index_shared_docs[\"get_indexer_non_unique\"] % _index_doc_kwargs)\ndef get_indexer_non_unique(self, target):\n    target = ibase.ensure_index(target)\n\n    if isinstance(target, CategoricalIndex):\n        # Indexing on codes is more efficient if categories are the same:\n        if target.categories is self.categories:\n            target = target.codes\n            indexer, missing = self._engine.get_indexer_non_unique(target)\n            return ensure_platform_int(indexer), missing\n        target = target.values\n\n    codes = self.categories.get_indexer(target)\n    indexer, missing = self._engine.get_indexer_non_unique(codes)\n    return ensure_platform_int(indexer), missing",
+                "@Appender(Index._convert_scalar_indexer.__doc__)\ndef _convert_scalar_indexer(self, key, kind: str):\n    assert kind in [\"loc\", \"getitem\"]\n    if kind == \"loc\":\n        try:\n            return self.categories._convert_scalar_indexer(key, kind=\"loc\")\n        except TypeError:\n            self._invalid_indexer(\"label\", key)\n    return super()._convert_scalar_indexer(key, kind=kind)",
+                "@Appender(Index._convert_list_indexer.__doc__)\ndef _convert_list_indexer(self, keyarr):\n    # Return our indexer or raise if all of the values are not included in\n    # the categories\n\n    if self.categories._defer_to_indexing:\n        indexer = self.categories._convert_list_indexer(keyarr)\n        return Index(self.codes).get_indexer_for(indexer)\n\n    indexer = self.categories.get_indexer(np.asarray(keyarr))\n    if (indexer == -1).any():\n        raise KeyError(\n            \"a list-indexer must only include values that are in the categories\"\n        )\n\n    return self.get_indexer(keyarr)",
+                "@Appender(Index._convert_arr_indexer.__doc__)\ndef _convert_arr_indexer(self, keyarr):\n    keyarr = com.asarray_tuplesafe(keyarr)\n\n    if self.categories._defer_to_indexing:\n        return keyarr\n\n    return self._shallow_copy(keyarr)",
+                "@Appender(Index._convert_index_indexer.__doc__)\ndef _convert_index_indexer(self, keyarr):\n    return self._shallow_copy(keyarr)",
+                "def take_nd(self, *args, **kwargs):\n    \"\"\"Alias for `take`\"\"\"\n    warnings.warn(\n        \"CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead\",\n        FutureWarning,\n        stacklevel=2,\n    )\n    return self.take(*args, **kwargs)",
+                "@Appender(Index._maybe_cast_slice_bound.__doc__)\ndef _maybe_cast_slice_bound(self, label, side, kind):\n    if kind == \"loc\":\n        return label\n\n    return super()._maybe_cast_slice_bound(label, side, kind)",
+                "def map(self, mapper):\n    \"\"\"\n    Map values using input correspondence (a dict, Series, or function).\n\n    Maps the values (their categories, not the codes) of the index to new\n    categories. If the mapping correspondence is one-to-one the result is a\n    :class:`~pandas.CategoricalIndex` which has the same order property as\n    the original, otherwise an :class:`~pandas.Index` is returned.\n\n    If a `dict` or :class:`~pandas.Series` is used any unmapped category is\n    mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`\n    will be returned.\n\n    Parameters\n    ----------\n    mapper : function, dict, or Series\n        Mapping correspondence.\n\n    Returns\n    -------\n    pandas.CategoricalIndex or pandas.Index\n        Mapped index.\n\n    See Also\n    --------\n    Index.map : Apply a mapping correspondence on an\n        :class:`~pandas.Index`.\n    Series.map : Apply a mapping correspondence on a\n        :class:`~pandas.Series`.\n    Series.apply : Apply more complex functions on a\n        :class:`~pandas.Series`.\n\n    Examples\n    --------\n    >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])\n    >>> idx\n    CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],\n                     ordered=False, dtype='category')\n    >>> idx.map(lambda x: x.upper())\n    CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],\n                     ordered=False, dtype='category')\n    >>> idx.map({'a': 'first', 'b': 'second', 'c': 'third'})\n    CategoricalIndex(['first', 'second', 'third'], categories=['first',\n                     'second', 'third'], ordered=False, dtype='category')\n\n    If the mapping is one-to-one the ordering of the categories is\n    preserved:\n\n    >>> idx = pd.CategoricalIndex(['a', 'b', 'c'], ordered=True)\n    >>> idx\n    CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],\n                     ordered=True, dtype='category')\n    >>> idx.map({'a': 3, 'b': 2, 'c': 1})\n    CategoricalIndex([3, 2, 1], categories=[3, 2, 1], ordered=True,\n                     dtype='category')\n\n    If the mapping is not one-to-one an :class:`~pandas.Index` is returned:\n\n    >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})\n    Index(['first', 'second', 'first'], dtype='object')\n\n    If a `dict` is used, all unmapped categories are mapped to `NaN` and\n    the result is an :class:`~pandas.Index`:\n\n    >>> idx.map({'a': 'first', 'b': 'second'})\n    Index(['first', 'second', nan], dtype='object')\n    \"\"\"\n    return self._shallow_copy_with_infer(self.values.map(mapper))",
+                "def delete(self, loc):\n    \"\"\"\n    Make new Index with passed location(-s) deleted\n\n    Returns\n    -------\n    new_index : Index\n    \"\"\"\n    return self._create_from_codes(np.delete(self.codes, loc))",
+                "def insert(self, loc: int, item):\n    \"\"\"\n    Make new Index inserting new item at location. Follows\n    Python list.append semantics for negative values\n\n    Parameters\n    ----------\n    loc : int\n    item : object\n\n    Returns\n    -------\n    new_index : Index\n\n    Raises\n    ------\n    ValueError if the item is not in the categories\n\n    \"\"\"\n    code = self.categories.get_indexer([item])\n    if (code == -1) and not (is_scalar(item) and isna(item)):\n        raise TypeError(\n            \"cannot insert an item into a CategoricalIndex \"\n            \"that is not already an existing category\"\n        )\n\n    codes = self.codes\n    codes = np.concatenate((codes[:loc], code, codes[loc:]))\n    return self._create_from_codes(codes)",
+                "def _concat(self, to_concat, name):\n    # if calling index is category, don't check dtype of others\n    return CategoricalIndex._concat_same_dtype(self, to_concat, name)",
+                "def _concat_same_dtype(self, to_concat, name):\n    \"\"\"\n    Concatenate to_concat which has the same class\n    ValueError if other is not in the categories\n    \"\"\"\n    codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])\n    result = self._create_from_codes(codes, name=name)\n    # if name is None, _create_from_codes sets self.name\n    result.name = name\n    return result",
+                "def _delegate_method(self, name: str, *args, **kwargs):\n    \"\"\" method delegation to the ._values \"\"\"\n    method = getattr(self._values, name)\n    if \"inplace\" in kwargs:\n        raise ValueError(\"cannot use inplace with CategoricalIndex\")\n    res = method(*args, **kwargs)\n    if is_scalar(res):\n        return res\n    return CategoricalIndex(res, name=self.name)"
+            ],
+            "inscope_function_signatures": [
+                "_engine_type(self)",
+                "__new__(cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None)",
+                "_create_from_codes(self, codes, dtype=None, name=None)",
+                "_simple_new(cls, values: Categorical, name: Label=None)",
+                "_shallow_copy(self, values=None, name: Label=no_default)",
+                "_is_dtype_compat(self, other) -> bool",
+                "equals(self, other) -> bool",
+                "_formatter_func(self)",
+                "_format_attrs(self)",
+                "inferred_type(self) -> str",
+                "values(self)",
+                "_has_complex_internals(self) -> bool",
+                "__contains__(self, key: Any) -> bool",
+                "__array__(self, dtype=None) -> np.ndarray",
+                "astype(self, dtype, copy=True)",
+                "_isnan(self)",
+                "fillna(self, value, downcast=None)",
+                "_engine(self)",
+                "unique(self, level=None)",
+                "duplicated(self, keep='first')",
+                "_to_safe_for_reshape(self)",
+                "_maybe_cast_indexer(self, key)",
+                "where(self, cond, other=None)",
+                "reindex(self, target, method=None, level=None, limit=None, tolerance=None)",
+                "_reindex_non_unique(self, target)",
+                "get_indexer(self, target, method=None, limit=None, tolerance=None)",
+                "get_indexer_non_unique(self, target)",
+                "_convert_scalar_indexer(self, key, kind: str)",
+                "_convert_list_indexer(self, keyarr)",
+                "_convert_arr_indexer(self, keyarr)",
+                "_convert_index_indexer(self, keyarr)",
+                "take_nd(self, *args, **kwargs)",
+                "_maybe_cast_slice_bound(self, label, side, kind)",
+                "map(self, mapper)",
+                "delete(self, loc)",
+                "insert(self, loc: int, item)",
+                "_concat(self, to_concat, name)",
+                "_concat_same_dtype(self, to_concat, name)",
+                "_delegate_method(self, name: str, *args, **kwargs)"
+            ],
+            "variables_in_file": {
+                "_index_doc_kwargs": [
+                    560,
+                    33,
+                    34,
+                    524
+                ],
+                "dict": [
+                    33,
+                    34
+                ],
+                "ibase._index_doc_kwargs": [
+                    33
+                ],
+                "ibase": [
+                    33,
+                    329,
+                    462,
+                    334,
+                    527,
+                    562
+                ],
+                "_index_doc_kwargs.update": [
+                    34
+                ],
+                "ExtensionIndex": [
+                    68
+                ],
+                "accessor.PandasDelegate": [
+                    68
+                ],
+                "accessor": [
+                    68,
+                    53
+                ],
+                "_typ": [
+                    159
+                ],
+                "codes": [
+                    399,
+                    400,
+                    413,
+                    414,
+                    161,
+                    545,
+                    547,
+                    553,
+                    555,
+                    557,
+                    572,
+                    573,
+                    225,
+                    737,
+                    738,
+                    739,
+                    486,
+                    487,
+                    488,
+                    750,
+                    751
+                ],
+                "np.ndarray": [
+                    161,
+                    366
+                ],
+                "np": [
+                    513,
+                    530,
+                    161,
+                    170,
+                    171,
+                    172,
+                    173,
+                    433,
+                    709,
+                    595,
+                    469,
+                    482,
+                    483,
+                    738,
+                    366,
+                    495,
+                    368,
+                    750,
+                    375
+                ],
+                "categories": [
+                    185,
+                    162,
+                    193
+                ],
+                "Index": [
+                    576,
+                    162,
+                    482,
+                    612,
+                    357,
+                    389,
+                    297,
+                    425,
+                    586,
+                    593,
+                    242,
+                    370,
+                    402,
+                    499,
+                    625,
+                    603,
+                    411,
+                    382
+                ],
+                "_data": [
+                    163
+                ],
+                "Categorical": [
+                    225,
+                    163,
+                    229,
+                    198,
+                    199,
+                    230,
+                    434,
+                    275,
+                    51,
+                    54,
+                    249
+                ],
+                "np.int8": [
+                    170
+                ],
+                "np.int16": [
+                    171
+                ],
+                "np.int32": [
+                    172
+                ],
+                "np.int64": [
+                    173
+                ],
+                "libindex.Int8Engine": [
+                    170
+                ],
+                "libindex": [
+                    170,
+                    171,
+                    172,
+                    173
+                ],
+                "libindex.Int16Engine": [
+                    171
+                ],
+                "libindex.Int32Engine": [
+                    172
+                ],
+                "libindex.Int64Engine": [
+                    173
+                ],
+                "self.codes.dtype.type": [
+                    422,
+                    174
+                ],
+                "self.codes.dtype": [
+                    422,
+                    174
+                ],
+                "self.codes": [
+                    737,
+                    709,
+                    422,
+                    174,
+                    399,
+                    593,
+                    471,
+                    413
+                ],
+                "self": [
+                    513,
+                    516,
+                    520,
+                    529,
+                    530,
+                    542,
+                    543,
+                    548,
+                    552,
+                    555,
+                    557,
+                    566,
+                    568,
+                    572,
+                    573,
+                    581,
+                    583,
+                    591,
+                    592,
+                    593,
+                    595,
+                    601,
+                    607,
+                    610,
+                    614,
+                    623,
+                    174,
+                    699,
+                    709,
+                    730,
+                    222,
+                    224,
+                    737,
+                    739,
+                    743,
+                    750,
+                    751,
+                    244,
+                    758,
+                    247,
+                    249,
+                    251,
+                    764,
+                    267,
+                    275,
+                    294,
+                    301,
+                    302,
+                    304,
+                    315,
+                    329,
+                    331,
+                    333,
+                    334,
+                    335,
+                    336,
+                    337,
+                    338,
+                    350,
+                    361,
+                    364,
+                    368,
+                    375,
+                    378,
+                    379,
+                    380,
+                    382,
+                    387,
+                    391,
+                    392,
+                    399,
+                    400,
+                    405,
+                    406,
+                    409,
+                    413,
+                    418,
+                    421,
+                    422,
+                    432,
+                    433,
+                    434,
+                    435,
+                    465,
+                    469,
+                    471,
+                    472,
+                    478,
+                    482,
+                    488,
+                    497,
+                    499,
+                    508
+                ],
+                "property": [
+                    352,
+                    165,
+                    343,
+                    313,
+                    347
+                ],
+                "_attributes": [
+                    176
+                ],
+                "dtype": [
+                    225,
+                    382,
+                    197,
+                    198,
+                    199,
+                    368,
+                    372,
+                    376,
+                    185,
+                    378,
+                    379,
+                    221,
+                    222
+                ],
+                "CategoricalDtype._from_values_or_dtype": [
+                    185
+                ],
+                "CategoricalDtype": [
+                    185,
+                    197
+                ],
+                "data": [
+                    192,
+                    193,
+                    194,
+                    195,
+                    198,
+                    199,
+                    201,
+                    203,
+                    185,
+                    187,
+                    189
+                ],
+                "ordered": [
+                    185
+                ],
+                "name": [
+                    224,
+                    226,
+                    743,
+                    234,
+                    203,
+                    251,
+                    751,
+                    753,
+                    244,
+                    758,
+                    187,
+                    223
+                ],
+                "maybe_extract_name": [
+                    187
+                ],
+                "cls": [
+                    194,
+                    187,
+                    203,
+                    231
+                ],
+                "is_categorical_dtype": [
+                    264,
+                    496,
+                    376,
+                    189
+                ],
+                "is_scalar": [
+                    192,
+                    762,
+                    731,
+                    360
+                ],
+                "cls._scalar_data_error": [
+                    194
+                ],
+                "isinstance": [
+                    197,
+                    198,
+                    230,
+                    551,
+                    265,
+                    297,
+                    302,
+                    564,
+                    542
+                ],
+                "data.dtype": [
+                    198
+                ],
+                "copy": [
+                    201,
+                    380,
+                    382
+                ],
+                "data.copy": [
+                    201
+                ],
+                "cls._simple_new": [
+                    203
+                ],
+                "self.dtype": [
+                    335,
+                    434,
+                    275,
+                    249,
+                    378,
+                    379,
+                    222
+                ],
+                "self.name": [
+                    224,
+                    482,
+                    392,
+                    333,
+                    334,
+                    497,
+                    435,
+                    244,
+                    499,
+                    409,
+                    764
+                ],
+                "cat": [
+                    225,
+                    226,
+                    434,
+                    275,
+                    276,
+                    435,
+                    249,
+                    251
+                ],
+                "Categorical.from_codes": [
+                    225
+                ],
+                "CategoricalIndex": [
+                    768,
+                    769,
+                    226,
+                    551,
+                    392,
+                    265,
+                    743,
+                    276,
+                    564,
+                    764,
+                    542,
+                    767
+                ],
+                "Label": [
+                    243,
+                    229
+                ],
+                "values": [
+                    230,
+                    233,
+                    272,
+                    273,
+                    274,
+                    433,
+                    434,
+                    277,
+                    246,
+                    247,
+                    249
+                ],
+                "type": [
+                    230,
+                    302,
+                    435,
+                    409,
+                    251
+                ],
+                "result": [
+                    482,
+                    483,
+                    231,
+                    233,
+                    234,
+                    236,
+                    237,
+                    238,
+                    751,
+                    753,
+                    754,
+                    406,
+                    409
+                ],
+                "object.__new__": [
+                    231
+                ],
+                "object": [
+                    231
+                ],
+                "result._data": [
+                    233
+                ],
+                "result.name": [
+                    753,
+                    234
+                ],
+                "result._reset_identity": [
+                    236
+                ],
+                "result._no_setting_name": [
+                    237
+                ],
+                "classmethod": [
+                    228
+                ],
+                "no_default": [
+                    243,
+                    244
+                ],
+                "self.values": [
+                    548,
+                    433,
+                    406,
+                    247,
+                    699,
+                    542,
+                    543
+                ],
+                "_simple_new": [
+                    409,
+                    251,
+                    435
+                ],
+                "Appender": [
+                    576,
+                    612,
+                    357,
+                    389,
+                    425,
+                    586,
+                    524,
+                    560,
+                    625,
+                    242,
+                    402,
+                    370,
+                    603,
+                    411
+                ],
+                "Index._shallow_copy.__doc__": [
+                    242
+                ],
+                "Index._shallow_copy": [
+                    242
+                ],
+                "other": [
+                    294,
+                    264,
+                    265,
+                    266,
+                    267,
+                    297,
+                    301,
+                    302,
+                    303,
+                    272,
+                    304,
+                    431,
+                    275,
+                    276,
+                    277,
+                    432,
+                    433,
+                    282
+                ],
+                "other._values": [
+                    266
+                ],
+                "other.is_dtype_equal": [
+                    267
+                ],
+                "TypeError": [
+                    582,
+                    268,
+                    305,
+                    278,
+                    732
+                ],
+                "is_list_like": [
+                    273
+                ],
+                "all": [
+                    277
+                ],
+                "other.isin": [
+                    277
+                ],
+                "bool": [
+                    353,
+                    284,
+                    253,
+                    358
+                ],
+                "self.is_": [
+                    294
+                ],
+                "self._is_dtype_compat": [
+                    301,
+                    750
+                ],
+                "other._data": [
+                    303
+                ],
+                "self._data.equals": [
+                    304
+                ],
+                "self._data": [
+                    387,
+                    392,
+                    304,
+                    368,
+                    350
+                ],
+                "ValueError": [
+                    760,
+                    305
+                ],
+                "self.categories._formatter_func": [
+                    315
+                ],
+                "self.categories": [
+                    516,
+                    421,
+                    581,
+                    552,
+                    329,
+                    555,
+                    591,
+                    592,
+                    595,
+                    566,
+                    730,
+                    315,
+                    572,
+                    478,
+                    607
+                ],
+                "max_categories": [
+                    329,
+                    321
+                ],
+                "get_option": [
+                    336,
+                    323,
+                    324
+                ],
+                "attrs": [
+                    326,
+                    334,
+                    335,
+                    338,
+                    339
+                ],
+                "ibase.default_pprint": [
+                    329,
+                    334
+                ],
+                "self.ordered": [
+                    331
+                ],
+                "attrs.append": [
+                    338,
+                    334,
+                    335
+                ],
+                "self.dtype.name": [
+                    335
+                ],
+                "max_seq_items": [
+                    336,
+                    337
+                ],
+                "len": [
+                    513,
+                    336,
+                    337,
+                    338,
+                    400,
+                    530,
+                    471,
+                    477
+                ],
+                "str": [
+                    344,
+                    577,
+                    756
+                ],
+                "Any": [
+                    358
+                ],
+                "key": [
+                    581,
+                    421,
+                    583,
+                    360,
+                    584,
+                    363,
+                    364
+                ],
+                "isna": [
+                    360,
+                    731
+                ],
+                "self.hasnans": [
+                    361
+                ],
+                "hash": [
+                    363
+                ],
+                "contains": [
+                    364
+                ],
+                "self._engine": [
+                    568,
+                    573,
+                    364,
+                    557
+                ],
+                "Index.__contains__.__doc__": [
+                    357
+                ],
+                "Index.__contains__": [
+                    357
+                ],
+                "np.array": [
+                    482,
+                    483,
+                    368,
+                    469,
+                    375
+                ],
+                "is_interval_dtype": [
+                    372
+                ],
+                "IntervalIndex": [
+                    375
+                ],
+                "self.dtype.update_dtype": [
+                    378
+                ],
+                "self.copy": [
+                    380
+                ],
+                "Index.astype": [
+                    370,
+                    382
+                ],
+                "Index.astype.__doc__": [
+                    370
+                ],
+                "self._data.codes": [
+                    387
+                ],
+                "cache_readonly": [
+                    384,
+                    394
+                ],
+                "self._assert_can_do_op": [
+                    391
+                ],
+                "value": [
+                    392,
+                    391
+                ],
+                "self._data.fillna": [
+                    392
+                ],
+                "Index.fillna.__doc__": [
+                    389
+                ],
+                "Index.fillna": [
+                    389
+                ],
+                "self._engine_type": [
+                    400
+                ],
+                "level": [
+                    453,
+                    404,
+                    405
+                ],
+                "self._validate_index_level": [
+                    405
+                ],
+                "self.values.unique": [
+                    406
+                ],
+                "Index.unique.__doc__": [
+                    402
+                ],
+                "Index.unique": [
+                    402
+                ],
+                "self.codes.astype": [
+                    413
+                ],
+                "duplicated_int64": [
+                    414
+                ],
+                "keep": [
+                    414
+                ],
+                "Index.duplicated.__doc__": [
+                    411
+                ],
+                "Index.duplicated": [
+                    411
+                ],
+                "self.astype": [
+                    418
+                ],
+                "code": [
+                    738,
+                    421,
+                    422,
+                    423,
+                    730,
+                    731
+                ],
+                "self.categories.get_loc": [
+                    421
+                ],
+                "self._na_value": [
+                    432
+                ],
+                "np.where": [
+                    433
+                ],
+                "cond": [
+                    433
+                ],
+                "Index.where.__doc__": [
+                    425
+                ],
+                "Index.where": [
+                    425
+                ],
+                "method": [
+                    449,
+                    526,
+                    532,
+                    761,
+                    758,
+                    537
+                ],
+                "NotImplementedError": [
+                    450,
+                    454,
+                    458,
+                    533,
+                    538
+                ],
+                "limit": [
+                    457
+                ],
+                "target": [
+                    516,
+                    527,
+                    529,
+                    542,
+                    543,
+                    545,
+                    548,
+                    551,
+                    552,
+                    553,
+                    555,
+                    562,
+                    564,
+                    566,
+                    567,
+                    568,
+                    570,
+                    572,
+                    462,
+                    465,
+                    469,
+                    474,
+                    478,
+                    483,
+                    496,
+                    497,
+                    508
+                ],
+                "ibase.ensure_index": [
+                    562,
+                    462,
+                    527
+                ],
+                "missing": [
+                    573,
+                    487,
+                    526,
+                    464,
+                    467,
+                    469,
+                    568,
+                    569,
+                    477,
+                    574
+                ],
+                "List": [
+                    464
+                ],
+                "int": [
+                    464,
+                    711
+                ],
+                "self.equals": [
+                    465,
+                    529
+                ],
+                "indexer": [
+                    513,
+                    522,
+                    557,
+                    558,
+                    568,
+                    569,
+                    573,
+                    574,
+                    592,
+                    593,
+                    466,
+                    595,
+                    596,
+                    469,
+                    471,
+                    472,
+                    483,
+                    487,
+                    501,
+                    508,
+                    511
+                ],
+                "self.get_indexer_non_unique": [
+                    469
+                ],
+                "new_target": [
+                    483,
+                    486,
+                    488,
+                    520,
+                    522,
+                    495,
+                    497,
+                    499,
+                    501,
+                    472,
+                    474,
+                    508
+                ],
+                "self.take": [
+                    472,
+                    513,
+                    623
+                ],
+                "cats": [
+                    480,
+                    516,
+                    517,
+                    487,
+                    478
+                ],
+                "self.categories.get_indexer": [
+                    516,
+                    552,
+                    555,
+                    595,
+                    730,
+                    572,
+                    478
+                ],
+                "any": [
+                    480,
+                    596,
+                    517
+                ],
+                "_": [
+                    483,
+                    557
+                ],
+                "result._reindex_non_unique": [
+                    483
+                ],
+                "new_target.codes.copy": [
+                    486
+                ],
+                "new_target.codes": [
+                    486
+                ],
+                "self._create_from_codes": [
+                    488,
+                    739,
+                    709,
+                    751
+                ],
+                "np.asarray": [
+                    595,
+                    495
+                ],
+                "target._shallow_copy": [
+                    497
+                ],
+                "self.reindex": [
+                    508
+                ],
+                "new_indexer": [
+                    513,
+                    514,
+                    522,
+                    509
+                ],
+                "check": [
+                    512,
+                    514,
+                    511
+                ],
+                "check.any": [
+                    512
+                ],
+                "np.arange": [
+                    513,
+                    530
+                ],
+                "self._shallow_copy": [
+                    520,
+                    610,
+                    614
+                ],
+                "missing.clean_reindex_fill_method": [
+                    526
+                ],
+                "self.is_unique": [
+                    529
+                ],
+                "self.values.is_dtype_equal": [
+                    542
+                ],
+                "self.values.equals": [
+                    543
+                ],
+                "target.values": [
+                    570,
+                    543
+                ],
+                "target.codes": [
+                    545,
+                    548,
+                    567,
+                    553
+                ],
+                "_recode_for_categories": [
+                    547
+                ],
+                "target.categories": [
+                    552,
+                    548,
+                    566
+                ],
+                "self.values.categories": [
+                    548
+                ],
+                "code_indexer": [
+                    552,
+                    553
+                ],
+                "take_1d": [
+                    553
+                ],
+                "self._engine.get_indexer_non_unique": [
+                    568,
+                    573,
+                    557
+                ],
+                "ensure_platform_int": [
+                    574,
+                    569,
+                    558
+                ],
+                "_index_shared_docs": [
+                    560,
+                    524
+                ],
+                "kind": [
+                    578,
+                    579,
+                    584,
+                    627,
+                    630
+                ],
+                "self.categories._convert_scalar_indexer": [
+                    581
+                ],
+                "self._invalid_indexer": [
+                    583
+                ],
+                "_convert_scalar_indexer": [
+                    584
+                ],
+                "super": [
+                    584,
+                    630
+                ],
+                "Index._convert_scalar_indexer.__doc__": [
+                    576
+                ],
+                "Index._convert_scalar_indexer": [
+                    576
+                ],
+                "self.categories._defer_to_indexing": [
+                    607,
+                    591
+                ],
+                "self.categories._convert_list_indexer": [
+                    592
+                ],
+                "keyarr": [
+                    608,
+                    610,
+                    614,
+                    592,
+                    595,
+                    601,
+                    605
+                ],
+                "get_indexer_for": [
+                    593
+                ],
+                "KeyError": [
+                    597
+                ],
+                "self.get_indexer": [
+                    601
+                ],
+                "Index._convert_list_indexer.__doc__": [
+                    586
+                ],
+                "Index._convert_list_indexer": [
+                    586
+                ],
+                "com.asarray_tuplesafe": [
+                    605
+                ],
+                "com": [
+                    605
+                ],
+                "Index._convert_arr_indexer.__doc__": [
+                    603
+                ],
+                "Index._convert_arr_indexer": [
+                    603
+                ],
+                "Index._convert_index_indexer.__doc__": [
+                    612
+                ],
+                "Index._convert_index_indexer": [
+                    612
+                ],
+                "warnings.warn": [
+                    618
+                ],
+                "warnings": [
+                    618
+                ],
+                "FutureWarning": [
+                    620
+                ],
+                "args": [
+                    761,
+                    623
+                ],
+                "kwargs": [
+                    761,
+                    759,
+                    623
+                ],
+                "label": [
+                    628,
+                    630
+                ],
+                "_maybe_cast_slice_bound": [
+                    630
+                ],
+                "side": [
+                    630
+                ],
+                "Index._maybe_cast_slice_bound.__doc__": [
+                    625
+                ],
+                "Index._maybe_cast_slice_bound": [
+                    625
+                ],
+                "self._shallow_copy_with_infer": [
+                    699
+                ],
+                "self.values.map": [
+                    699
+                ],
+                "mapper": [
+                    699
+                ],
+                "np.delete": [
+                    709
+                ],
+                "loc": [
+                    738,
+                    709
+                ],
+                "item": [
+                    730,
+                    731
+                ],
+                "np.concatenate": [
+                    738,
+                    750
+                ],
+                "CategoricalIndex._concat_same_dtype": [
+                    743
+                ],
+                "to_concat": [
+                    750,
+                    743
+                ],
+                "c": [
+                    750
+                ],
+                "getattr": [
+                    758
+                ],
+                "self._values": [
+                    758
+                ],
+                "res": [
+                    761,
+                    762,
+                    763,
+                    764
+                ],
+                "inherit_names": [
+                    37
+                ],
+                "accessor.delegate_names": [
+                    53
+                ],
+                "CategoricalIndex._add_numeric_methods_add_sub_disabled": [
+                    767
+                ],
+                "CategoricalIndex._add_numeric_methods_disabled": [
+                    768
+                ],
+                "CategoricalIndex._add_logical_methods_disabled": [
+                    769
+                ]
+            },
+            "filtered_variables_in_file": {
+                "_index_doc_kwargs": [
+                    560,
+                    33,
+                    34,
+                    524
+                ],
+                "ibase._index_doc_kwargs": [
+                    33
+                ],
+                "ibase": [
+                    33,
+                    329,
+                    462,
+                    334,
+                    527,
+                    562
+                ],
+                "_index_doc_kwargs.update": [
+                    34
+                ],
+                "ExtensionIndex": [
+                    68
+                ],
+                "accessor.PandasDelegate": [
+                    68
+                ],
+                "accessor": [
+                    68,
+                    53
+                ],
+                "_typ": [
+                    159
+                ],
+                "codes": [
+                    399,
+                    400,
+                    413,
+                    414,
+                    161,
+                    545,
+                    547,
+                    553,
+                    555,
+                    557,
+                    572,
+                    573,
+                    225,
+                    737,
+                    738,
+                    739,
+                    486,
+                    487,
+                    488,
+                    750,
+                    751
+                ],
+                "np.ndarray": [
+                    161,
+                    366
+                ],
+                "np": [
+                    513,
+                    530,
+                    161,
+                    170,
+                    171,
+                    172,
+                    173,
+                    433,
+                    709,
+                    595,
+                    469,
+                    482,
+                    483,
+                    738,
+                    366,
+                    495,
+                    368,
+                    750,
+                    375
+                ],
+                "categories": [
+                    185,
+                    162,
+                    193
+                ],
+                "Index": [
+                    576,
+                    162,
+                    482,
+                    612,
+                    357,
+                    389,
+                    297,
+                    425,
+                    586,
+                    593,
+                    242,
+                    370,
+                    402,
+                    499,
+                    625,
+                    603,
+                    411,
+                    382
+                ],
+                "_data": [
+                    163
+                ],
+                "Categorical": [
+                    225,
+                    163,
+                    229,
+                    198,
+                    199,
+                    230,
+                    434,
+                    275,
+                    51,
+                    54,
+                    249
+                ],
+                "np.int8": [
+                    170
+                ],
+                "np.int16": [
+                    171
+                ],
+                "np.int32": [
+                    172
+                ],
+                "np.int64": [
+                    173
+                ],
+                "libindex.Int8Engine": [
+                    170
+                ],
+                "libindex": [
+                    170,
+                    171,
+                    172,
+                    173
+                ],
+                "libindex.Int16Engine": [
+                    171
+                ],
+                "libindex.Int32Engine": [
+                    172
+                ],
+                "libindex.Int64Engine": [
+                    173
+                ],
+                "self.codes.dtype.type": [
+                    422,
+                    174
+                ],
+                "self.codes.dtype": [
+                    422,
+                    174
+                ],
+                "self.codes": [
+                    737,
+                    709,
+                    422,
+                    174,
+                    399,
+                    593,
+                    471,
+                    413
+                ],
+                "self": [
+                    513,
+                    516,
+                    520,
+                    529,
+                    530,
+                    542,
+                    543,
+                    548,
+                    552,
+                    555,
+                    557,
+                    566,
+                    568,
+                    572,
+                    573,
+                    581,
+                    583,
+                    591,
+                    592,
+                    593,
+                    595,
+                    601,
+                    607,
+                    610,
+                    614,
+                    623,
+                    174,
+                    699,
+                    709,
+                    730,
+                    222,
+                    224,
+                    737,
+                    739,
+                    743,
+                    750,
+                    751,
+                    244,
+                    758,
+                    247,
+                    249,
+                    251,
+                    764,
+                    267,
+                    275,
+                    294,
+                    301,
+                    302,
+                    304,
+                    315,
+                    329,
+                    331,
+                    333,
+                    334,
+                    335,
+                    336,
+                    337,
+                    338,
+                    350,
+                    361,
+                    364,
+                    368,
+                    375,
+                    378,
+                    379,
+                    380,
+                    382,
+                    387,
+                    391,
+                    392,
+                    399,
+                    400,
+                    405,
+                    406,
+                    409,
+                    413,
+                    418,
+                    421,
+                    422,
+                    432,
+                    433,
+                    434,
+                    435,
+                    465,
+                    469,
+                    471,
+                    472,
+                    478,
+                    482,
+                    488,
+                    497,
+                    499,
+                    508
+                ],
+                "_attributes": [
+                    176
+                ],
+                "dtype": [
+                    225,
+                    382,
+                    197,
+                    198,
+                    199,
+                    368,
+                    372,
+                    376,
+                    185,
+                    378,
+                    379,
+                    221,
+                    222
+                ],
+                "CategoricalDtype._from_values_or_dtype": [
+                    185
+                ],
+                "CategoricalDtype": [
+                    185,
+                    197
+                ],
+                "data": [
+                    192,
+                    193,
+                    194,
+                    195,
+                    198,
+                    199,
+                    201,
+                    203,
+                    185,
+                    187,
+                    189
+                ],
+                "ordered": [
+                    185
+                ],
+                "name": [
+                    224,
+                    226,
+                    743,
+                    234,
+                    203,
+                    251,
+                    751,
+                    753,
+                    244,
+                    758,
+                    187,
+                    223
+                ],
+                "maybe_extract_name": [
+                    187
+                ],
+                "cls": [
+                    194,
+                    187,
+                    203,
+                    231
+                ],
+                "is_categorical_dtype": [
+                    264,
+                    496,
+                    376,
+                    189
+                ],
+                "is_scalar": [
+                    192,
+                    762,
+                    731,
+                    360
+                ],
+                "cls._scalar_data_error": [
+                    194
+                ],
+                "data.dtype": [
+                    198
+                ],
+                "copy": [
+                    201,
+                    380,
+                    382
+                ],
+                "data.copy": [
+                    201
+                ],
+                "cls._simple_new": [
+                    203
+                ],
+                "self.dtype": [
+                    335,
+                    434,
+                    275,
+                    249,
+                    378,
+                    379,
+                    222
+                ],
+                "self.name": [
+                    224,
+                    482,
+                    392,
+                    333,
+                    334,
+                    497,
+                    435,
+                    244,
+                    499,
+                    409,
+                    764
+                ],
+                "cat": [
+                    225,
+                    226,
+                    434,
+                    275,
+                    276,
+                    435,
+                    249,
+                    251
+                ],
+                "Categorical.from_codes": [
+                    225
+                ],
+                "CategoricalIndex": [
+                    768,
+                    769,
+                    226,
+                    551,
+                    392,
+                    265,
+                    743,
+                    276,
+                    564,
+                    764,
+                    542,
+                    767
+                ],
+                "Label": [
+                    243,
+                    229
+                ],
+                "values": [
+                    230,
+                    233,
+                    272,
+                    273,
+                    274,
+                    433,
+                    434,
+                    277,
+                    246,
+                    247,
+                    249
+                ],
+                "result": [
+                    482,
+                    483,
+                    231,
+                    233,
+                    234,
+                    236,
+                    237,
+                    238,
+                    751,
+                    753,
+                    754,
+                    406,
+                    409
+                ],
+                "object.__new__": [
+                    231
+                ],
+                "result._data": [
+                    233
+                ],
+                "result.name": [
+                    753,
+                    234
+                ],
+                "result._reset_identity": [
+                    236
+                ],
+                "result._no_setting_name": [
+                    237
+                ],
+                "no_default": [
+                    243,
+                    244
+                ],
+                "self.values": [
+                    548,
+                    433,
+                    406,
+                    247,
+                    699,
+                    542,
+                    543
+                ],
+                "_simple_new": [
+                    409,
+                    251,
+                    435
+                ],
+                "Appender": [
+                    576,
+                    612,
+                    357,
+                    389,
+                    425,
+                    586,
+                    524,
+                    560,
+                    625,
+                    242,
+                    402,
+                    370,
+                    603,
+                    411
+                ],
+                "Index._shallow_copy.__doc__": [
+                    242
+                ],
+                "Index._shallow_copy": [
+                    242
+                ],
+                "other": [
+                    294,
+                    264,
+                    265,
+                    266,
+                    267,
+                    297,
+                    301,
+                    302,
+                    303,
+                    272,
+                    304,
+                    431,
+                    275,
+                    276,
+                    277,
+                    432,
+                    433,
+                    282
+                ],
+                "other._values": [
+                    266
+                ],
+                "other.is_dtype_equal": [
+                    267
+                ],
+                "is_list_like": [
+                    273
+                ],
+                "other.isin": [
+                    277
+                ],
+                "self.is_": [
+                    294
+                ],
+                "self._is_dtype_compat": [
+                    301,
+                    750
+                ],
+                "other._data": [
+                    303
+                ],
+                "self._data.equals": [
+                    304
+                ],
+                "self._data": [
+                    387,
+                    392,
+                    304,
+                    368,
+                    350
+                ],
+                "self.categories._formatter_func": [
+                    315
+                ],
+                "self.categories": [
+                    516,
+                    421,
+                    581,
+                    552,
+                    329,
+                    555,
+                    591,
+                    592,
+                    595,
+                    566,
+                    730,
+                    315,
+                    572,
+                    478,
+                    607
+                ],
+                "max_categories": [
+                    329,
+                    321
+                ],
+                "get_option": [
+                    336,
+                    323,
+                    324
+                ],
+                "attrs": [
+                    326,
+                    334,
+                    335,
+                    338,
+                    339
+                ],
+                "ibase.default_pprint": [
+                    329,
+                    334
+                ],
+                "self.ordered": [
+                    331
+                ],
+                "attrs.append": [
+                    338,
+                    334,
+                    335
+                ],
+                "self.dtype.name": [
+                    335
+                ],
+                "max_seq_items": [
+                    336,
+                    337
+                ],
+                "Any": [
+                    358
+                ],
+                "key": [
+                    581,
+                    421,
+                    583,
+                    360,
+                    584,
+                    363,
+                    364
+                ],
+                "isna": [
+                    360,
+                    731
+                ],
+                "self.hasnans": [
+                    361
+                ],
+                "contains": [
+                    364
+                ],
+                "self._engine": [
+                    568,
+                    573,
+                    364,
+                    557
+                ],
+                "Index.__contains__.__doc__": [
+                    357
+                ],
+                "Index.__contains__": [
+                    357
+                ],
+                "np.array": [
+                    482,
+                    483,
+                    368,
+                    469,
+                    375
+                ],
+                "is_interval_dtype": [
+                    372
+                ],
+                "IntervalIndex": [
+                    375
+                ],
+                "self.dtype.update_dtype": [
+                    378
+                ],
+                "self.copy": [
+                    380
+                ],
+                "Index.astype": [
+                    370,
+                    382
+                ],
+                "Index.astype.__doc__": [
+                    370
+                ],
+                "self._data.codes": [
+                    387
+                ],
+                "cache_readonly": [
+                    384,
+                    394
+                ],
+                "self._assert_can_do_op": [
+                    391
+                ],
+                "value": [
+                    392,
+                    391
+                ],
+                "self._data.fillna": [
+                    392
+                ],
+                "Index.fillna.__doc__": [
+                    389
+                ],
+                "Index.fillna": [
+                    389
+                ],
+                "self._engine_type": [
+                    400
+                ],
+                "level": [
+                    453,
+                    404,
+                    405
+                ],
+                "self._validate_index_level": [
+                    405
+                ],
+                "self.values.unique": [
+                    406
+                ],
+                "Index.unique.__doc__": [
+                    402
+                ],
+                "Index.unique": [
+                    402
+                ],
+                "self.codes.astype": [
+                    413
+                ],
+                "duplicated_int64": [
+                    414
+                ],
+                "keep": [
+                    414
+                ],
+                "Index.duplicated.__doc__": [
+                    411
+                ],
+                "Index.duplicated": [
+                    411
+                ],
+                "self.astype": [
+                    418
+                ],
+                "code": [
+                    738,
+                    421,
+                    422,
+                    423,
+                    730,
+                    731
+                ],
+                "self.categories.get_loc": [
+                    421
+                ],
+                "self._na_value": [
+                    432
+                ],
+                "np.where": [
+                    433
+                ],
+                "cond": [
+                    433
+                ],
+                "Index.where.__doc__": [
+                    425
+                ],
+                "Index.where": [
+                    425
+                ],
+                "method": [
+                    449,
+                    526,
+                    532,
+                    761,
+                    758,
+                    537
+                ],
+                "limit": [
+                    457
+                ],
+                "target": [
+                    516,
+                    527,
+                    529,
+                    542,
+                    543,
+                    545,
+                    548,
+                    551,
+                    552,
+                    553,
+                    555,
+                    562,
+                    564,
+                    566,
+                    567,
+                    568,
+                    570,
+                    572,
+                    462,
+                    465,
+                    469,
+                    474,
+                    478,
+                    483,
+                    496,
+                    497,
+                    508
+                ],
+                "ibase.ensure_index": [
+                    562,
+                    462,
+                    527
+                ],
+                "missing": [
+                    573,
+                    487,
+                    526,
+                    464,
+                    467,
+                    469,
+                    568,
+                    569,
+                    477,
+                    574
+                ],
+                "List": [
+                    464
+                ],
+                "self.equals": [
+                    465,
+                    529
+                ],
+                "indexer": [
+                    513,
+                    522,
+                    557,
+                    558,
+                    568,
+                    569,
+                    573,
+                    574,
+                    592,
+                    593,
+                    466,
+                    595,
+                    596,
+                    469,
+                    471,
+                    472,
+                    483,
+                    487,
+                    501,
+                    508,
+                    511
+                ],
+                "self.get_indexer_non_unique": [
+                    469
+                ],
+                "new_target": [
+                    483,
+                    486,
+                    488,
+                    520,
+                    522,
+                    495,
+                    497,
+                    499,
+                    501,
+                    472,
+                    474,
+                    508
+                ],
+                "self.take": [
+                    472,
+                    513,
+                    623
+                ],
+                "cats": [
+                    480,
+                    516,
+                    517,
+                    487,
+                    478
+                ],
+                "self.categories.get_indexer": [
+                    516,
+                    552,
+                    555,
+                    595,
+                    730,
+                    572,
+                    478
+                ],
+                "_": [
+                    483,
+                    557
+                ],
+                "result._reindex_non_unique": [
+                    483
+                ],
+                "new_target.codes.copy": [
+                    486
+                ],
+                "new_target.codes": [
+                    486
+                ],
+                "self._create_from_codes": [
+                    488,
+                    739,
+                    709,
+                    751
+                ],
+                "np.asarray": [
+                    595,
+                    495
+                ],
+                "target._shallow_copy": [
+                    497
+                ],
+                "self.reindex": [
+                    508
+                ],
+                "new_indexer": [
+                    513,
+                    514,
+                    522,
+                    509
+                ],
+                "check": [
+                    512,
+                    514,
+                    511
+                ],
+                "check.any": [
+                    512
+                ],
+                "np.arange": [
+                    513,
+                    530
+                ],
+                "self._shallow_copy": [
+                    520,
+                    610,
+                    614
+                ],
+                "missing.clean_reindex_fill_method": [
+                    526
+                ],
+                "self.is_unique": [
+                    529
+                ],
+                "self.values.is_dtype_equal": [
+                    542
+                ],
+                "self.values.equals": [
+                    543
+                ],
+                "target.values": [
+                    570,
+                    543
+                ],
+                "target.codes": [
+                    545,
+                    548,
+                    567,
+                    553
+                ],
+                "_recode_for_categories": [
+                    547
+                ],
+                "target.categories": [
+                    552,
+                    548,
+                    566
+                ],
+                "self.values.categories": [
+                    548
+                ],
+                "code_indexer": [
+                    552,
+                    553
+                ],
+                "take_1d": [
+                    553
+                ],
+                "self._engine.get_indexer_non_unique": [
+                    568,
+                    573,
+                    557
+                ],
+                "ensure_platform_int": [
+                    574,
+                    569,
+                    558
+                ],
+                "_index_shared_docs": [
+                    560,
+                    524
+                ],
+                "kind": [
+                    578,
+                    579,
+                    584,
+                    627,
+                    630
+                ],
+                "self.categories._convert_scalar_indexer": [
+                    581
+                ],
+                "self._invalid_indexer": [
+                    583
+                ],
+                "_convert_scalar_indexer": [
+                    584
+                ],
+                "Index._convert_scalar_indexer.__doc__": [
+                    576
+                ],
+                "Index._convert_scalar_indexer": [
+                    576
+                ],
+                "self.categories._defer_to_indexing": [
+                    607,
+                    591
+                ],
+                "self.categories._convert_list_indexer": [
+                    592
+                ],
+                "keyarr": [
+                    608,
+                    610,
+                    614,
+                    592,
+                    595,
+                    601,
+                    605
+                ],
+                "get_indexer_for": [
+                    593
+                ],
+                "self.get_indexer": [
+                    601
+                ],
+                "Index._convert_list_indexer.__doc__": [
+                    586
+                ],
+                "Index._convert_list_indexer": [
+                    586
+                ],
+                "com.asarray_tuplesafe": [
+                    605
+                ],
+                "com": [
+                    605
+                ],
+                "Index._convert_arr_indexer.__doc__": [
+                    603
+                ],
+                "Index._convert_arr_indexer": [
+                    603
+                ],
+                "Index._convert_index_indexer.__doc__": [
+                    612
+                ],
+                "Index._convert_index_indexer": [
+                    612
+                ],
+                "warnings.warn": [
+                    618
+                ],
+                "warnings": [
+                    618
+                ],
+                "args": [
+                    761,
+                    623
+                ],
+                "kwargs": [
+                    761,
+                    759,
+                    623
+                ],
+                "label": [
+                    628,
+                    630
+                ],
+                "_maybe_cast_slice_bound": [
+                    630
+                ],
+                "side": [
+                    630
+                ],
+                "Index._maybe_cast_slice_bound.__doc__": [
+                    625
+                ],
+                "Index._maybe_cast_slice_bound": [
+                    625
+                ],
+                "self._shallow_copy_with_infer": [
+                    699
+                ],
+                "self.values.map": [
+                    699
+                ],
+                "mapper": [
+                    699
+                ],
+                "np.delete": [
+                    709
+                ],
+                "loc": [
+                    738,
+                    709
+                ],
+                "item": [
+                    730,
+                    731
+                ],
+                "np.concatenate": [
+                    738,
+                    750
+                ],
+                "CategoricalIndex._concat_same_dtype": [
+                    743
+                ],
+                "to_concat": [
+                    750,
+                    743
+                ],
+                "c": [
+                    750
+                ],
+                "self._values": [
+                    758
+                ],
+                "res": [
+                    761,
+                    762,
+                    763,
+                    764
+                ],
+                "inherit_names": [
+                    37
+                ],
+                "accessor.delegate_names": [
+                    53
+                ],
+                "CategoricalIndex._add_numeric_methods_add_sub_disabled": [
+                    767
+                ],
+                "CategoricalIndex._add_numeric_methods_disabled": [
+                    768
+                ],
+                "CategoricalIndex._add_logical_methods_disabled": [
+                    769
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_51/pandas/tests/reshape/merge/test_merge.py",
+                "test_function": "test_categorical_non_unique_monotonic",
+                "test_function_code": "@pytest.mark.parametrize(\"n_categories\", [5, 128])\ndef test_categorical_non_unique_monotonic(n_categories):\n    # GH 28189\n    # With n_categories as 5, we test the int8 case is hit in libjoin,\n    # with n_categories as 128 we test the int16 case.\n    left_index = CategoricalIndex([0] + list(range(n_categories)))\n    df1 = DataFrame(range(n_categories + 1), columns=[\"value\"], index=left_index)\n    df2 = DataFrame(\n        [[6]],\n        columns=[\"value\"],\n        index=CategoricalIndex([0], categories=np.arange(n_categories)),\n    )\n\n    result = merge(df1, df2, how=\"left\", left_index=True, right_index=True)\n    expected = DataFrame(\n        [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],\n        columns=[\"value_x\", \"value_y\"],\n        index=left_index,\n    )\n    tm.assert_frame_equal(expected, result)",
+                "test_error": "AssertionError: DataFrame.index are different  DataFrame.index classes are not equivalent [left]:  CategoricalIndex([0, 0, 1, 2, 3, 4], categories=[0, 1, 2, 3, 4], ordered=False, dtype='category') [right]: Int64Index([0, 0, 1, 2, 3, 4], dtype='int64')",
+                "full_test_error": "n_categories = 5\n\n    @pytest.mark.parametrize(\"n_categories\", [5, 128])\n    def test_categorical_non_unique_monotonic(n_categories):\n        # GH 28189\n        # With n_categories as 5, we test the int8 case is hit in libjoin,\n        # with n_categories as 128 we test the int16 case.\n        left_index = CategoricalIndex([0] + list(range(n_categories)))\n        df1 = DataFrame(range(n_categories + 1), columns=[\"value\"], index=left_index)\n        df2 = DataFrame(\n            [[6]],\n            columns=[\"value\"],\n            index=CategoricalIndex([0], categories=np.arange(n_categories)),\n        )\n    \n        result = merge(df1, df2, how=\"left\", left_index=True, right_index=True)\n        expected = DataFrame(\n            [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],\n            columns=[\"value_x\", \"value_y\"],\n            index=left_index,\n        )\n>       tm.assert_frame_equal(expected, result)\n\npandas/tests/reshape/merge/test_merge.py:2187: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nl = CategoricalIndex([0, 0, 1, 2, 3, 4], categories=[0, 1, 2, 3, 4], ordered=False, dtype='category')\nr = Int64Index([0, 0, 1, 2, 3, 4], dtype='int64'), obj = 'DataFrame.index'\n\n    def _check_types(l, r, obj=\"Index\"):\n        if exact:\n>           assert_class_equal(l, r, exact=exact, obj=obj)\nE           AssertionError: DataFrame.index are different\nE           \nE           DataFrame.index classes are not equivalent\nE           [left]:  CategoricalIndex([0, 0, 1, 2, 3, 4], categories=[0, 1, 2, 3, 4], ordered=False, dtype='category')\nE           [right]: Int64Index([0, 0, 1, 2, 3, 4], dtype='int64')\n\npandas/_testing.py:623: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('n_categories', [5, 128])"
+                ]
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_51/pandas/tests/reshape/merge/test_merge.py",
+                "test_function": "test_categorical_non_unique_monotonic",
+                "test_function_code": "@pytest.mark.parametrize(\"n_categories\", [5, 128])\ndef test_categorical_non_unique_monotonic(n_categories):\n    # GH 28189\n    # With n_categories as 5, we test the int8 case is hit in libjoin,\n    # with n_categories as 128 we test the int16 case.\n    left_index = CategoricalIndex([0] + list(range(n_categories)))\n    df1 = DataFrame(range(n_categories + 1), columns=[\"value\"], index=left_index)\n    df2 = DataFrame(\n        [[6]],\n        columns=[\"value\"],\n        index=CategoricalIndex([0], categories=np.arange(n_categories)),\n    )\n\n    result = merge(df1, df2, how=\"left\", left_index=True, right_index=True)\n    expected = DataFrame(\n        [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],\n        columns=[\"value_x\", \"value_y\"],\n        index=left_index,\n    )\n    tm.assert_frame_equal(expected, result)",
+                "test_error": "AssertionError: DataFrame.index are different  DataFrame.index classes are not equivalent [left]:  CategoricalIndex([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,                   ...                   118, 119, 120, 121, 122, 123, 124, 125, 126, 127],                  categories=[0, 1, 2, 3, 4, 5, 6, 7, ...], ordered=False, dtype='category', length=129) [right]: Int64Index([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,             ...             118, 119, 120, 121, 122, 123, 124, 125, 126, 127],            dtype='int64', length=129)",
+                "full_test_error": "n_categories = 128\n\n    @pytest.mark.parametrize(\"n_categories\", [5, 128])\n    def test_categorical_non_unique_monotonic(n_categories):\n        # GH 28189\n        # With n_categories as 5, we test the int8 case is hit in libjoin,\n        # with n_categories as 128 we test the int16 case.\n        left_index = CategoricalIndex([0] + list(range(n_categories)))\n        df1 = DataFrame(range(n_categories + 1), columns=[\"value\"], index=left_index)\n        df2 = DataFrame(\n            [[6]],\n            columns=[\"value\"],\n            index=CategoricalIndex([0], categories=np.arange(n_categories)),\n        )\n    \n        result = merge(df1, df2, how=\"left\", left_index=True, right_index=True)\n        expected = DataFrame(\n            [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],\n            columns=[\"value_x\", \"value_y\"],\n            index=left_index,\n        )\n>       tm.assert_frame_equal(expected, result)\n\npandas/tests/reshape/merge/test_merge.py:2187: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nl = CategoricalIndex([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\n                  ...\n                  118, 119, ...125, 126, 127],\n                 categories=[0, 1, 2, 3, 4, 5, 6, 7, ...], ordered=False, dtype='category', length=129)\nr = Int64Index([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\n            ...\n            118, 119, 120, 121, 122, 123, 124, 125, 126, 127],\n           dtype='int64', length=129)\nobj = 'DataFrame.index'\n\n    def _check_types(l, r, obj=\"Index\"):\n        if exact:\n>           assert_class_equal(l, r, exact=exact, obj=obj)\nE           AssertionError: DataFrame.index are different\nE           \nE           DataFrame.index classes are not equivalent\nE           [left]:  CategoricalIndex([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\nE                             ...\nE                             118, 119, 120, 121, 122, 123, 124, 125, 126, 127],\nE                            categories=[0, 1, 2, 3, 4, 5, 6, 7, ...], ordered=False, dtype='category', length=129)\nE           [right]: Int64Index([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\nE                       ...\nE                       118, 119, 120, 121, 122, 123, 124, 125, 126, 127],\nE                      dtype='int64', length=129)\n\npandas/_testing.py:623: AssertionError",
+                "traceback": "l = CategoricalIndex([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\n                  ...\n                  118, 119, ...125, 126, 127],\n                 categories=[0, 1, 2, 3, 4, 5, 6, 7, ...], ordered=False, dtype='category', length=129)\nr = Int64Index([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\n            ...\n            118, 119, 120, 121, 122, 123, 124, 125, 126, 127],\n           dtype='int64', length=129)\nobj = 'DataFrame.index'\n\n    def _check_types(l, r, obj=\"Index\"):\n        if exact:\n>           assert_class_equal(l, r, exact=exact, obj=obj)\nE           AssertionError: DataFrame.index are different\nE           \nE           DataFrame.index classes are not equivalent\nE           [left]:  CategoricalIndex([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\nE                             ...",
+                "test_error_location": "E                             118, 119, 120, 121, 122, 123, 124, 125, 126, 127],\nE                            categories=[0, 1, 2, 3, 4, 5, 6, 7, ...], ordered=False, dtype='category', length=129)\nE           [right]: Int64Index([  0,   0,   1,   2,   3,   4,   5,   6,   7,   8,\nE                       ...\nE                       118, 119, 120, 121, 122, 123, 124, 125, 126, 127],\nE                      dtype='int64', length=129)\n\npandas/_testing.py:623: AssertionError",
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('n_categories', [5, 128])"
+                ]
+            }
+        ]
+    }
+}
