@@ -1,0 +1,1875 @@
+{
+    "luigi:20": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_20/luigi/task.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "to_str_params",
+                    "function_code": "def to_str_params(self):\n    \"\"\"\n    Convert all parameters to a str->str hash.\n    \"\"\"\n    params_str = {}\n    params = dict(self.get_params())\n    for param_name, param_value in six.iteritems(self.param_kwargs):\n        if params[param_name].significant:\n            params_str[param_name] = params[param_name].serialize(param_value)\n\n    return params_str\n",
+                    "decorators": [],
+                    "docstring": "Convert all parameters to a str->str hash.",
+                    "start_line": 302,
+                    "variables": {
+                        "params_str": [
+                            312,
+                            306,
+                            310
+                        ],
+                        "params": [
+                            307,
+                            309,
+                            310
+                        ],
+                        "dict": [
+                            307
+                        ],
+                        "self.get_params": [
+                            307
+                        ],
+                        "self": [
+                            307,
+                            308
+                        ],
+                        "param_name": [
+                            308,
+                            309,
+                            310
+                        ],
+                        "param_value": [
+                            308,
+                            310
+                        ],
+                        "six.iteritems": [
+                            308
+                        ],
+                        "six": [
+                            308
+                        ],
+                        "self.param_kwargs": [
+                            308
+                        ],
+                        "significant": [
+                            309
+                        ],
+                        "serialize": [
+                            310
+                        ]
+                    },
+                    "filtered_variables": {
+                        "params_str": [
+                            312,
+                            306,
+                            310
+                        ],
+                        "params": [
+                            307,
+                            309,
+                            310
+                        ],
+                        "self.get_params": [
+                            307
+                        ],
+                        "self": [
+                            307,
+                            308
+                        ],
+                        "param_name": [
+                            308,
+                            309,
+                            310
+                        ],
+                        "param_value": [
+                            308,
+                            310
+                        ],
+                        "six.iteritems": [
+                            308
+                        ],
+                        "six": [
+                            308
+                        ],
+                        "self.param_kwargs": [
+                            308
+                        ],
+                        "significant": [
+                            309
+                        ],
+                        "serialize": [
+                            310
+                        ]
+                    },
+                    "diff_line_number": 309,
+                    "class_data": {
+                        "signature": "class Task(object)",
+                        "docstring": "This is the base class of all Luigi Tasks, the base unit of work in Luigi.\n\nA Luigi Task describes a unit or work.\n\nThe key methods of a Task, which must be implemented in a subclass are:\n\n* :py:meth:`run` - the computation done by this task.\n* :py:meth:`requires` - the list of Tasks that this Task depends on.\n* :py:meth:`output` - the output :py:class:`Target` that this Task creates.\n\nParameters to the Task should be declared as members of the class, e.g.::\n\n.. code-block:: python\n\n    class MyTask(luigi.Task):\n        count = luigi.IntParameter()\n\n\nEach Task exposes a constructor accepting all :py:class:`Parameter` (and\nvalues) as kwargs. e.g. ``MyTask(count=10)`` would instantiate `MyTask`.\n\nIn addition to any declared properties and methods, there are a few\nnon-declared properties, which are created by the :py:class:`Register`\nmetaclass:\n\n``Task.task_namespace``\n  optional string which is prepended to the task name for the sake of\n  scheduling. If it isn't overridden in a Task, whatever was last declared\n  using `luigi.namespace` will be used.\n\n``Task._parameters``\n  list of ``(parameter_name, parameter)`` tuples for this task class",
+                        "constructor_docstring": "Constructor to resolve values for all Parameters.\n\nFor example, the Task:\n\n.. code-block:: python\n\n    class MyTask(luigi.Task):\n        count = luigi.IntParameter()\n\ncan be instantiated as ``MyTask(count=10)``.",
+                        "functions": [
+                            "@property\ndef use_cmdline_section(self):\n    \"\"\" Property used by core config such as `--workers` etc.\n    These will be exposed without the class as prefix.\"\"\"\n    return True",
+                            "@classmethod\ndef event_handler(cls, event):\n    \"\"\"\n    Decorator for adding event handlers.\n    \"\"\"\n\n    def wrapped(callback):\n        cls._event_callbacks.setdefault(cls, {}).setdefault(event, set()).add(callback)\n        return callback\n    return wrapped",
+                            "def trigger_event(self, event, *args, **kwargs):\n    \"\"\"\n    Trigger that calls all of the specified events associated with this class.\n    \"\"\"\n    for event_class, event_callbacks in six.iteritems(self._event_callbacks):\n        if not isinstance(self, event_class):\n            continue\n        for callback in event_callbacks.get(event, []):\n            try:\n                callback(*args, **kwargs)\n            except KeyboardInterrupt:\n                return\n            except BaseException:\n                logger.exception('Error in event callback for %r', event)",
+                            "@property\ndef task_module(self):\n    \"\"\" Returns what Python module to import to get access to this class. \"\"\"\n    return self.__class__.__module__",
+                            "@property\ndef task_family(self):\n    \"\"\"\n    Convenience method since a property on the metaclass isn't directly accessible through the class instances.\n    \"\"\"\n    return self.__class__.task_family",
+                            "@classmethod\ndef get_params(cls):\n    \"\"\"\n    Returns all of the Parameters for this Task.\n    \"\"\"\n    params = []\n    for param_name in dir(cls):\n        param_obj = getattr(cls, param_name)\n        if not isinstance(param_obj, Parameter):\n            continue\n        params.append((param_name, param_obj))\n    params.sort(key=lambda t: t[1].counter)\n    return params",
+                            "@classmethod\ndef get_param_values(cls, params, args, kwargs):\n    \"\"\"\n    Get the values of the parameters from the args and kwargs.\n\n    :param params: list of (param_name, Parameter).\n    :param args: positional arguments\n    :param kwargs: keyword arguments.\n    :returns: list of `(name, value)` tuples, one for each parameter.\n    \"\"\"\n    result = {}\n    params_dict = dict(params)\n    task_name = cls.task_family\n    exc_desc = '%s[args=%s, kwargs=%s]' % (task_name, args, kwargs)\n    positional_params = [(n, p) for n, p in params if p.positional]\n    for i, arg in enumerate(args):\n        if i >= len(positional_params):\n            raise parameter.UnknownParameterException('%s: takes at most %d parameters (%d given)' % (exc_desc, len(positional_params), len(args)))\n        param_name, param_obj = positional_params[i]\n        result[param_name] = arg\n    for param_name, arg in six.iteritems(kwargs):\n        if param_name in result:\n            raise parameter.DuplicateParameterException('%s: parameter %s was already set as a positional parameter' % (exc_desc, param_name))\n        if param_name not in params_dict:\n            raise parameter.UnknownParameterException('%s: unknown parameter %s' % (exc_desc, param_name))\n        result[param_name] = arg\n    for param_name, param_obj in params:\n        if param_name not in result:\n            if not param_obj.has_task_value(task_name, param_name):\n                raise parameter.MissingParameterException(\"%s: requires the '%s' parameter to be set\" % (exc_desc, param_name))\n            result[param_name] = param_obj.task_value(task_name, param_name)\n\n    def list_to_tuple(x):\n        \"\"\" Make tuples out of lists and sets to allow hashing \"\"\"\n        if isinstance(x, list) or isinstance(x, set):\n            return tuple(x)\n        else:\n            return x\n    return [(param_name, list_to_tuple(result[param_name])) for param_name, param_obj in params]",
+                            "def __init__(self, *args, **kwargs):\n    \"\"\"\n    Constructor to resolve values for all Parameters.\n\n    For example, the Task:\n\n    .. code-block:: python\n\n        class MyTask(luigi.Task):\n            count = luigi.IntParameter()\n\n    can be instantiated as ``MyTask(count=10)``.\n    \"\"\"\n    params = self.get_params()\n    param_values = self.get_param_values(params, args, kwargs)\n    for key, value in param_values:\n        setattr(self, key, value)\n    self.param_args = tuple((value for key, value in param_values))\n    self.param_kwargs = dict(param_values)\n    task_id_parts = []\n    param_objs = dict(params)\n    for param_name, param_value in param_values:\n        if param_objs[param_name].significant:\n            task_id_parts.append('%s=%s' % (param_name, param_objs[param_name].serialize(param_value)))\n    self.task_id = '%s(%s)' % (self.task_family, ', '.join(task_id_parts))\n    self.__hash = hash(self.task_id)",
+                            "def initialized(self):\n    \"\"\"\n    Returns ``True`` if the Task is initialized and ``False`` otherwise.\n    \"\"\"\n    return hasattr(self, 'task_id')",
+                            "@classmethod\ndef from_str_params(cls, params_str=None):\n    \"\"\"\n    Creates an instance from a str->str hash.\n\n    :param params_str: dict of param name -> value.\n    \"\"\"\n    if params_str is None:\n        params_str = {}\n    kwargs = {}\n    for param_name, param in cls.get_params():\n        value = param.parse_from_input(param_name, params_str[param_name])\n        kwargs[param_name] = value\n    return cls(**kwargs)",
+                            "def to_str_params(self):\n    \"\"\"\n    Convert all parameters to a str->str hash.\n    \"\"\"\n    params_str = {}\n    params = dict(self.get_params())\n    for param_name, param_value in six.iteritems(self.param_kwargs):\n        if params[param_name].significant:\n            params_str[param_name] = params[param_name].serialize(param_value)\n    return params_str",
+                            "def clone(self, cls=None, **kwargs):\n    \"\"\"\n    Creates a new instance from an existing instance where some of the args have changed.\n\n    There's at least two scenarios where this is useful (see test/clone_test.py):\n\n    * remove a lot of boiler plate when you have recursive dependencies and lots of args\n    * there's task inheritance and some logic is on the base class\n\n    :param cls:\n    :param kwargs:\n    :return:\n    \"\"\"\n    k = self.param_kwargs.copy()\n    k.update(six.iteritems(kwargs))\n    if cls is None:\n        cls = self.__class__\n    new_k = {}\n    for param_name, param_class in cls.get_params():\n        if param_name in k:\n            new_k[param_name] = k[param_name]\n    return cls(**new_k)",
+                            "def __hash__(self):\n    return self.__hash",
+                            "def __repr__(self):\n    return self.task_id",
+                            "def __eq__(self, other):\n    return self.__class__ == other.__class__ and self.param_args == other.param_args",
+                            "def complete(self):\n    \"\"\"\n    If the task has any outputs, return ``True`` if all outputs exists.\n    Otherwise, return ``False``.\n\n    However, you may freely override this method with custom logic.\n    \"\"\"\n    outputs = flatten(self.output())\n    if len(outputs) == 0:\n        warnings.warn('Task %r without outputs has no custom complete() method' % self, stacklevel=2)\n        return False\n    return all(map(lambda output: output.exists(), outputs))",
+                            "@classmethod\ndef bulk_complete(cls, parameter_tuples):\n    \"\"\"\n    Returns those of parameter_tuples for which this Task is complete.\n\n    Override (with an efficient implementation) for efficient scheduling\n    with range tools. Keep the logic consistent with that of complete().\n    \"\"\"\n    raise BulkCompleteNotImplementedError()",
+                            "def output(self):\n    \"\"\"\n    The output that this Task produces.\n\n    The output of the Task determines if the Task needs to be run--the task\n    is considered finished iff the outputs all exist. Subclasses should\n    override this method to return a single :py:class:`Target` or a list of\n    :py:class:`Target` instances.\n\n    Implementation note\n      If running multiple workers, the output must be a resource that is accessible\n      by all workers, such as a DFS or database. Otherwise, workers might compute\n      the same output since they don't see the work done by other workers.\n\n    See :ref:`Task.output`\n    \"\"\"\n    return []",
+                            "def requires(self):\n    \"\"\"\n    The Tasks that this Task depends on.\n\n    A Task will only run if all of the Tasks that it requires are completed.\n    If your Task does not require any other Tasks, then you don't need to\n    override this method. Otherwise, a Subclasses can override this method\n    to return a single Task, a list of Task instances, or a dict whose\n    values are Task instances.\n\n    See :ref:`Task.requires`\n    \"\"\"\n    return []",
+                            "def _requires(self):\n    \"\"\"\n    Override in \"template\" tasks which themselves are supposed to be\n    subclassed and thus have their requires() overridden (name preserved to\n    provide consistent end-user experience), yet need to introduce\n    (non-input) dependencies.\n\n    Must return an iterable which among others contains the _requires() of\n    the superclass.\n    \"\"\"\n    return flatten(self.requires())",
+                            "def process_resources(self):\n    \"\"\"\n    Override in \"template\" tasks which provide common resource functionality\n    but allow subclasses to specify additional resources while preserving\n    the name for consistent end-user experience.\n    \"\"\"\n    return self.resources",
+                            "def input(self):\n    \"\"\"\n    Returns the outputs of the Tasks returned by :py:meth:`requires`\n\n    See :ref:`Task.input`\n\n    :return: a list of :py:class:`Target` objects which are specified as\n             outputs of all required Tasks.\n    \"\"\"\n    return getpaths(self.requires())",
+                            "def deps(self):\n    \"\"\"\n    Internal method used by the scheduler.\n\n    Returns the flattened list of requires.\n    \"\"\"\n    return flatten(self._requires())",
+                            "def run(self):\n    \"\"\"\n    The task run method, to be overridden in a subclass.\n\n    See :ref:`Task.run`\n    \"\"\"\n    pass",
+                            "def on_failure(self, exception):\n    \"\"\"\n    Override for custom error handling.\n\n    This method gets called if an exception is raised in :py:meth:`run`.\n    Return value of this method is json encoded and sent to the scheduler as the `expl` argument. Its string representation will be used as the body of the error email sent out if any.\n\n    Default behavior is to return a string representation of the stack trace.\n    \"\"\"\n    traceback_string = traceback.format_exc()\n    return 'Runtime error:\\n%s' % traceback_string",
+                            "def on_success(self):\n    \"\"\"\n    Override for doing custom completion handling for a larger class of tasks\n\n    This method gets called when :py:meth:`run` completes without raising any exceptions.\n\n    The returned value is json encoded and sent to the scheduler as the `expl` argument.\n\n    Default behavior is to send an None value\"\"\"\n    pass",
+                            "def wrapped(callback):\n    cls._event_callbacks.setdefault(cls, {}).setdefault(event, set()).add(callback)\n    return callback",
+                            "def list_to_tuple(x):\n    \"\"\" Make tuples out of lists and sets to allow hashing \"\"\"\n    if isinstance(x, list) or isinstance(x, set):\n        return tuple(x)\n    else:\n        return x"
+                        ],
+                        "constructor_variables": [
+                            "param_kwargs",
+                            "params",
+                            "param_values",
+                            "param_objs",
+                            "__hash",
+                            "param_args",
+                            "task_id",
+                            "task_id_parts"
+                        ],
+                        "class_level_variables": [
+                            "_event_callbacks",
+                            "priority",
+                            "disabled",
+                            "resources",
+                            "worker_timeout"
+                        ],
+                        "class_decorators": [
+                            "six.add_metaclass(Register)"
+                        ],
+                        "function_signatures": [
+                            "use_cmdline_section(self)",
+                            "event_handler(cls, event)",
+                            "trigger_event(self, event, *args, **kwargs)",
+                            "task_module(self)",
+                            "task_family(self)",
+                            "get_params(cls)",
+                            "get_param_values(cls, params, args, kwargs)",
+                            "__init__(self, *args, **kwargs)",
+                            "initialized(self)",
+                            "from_str_params(cls, params_str=None)",
+                            "to_str_params(self)",
+                            "clone(self, cls=None, **kwargs)",
+                            "__hash__(self)",
+                            "__repr__(self)",
+                            "__eq__(self, other)",
+                            "complete(self)",
+                            "bulk_complete(cls, parameter_tuples)",
+                            "output(self)",
+                            "requires(self)",
+                            "_requires(self)",
+                            "process_resources(self)",
+                            "input(self)",
+                            "deps(self)",
+                            "run(self)",
+                            "on_failure(self, exception)",
+                            "on_success(self)",
+                            "wrapped(callback)",
+                            "list_to_tuple(x)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "params_str": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "params": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.get_params": {
+                                    "variable_value": "<bound method Task.get_params of <class 'task_test.DummyTask'>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "DummyTask(param=test, bool_param=True, int_param=666, float_param=123.456, date_param=2014-09-13, datehour_param=2014-09-13T09, timedelta_param=44 days, 0:00:00, list_param=['in', 'flames'])",
+                                    "variable_type": "DummyTask",
+                                    "variable_shape": null
+                                },
+                                "param_name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "param_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "six.iteritems": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "six": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.param_kwargs": {
+                                    "variable_value": "{'param': 'test', 'bool_param': True, 'int_param': 666, 'float_param': 123.456, 'date_param': datetime.date(2014, 9, 13), 'datehour_param': datetime.datetime(2014, 9, 13, 9, 0), 'timedelta_param': datetime.timedelta(days=44), 'list_param': ('in', 'flames'), 'insignificant_param': 'test'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "9"
+                                },
+                                "significant": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "serialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "params_str": {
+                                    "variable_value": "{'param': 'test', 'bool_param': 'True', 'int_param': '666', 'float_param': '123.456', 'date_param': '2014-09-13', 'datehour_param': '2014-09-13T09', 'timedelta_param': '44 days, 0:00:00', 'list_param': ['in', 'flames']}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "8"
+                                },
+                                "params": {
+                                    "variable_value": "{'param': <luigi.parameter.Parameter object at 0x104286e20>, 'bool_param': <luigi.parameter.BoolParameter object at 0x104286670>, 'int_param': <luigi.parameter.IntParameter object at 0x1042865b0>, 'float_param': <luigi.parameter.FloatParameter object at 0x1042865e0>, 'date_param': <luigi.parameter.DateParameter object at 0x104286490>, 'datehour_param': <luigi.parameter.DateHourParameter object at 0x104493bb0>, 'timedelta_param': <luigi.parameter.TimeDeltaParameter object at 0x104493ac0>, 'list_param': <luigi.parameter.Parameter object at 0x1043138b0>, 'insignificant_param': <luigi.parameter.Parameter object at 0x1043136a0>}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "9"
+                                },
+                                "self.get_params": {
+                                    "variable_value": "<bound method Task.get_params of <class 'task_test.DummyTask'>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "DummyTask(param=test, bool_param=True, int_param=666, float_param=123.456, date_param=2014-09-13, datehour_param=2014-09-13T09, timedelta_param=44 days, 0:00:00, list_param=['in', 'flames'])",
+                                    "variable_type": "DummyTask",
+                                    "variable_shape": null
+                                },
+                                "param_name": {
+                                    "variable_value": "'insignificant_param'",
+                                    "variable_type": "str",
+                                    "variable_shape": "19"
+                                },
+                                "param_value": {
+                                    "variable_value": "'test'",
+                                    "variable_type": "str",
+                                    "variable_shape": "4"
+                                },
+                                "six.iteritems": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "six": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.param_kwargs": {
+                                    "variable_value": "{'param': 'test', 'bool_param': True, 'int_param': 666, 'float_param': 123.456, 'date_param': datetime.date(2014, 9, 13), 'datehour_param': datetime.datetime(2014, 9, 13, 9, 0), 'timedelta_param': datetime.timedelta(days=44), 'list_param': ('in', 'flames'), 'insignificant_param': 'test'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "9"
+                                },
+                                "significant": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "serialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "params_str": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "params": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.get_params": {
+                                    "variable_value": "<bound method Task.get_params of <class 'task_test.DummyTask'>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "DummyTask(param=test, bool_param=True, int_param=666, float_param=123.456, date_param=2014-09-13, datehour_param=2014-09-13T09, timedelta_param=44 days, 0:00:00, list_param=['in', 'flames'])",
+                                    "variable_type": "DummyTask",
+                                    "variable_shape": null
+                                },
+                                "param_name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "param_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "six.iteritems": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "six": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.param_kwargs": {
+                                    "variable_value": "{'param': 'test', 'bool_param': True, 'int_param': 666, 'float_param': 123.456, 'date_param': datetime.date(2014, 9, 13), 'datehour_param': datetime.datetime(2014, 9, 13, 9, 0), 'timedelta_param': datetime.timedelta(days=44), 'list_param': ('in', 'flames'), 'insignificant_param': 'test'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "9"
+                                },
+                                "serialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "params_str": {
+                                    "variable_value": "{'param': 'test', 'bool_param': 'True', 'int_param': '666', 'float_param': '123.456', 'date_param': '2014-09-13', 'datehour_param': '2014-09-13T09', 'timedelta_param': '44 days, 0:00:00', 'list_param': ['in', 'flames'], 'insignificant_param': 'test'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "9"
+                                },
+                                "params": {
+                                    "variable_value": "{'param': <luigi.parameter.Parameter object at 0x10a66ee20>, 'bool_param': <luigi.parameter.BoolParameter object at 0x10a66ec70>, 'int_param': <luigi.parameter.IntParameter object at 0x10a66efd0>, 'float_param': <luigi.parameter.FloatParameter object at 0x10a66ed90>, 'date_param': <luigi.parameter.DateParameter object at 0x10a66e9a0>, 'datehour_param': <luigi.parameter.DateHourParameter object at 0x10a73dd00>, 'timedelta_param': <luigi.parameter.TimeDeltaParameter object at 0x10a73dc10>, 'list_param': <luigi.parameter.Parameter object at 0x10a6eb610>, 'insignificant_param': <luigi.parameter.Parameter object at 0x10a6eb400>}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "9"
+                                },
+                                "self.get_params": {
+                                    "variable_value": "<bound method Task.get_params of <class 'task_test.DummyTask'>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "DummyTask(param=test, bool_param=True, int_param=666, float_param=123.456, date_param=2014-09-13, datehour_param=2014-09-13T09, timedelta_param=44 days, 0:00:00, list_param=['in', 'flames'])",
+                                    "variable_type": "DummyTask",
+                                    "variable_shape": null
+                                },
+                                "param_name": {
+                                    "variable_value": "'insignificant_param'",
+                                    "variable_type": "str",
+                                    "variable_shape": "19"
+                                },
+                                "param_value": {
+                                    "variable_value": "'test'",
+                                    "variable_type": "str",
+                                    "variable_shape": "4"
+                                },
+                                "six.iteritems": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "six": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.param_kwargs": {
+                                    "variable_value": "{'param': 'test', 'bool_param': True, 'int_param': 666, 'float_param': 123.456, 'date_param': datetime.date(2014, 9, 13), 'datehour_param': datetime.datetime(2014, 9, 13, 9, 0), 'timedelta_param': datetime.timedelta(days=44), 'list_param': ('in', 'flames'), 'insignificant_param': 'test'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "9"
+                                },
+                                "serialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def namespace(namespace=None):\n    \"\"\"\n    Call to set namespace of tasks declared after the call.\n\n    If called without arguments or with ``None`` as the namespace, the namespace\n    is reset, which is recommended to do at the end of any file where the\n    namespace is set to avoid unintentionally setting namespace on tasks outside\n    of the scope of the current file.\n\n    The namespace of a Task can also be changed by specifying the property\n    ``task_namespace``. This solution has the advantage that the namespace\n    doesn't have to be restored.\n\n    .. code-block:: python\n\n        class Task2(luigi.Task):\n            task_namespace = 'namespace2'\n    \"\"\"\n    Register._default_namespace = namespace",
+                "def id_to_name_and_params(task_id):\n    # DEPRECATED\n    import luigi.tools.parse_task\n    return luigi.tools.parse_task.id_to_name_and_params(task_id)",
+                "def externalize(task):\n    \"\"\"\n    Returns an externalized version of the Task.\n\n    See :py:class:`ExternalTask`.\n    \"\"\"\n    task.run = NotImplemented\n    return task",
+                "def getpaths(struct):\n    \"\"\"\n    Maps all Tasks in a structured data object to their .output().\n    \"\"\"\n    if isinstance(struct, Task):\n        return struct.output()\n    elif isinstance(struct, dict):\n        r = {}\n        for k, v in six.iteritems(struct):\n            r[k] = getpaths(v)\n        return r\n    else:\n        # Remaining case: assume r is iterable...\n        try:\n            s = list(struct)\n        except TypeError:\n            raise Exception('Cannot map %s to Task/dict/list' % str(struct))\n\n        return [getpaths(r) for r in s]",
+                "def flatten(struct):\n    \"\"\"\n    Creates a flat list of all all items in structured output (dicts, lists, items):\n\n    .. code-block:: python\n\n        >>> sorted(flatten({'a': 'foo', 'b': 'bar'}))\n        ['bar', 'foo']\n        >>> sorted(flatten(['foo', ['bar', 'troll']]))\n        ['bar', 'foo', 'troll']\n        >>> flatten('foo')\n        ['foo']\n        >>> flatten(42)\n        [42]\n    \"\"\"\n    if struct is None:\n        return []\n    flat = []\n    if isinstance(struct, dict):\n        for _, result in six.iteritems(struct):\n            flat += flatten(result)\n        return flat\n    if isinstance(struct, six.string_types):\n        return [struct]\n\n    try:\n        # if iterable\n        iterator = iter(struct)\n    except TypeError:\n        return [struct]\n\n    for result in iterator:\n        flat += flatten(result)\n    return flat",
+                "def flatten_output(task):\n    \"\"\"\n    Lists all output targets by recursively walking output-less (wrapper) tasks.\n\n    FIXME order consistently.\n    \"\"\"\n    r = flatten(task.output())\n    if not r:\n        for dep in flatten(task.requires()):\n            r += flatten_output(dep)\n    return r",
+                "@property\ndef use_cmdline_section(self):\n    ''' Property used by core config such as `--workers` etc.\n    These will be exposed without the class as prefix.'''\n    return True",
+                "@classmethod\ndef event_handler(cls, event):\n    \"\"\"\n    Decorator for adding event handlers.\n    \"\"\"\n    def wrapped(callback):\n        cls._event_callbacks.setdefault(cls, {}).setdefault(event, set()).add(callback)\n        return callback\n    return wrapped",
+                "def trigger_event(self, event, *args, **kwargs):\n    \"\"\"\n    Trigger that calls all of the specified events associated with this class.\n    \"\"\"\n    for event_class, event_callbacks in six.iteritems(self._event_callbacks):\n        if not isinstance(self, event_class):\n            continue\n        for callback in event_callbacks.get(event, []):\n            try:\n                # callbacks are protected\n                callback(*args, **kwargs)\n            except KeyboardInterrupt:\n                return\n            except BaseException:\n                logger.exception(\"Error in event callback for %r\", event)",
+                "@property\ndef task_module(self):\n    ''' Returns what Python module to import to get access to this class. '''\n    # TODO(erikbern): we should think about a language-agnostic mechanism\n    return self.__class__.__module__",
+                "@property\ndef task_family(self):\n    \"\"\"\n    Convenience method since a property on the metaclass isn't directly accessible through the class instances.\n    \"\"\"\n    return self.__class__.task_family",
+                "@classmethod\ndef get_params(cls):\n    \"\"\"\n    Returns all of the Parameters for this Task.\n    \"\"\"\n    # We want to do this here and not at class instantiation, or else there is no room to extend classes dynamically\n    params = []\n    for param_name in dir(cls):\n        param_obj = getattr(cls, param_name)\n        if not isinstance(param_obj, Parameter):\n            continue\n\n        params.append((param_name, param_obj))\n\n    # The order the parameters are created matters. See Parameter class\n    params.sort(key=lambda t: t[1].counter)\n    return params",
+                "@classmethod\ndef get_param_values(cls, params, args, kwargs):\n    \"\"\"\n    Get the values of the parameters from the args and kwargs.\n\n    :param params: list of (param_name, Parameter).\n    :param args: positional arguments\n    :param kwargs: keyword arguments.\n    :returns: list of `(name, value)` tuples, one for each parameter.\n    \"\"\"\n    result = {}\n\n    params_dict = dict(params)\n\n    task_name = cls.task_family\n\n    # In case any exceptions are thrown, create a helpful description of how the Task was invoked\n    # TODO: should we detect non-reprable arguments? These will lead to mysterious errors\n    exc_desc = '%s[args=%s, kwargs=%s]' % (task_name, args, kwargs)\n\n    # Fill in the positional arguments\n    positional_params = [(n, p) for n, p in params if p.positional]\n    for i, arg in enumerate(args):\n        if i >= len(positional_params):\n            raise parameter.UnknownParameterException('%s: takes at most %d parameters (%d given)' % (exc_desc, len(positional_params), len(args)))\n        param_name, param_obj = positional_params[i]\n        result[param_name] = arg\n\n    # Then the optional arguments\n    for param_name, arg in six.iteritems(kwargs):\n        if param_name in result:\n            raise parameter.DuplicateParameterException('%s: parameter %s was already set as a positional parameter' % (exc_desc, param_name))\n        if param_name not in params_dict:\n            raise parameter.UnknownParameterException('%s: unknown parameter %s' % (exc_desc, param_name))\n        result[param_name] = arg\n\n    # Then use the defaults for anything not filled in\n    for param_name, param_obj in params:\n        if param_name not in result:\n            if not param_obj.has_task_value(task_name, param_name):\n                raise parameter.MissingParameterException(\"%s: requires the '%s' parameter to be set\" % (exc_desc, param_name))\n            result[param_name] = param_obj.task_value(task_name, param_name)\n\n    def list_to_tuple(x):\n        \"\"\" Make tuples out of lists and sets to allow hashing \"\"\"\n        if isinstance(x, list) or isinstance(x, set):\n            return tuple(x)\n        else:\n            return x\n    # Sort it by the correct order and make a list\n    return [(param_name, list_to_tuple(result[param_name])) for param_name, param_obj in params]",
+                "def __init__(self, *args, **kwargs):\n    \"\"\"\n    Constructor to resolve values for all Parameters.\n\n    For example, the Task:\n\n    .. code-block:: python\n\n        class MyTask(luigi.Task):\n            count = luigi.IntParameter()\n\n    can be instantiated as ``MyTask(count=10)``.\n    \"\"\"\n    params = self.get_params()\n    param_values = self.get_param_values(params, args, kwargs)\n\n    # Set all values on class instance\n    for key, value in param_values:\n        setattr(self, key, value)\n\n    # Register args and kwargs as an attribute on the class. Might be useful\n    self.param_args = tuple(value for key, value in param_values)\n    self.param_kwargs = dict(param_values)\n\n    # Build up task id\n    task_id_parts = []\n    param_objs = dict(params)\n    for param_name, param_value in param_values:\n        if param_objs[param_name].significant:\n            task_id_parts.append('%s=%s' % (param_name, param_objs[param_name].serialize(param_value)))\n\n    self.task_id = '%s(%s)' % (self.task_family, ', '.join(task_id_parts))\n    self.__hash = hash(self.task_id)",
+                "def initialized(self):\n    \"\"\"\n    Returns ``True`` if the Task is initialized and ``False`` otherwise.\n    \"\"\"\n    return hasattr(self, 'task_id')",
+                "@classmethod\ndef from_str_params(cls, params_str=None):\n    \"\"\"\n    Creates an instance from a str->str hash.\n\n    :param params_str: dict of param name -> value.\n    \"\"\"\n    if params_str is None:\n        params_str = {}\n    kwargs = {}\n    for param_name, param in cls.get_params():\n        value = param.parse_from_input(param_name, params_str[param_name])\n        kwargs[param_name] = value\n\n    return cls(**kwargs)",
+                "def to_str_params(self):\n    \"\"\"\n    Convert all parameters to a str->str hash.\n    \"\"\"\n    params_str = {}\n    params = dict(self.get_params())\n    for param_name, param_value in six.iteritems(self.param_kwargs):\n        if params[param_name].significant:\n            params_str[param_name] = params[param_name].serialize(param_value)\n\n    return params_str",
+                "def clone(self, cls=None, **kwargs):\n    \"\"\"\n    Creates a new instance from an existing instance where some of the args have changed.\n\n    There's at least two scenarios where this is useful (see test/clone_test.py):\n\n    * remove a lot of boiler plate when you have recursive dependencies and lots of args\n    * there's task inheritance and some logic is on the base class\n\n    :param cls:\n    :param kwargs:\n    :return:\n    \"\"\"\n    k = self.param_kwargs.copy()\n    k.update(six.iteritems(kwargs))\n\n    if cls is None:\n        cls = self.__class__\n\n    new_k = {}\n    for param_name, param_class in cls.get_params():\n        if param_name in k:\n            new_k[param_name] = k[param_name]\n\n    return cls(**new_k)",
+                "def __hash__(self):\n    return self.__hash",
+                "def __repr__(self):\n    return self.task_id",
+                "def __eq__(self, other):\n    return self.__class__ == other.__class__ and self.param_args == other.param_args",
+                "def complete(self):\n    \"\"\"\n    If the task has any outputs, return ``True`` if all outputs exists.\n    Otherwise, return ``False``.\n\n    However, you may freely override this method with custom logic.\n    \"\"\"\n    outputs = flatten(self.output())\n    if len(outputs) == 0:\n        warnings.warn(\n            \"Task %r without outputs has no custom complete() method\" % self,\n            stacklevel=2\n        )\n        return False\n\n    return all(map(lambda output: output.exists(), outputs))",
+                "@classmethod\ndef bulk_complete(cls, parameter_tuples):\n    \"\"\"\n    Returns those of parameter_tuples for which this Task is complete.\n\n    Override (with an efficient implementation) for efficient scheduling\n    with range tools. Keep the logic consistent with that of complete().\n    \"\"\"\n    raise BulkCompleteNotImplementedError()",
+                "def output(self):\n    \"\"\"\n    The output that this Task produces.\n\n    The output of the Task determines if the Task needs to be run--the task\n    is considered finished iff the outputs all exist. Subclasses should\n    override this method to return a single :py:class:`Target` or a list of\n    :py:class:`Target` instances.\n\n    Implementation note\n      If running multiple workers, the output must be a resource that is accessible\n      by all workers, such as a DFS or database. Otherwise, workers might compute\n      the same output since they don't see the work done by other workers.\n\n    See :ref:`Task.output`\n    \"\"\"\n    return []  # default impl",
+                "def requires(self):\n    \"\"\"\n    The Tasks that this Task depends on.\n\n    A Task will only run if all of the Tasks that it requires are completed.\n    If your Task does not require any other Tasks, then you don't need to\n    override this method. Otherwise, a Subclasses can override this method\n    to return a single Task, a list of Task instances, or a dict whose\n    values are Task instances.\n\n    See :ref:`Task.requires`\n    \"\"\"\n    return []  # default impl",
+                "def _requires(self):\n    \"\"\"\n    Override in \"template\" tasks which themselves are supposed to be\n    subclassed and thus have their requires() overridden (name preserved to\n    provide consistent end-user experience), yet need to introduce\n    (non-input) dependencies.\n\n    Must return an iterable which among others contains the _requires() of\n    the superclass.\n    \"\"\"\n    return flatten(self.requires())  # base impl",
+                "def process_resources(self):\n    \"\"\"\n    Override in \"template\" tasks which provide common resource functionality\n    but allow subclasses to specify additional resources while preserving\n    the name for consistent end-user experience.\n    \"\"\"\n    return self.resources  # default impl",
+                "def input(self):\n    \"\"\"\n    Returns the outputs of the Tasks returned by :py:meth:`requires`\n\n    See :ref:`Task.input`\n\n    :return: a list of :py:class:`Target` objects which are specified as\n             outputs of all required Tasks.\n    \"\"\"\n    return getpaths(self.requires())",
+                "def deps(self):\n    \"\"\"\n    Internal method used by the scheduler.\n\n    Returns the flattened list of requires.\n    \"\"\"\n    # used by scheduler\n    return flatten(self._requires())",
+                "def run(self):\n    \"\"\"\n    The task run method, to be overridden in a subclass.\n\n    See :ref:`Task.run`\n    \"\"\"\n    pass  # default impl",
+                "def on_failure(self, exception):\n    \"\"\"\n    Override for custom error handling.\n\n    This method gets called if an exception is raised in :py:meth:`run`.\n    Return value of this method is json encoded and sent to the scheduler as the `expl` argument. Its string representation will be used as the body of the error email sent out if any.\n\n    Default behavior is to return a string representation of the stack trace.\n    \"\"\"\n\n    traceback_string = traceback.format_exc()\n    return \"Runtime error:\\n%s\" % traceback_string",
+                "def on_success(self):\n    \"\"\"\n    Override for doing custom completion handling for a larger class of tasks\n\n    This method gets called when :py:meth:`run` completes without raising any exceptions.\n\n    The returned value is json encoded and sent to the scheduler as the `expl` argument.\n\n    Default behavior is to send an None value\"\"\"\n    pass",
+                "@classmethod\ndef bulk_complete(cls, parameter_tuples):\n    return [t for t in parameter_tuples if cls(t).complete()]",
+                "def complete(self):\n    return all(r.complete() for r in flatten(self.requires()))",
+                "def wrapped(callback):\n    cls._event_callbacks.setdefault(cls, {}).setdefault(event, set()).add(callback)\n    return callback",
+                "def list_to_tuple(x):\n    \"\"\" Make tuples out of lists and sets to allow hashing \"\"\"\n    if isinstance(x, list) or isinstance(x, set):\n        return tuple(x)\n    else:\n        return x"
+            ],
+            "inscope_function_signatures": [
+                "namespace(namespace=None)",
+                "id_to_name_and_params(task_id)",
+                "externalize(task)",
+                "getpaths(struct)",
+                "flatten(struct)",
+                "flatten_output(task)",
+                "use_cmdline_section(self)",
+                "event_handler(cls, event)",
+                "trigger_event(self, event, *args, **kwargs)",
+                "task_module(self)",
+                "task_family(self)",
+                "get_params(cls)",
+                "get_param_values(cls, params, args, kwargs)",
+                "__init__(self, *args, **kwargs)",
+                "initialized(self)",
+                "from_str_params(cls, params_str=None)",
+                "to_str_params(self)",
+                "clone(self, cls=None, **kwargs)",
+                "__hash__(self)",
+                "__repr__(self)",
+                "__eq__(self, other)",
+                "complete(self)",
+                "bulk_complete(cls, parameter_tuples)",
+                "output(self)",
+                "requires(self)",
+                "_requires(self)",
+                "process_resources(self)",
+                "input(self)",
+                "deps(self)",
+                "run(self)",
+                "on_failure(self, exception)",
+                "on_success(self)",
+                "bulk_complete(cls, parameter_tuples)",
+                "complete(self)",
+                "wrapped(callback)",
+                "list_to_tuple(x)"
+            ],
+            "variables_in_file": {
+                "ImportError": [
+                    25
+                ],
+                "Parameter": [
+                    185,
+                    36
+                ],
+                "parameter.Parameter": [
+                    36
+                ],
+                "parameter": [
+                    225,
+                    227,
+                    36,
+                    234,
+                    218
+                ],
+                "logger": [
+                    161,
+                    37
+                ],
+                "logging.getLogger": [
+                    37
+                ],
+                "logging": [
+                    37
+                ],
+                "Register._default_namespace": [
+                    58
+                ],
+                "Register": [
+                    58,
+                    77
+                ],
+                "namespace": [
+                    58
+                ],
+                "luigi.tools.parse_task.id_to_name_and_params": [
+                    64
+                ],
+                "luigi.tools.parse_task": [
+                    64
+                ],
+                "luigi.tools": [
+                    64
+                ],
+                "luigi": [
+                    64
+                ],
+                "task_id": [
+                    64
+                ],
+                "NotImplementedError": [
+                    67
+                ],
+                "object": [
+                    481,
+                    78
+                ],
+                "_event_callbacks": [
+                    114
+                ],
+                "priority": [
+                    119
+                ],
+                "disabled": [
+                    120
+                ],
+                "resources": [
+                    124
+                ],
+                "worker_timeout": [
+                    129
+                ],
+                "property": [
+                    169,
+                    131,
+                    163
+                ],
+                "add": [
+                    143
+                ],
+                "setdefault": [
+                    143
+                ],
+                "cls._event_callbacks.setdefault": [
+                    143
+                ],
+                "cls._event_callbacks": [
+                    143
+                ],
+                "cls": [
+                    296,
+                    330,
+                    331,
+                    300,
+                    491,
+                    334,
+                    143,
+                    208,
+                    338,
+                    183,
+                    184
+                ],
+                "event": [
+                    161,
+                    154,
+                    143
+                ],
+                "set": [
+                    239,
+                    143
+                ],
+                "callback": [
+                    144,
+                    154,
+                    157,
+                    143
+                ],
+                "wrapped": [
+                    145
+                ],
+                "classmethod": [
+                    194,
+                    137,
+                    489,
+                    366,
+                    176,
+                    286
+                ],
+                "event_class": [
+                    152,
+                    151
+                ],
+                "event_callbacks": [
+                    154,
+                    151
+                ],
+                "six.iteritems": [
+                    328,
+                    574,
+                    308,
+                    151,
+                    542,
+                    223
+                ],
+                "six": [
+                    577,
+                    328,
+                    574,
+                    77,
+                    308,
+                    151,
+                    542,
+                    223
+                ],
+                "self._event_callbacks": [
+                    151
+                ],
+                "self": [
+                    259,
+                    260,
+                    264,
+                    521,
+                    267,
+                    268,
+                    277,
+                    278,
+                    151,
+                    152,
+                    284,
+                    418,
+                    167,
+                    426,
+                    174,
+                    307,
+                    308,
+                    437,
+                    446,
+                    327,
+                    331,
+                    341,
+                    344,
+                    347,
+                    356,
+                    359
+                ],
+                "isinstance": [
+                    577,
+                    239,
+                    152,
+                    185,
+                    538,
+                    540,
+                    573
+                ],
+                "event_callbacks.get": [
+                    154
+                ],
+                "args": [
+                    260,
+                    212,
+                    216,
+                    218,
+                    157
+                ],
+                "kwargs": [
+                    260,
+                    295,
+                    328,
+                    298,
+                    300,
+                    212,
+                    157,
+                    223
+                ],
+                "KeyboardInterrupt": [
+                    158
+                ],
+                "BaseException": [
+                    160
+                ],
+                "logger.exception": [
+                    161
+                ],
+                "self.__class__.__module__": [
+                    167
+                ],
+                "self.__class__": [
+                    347,
+                    331,
+                    174,
+                    167
+                ],
+                "self.__class__.task_family": [
+                    174
+                ],
+                "params": [
+                    192,
+                    259,
+                    260,
+                    231,
+                    206,
+                    272,
+                    307,
+                    244,
+                    309,
+                    182,
+                    215,
+                    310,
+                    188,
+                    191
+                ],
+                "param_name": [
+                    273,
+                    274,
+                    275,
+                    296,
+                    297,
+                    298,
+                    308,
+                    309,
+                    310,
+                    183,
+                    184,
+                    188,
+                    334,
+                    335,
+                    336,
+                    219,
+                    220,
+                    223,
+                    224,
+                    225,
+                    226,
+                    227,
+                    228,
+                    231,
+                    232,
+                    233,
+                    234,
+                    235,
+                    244
+                ],
+                "dir": [
+                    183
+                ],
+                "param_obj": [
+                    231,
+                    233,
+                    235,
+                    244,
+                    184,
+                    185,
+                    219,
+                    188
+                ],
+                "getattr": [
+                    184
+                ],
+                "params.append": [
+                    188
+                ],
+                "params.sort": [
+                    191
+                ],
+                "counter": [
+                    191
+                ],
+                "t": [
+                    491,
+                    191
+                ],
+                "result": [
+                    224,
+                    228,
+                    232,
+                    586,
+                    235,
+                    204,
+                    587,
+                    244,
+                    220,
+                    574,
+                    575
+                ],
+                "params_dict": [
+                    226,
+                    206
+                ],
+                "dict": [
+                    268,
+                    206,
+                    272,
+                    307,
+                    540,
+                    573
+                ],
+                "task_name": [
+                    208,
+                    233,
+                    235,
+                    212
+                ],
+                "cls.task_family": [
+                    208
+                ],
+                "exc_desc": [
+                    225,
+                    227,
+                    234,
+                    212,
+                    218
+                ],
+                "positional_params": [
+                    217,
+                    218,
+                    219,
+                    215
+                ],
+                "n": [
+                    215
+                ],
+                "p": [
+                    215
+                ],
+                "p.positional": [
+                    215
+                ],
+                "i": [
+                    216,
+                    217,
+                    219
+                ],
+                "arg": [
+                    216,
+                    220,
+                    228,
+                    223
+                ],
+                "enumerate": [
+                    216
+                ],
+                "len": [
+                    217,
+                    218,
+                    357
+                ],
+                "parameter.UnknownParameterException": [
+                    218,
+                    227
+                ],
+                "parameter.DuplicateParameterException": [
+                    225
+                ],
+                "param_obj.has_task_value": [
+                    233
+                ],
+                "parameter.MissingParameterException": [
+                    234
+                ],
+                "param_obj.task_value": [
+                    235
+                ],
+                "x": [
+                    240,
+                    242,
+                    239
+                ],
+                "list": [
+                    548,
+                    239
+                ],
+                "tuple": [
+                    240,
+                    267
+                ],
+                "list_to_tuple": [
+                    244
+                ],
+                "self.get_params": [
+                    307,
+                    259
+                ],
+                "param_values": [
+                    260,
+                    263,
+                    267,
+                    268,
+                    273
+                ],
+                "self.get_param_values": [
+                    260
+                ],
+                "key": [
+                    264,
+                    267,
+                    263
+                ],
+                "value": [
+                    263,
+                    264,
+                    297,
+                    298,
+                    267
+                ],
+                "setattr": [
+                    264
+                ],
+                "self.param_args": [
+                    347,
+                    267
+                ],
+                "self.param_kwargs": [
+                    268,
+                    308,
+                    327
+                ],
+                "task_id_parts": [
+                    275,
+                    277,
+                    271
+                ],
+                "param_objs": [
+                    272,
+                    274,
+                    275
+                ],
+                "param_value": [
+                    273,
+                    275,
+                    308,
+                    310
+                ],
+                "significant": [
+                    274,
+                    309
+                ],
+                "task_id_parts.append": [
+                    275
+                ],
+                "serialize": [
+                    275,
+                    310
+                ],
+                "self.task_id": [
+                    344,
+                    277,
+                    278
+                ],
+                "self.task_family": [
+                    277
+                ],
+                "join": [
+                    277
+                ],
+                "self.__hash": [
+                    341,
+                    278
+                ],
+                "hash": [
+                    278
+                ],
+                "hasattr": [
+                    284
+                ],
+                "params_str": [
+                    293,
+                    294,
+                    297,
+                    306,
+                    310,
+                    312
+                ],
+                "param": [
+                    296,
+                    297
+                ],
+                "cls.get_params": [
+                    296,
+                    334
+                ],
+                "param.parse_from_input": [
+                    297
+                ],
+                "k": [
+                    327,
+                    328,
+                    335,
+                    336,
+                    542,
+                    543
+                ],
+                "self.param_kwargs.copy": [
+                    327
+                ],
+                "k.update": [
+                    328
+                ],
+                "new_k": [
+                    336,
+                    338,
+                    333
+                ],
+                "param_class": [
+                    334
+                ],
+                "other.__class__": [
+                    347
+                ],
+                "other": [
+                    347
+                ],
+                "other.param_args": [
+                    347
+                ],
+                "outputs": [
+                    364,
+                    356,
+                    357
+                ],
+                "flatten": [
+                    418,
+                    356,
+                    521,
+                    587,
+                    597,
+                    599,
+                    446,
+                    575
+                ],
+                "self.output": [
+                    356
+                ],
+                "warnings.warn": [
+                    358
+                ],
+                "warnings": [
+                    358
+                ],
+                "all": [
+                    521,
+                    364
+                ],
+                "map": [
+                    364
+                ],
+                "output.exists": [
+                    364
+                ],
+                "output": [
+                    364
+                ],
+                "BulkCompleteNotImplementedError": [
+                    374
+                ],
+                "self.requires": [
+                    521,
+                    418,
+                    437
+                ],
+                "self.resources": [
+                    426
+                ],
+                "getpaths": [
+                    552,
+                    437,
+                    543
+                ],
+                "self._requires": [
+                    446
+                ],
+                "traceback_string": [
+                    466,
+                    467
+                ],
+                "traceback.format_exc": [
+                    466
+                ],
+                "traceback": [
+                    466
+                ],
+                "six.add_metaclass": [
+                    77
+                ],
+                "parameter_tuples": [
+                    491
+                ],
+                "complete": [
+                    491
+                ],
+                "task.run": [
+                    500
+                ],
+                "task": [
+                    597,
+                    500,
+                    501,
+                    599
+                ],
+                "NotImplemented": [
+                    512,
+                    500
+                ],
+                "Task": [
+                    504,
+                    538,
+                    515,
+                    524
+                ],
+                "run": [
+                    512
+                ],
+                "r.complete": [
+                    521
+                ],
+                "r": [
+                    544,
+                    552,
+                    521,
+                    597,
+                    598,
+                    600,
+                    601,
+                    541,
+                    543
+                ],
+                "struct": [
+                    577,
+                    578,
+                    548,
+                    550,
+                    582,
+                    574,
+                    584,
+                    570,
+                    538,
+                    539,
+                    540,
+                    573,
+                    542
+                ],
+                "struct.output": [
+                    539
+                ],
+                "v": [
+                    542,
+                    543
+                ],
+                "s": [
+                    552,
+                    548
+                ],
+                "TypeError": [
+                    549,
+                    583
+                ],
+                "Exception": [
+                    550
+                ],
+                "str": [
+                    550
+                ],
+                "flat": [
+                    576,
+                    587,
+                    588,
+                    572,
+                    575
+                ],
+                "_": [
+                    574
+                ],
+                "six.string_types": [
+                    577
+                ],
+                "iterator": [
+                    586,
+                    582
+                ],
+                "iter": [
+                    582
+                ],
+                "task.output": [
+                    597
+                ],
+                "dep": [
+                    600,
+                    599
+                ],
+                "task.requires": [
+                    599
+                ],
+                "flatten_output": [
+                    600
+                ]
+            },
+            "filtered_variables_in_file": {
+                "Parameter": [
+                    185,
+                    36
+                ],
+                "parameter.Parameter": [
+                    36
+                ],
+                "parameter": [
+                    225,
+                    227,
+                    36,
+                    234,
+                    218
+                ],
+                "logger": [
+                    161,
+                    37
+                ],
+                "logging.getLogger": [
+                    37
+                ],
+                "logging": [
+                    37
+                ],
+                "Register._default_namespace": [
+                    58
+                ],
+                "Register": [
+                    58,
+                    77
+                ],
+                "namespace": [
+                    58
+                ],
+                "luigi.tools.parse_task.id_to_name_and_params": [
+                    64
+                ],
+                "luigi.tools.parse_task": [
+                    64
+                ],
+                "luigi.tools": [
+                    64
+                ],
+                "luigi": [
+                    64
+                ],
+                "task_id": [
+                    64
+                ],
+                "_event_callbacks": [
+                    114
+                ],
+                "priority": [
+                    119
+                ],
+                "disabled": [
+                    120
+                ],
+                "resources": [
+                    124
+                ],
+                "worker_timeout": [
+                    129
+                ],
+                "add": [
+                    143
+                ],
+                "setdefault": [
+                    143
+                ],
+                "cls._event_callbacks.setdefault": [
+                    143
+                ],
+                "cls._event_callbacks": [
+                    143
+                ],
+                "cls": [
+                    296,
+                    330,
+                    331,
+                    300,
+                    491,
+                    334,
+                    143,
+                    208,
+                    338,
+                    183,
+                    184
+                ],
+                "event": [
+                    161,
+                    154,
+                    143
+                ],
+                "callback": [
+                    144,
+                    154,
+                    157,
+                    143
+                ],
+                "wrapped": [
+                    145
+                ],
+                "event_class": [
+                    152,
+                    151
+                ],
+                "event_callbacks": [
+                    154,
+                    151
+                ],
+                "six.iteritems": [
+                    328,
+                    574,
+                    308,
+                    151,
+                    542,
+                    223
+                ],
+                "six": [
+                    577,
+                    328,
+                    574,
+                    77,
+                    308,
+                    151,
+                    542,
+                    223
+                ],
+                "self._event_callbacks": [
+                    151
+                ],
+                "self": [
+                    259,
+                    260,
+                    264,
+                    521,
+                    267,
+                    268,
+                    277,
+                    278,
+                    151,
+                    152,
+                    284,
+                    418,
+                    167,
+                    426,
+                    174,
+                    307,
+                    308,
+                    437,
+                    446,
+                    327,
+                    331,
+                    341,
+                    344,
+                    347,
+                    356,
+                    359
+                ],
+                "event_callbacks.get": [
+                    154
+                ],
+                "args": [
+                    260,
+                    212,
+                    216,
+                    218,
+                    157
+                ],
+                "kwargs": [
+                    260,
+                    295,
+                    328,
+                    298,
+                    300,
+                    212,
+                    157,
+                    223
+                ],
+                "logger.exception": [
+                    161
+                ],
+                "self.__class__.__module__": [
+                    167
+                ],
+                "self.__class__": [
+                    347,
+                    331,
+                    174,
+                    167
+                ],
+                "self.__class__.task_family": [
+                    174
+                ],
+                "params": [
+                    192,
+                    259,
+                    260,
+                    231,
+                    206,
+                    272,
+                    307,
+                    244,
+                    309,
+                    182,
+                    215,
+                    310,
+                    188,
+                    191
+                ],
+                "param_name": [
+                    273,
+                    274,
+                    275,
+                    296,
+                    297,
+                    298,
+                    308,
+                    309,
+                    310,
+                    183,
+                    184,
+                    188,
+                    334,
+                    335,
+                    336,
+                    219,
+                    220,
+                    223,
+                    224,
+                    225,
+                    226,
+                    227,
+                    228,
+                    231,
+                    232,
+                    233,
+                    234,
+                    235,
+                    244
+                ],
+                "param_obj": [
+                    231,
+                    233,
+                    235,
+                    244,
+                    184,
+                    185,
+                    219,
+                    188
+                ],
+                "params.append": [
+                    188
+                ],
+                "params.sort": [
+                    191
+                ],
+                "counter": [
+                    191
+                ],
+                "t": [
+                    491,
+                    191
+                ],
+                "result": [
+                    224,
+                    228,
+                    232,
+                    586,
+                    235,
+                    204,
+                    587,
+                    244,
+                    220,
+                    574,
+                    575
+                ],
+                "params_dict": [
+                    226,
+                    206
+                ],
+                "task_name": [
+                    208,
+                    233,
+                    235,
+                    212
+                ],
+                "cls.task_family": [
+                    208
+                ],
+                "exc_desc": [
+                    225,
+                    227,
+                    234,
+                    212,
+                    218
+                ],
+                "positional_params": [
+                    217,
+                    218,
+                    219,
+                    215
+                ],
+                "n": [
+                    215
+                ],
+                "p": [
+                    215
+                ],
+                "p.positional": [
+                    215
+                ],
+                "i": [
+                    216,
+                    217,
+                    219
+                ],
+                "arg": [
+                    216,
+                    220,
+                    228,
+                    223
+                ],
+                "parameter.UnknownParameterException": [
+                    218,
+                    227
+                ],
+                "parameter.DuplicateParameterException": [
+                    225
+                ],
+                "param_obj.has_task_value": [
+                    233
+                ],
+                "parameter.MissingParameterException": [
+                    234
+                ],
+                "param_obj.task_value": [
+                    235
+                ],
+                "x": [
+                    240,
+                    242,
+                    239
+                ],
+                "list_to_tuple": [
+                    244
+                ],
+                "self.get_params": [
+                    307,
+                    259
+                ],
+                "param_values": [
+                    260,
+                    263,
+                    267,
+                    268,
+                    273
+                ],
+                "self.get_param_values": [
+                    260
+                ],
+                "key": [
+                    264,
+                    267,
+                    263
+                ],
+                "value": [
+                    263,
+                    264,
+                    297,
+                    298,
+                    267
+                ],
+                "self.param_args": [
+                    347,
+                    267
+                ],
+                "self.param_kwargs": [
+                    268,
+                    308,
+                    327
+                ],
+                "task_id_parts": [
+                    275,
+                    277,
+                    271
+                ],
+                "param_objs": [
+                    272,
+                    274,
+                    275
+                ],
+                "param_value": [
+                    273,
+                    275,
+                    308,
+                    310
+                ],
+                "significant": [
+                    274,
+                    309
+                ],
+                "task_id_parts.append": [
+                    275
+                ],
+                "serialize": [
+                    275,
+                    310
+                ],
+                "self.task_id": [
+                    344,
+                    277,
+                    278
+                ],
+                "self.task_family": [
+                    277
+                ],
+                "join": [
+                    277
+                ],
+                "self.__hash": [
+                    341,
+                    278
+                ],
+                "params_str": [
+                    293,
+                    294,
+                    297,
+                    306,
+                    310,
+                    312
+                ],
+                "param": [
+                    296,
+                    297
+                ],
+                "cls.get_params": [
+                    296,
+                    334
+                ],
+                "param.parse_from_input": [
+                    297
+                ],
+                "k": [
+                    327,
+                    328,
+                    335,
+                    336,
+                    542,
+                    543
+                ],
+                "self.param_kwargs.copy": [
+                    327
+                ],
+                "k.update": [
+                    328
+                ],
+                "new_k": [
+                    336,
+                    338,
+                    333
+                ],
+                "param_class": [
+                    334
+                ],
+                "other.__class__": [
+                    347
+                ],
+                "other": [
+                    347
+                ],
+                "other.param_args": [
+                    347
+                ],
+                "outputs": [
+                    364,
+                    356,
+                    357
+                ],
+                "flatten": [
+                    418,
+                    356,
+                    521,
+                    587,
+                    597,
+                    599,
+                    446,
+                    575
+                ],
+                "self.output": [
+                    356
+                ],
+                "warnings.warn": [
+                    358
+                ],
+                "warnings": [
+                    358
+                ],
+                "output.exists": [
+                    364
+                ],
+                "output": [
+                    364
+                ],
+                "BulkCompleteNotImplementedError": [
+                    374
+                ],
+                "self.requires": [
+                    521,
+                    418,
+                    437
+                ],
+                "self.resources": [
+                    426
+                ],
+                "getpaths": [
+                    552,
+                    437,
+                    543
+                ],
+                "self._requires": [
+                    446
+                ],
+                "traceback_string": [
+                    466,
+                    467
+                ],
+                "traceback.format_exc": [
+                    466
+                ],
+                "traceback": [
+                    466
+                ],
+                "six.add_metaclass": [
+                    77
+                ],
+                "parameter_tuples": [
+                    491
+                ],
+                "complete": [
+                    491
+                ],
+                "task.run": [
+                    500
+                ],
+                "task": [
+                    597,
+                    500,
+                    501,
+                    599
+                ],
+                "Task": [
+                    504,
+                    538,
+                    515,
+                    524
+                ],
+                "run": [
+                    512
+                ],
+                "r.complete": [
+                    521
+                ],
+                "r": [
+                    544,
+                    552,
+                    521,
+                    597,
+                    598,
+                    600,
+                    601,
+                    541,
+                    543
+                ],
+                "struct": [
+                    577,
+                    578,
+                    548,
+                    550,
+                    582,
+                    574,
+                    584,
+                    570,
+                    538,
+                    539,
+                    540,
+                    573,
+                    542
+                ],
+                "struct.output": [
+                    539
+                ],
+                "v": [
+                    542,
+                    543
+                ],
+                "s": [
+                    552,
+                    548
+                ],
+                "flat": [
+                    576,
+                    587,
+                    588,
+                    572,
+                    575
+                ],
+                "_": [
+                    574
+                ],
+                "six.string_types": [
+                    577
+                ],
+                "iterator": [
+                    586,
+                    582
+                ],
+                "task.output": [
+                    597
+                ],
+                "dep": [
+                    600,
+                    599
+                ],
+                "task.requires": [
+                    599
+                ],
+                "flatten_output": [
+                    600
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_20/test/task_test.py",
+                "test_function": "test_task_to_str_to_task",
+                "test_function_code": "    def test_task_to_str_to_task(self):\n        params = dict(\n            param='test',\n            bool_param=True,\n            int_param=666,\n            float_param=123.456,\n            date_param=datetime(2014, 9, 13).date(),\n            datehour_param=datetime(2014, 9, 13, 9),\n            timedelta_param=timedelta(44),  # doesn't support seconds\n            list_param=['in', 'flames'],\n            insignificant_param='test')\n\n        original = DummyTask(**params)\n        other = DummyTask.from_str_params(original.to_str_params())\n        self.assertEqual(original, other)",
+                "test_error": "KeyError: 'insignificant_param'",
+                "full_test_error": "self = <task_test.TaskTest testMethod=test_task_to_str_to_task>\n\n    def test_task_to_str_to_task(self):\n        params = dict(\n            param='test',\n            bool_param=True,\n            int_param=666,\n            float_param=123.456,\n            date_param=datetime(2014, 9, 13).date(),\n            datehour_param=datetime(2014, 9, 13, 9),\n            timedelta_param=timedelta(44),  # doesn't support seconds\n            list_param=['in', 'flames'],\n            insignificant_param='test')\n    \n        original = DummyTask(**params)\n>       other = DummyTask.from_str_params(original.to_str_params())\n\ntest/task_test.py:58: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncls = <class 'task_test.DummyTask'>\nparams_str = {'bool_param': 'True', 'date_param': '2014-09-13', 'datehour_param': '2014-09-13T09', 'float_param': '123.456', ...}\n\n    @classmethod\n    def from_str_params(cls, params_str=None):\n        \"\"\"\n        Creates an instance from a str->str hash.\n    \n        :param params_str: dict of param name -> value.\n        \"\"\"\n        if params_str is None:\n            params_str = {}\n        kwargs = {}\n        for param_name, param in cls.get_params():\n>           value = param.parse_from_input(param_name, params_str[param_name])\nE           KeyError: 'insignificant_param'\n\nluigi/task.py:297: KeyError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

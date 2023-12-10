@@ -1,0 +1,1612 @@
+{
+    "scrapy:4": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_4/scrapy/contracts/__init__.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_clean_req",
+                    "function_code": "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = failure.value, failure.type, failure.getTracebackObject()\n        results.addError(case, exc_info)\n\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper\n",
+                    "decorators": [],
+                    "docstring": "stop the request from returning objects and records any errors ",
+                    "start_line": 71,
+                    "variables": {
+                        "cb": [
+                            74,
+                            76,
+                            79
+                        ],
+                        "request.callback": [
+                            74,
+                            90
+                        ],
+                        "request": [
+                            74,
+                            91,
+                            90
+                        ],
+                        "output": [
+                            80,
+                            79
+                        ],
+                        "response": [
+                            79
+                        ],
+                        "list": [
+                            80
+                        ],
+                        "iterate_spider_output": [
+                            80
+                        ],
+                        "case": [
+                            88,
+                            82,
+                            83,
+                            86
+                        ],
+                        "_create_testcase": [
+                            82,
+                            86
+                        ],
+                        "method": [
+                            82,
+                            86
+                        ],
+                        "results.addError": [
+                            88,
+                            83
+                        ],
+                        "results": [
+                            88,
+                            83
+                        ],
+                        "sys.exc_info": [
+                            83
+                        ],
+                        "sys": [
+                            83
+                        ],
+                        "wraps": [
+                            76
+                        ],
+                        "exc_info": [
+                            88,
+                            87
+                        ],
+                        "failure.value": [
+                            87
+                        ],
+                        "failure": [
+                            87
+                        ],
+                        "failure.type": [
+                            87
+                        ],
+                        "failure.getTracebackObject": [
+                            87
+                        ],
+                        "cb_wrapper": [
+                            90
+                        ],
+                        "request.errback": [
+                            91
+                        ],
+                        "eb_wrapper": [
+                            91
+                        ]
+                    },
+                    "filtered_variables": {
+                        "cb": [
+                            74,
+                            76,
+                            79
+                        ],
+                        "request.callback": [
+                            74,
+                            90
+                        ],
+                        "request": [
+                            74,
+                            91,
+                            90
+                        ],
+                        "output": [
+                            80,
+                            79
+                        ],
+                        "response": [
+                            79
+                        ],
+                        "iterate_spider_output": [
+                            80
+                        ],
+                        "case": [
+                            88,
+                            82,
+                            83,
+                            86
+                        ],
+                        "_create_testcase": [
+                            82,
+                            86
+                        ],
+                        "method": [
+                            82,
+                            86
+                        ],
+                        "results.addError": [
+                            88,
+                            83
+                        ],
+                        "results": [
+                            88,
+                            83
+                        ],
+                        "sys.exc_info": [
+                            83
+                        ],
+                        "sys": [
+                            83
+                        ],
+                        "wraps": [
+                            76
+                        ],
+                        "exc_info": [
+                            88,
+                            87
+                        ],
+                        "failure.value": [
+                            87
+                        ],
+                        "failure": [
+                            87
+                        ],
+                        "failure.type": [
+                            87
+                        ],
+                        "failure.getTracebackObject": [
+                            87
+                        ],
+                        "cb_wrapper": [
+                            90
+                        ],
+                        "request.errback": [
+                            91
+                        ],
+                        "eb_wrapper": [
+                            91
+                        ]
+                    },
+                    "diff_line_number": 87,
+                    "class_data": {
+                        "signature": "class ContractsManager(object)",
+                        "docstring": null,
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, contracts):\n    for contract in contracts:\n        self.contracts[contract.name] = contract",
+                            "def tested_methods_from_spidercls(self, spidercls):\n    methods = []\n    for key, value in vars(spidercls).items():\n        if callable(value) and value.__doc__ and re.search('^\\\\s*@', value.__doc__, re.MULTILINE):\n            methods.append(key)\n    return methods",
+                            "def extract_contracts(self, method):\n    contracts = []\n    for line in method.__doc__.split('\\n'):\n        line = line.strip()\n        if line.startswith('@'):\n            name, args = re.match('@(\\\\w+)\\\\s*(.*)', line).groups()\n            args = re.split('\\\\s+', args)\n            contracts.append(self.contracts[name](method, *args))\n    return contracts",
+                            "def from_spider(self, spider, results):\n    requests = []\n    for method in self.tested_methods_from_spidercls(type(spider)):\n        bound_method = spider.__getattribute__(method)\n        requests.append(self.from_method(bound_method, results))\n    return requests",
+                            "def from_method(self, method, results):\n    contracts = self.extract_contracts(method)\n    if contracts:\n        args, kwargs = get_spec(Request.__init__)\n        kwargs['callback'] = method\n        for contract in contracts:\n            kwargs = contract.adjust_request_args(kwargs)\n        args.remove('self')\n        if set(args).issubset(set(kwargs)):\n            request = Request(**kwargs)\n            for contract in reversed(contracts):\n                request = contract.add_pre_hook(request, results)\n            for contract in contracts:\n                request = contract.add_post_hook(request, results)\n            self._clean_req(request, method, results)\n            return request",
+                            "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = (failure.value, failure.type, failure.getTracebackObject())\n        results.addError(case, exc_info)\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper",
+                            "@wraps(cb)\ndef cb_wrapper(response):\n    try:\n        output = cb(response)\n        output = list(iterate_spider_output(output))\n    except:\n        case = _create_testcase(method, 'callback')\n        results.addError(case, sys.exc_info())",
+                            "def eb_wrapper(failure):\n    case = _create_testcase(method, 'errback')\n    exc_info = (failure.value, failure.type, failure.getTracebackObject())\n    results.addError(case, exc_info)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "contracts"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, contracts)",
+                            "tested_methods_from_spidercls(self, spidercls)",
+                            "extract_contracts(self, method)",
+                            "from_spider(self, spider, results)",
+                            "from_method(self, method, results)",
+                            "_clean_req(self, request, method, results)",
+                            "cb_wrapper(response)",
+                            "eb_wrapper(failure)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "cb": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "request.callback": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x10904fdc0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request": {
+                                    "variable_value": "<GET http://scrapy.org>",
+                                    "variable_type": "Request",
+                                    "variable_shape": null
+                                },
+                                "output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "response": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "iterate_spider_output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "case": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_create_testcase": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "method": {
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x108d1d250>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results.addError": {
+                                    "variable_value": "<bound method TextTestResult.addError of <unittest.runner.TextTestResult run=0 errors=0 failures=0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results": {
+                                    "variable_value": "<unittest.runner.TextTestResult run=0 errors=0 failures=0>",
+                                    "variable_type": "TextTestResult",
+                                    "variable_shape": null
+                                },
+                                "sys.exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sys": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "wraps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.getTracebackObject": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cb_wrapper": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "request.errback": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "eb_wrapper": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "cb": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x10904fdc0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request.callback": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x1090611f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request": {
+                                    "variable_value": "<GET http://scrapy.org>",
+                                    "variable_type": "Request",
+                                    "variable_shape": null
+                                },
+                                "output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "response": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "iterate_spider_output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "case": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_create_testcase": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "method": {
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x108d1d250>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results.addError": {
+                                    "variable_value": "<bound method TextTestResult.addError of <unittest.runner.TextTestResult run=0 errors=0 failures=0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results": {
+                                    "variable_value": "<unittest.runner.TextTestResult run=0 errors=0 failures=0>",
+                                    "variable_type": "TextTestResult",
+                                    "variable_shape": null
+                                },
+                                "sys.exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sys": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "wraps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.getTracebackObject": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cb_wrapper": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x1090611f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request.errback": {
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x109061280>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "eb_wrapper": {
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x109061280>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "cb": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "request.callback": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x10fd22dc0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request": {
+                                    "variable_value": "<GET http://scrapy.org>",
+                                    "variable_type": "Request",
+                                    "variable_shape": null
+                                },
+                                "output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "response": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "iterate_spider_output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "case": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_create_testcase": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "method": {
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x10f9f0c40>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results.addError": {
+                                    "variable_value": "<bound method TextTestResult.addError of <unittest.runner.TextTestResult run=0 errors=0 failures=0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results": {
+                                    "variable_value": "<unittest.runner.TextTestResult run=0 errors=0 failures=0>",
+                                    "variable_type": "TextTestResult",
+                                    "variable_shape": null
+                                },
+                                "sys.exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sys": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "wraps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.getTracebackObject": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cb_wrapper": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "request.errback": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "eb_wrapper": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "cb": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x10fd22dc0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request.callback": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x10fd351f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request": {
+                                    "variable_value": "<GET http://scrapy.org>",
+                                    "variable_type": "Request",
+                                    "variable_shape": null
+                                },
+                                "output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "response": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "iterate_spider_output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "case": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_create_testcase": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "method": {
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x10f9f0c40>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results.addError": {
+                                    "variable_value": "<bound method TextTestResult.addError of <unittest.runner.TextTestResult run=0 errors=0 failures=0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "results": {
+                                    "variable_value": "<unittest.runner.TextTestResult run=0 errors=0 failures=0>",
+                                    "variable_type": "TextTestResult",
+                                    "variable_shape": null
+                                },
+                                "sys.exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sys": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "wraps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "failure.getTracebackObject": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cb_wrapper": {
+                                    "variable_value": "<function TestSpider.returns_request at 0x10fd351f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "request.errback": {
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x10fd35280>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "eb_wrapper": {
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x10fd35280>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def _create_testcase(method, desc):\n    spider = method.__self__.name\n\n    class ContractTestCase(TestCase):\n        def __str__(_self):\n            return \"[%s] %s (%s)\" % (spider, method.__name__, desc)\n\n    name = '%s_%s' % (spider, method.__name__)\n    setattr(ContractTestCase, name, lambda x: x)\n    return ContractTestCase(name)",
+                "def __init__(self, contracts):\n    for contract in contracts:\n        self.contracts[contract.name] = contract",
+                "def tested_methods_from_spidercls(self, spidercls):\n    methods = []\n    for key, value in vars(spidercls).items():\n        if (callable(value) and value.__doc__ and\n                re.search(r'^\\s*@', value.__doc__, re.MULTILINE)):\n            methods.append(key)\n\n    return methods",
+                "def extract_contracts(self, method):\n    contracts = []\n    for line in method.__doc__.split('\\n'):\n        line = line.strip()\n\n        if line.startswith('@'):\n            name, args = re.match(r'@(\\w+)\\s*(.*)', line).groups()\n            args = re.split(r'\\s+', args)\n\n            contracts.append(self.contracts[name](method, *args))\n\n    return contracts",
+                "def from_spider(self, spider, results):\n    requests = []\n    for method in self.tested_methods_from_spidercls(type(spider)):\n        bound_method = spider.__getattribute__(method)\n        requests.append(self.from_method(bound_method, results))\n\n    return requests",
+                "def from_method(self, method, results):\n    contracts = self.extract_contracts(method)\n    if contracts:\n        # calculate request args\n        args, kwargs = get_spec(Request.__init__)\n        kwargs['callback'] = method\n        for contract in contracts:\n            kwargs = contract.adjust_request_args(kwargs)\n\n        # create and prepare request\n        args.remove('self')\n        if set(args).issubset(set(kwargs)):\n            request = Request(**kwargs)\n\n            # execute pre and post hooks in order\n            for contract in reversed(contracts):\n                request = contract.add_pre_hook(request, results)\n            for contract in contracts:\n                request = contract.add_post_hook(request, results)\n\n            self._clean_req(request, method, results)\n            return request",
+                "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = failure.value, failure.type, failure.getTracebackObject()\n        results.addError(case, exc_info)\n\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper",
+                "def __init__(self, method, *args):\n    self.testcase_pre = _create_testcase(method, '@%s pre-hook' % self.name)\n    self.testcase_post = _create_testcase(method, '@%s post-hook' % self.name)\n    self.args = args",
+                "def add_pre_hook(self, request, results):\n    if hasattr(self, 'pre_process'):\n        cb = request.callback\n\n        @wraps(cb)\n        def wrapper(response):\n            try:\n                results.startTest(self.testcase_pre)\n                self.pre_process(response)\n                results.stopTest(self.testcase_pre)\n            except AssertionError:\n                results.addFailure(self.testcase_pre, sys.exc_info())\n            except Exception:\n                results.addError(self.testcase_pre, sys.exc_info())\n            else:\n                results.addSuccess(self.testcase_pre)\n            finally:\n                return list(iterate_spider_output(cb(response)))\n\n        request.callback = wrapper\n\n    return request",
+                "def add_post_hook(self, request, results):\n    if hasattr(self, 'post_process'):\n        cb = request.callback\n\n        @wraps(cb)\n        def wrapper(response):\n            output = list(iterate_spider_output(cb(response)))\n            try:\n                results.startTest(self.testcase_post)\n                self.post_process(output)\n                results.stopTest(self.testcase_post)\n            except AssertionError:\n                results.addFailure(self.testcase_post, sys.exc_info())\n            except Exception:\n                results.addError(self.testcase_post, sys.exc_info())\n            else:\n                results.addSuccess(self.testcase_post)\n            finally:\n                return output\n\n        request.callback = wrapper\n\n    return request",
+                "def adjust_request_args(self, args):\n    return args",
+                "@wraps(cb)\ndef cb_wrapper(response):\n    try:\n        output = cb(response)\n        output = list(iterate_spider_output(output))\n    except:\n        case = _create_testcase(method, 'callback')\n        results.addError(case, sys.exc_info())",
+                "def eb_wrapper(failure):\n    case = _create_testcase(method, 'errback')\n    exc_info = failure.value, failure.type, failure.getTracebackObject()\n    results.addError(case, exc_info)",
+                "def __str__(_self):\n    return \"[%s] %s (%s)\" % (spider, method.__name__, desc)",
+                "@wraps(cb)\ndef wrapper(response):\n    try:\n        results.startTest(self.testcase_pre)\n        self.pre_process(response)\n        results.stopTest(self.testcase_pre)\n    except AssertionError:\n        results.addFailure(self.testcase_pre, sys.exc_info())\n    except Exception:\n        results.addError(self.testcase_pre, sys.exc_info())\n    else:\n        results.addSuccess(self.testcase_pre)\n    finally:\n        return list(iterate_spider_output(cb(response)))",
+                "@wraps(cb)\ndef wrapper(response):\n    output = list(iterate_spider_output(cb(response)))\n    try:\n        results.startTest(self.testcase_post)\n        self.post_process(output)\n        results.stopTest(self.testcase_post)\n    except AssertionError:\n        results.addFailure(self.testcase_post, sys.exc_info())\n    except Exception:\n        results.addError(self.testcase_post, sys.exc_info())\n    else:\n        results.addSuccess(self.testcase_post)\n    finally:\n        return output"
+            ],
+            "inscope_function_signatures": [
+                "_create_testcase(method, desc)",
+                "__init__(self, contracts)",
+                "tested_methods_from_spidercls(self, spidercls)",
+                "extract_contracts(self, method)",
+                "from_spider(self, spider, results)",
+                "from_method(self, method, results)",
+                "_clean_req(self, request, method, results)",
+                "__init__(self, method, *args)",
+                "add_pre_hook(self, request, results)",
+                "add_post_hook(self, request, results)",
+                "adjust_request_args(self, args)",
+                "cb_wrapper(response)",
+                "eb_wrapper(failure)",
+                "__str__(_self)",
+                "wrapper(response)",
+                "wrapper(response)"
+            ],
+            "variables_in_file": {
+                "object": [
+                    11,
+                    94
+                ],
+                "contracts": [
+                    65,
+                    36,
+                    38,
+                    12,
+                    15,
+                    49,
+                    50,
+                    54,
+                    28,
+                    63
+                ],
+                "contract": [
+                    64,
+                    65,
+                    66,
+                    15,
+                    16,
+                    54,
+                    55,
+                    63
+                ],
+                "self.contracts": [
+                    16,
+                    36
+                ],
+                "self": [
+                    133,
+                    134,
+                    135,
+                    137,
+                    139,
+                    141,
+                    16,
+                    36,
+                    42,
+                    44,
+                    49,
+                    68,
+                    98,
+                    99,
+                    100,
+                    103,
+                    109,
+                    110,
+                    111,
+                    113,
+                    115,
+                    117,
+                    126
+                ],
+                "contract.name": [
+                    16
+                ],
+                "methods": [
+                    25,
+                    19,
+                    23
+                ],
+                "key": [
+                    20,
+                    23
+                ],
+                "value": [
+                    20,
+                    21,
+                    22
+                ],
+                "items": [
+                    20
+                ],
+                "vars": [
+                    20
+                ],
+                "spidercls": [
+                    20
+                ],
+                "callable": [
+                    21
+                ],
+                "value.__doc__": [
+                    21,
+                    22
+                ],
+                "re.search": [
+                    22
+                ],
+                "re": [
+                    33,
+                    34,
+                    22
+                ],
+                "re.MULTILINE": [
+                    22
+                ],
+                "methods.append": [
+                    23
+                ],
+                "line": [
+                    32,
+                    33,
+                    29,
+                    30
+                ],
+                "method.__doc__.split": [
+                    29
+                ],
+                "method.__doc__": [
+                    29
+                ],
+                "method": [
+                    160,
+                    98,
+                    99,
+                    36,
+                    68,
+                    42,
+                    43,
+                    49,
+                    82,
+                    53,
+                    86,
+                    154,
+                    29,
+                    158
+                ],
+                "line.strip": [
+                    30
+                ],
+                "line.startswith": [
+                    32
+                ],
+                "name": [
+                    160,
+                    33,
+                    162,
+                    161,
+                    36
+                ],
+                "args": [
+                    33,
+                    34,
+                    36,
+                    100,
+                    52,
+                    150,
+                    58,
+                    59
+                ],
+                "groups": [
+                    33
+                ],
+                "re.match": [
+                    33
+                ],
+                "re.split": [
+                    34
+                ],
+                "contracts.append": [
+                    36
+                ],
+                "requests": [
+                    41,
+                    44,
+                    46
+                ],
+                "self.tested_methods_from_spidercls": [
+                    42
+                ],
+                "type": [
+                    42
+                ],
+                "spider": [
+                    160,
+                    42,
+                    43,
+                    154,
+                    158
+                ],
+                "bound_method": [
+                    43,
+                    44
+                ],
+                "spider.__getattribute__": [
+                    43
+                ],
+                "requests.append": [
+                    44
+                ],
+                "self.from_method": [
+                    44
+                ],
+                "results": [
+                    64,
+                    66,
+                    68,
+                    133,
+                    135,
+                    137,
+                    139,
+                    44,
+                    109,
+                    141,
+                    111,
+                    113,
+                    83,
+                    115,
+                    117,
+                    88
+                ],
+                "self.extract_contracts": [
+                    49
+                ],
+                "kwargs": [
+                    52,
+                    53,
+                    55,
+                    59,
+                    60
+                ],
+                "get_spec": [
+                    52
+                ],
+                "Request.__init__": [
+                    52
+                ],
+                "Request": [
+                    52,
+                    60
+                ],
+                "contract.adjust_request_args": [
+                    55
+                ],
+                "args.remove": [
+                    58
+                ],
+                "issubset": [
+                    59
+                ],
+                "set": [
+                    59
+                ],
+                "request": [
+                    64,
+                    66,
+                    68,
+                    69,
+                    104,
+                    74,
+                    123,
+                    145,
+                    147,
+                    121,
+                    90,
+                    91,
+                    60,
+                    127
+                ],
+                "reversed": [
+                    63
+                ],
+                "contract.add_pre_hook": [
+                    64
+                ],
+                "contract.add_post_hook": [
+                    66
+                ],
+                "self._clean_req": [
+                    68
+                ],
+                "cb": [
+                    129,
+                    131,
+                    104,
+                    74,
+                    106,
+                    76,
+                    79,
+                    119,
+                    127
+                ],
+                "request.callback": [
+                    104,
+                    74,
+                    145,
+                    121,
+                    90,
+                    127
+                ],
+                "output": [
+                    131,
+                    134,
+                    143,
+                    80,
+                    79
+                ],
+                "response": [
+                    131,
+                    119,
+                    110,
+                    79
+                ],
+                "list": [
+                    80,
+                    131,
+                    119
+                ],
+                "iterate_spider_output": [
+                    80,
+                    131,
+                    119
+                ],
+                "case": [
+                    88,
+                    82,
+                    83,
+                    86
+                ],
+                "_create_testcase": [
+                    82,
+                    99,
+                    86,
+                    98
+                ],
+                "results.addError": [
+                    88,
+                    115,
+                    83,
+                    139
+                ],
+                "sys.exc_info": [
+                    137,
+                    139,
+                    113,
+                    115,
+                    83
+                ],
+                "sys": [
+                    137,
+                    139,
+                    113,
+                    115,
+                    83
+                ],
+                "wraps": [
+                    129,
+                    106,
+                    76
+                ],
+                "exc_info": [
+                    88,
+                    87
+                ],
+                "failure.value": [
+                    87
+                ],
+                "failure": [
+                    87
+                ],
+                "failure.type": [
+                    87
+                ],
+                "failure.getTracebackObject": [
+                    87
+                ],
+                "cb_wrapper": [
+                    90
+                ],
+                "request.errback": [
+                    91
+                ],
+                "eb_wrapper": [
+                    91
+                ],
+                "self.testcase_pre": [
+                    98,
+                    109,
+                    111,
+                    113,
+                    115,
+                    117
+                ],
+                "self.name": [
+                    98,
+                    99
+                ],
+                "self.testcase_post": [
+                    99,
+                    133,
+                    135,
+                    137,
+                    139,
+                    141
+                ],
+                "self.args": [
+                    100
+                ],
+                "hasattr": [
+                    126,
+                    103
+                ],
+                "results.startTest": [
+                    109,
+                    133
+                ],
+                "self.pre_process": [
+                    110
+                ],
+                "results.stopTest": [
+                    135,
+                    111
+                ],
+                "AssertionError": [
+                    112,
+                    136
+                ],
+                "results.addFailure": [
+                    113,
+                    137
+                ],
+                "Exception": [
+                    114,
+                    138
+                ],
+                "results.addSuccess": [
+                    117,
+                    141
+                ],
+                "wrapper": [
+                    121,
+                    145
+                ],
+                "self.post_process": [
+                    134
+                ],
+                "method.__self__.name": [
+                    154
+                ],
+                "method.__self__": [
+                    154
+                ],
+                "TestCase": [
+                    156
+                ],
+                "method.__name__": [
+                    160,
+                    158
+                ],
+                "desc": [
+                    158
+                ],
+                "setattr": [
+                    161
+                ],
+                "ContractTestCase": [
+                    161,
+                    162
+                ],
+                "x": [
+                    161
+                ]
+            },
+            "filtered_variables_in_file": {
+                "contracts": [
+                    65,
+                    36,
+                    38,
+                    12,
+                    15,
+                    49,
+                    50,
+                    54,
+                    28,
+                    63
+                ],
+                "contract": [
+                    64,
+                    65,
+                    66,
+                    15,
+                    16,
+                    54,
+                    55,
+                    63
+                ],
+                "self.contracts": [
+                    16,
+                    36
+                ],
+                "self": [
+                    133,
+                    134,
+                    135,
+                    137,
+                    139,
+                    141,
+                    16,
+                    36,
+                    42,
+                    44,
+                    49,
+                    68,
+                    98,
+                    99,
+                    100,
+                    103,
+                    109,
+                    110,
+                    111,
+                    113,
+                    115,
+                    117,
+                    126
+                ],
+                "contract.name": [
+                    16
+                ],
+                "methods": [
+                    25,
+                    19,
+                    23
+                ],
+                "key": [
+                    20,
+                    23
+                ],
+                "value": [
+                    20,
+                    21,
+                    22
+                ],
+                "items": [
+                    20
+                ],
+                "spidercls": [
+                    20
+                ],
+                "value.__doc__": [
+                    21,
+                    22
+                ],
+                "re.search": [
+                    22
+                ],
+                "re": [
+                    33,
+                    34,
+                    22
+                ],
+                "re.MULTILINE": [
+                    22
+                ],
+                "methods.append": [
+                    23
+                ],
+                "line": [
+                    32,
+                    33,
+                    29,
+                    30
+                ],
+                "method.__doc__.split": [
+                    29
+                ],
+                "method.__doc__": [
+                    29
+                ],
+                "method": [
+                    160,
+                    98,
+                    99,
+                    36,
+                    68,
+                    42,
+                    43,
+                    49,
+                    82,
+                    53,
+                    86,
+                    154,
+                    29,
+                    158
+                ],
+                "line.strip": [
+                    30
+                ],
+                "line.startswith": [
+                    32
+                ],
+                "name": [
+                    160,
+                    33,
+                    162,
+                    161,
+                    36
+                ],
+                "args": [
+                    33,
+                    34,
+                    36,
+                    100,
+                    52,
+                    150,
+                    58,
+                    59
+                ],
+                "groups": [
+                    33
+                ],
+                "re.match": [
+                    33
+                ],
+                "re.split": [
+                    34
+                ],
+                "contracts.append": [
+                    36
+                ],
+                "requests": [
+                    41,
+                    44,
+                    46
+                ],
+                "self.tested_methods_from_spidercls": [
+                    42
+                ],
+                "spider": [
+                    160,
+                    42,
+                    43,
+                    154,
+                    158
+                ],
+                "bound_method": [
+                    43,
+                    44
+                ],
+                "spider.__getattribute__": [
+                    43
+                ],
+                "requests.append": [
+                    44
+                ],
+                "self.from_method": [
+                    44
+                ],
+                "results": [
+                    64,
+                    66,
+                    68,
+                    133,
+                    135,
+                    137,
+                    139,
+                    44,
+                    109,
+                    141,
+                    111,
+                    113,
+                    83,
+                    115,
+                    117,
+                    88
+                ],
+                "self.extract_contracts": [
+                    49
+                ],
+                "kwargs": [
+                    52,
+                    53,
+                    55,
+                    59,
+                    60
+                ],
+                "get_spec": [
+                    52
+                ],
+                "Request.__init__": [
+                    52
+                ],
+                "Request": [
+                    52,
+                    60
+                ],
+                "contract.adjust_request_args": [
+                    55
+                ],
+                "args.remove": [
+                    58
+                ],
+                "issubset": [
+                    59
+                ],
+                "request": [
+                    64,
+                    66,
+                    68,
+                    69,
+                    104,
+                    74,
+                    123,
+                    145,
+                    147,
+                    121,
+                    90,
+                    91,
+                    60,
+                    127
+                ],
+                "contract.add_pre_hook": [
+                    64
+                ],
+                "contract.add_post_hook": [
+                    66
+                ],
+                "self._clean_req": [
+                    68
+                ],
+                "cb": [
+                    129,
+                    131,
+                    104,
+                    74,
+                    106,
+                    76,
+                    79,
+                    119,
+                    127
+                ],
+                "request.callback": [
+                    104,
+                    74,
+                    145,
+                    121,
+                    90,
+                    127
+                ],
+                "output": [
+                    131,
+                    134,
+                    143,
+                    80,
+                    79
+                ],
+                "response": [
+                    131,
+                    119,
+                    110,
+                    79
+                ],
+                "iterate_spider_output": [
+                    80,
+                    131,
+                    119
+                ],
+                "case": [
+                    88,
+                    82,
+                    83,
+                    86
+                ],
+                "_create_testcase": [
+                    82,
+                    99,
+                    86,
+                    98
+                ],
+                "results.addError": [
+                    88,
+                    115,
+                    83,
+                    139
+                ],
+                "sys.exc_info": [
+                    137,
+                    139,
+                    113,
+                    115,
+                    83
+                ],
+                "sys": [
+                    137,
+                    139,
+                    113,
+                    115,
+                    83
+                ],
+                "wraps": [
+                    129,
+                    106,
+                    76
+                ],
+                "exc_info": [
+                    88,
+                    87
+                ],
+                "failure.value": [
+                    87
+                ],
+                "failure": [
+                    87
+                ],
+                "failure.type": [
+                    87
+                ],
+                "failure.getTracebackObject": [
+                    87
+                ],
+                "cb_wrapper": [
+                    90
+                ],
+                "request.errback": [
+                    91
+                ],
+                "eb_wrapper": [
+                    91
+                ],
+                "self.testcase_pre": [
+                    98,
+                    109,
+                    111,
+                    113,
+                    115,
+                    117
+                ],
+                "self.name": [
+                    98,
+                    99
+                ],
+                "self.testcase_post": [
+                    99,
+                    133,
+                    135,
+                    137,
+                    139,
+                    141
+                ],
+                "self.args": [
+                    100
+                ],
+                "results.startTest": [
+                    109,
+                    133
+                ],
+                "self.pre_process": [
+                    110
+                ],
+                "results.stopTest": [
+                    135,
+                    111
+                ],
+                "results.addFailure": [
+                    113,
+                    137
+                ],
+                "results.addSuccess": [
+                    117,
+                    141
+                ],
+                "wrapper": [
+                    121,
+                    145
+                ],
+                "self.post_process": [
+                    134
+                ],
+                "method.__self__.name": [
+                    154
+                ],
+                "method.__self__": [
+                    154
+                ],
+                "TestCase": [
+                    156
+                ],
+                "method.__name__": [
+                    160,
+                    158
+                ],
+                "desc": [
+                    158
+                ],
+                "ContractTestCase": [
+                    161,
+                    162
+                ],
+                "x": [
+                    161
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_4/tests/test_contracts.py",
+                "test_function": "test_errback",
+                "test_function_code": "    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n\n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n\n        request = self.conman.from_method(spider.returns_request, self.results)\n        request.errback(failure_mock)\n\n        self.assertFalse(self.results.failures)\n        self.assertTrue(self.results.errors)",
+                "test_error": "AttributeError: 'getset_descriptor' object has no attribute '__traceback__'",
+                "full_test_error": "self = <tests.test_contracts.ContractsManagerTest testMethod=test_errback>\n\n    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n    \n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n    \n        request = self.conman.from_method(spider.returns_request, self.results)\n>       request.errback(failure_mock)\n\n/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_4/tests/test_contracts.py:201: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x106f369d0>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x10648ca00>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/Cellar/python@3.8/3.8.18_1/Frameworks/Python.framework/Versions/3.8/lib/python3.8/traceback.py:484: AttributeError",
+                "traceback": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x106f369d0>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x10648ca00>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/Cellar/python@3.8/3.8.18_1/Frameworks/Python.framework/Versions/3.8/lib/python3.8/traceback.py:484: AttributeError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

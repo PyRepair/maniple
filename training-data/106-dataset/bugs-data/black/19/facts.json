@@ -1,0 +1,821 @@
+{
+    "1.1.1": "def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:\n    max_allowed = 1\n    if current_line.depth == 0:\n        max_allowed = 2\n    if current_line.leaves:\n        # Consume the first leaf's extra newlines.\n        first_leaf = current_line.leaves[0]\n        before = first_leaf.prefix.count(\"\\n\")\n        before = min(before, max_allowed)\n        first_leaf.prefix = \"\"\n    else:\n        before = 0\n    depth = current_line.depth\n    while self.previous_defs and self.previous_defs[-1] >= depth:\n        self.previous_defs.pop()\n        before = 1 if depth else 2\n    is_decorator = current_line.is_decorator\n    if is_decorator or current_line.is_def or current_line.is_class:\n        if not is_decorator:\n            self.previous_defs.append(depth)\n        if self.previous_line is None:\n            # Don't insert empty lines before the first line in the file.\n            return 0, 0\n\n        if self.previous_line and self.previous_line.is_decorator:\n            # Don't insert empty lines between decorators.\n            return 0, 0\n\n        newlines = 2\n        if current_line.depth:\n            newlines -= 1\n        return newlines, 0\n\n    if current_line.is_flow_control:\n        return before, 1\n\n    if (\n        self.previous_line\n        and self.previous_line.is_import\n        and not current_line.is_import\n        and depth == self.previous_line.depth\n    ):\n        return (before or 1), 0\n\n    if (\n        self.previous_line\n        and self.previous_line.is_yield\n        and (not current_line.is_yield or depth != self.previous_line.depth)\n    ):\n        return (before or 1), 0\n\n    return before, 0\n",
+    "1.1.2": null,
+    "1.2.1": "@dataclass\nclass EmptyLineTracker()",
+    "1.2.2": "Provides a stateful method that returns the number of potential extra\nempty lines needed before and after the currently processed line.\n\nNote: this tracker works on lines that haven't been split yet.  It assumes\nthe prefix of the first leaf consists of optional newlines.  Those newlines\nare consumed by `maybe_empty_lines()` and included in the computation.",
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/black_19/black.py",
+    "1.3.2": [
+        "is_import(leaf: Leaf) -> bool",
+        "append(self, leaf: Leaf, preformatted: bool=False) -> None",
+        "is_decorator(self) -> bool",
+        "is_import(self) -> bool",
+        "is_class(self) -> bool",
+        "is_def(self) -> bool",
+        "is_flow_control(self) -> bool",
+        "is_yield(self) -> bool",
+        "append(self, leaf: Leaf, preformatted: bool=True) -> None"
+    ],
+    "1.4.1": [
+        "    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_comment_in_decorator(self) -> None:\n        source, expected = read_data(\"comments6\")\n        actual = fs(source)\n        self.assertFormatEqual(expected, actual)\n        black.assert_equivalent(source, actual)\n        black.assert_stable(source, actual, line_length=ll)"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/black_19/tests/test_black.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AssertionError: '@pro[13 chars]: X\\n@property\\n# TODO: Y\\n# TODO: Z\\n@propert[21 chars]ss\\n' != '@pro[13 chars]: X\\n\\n\\n@property\\n# TODO: Y\\n# TODO: Z\\n\\n\\n[29 chars]ss\\n'\nE     @property\nE     # TODO: X\nE   + \nE   + \nE     @property\nE     # TODO: Y\nE     # TODO: Z\nE   + \nE   + \nE     @property\nE     def foo():\nE         pass"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <test_black.BlackTestCase testMethod=test_comment_in_decorator>\n\n    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_comment_in_decorator(self) -> None:\n        source, expected = read_data(\"comments6\")\n        actual = fs(source)\n>       self.assertFormatEqual(expected, actual)\n\ntests/test_black.py:633: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntests/test_black.py:100: in assertFormatEqual\n    self.assertEqual(expected, actual)"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(AT, '@'), Leaf(NAME, 'property')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=None, previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "True",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(AT, '@')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "True"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(153, '# TODO: X')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(153, '# TODO: X')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(AT, '@'), Leaf(NAME, 'property')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "True",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(AT, '@')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "True",
+                "newlines": "2"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(153, '# TODO: Y')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(153, '# TODO: Y')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(153, '# TODO: Z')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(153, '# TODO: Z')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(AT, '@'), Leaf(NAME, 'property')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "True",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(AT, '@')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "True",
+                "newlines": "2"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "True",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(NAME, 'def')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "self.previous_defs": "[0]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[0])",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "1",
+                "current_line": "Line(depth=1, leaves=[Leaf(NAME, 'pass')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'pass'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(NAME, 'pass')]",
+                "self.previous_defs": "[0]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[0])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "1",
+                "first_leaf": "Leaf(NAME, 'pass')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "1",
+                "is_decorator": "False"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool",
+                "newlines": "int"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool",
+                "newlines": "int"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(AT, '@'), Leaf(NAME, 'property')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=None, previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "True",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(AT, '@')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "True"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(153, '# TODO: X')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(153, '# TODO: X')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(AT, '@'), Leaf(NAME, 'property')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "True",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(AT, '@')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "True"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(153, '# TODO: Y')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(153, '# TODO: Y')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(153, '# TODO: Z')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(153, '# TODO: Z')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(AT, '@'), Leaf(NAME, 'property')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "True",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(AT, '@')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "is_decorator": "True"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "0",
+                "current_line": "Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')]",
+                "self.previous_defs": "[]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "True",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "2",
+                "first_leaf": "Leaf(NAME, 'def')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "0",
+                "self.previous_defs": "[0]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[0])",
+                "is_decorator": "False"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "1",
+                "current_line": "Line(depth=1, leaves=[Leaf(NAME, 'pass')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'pass'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.leaves": "[Leaf(NAME, 'pass')]",
+                "self.previous_defs": "[0]",
+                "self": "EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[0])",
+                "current_line.is_decorator": "False",
+                "current_line.is_def": "False",
+                "current_line.is_class": "False",
+                "self.previous_line": "Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)",
+                "current_line.is_flow_control": "False",
+                "current_line.is_import": "False",
+                "current_line.is_yield": "False"
+            },
+            {
+                "max_allowed": "1",
+                "first_leaf": "Leaf(NAME, 'pass')",
+                "before": "0",
+                "first_leaf.prefix": "''",
+                "depth": "1",
+                "is_decorator": "False"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "is_decorator": "bool"
+            }
+        ],
+        [
+            {
+                "current_line.depth": "int",
+                "current_line": "Line",
+                "current_line.leaves": "list",
+                "self.previous_defs": "list",
+                "self": "EmptyLineTracker",
+                "current_line.is_decorator": "bool",
+                "current_line.is_def": "bool",
+                "current_line.is_class": "bool",
+                "self.previous_line": "Line",
+                "current_line.is_flow_control": "bool",
+                "current_line.is_import": "bool",
+                "current_line.is_yield": "bool"
+            },
+            {
+                "max_allowed": "int",
+                "first_leaf": "Leaf",
+                "before": "int",
+                "first_leaf.prefix": "str",
+                "depth": "int",
+                "is_decorator": "bool"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

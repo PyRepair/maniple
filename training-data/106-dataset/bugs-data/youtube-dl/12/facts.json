@@ -1,0 +1,556 @@
+{
+    "1.1.1": "def _build_format_filter(self, filter_spec):\n    \" Returns a function to filter the formats according to the filter_spec \"\n\n    OPERATORS = {\n        '<': operator.lt,\n        '<=': operator.le,\n        '>': operator.gt,\n        '>=': operator.ge,\n        '=': operator.eq,\n        '!=': operator.ne,\n    }\n    operator_rex = re.compile(r % '|'.join(map(re.escape, OPERATORS.keys())))\n    m = operator_rex.search(filter_spec)\n    if m:\n        try:\n            comparison_value = int(m.group('value'))\n        except ValueError:\n            comparison_value = parse_filesize(m.group('value'))\n            if comparison_value is None:\n                comparison_value = parse_filesize(m.group('value') + 'B')\n            if comparison_value is None:\n                raise ValueError(\n                    'Invalid value %r in format specification %r' % (\n                        m.group('value'), filter_spec))\n        op = OPERATORS[m.group('op')]\n\n    if not m:\n        STR_OPERATORS = {\n            '=': operator.eq,\n            '^=': lambda attr, value: attr.startswith(value),\n            '$=': lambda attr, value: attr.endswith(value),\n            '*=': lambda attr, value: value in attr,\n        }\n        str_operator_rex = re.compile(r % '|'.join(map(re.escape, STR_OPERATORS.keys())))\n        m = str_operator_rex.search(filter_spec)\n        if m:\n            comparison_value = m.group('value')\n            str_op = STR_OPERATORS[m.group('op')]\n            if m.group('negation'):\n                op = lambda attr, value: not str_op\n            else:\n                op = str_op\n\n    if not m:\n        raise ValueError('Invalid filter specification %r' % filter_spec)\n\n    def _filter(f):\n        actual_value = f.get(m.group('key'))\n        if actual_value is None:\n            return m.group('none_inclusive')\n        return op(actual_value, comparison_value)\n    return _filter\n",
+    "1.1.2": "Returns a function to filter the formats according to the filter_spec ",
+    "1.2.1": "class YoutubeDL(object)",
+    "1.2.2": "YoutubeDL class.\n\nYoutubeDL objects are the ones responsible of downloading the\nactual video file and writing it to disk if the user has requested\nit, among some other tasks. In most cases there should be one per\nprogram. As, given a video URL, the downloader doesn't know how to\nextract all the needed information, task that InfoExtractors do, it\nhas to pass the URL to one of them.\n\nFor this, YoutubeDL objects have a method that allows\nInfoExtractors to be registered in a given order. When it is passed\na URL, the YoutubeDL object handles it to the first InfoExtractor it\nfinds that reports being able to handle it. The InfoExtractor extracts\nall the information about the video or videos the URL refers to, and\nYoutubeDL process the extracted information, possibly using a File\nDownloader to download the video.\n\nYoutubeDL objects accept a lot of parameters. In order not to saturate\nthe object constructor with arguments, it receives a dictionary of\noptions instead. These options are available through the params\nattribute for the InfoExtractors to use. The YoutubeDL also\nregisters itself as the downloader in charge for the InfoExtractors\nthat are added to it, so this is a \"mutual registration\".\n\nAvailable options:\n\nusername:          Username for authentication purposes.\npassword:          Password for authentication purposes.\nvideopassword:     Password for accessing a video.\nap_mso:            Adobe Pass multiple-system operator identifier.\nap_username:       Multiple-system operator account username.\nap_password:       Multiple-system operator account password.\nusenetrc:          Use netrc for authentication instead.\nverbose:           Print additional info to stdout.\nquiet:             Do not print messages to stdout.\nno_warnings:       Do not print out anything for warnings.\nforceurl:          Force printing final URL.\nforcetitle:        Force printing title.\nforceid:           Force printing ID.\nforcethumbnail:    Force printing thumbnail URL.\nforcedescription:  Force printing description.\nforcefilename:     Force printing final filename.\nforceduration:     Force printing duration.\nforcejson:         Force printing info_dict as JSON.\ndump_single_json:  Force printing the info_dict of the whole playlist\n                   (or video) as a single JSON line.\nsimulate:          Do not download the video files.\nformat:            Video format code. See options.py for more information.\nouttmpl:           Template for output names.\nrestrictfilenames: Do not allow \"&\" and spaces in file names\nignoreerrors:      Do not stop on download errors.\nforce_generic_extractor: Force downloader to use the generic extractor\nnooverwrites:      Prevent overwriting files.\nplayliststart:     Playlist item to start at.\nplaylistend:       Playlist item to end at.\nplaylist_items:    Specific indices of playlist to download.\nplaylistreverse:   Download playlist items in reverse order.\nplaylistrandom:    Download playlist items in random order.\nmatchtitle:        Download only matching titles.\nrejecttitle:       Reject downloads for matching titles.\nlogger:            Log messages to a logging.Logger instance.\nlogtostderr:       Log messages to stderr instead of stdout.\nwritedescription:  Write the video description to a .description file\nwriteinfojson:     Write the video description to a .info.json file\nwriteannotations:  Write the video annotations to a .annotations.xml file\nwritethumbnail:    Write the thumbnail image to a file\nwrite_all_thumbnails:  Write all thumbnail formats to files\nwritesubtitles:    Write the video subtitles to a file\nwriteautomaticsub: Write the automatically generated subtitles to a file\nallsubtitles:      Downloads all the subtitles of the video\n                   (requires writesubtitles or writeautomaticsub)\nlistsubtitles:     Lists all available subtitles for the video\nsubtitlesformat:   The format code for subtitles\nsubtitleslangs:    List of languages of the subtitles to download\nkeepvideo:         Keep the video file after post-processing\ndaterange:         A DateRange object, download only if the upload_date is in the range.\nskip_download:     Skip the actual download of the video file\ncachedir:          Location of the cache files in the filesystem.\n                   False to disable filesystem cache.\nnoplaylist:        Download single video instead of a playlist if in doubt.\nage_limit:         An integer representing the user's age in years.\n                   Unsuitable videos for the given age are skipped.\nmin_views:         An integer representing the minimum view count the video\n                   must have in order to not be skipped.\n                   Videos without view count information are always\n                   downloaded. None for no limit.\nmax_views:         An integer representing the maximum view count.\n                   Videos that are more popular than that are not\n                   downloaded.\n                   Videos without view count information are always\n                   downloaded. None for no limit.\ndownload_archive:  File name of a file where all downloads are recorded.\n                   Videos already present in the file are not downloaded\n                   again.\ncookiefile:        File name where cookies should be read from and dumped to.\nnocheckcertificate:Do not verify SSL certificates\nprefer_insecure:   Use HTTP instead of HTTPS to retrieve information.\n                   At the moment, this is only supported by YouTube.\nproxy:             URL of the proxy server to use\ngeo_verification_proxy:  URL of the proxy to use for IP address verification\n                   on geo-restricted sites.\nsocket_timeout:    Time to wait for unresponsive hosts, in seconds\nbidi_workaround:   Work around buggy terminals without bidirectional text\n                   support, using fridibi\ndebug_printtraffic:Print out sent and received HTTP traffic\ninclude_ads:       Download ads as well\ndefault_search:    Prepend this string if an input url is not valid.\n                   'auto' for elaborate guessing\nencoding:          Use this encoding instead of the system-specified.\nextract_flat:      Do not resolve URLs, return the immediate result.\n                   Pass in 'in_playlist' to only show this behavior for\n                   playlist items.\npostprocessors:    A list of dictionaries, each with an entry\n                   * key:  The name of the postprocessor. See\n                           youtube_dl/postprocessor/__init__.py for a list.\n                   as well as any further keyword arguments for the\n                   postprocessor.\nprogress_hooks:    A list of functions that get called on download\n                   progress, with a dictionary with the entries\n                   * status: One of \"downloading\", \"error\", or \"finished\".\n                             Check this first and ignore unknown values.\n\n                   If status is one of \"downloading\", or \"finished\", the\n                   following properties may also be present:\n                   * filename: The final filename (always present)\n                   * tmpfilename: The filename we're currently writing to\n                   * downloaded_bytes: Bytes on disk\n                   * total_bytes: Size of the whole file, None if unknown\n                   * total_bytes_estimate: Guess of the eventual file size,\n                                           None if unavailable.\n                   * elapsed: The number of seconds since download started.\n                   * eta: The estimated time in seconds, None if unknown\n                   * speed: The download speed in bytes/second, None if\n                            unknown\n                   * fragment_index: The counter of the currently\n                                     downloaded video fragment.\n                   * fragment_count: The number of fragments (= individual\n                                     files that will be merged)\n\n                   Progress hooks are guaranteed to be called at least once\n                   (with status \"finished\") if the download is successful.\nmerge_output_format: Extension to use when merging formats.\nfixup:             Automatically correct known faults of the file.\n                   One of:\n                   - \"never\": do nothing\n                   - \"warn\": only emit a warning\n                   - \"detect_or_warn\": check whether we can do anything\n                                       about it, warn otherwise (default)\nsource_address:    Client-side IP address to bind to.\ncall_home:         Boolean, true iff we are allowed to contact the\n                   youtube-dl servers for debugging.\nsleep_interval:    Number of seconds to sleep before each download when\n                   used alone or a lower bound of a range for randomized\n                   sleep before each download (minimum possible number\n                   of seconds to sleep) when used along with\n                   max_sleep_interval.\nmax_sleep_interval:Upper bound of a range for randomized sleep before each\n                   download (maximum possible number of seconds to sleep).\n                   Must only be used along with sleep_interval.\n                   Actual sleep time will be a random float from range\n                   [sleep_interval; max_sleep_interval].\nlistformats:       Print an overview of available video formats and exit.\nlist_thumbnails:   Print a table of all thumbnails and exit.\nmatch_filter:      A function that gets called with the info_dict of\n                   every video.\n                   If it returns a message, the video is ignored.\n                   If it returns None, the video is downloaded.\n                   match_filter_func in utils.py is one example for this.\nno_color:          Do not emit color codes in output.\ngeo_bypass:        Bypass geographic restriction via faking X-Forwarded-For\n                   HTTP header\ngeo_bypass_country:\n                   Two-letter ISO 3166-2 country code that will be used for\n                   explicit geographic restriction bypassing via faking\n                   X-Forwarded-For HTTP header\ngeo_bypass_ip_block:\n                   IP range in CIDR notation that will be used similarly to\n                   geo_bypass_country\n\nThe following options determine which downloader is picked:\nexternal_downloader: Executable of the external downloader to call.\n                   None or unset for standard (built-in) downloader.\nhls_prefer_native: Use the native HLS downloader instead of ffmpeg/avconv\n                   if True, otherwise use ffmpeg/avconv if False, otherwise\n                   use downloader suggested by extractor if None.\n\nThe following parameters are not used by YoutubeDL itself, they are used by\nthe downloader (see youtube_dl/downloader/common.py):\nnopart, updatetime, buffersize, ratelimit, min_filesize, max_filesize, test,\nnoresizebuffer, retries, continuedl, noprogress, consoletitle,\nxattr_set_filesize, external_downloader_args, hls_use_mpegts,\nhttp_chunk_size.\n\nThe following options are used by the post processors:\nprefer_ffmpeg:     If False, use avconv instead of ffmpeg if both are available,\n                   otherwise prefer ffmpeg.\npostprocessor_args: A list of additional command-line arguments for the\n                    postprocessor.\n\nThe following options are used by the Youtube extractor:\nyoutube_include_dash_manifest: If True (default), DASH manifests and related\n                    data will be downloaded and processed by extractor.\n                    You can reduce network I/O by disabling it if you don't\n                    care about DASH.",
+    "1.2.3": [
+        "_filter(f)"
+    ],
+    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/youtube-dl_12/youtube_dl/YoutubeDL.py",
+    "1.3.2": [
+        "_filter(f)"
+    ],
+    "1.4.1": [
+        "    def test_format_selection_string_ops(self):\n        formats = [\n            {'format_id': 'abc-cba', 'ext': 'mp4', 'url': TEST_URL},\n            {'format_id': 'zxc-cxz', 'ext': 'webm', 'url': TEST_URL},\n        ]\n        info_dict = _make_result(formats)\n\n        # equals (=)\n        ydl = YDL({'format': '[format_id=abc-cba]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'abc-cba')\n\n        # does not equal (!=)\n        ydl = YDL({'format': '[format_id!=abc-cba]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'zxc-cxz')\n\n        ydl = YDL({'format': '[format_id!=abc-cba][format_id!=zxc-cxz]'})\n        self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())\n\n        # starts with (^=)\n        ydl = YDL({'format': '[format_id^=abc]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'abc-cba')\n\n        # does not start with (!^=)\n        ydl = YDL({'format': '[format_id!^=abc]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'zxc-cxz')\n\n        ydl = YDL({'format': '[format_id!^=abc][format_id!^=zxc]'})\n        self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())\n\n        # ends with ($=)\n        ydl = YDL({'format': '[format_id$=cba]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'abc-cba')\n\n        # does not end with (!$=)\n        ydl = YDL({'format': '[format_id!$=cba]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'zxc-cxz')\n\n        ydl = YDL({'format': '[format_id!$=cba][format_id!$=cxz]'})\n        self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())\n\n        # contains (*=)\n        ydl = YDL({'format': '[format_id*=bc-cb]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'abc-cba')\n\n        # does not contain (!*=)\n        ydl = YDL({'format': '[format_id!*=bc-cb]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'zxc-cxz')\n\n        ydl = YDL({'format': '[format_id!*=abc][format_id!*=zxc]'})\n        self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())\n\n        ydl = YDL({'format': '[format_id!*=-]'})\n        self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/youtube-dl_12/test/test_YoutubeDL.py"
+    ],
+    "2.1.1": [
+        [
+            "E           youtube_dl.utils.ExtractorError: requested format not available"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <test.test_YoutubeDL.TestFormatSelection testMethod=test_format_selection_string_ops>\n\n    def test_format_selection_string_ops(self):\n        formats = [\n            {'format_id': 'abc-cba', 'ext': 'mp4', 'url': TEST_URL},\n            {'format_id': 'zxc-cxz', 'ext': 'webm', 'url': TEST_URL},\n        ]\n        info_dict = _make_result(formats)\n    \n        # equals (=)\n        ydl = YDL({'format': '[format_id=abc-cba]'})\n        ydl.process_ie_result(info_dict.copy())\n        downloaded = ydl.downloaded_info_dicts[0]\n        self.assertEqual(downloaded['format_id'], 'abc-cba')\n    \n        # does not equal (!=)\n        ydl = YDL({'format': '[format_id!=abc-cba]'})\n>       ydl.process_ie_result(info_dict.copy())\n\ntest/test_YoutubeDL.py:257: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nyoutube_dl/YoutubeDL.py:858: in process_ie_result\n    return self.process_video_result(ie_result, download=download)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <test.test_YoutubeDL.YDL object at 0x105e0ff90>\ninfo_dict = {'display_id': 'testid', 'extractor': 'testex', 'extractor_key': 'TestEx', 'formats': [{'ext': 'mp4', 'format': 'abc-c...8859-1,utf-8;q=0.7,*;q=0.7', 'Accept-Encoding': 'gzip, deflate', 'Accept-Language': 'en-us,en;q=0.5', ...}, ...}], ...}\ndownload = True\n\n    def process_video_result(self, info_dict, download=True):\n        assert info_dict.get('_type', 'video') == 'video'\n    \n        if 'id' not in info_dict:\n            raise ExtractorError('Missing \"id\" field in extractor result')\n        if 'title' not in info_dict:\n            raise ExtractorError('Missing \"title\" field in extractor result')\n    \n        def report_force_conversion(field, field_not, conversion):\n            self.report_warning(\n                '\"%s\" field is not %s - forcing %s conversion, there is an error in extractor'\n                % (field, field_not, conversion))\n    \n        def sanitize_string_field(info, string_field):\n            field = info.get(string_field)\n            if field is None or isinstance(field, compat_str):\n                return\n            report_force_conversion(string_field, 'a string', 'string')\n            info[string_field] = compat_str(field)\n    \n        def sanitize_numeric_fields(info):\n            for numeric_field in self._NUMERIC_FIELDS:\n                field = info.get(numeric_field)\n                if field is None or isinstance(field, compat_numeric_types):\n                    continue\n                report_force_conversion(numeric_field, 'numeric', 'int')\n                info[numeric_field] = int_or_none(field)\n    \n        sanitize_string_field(info_dict, 'id')\n        sanitize_numeric_fields(info_dict)\n    \n        if 'playlist' not in info_dict:\n            # It isn't part of a playlist\n            info_dict['playlist'] = None\n            info_dict['playlist_index'] = None\n    \n        thumbnails = info_dict.get('thumbnails')\n        if thumbnails is None:\n            thumbnail = info_dict.get('thumbnail')\n            if thumbnail:\n                info_dict['thumbnails'] = thumbnails = [{'url': thumbnail}]\n        if thumbnails:\n            thumbnails.sort(key=lambda t: (\n                t.get('preference') if t.get('preference') is not None else -1,\n                t.get('width') if t.get('width') is not None else -1,\n                t.get('height') if t.get('height') is not None else -1,\n                t.get('id') if t.get('id') is not None else '', t.get('url')))\n            for i, t in enumerate(thumbnails):\n                t['url'] = sanitize_url(t['url'])\n                if t.get('width') and t.get('height'):\n                    t['resolution'] = '%dx%d' % (t['width'], t['height'])\n                if t.get('id') is None:\n                    t['id'] = '%d' % i\n    \n        if self.params.get('list_thumbnails'):\n            self.list_thumbnails(info_dict)\n            return\n    \n        thumbnail = info_dict.get('thumbnail')\n        if thumbnail:\n            info_dict['thumbnail'] = sanitize_url(thumbnail)\n        elif thumbnails:\n            info_dict['thumbnail'] = thumbnails[-1]['url']\n    \n        if 'display_id' not in info_dict and 'id' in info_dict:\n            info_dict['display_id'] = info_dict['id']\n    \n        if info_dict.get('upload_date') is None and info_dict.get('timestamp') is not None:\n            # Working around out-of-range timestamp values (e.g. negative ones on Windows,\n            # see http://bugs.python.org/issue1646728)\n            try:\n                upload_date = datetime.datetime.utcfromtimestamp(info_dict['timestamp'])\n                info_dict['upload_date'] = upload_date.strftime('%Y%m%d')\n            except (ValueError, OverflowError, OSError):\n                pass\n    \n        # Auto generate title fields corresponding to the *_number fields when missing\n        # in order to always have clean titles. This is very common for TV series.\n        for field in ('chapter', 'season', 'episode'):\n            if info_dict.get('%s_number' % field) is not None and not info_dict.get(field):\n                info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])\n    \n        for cc_kind in ('subtitles', 'automatic_captions'):\n            cc = info_dict.get(cc_kind)\n            if cc:\n                for _, subtitle in cc.items():\n                    for subtitle_format in subtitle:\n                        if subtitle_format.get('url'):\n                            subtitle_format['url'] = sanitize_url(subtitle_format['url'])\n                        if subtitle_format.get('ext') is None:\n                            subtitle_format['ext'] = determine_ext(subtitle_format['url']).lower()\n    \n        automatic_captions = info_dict.get('automatic_captions')\n        subtitles = info_dict.get('subtitles')\n    \n        if self.params.get('listsubtitles', False):\n            if 'automatic_captions' in info_dict:\n                self.list_subtitles(\n                    info_dict['id'], automatic_captions, 'automatic captions')\n            self.list_subtitles(info_dict['id'], subtitles, 'subtitles')\n            return\n    \n        info_dict['requested_subtitles'] = self.process_subtitles(\n            info_dict['id'], subtitles, automatic_captions)\n    \n        # We now pick which formats have to be downloaded\n        if info_dict.get('formats') is None:\n            # There's only one format available\n            formats = [info_dict]\n        else:\n            formats = info_dict['formats']\n    \n        if not formats:\n            raise ExtractorError('No video formats found!')\n    \n        def is_wellformed(f):\n            url = f.get('url')\n            if not url:\n                self.report_warning(\n                    '\"url\" field is missing or empty - skipping format, '\n                    'there is an error in extractor')\n                return False\n            if isinstance(url, bytes):\n                sanitize_string_field(f, 'url')\n            return True\n    \n        # Filter out malformed formats for better extraction robustness\n        formats = list(filter(is_wellformed, formats))\n    \n        formats_dict = {}\n    \n        # We check that all the formats have the format and format_id fields\n        for i, format in enumerate(formats):\n            sanitize_string_field(format, 'format_id')\n            sanitize_numeric_fields(format)\n            format['url'] = sanitize_url(format['url'])\n            if not format.get('format_id'):\n                format['format_id'] = compat_str(i)\n            else:\n                # Sanitize format_id from characters used in format selector expression\n                format['format_id'] = re.sub(r'[\\s,/+\\[\\]()]', '_', format['format_id'])\n            format_id = format['format_id']\n            if format_id not in formats_dict:\n                formats_dict[format_id] = []\n            formats_dict[format_id].append(format)\n    \n        # Make sure all formats have unique format_id\n        for format_id, ambiguous_formats in formats_dict.items():\n            if len(ambiguous_formats) > 1:\n                for i, format in enumerate(ambiguous_formats):\n                    format['format_id'] = '%s-%d' % (format_id, i)\n    \n        for i, format in enumerate(formats):\n            if format.get('format') is None:\n                format['format'] = '{id} - {res}{note}'.format(\n                    id=format['format_id'],\n                    res=self.format_resolution(format),\n                    note=' ({0})'.format(format['format_note']) if format.get('format_note') is not None else '',\n                )\n            # Automatically determine file extension if missing\n            if format.get('ext') is None:\n                format['ext'] = determine_ext(format['url']).lower()\n            # Automatically determine protocol if missing (useful for format\n            # selection purposes)\n            if format.get('protocol') is None:\n                format['protocol'] = determine_protocol(format)\n            # Add HTTP headers, so that external programs can use them from the\n            # json output\n            full_format_info = info_dict.copy()\n            full_format_info.update(format)\n            format['http_headers'] = self._calc_headers(full_format_info)\n        # Remove private housekeeping stuff\n        if '__x_forwarded_for_ip' in info_dict:\n            del info_dict['__x_forwarded_for_ip']\n    \n        # TODO Central sorting goes here\n    \n        if formats[0] is not info_dict:\n            # only set the 'formats' fields if the original info_dict list them\n            # otherwise we end up with a circular reference, the first (and unique)\n            # element in the 'formats' field in info_dict is info_dict itself,\n            # which can't be exported to json\n            info_dict['formats'] = formats\n        if self.params.get('listformats'):\n            self.list_formats(info_dict)\n            return\n    \n        req_format = self.params.get('format')\n        if req_format is None:\n            req_format = self._default_format_spec(info_dict, download=download)\n            if self.params.get('verbose'):\n                self.to_stdout('[debug] Default format spec: %s' % req_format)\n    \n        format_selector = self.build_format_selector(req_format)\n    \n        # While in format selection we may need to have an access to the original\n        # format set in order to calculate some metrics or do some processing.\n        # For now we need to be able to guess whether original formats provided\n        # by extractor are incomplete or not (i.e. whether extractor provides only\n        # video-only or audio-only formats) for proper formats selection for\n        # extractors with such incomplete formats (see\n        # https://github.com/rg3/youtube-dl/pull/5556).\n        # Since formats may be filtered during format selection and may not match\n        # the original formats the results may be incorrect. Thus original formats\n        # or pre-calculated metrics should be passed to format selection routines\n        # as well.\n        # We will pass a context object containing all necessary additional data\n        # instead of just formats.\n        # This fixes incorrect format selection issue (see\n        # https://github.com/rg3/youtube-dl/issues/10083).\n        incomplete_formats = (\n            # All formats are video-only or\n            all(f.get('vcodec') != 'none' and f.get('acodec') == 'none' for f in formats) or\n            # all formats are audio-only\n            all(f.get('vcodec') == 'none' and f.get('acodec') != 'none' for f in formats))\n    \n        ctx = {\n            'formats': formats,\n            'incomplete_formats': incomplete_formats,\n        }\n    \n        formats_to_download = list(format_selector(ctx))\n        if not formats_to_download:\n            raise ExtractorError('requested format not available',\n>                                expected=True)",
+            "\nyoutube_dl/YoutubeDL.py:1631: ExtractorError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "filter_spec": "'format_id=abc-cba'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 17), match='format_id=abc-cba'>",
+                "comparison_value": "'abc-cba'",
+                "op": "<built-in function eq>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x10d184d40>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x10d184dd0>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x10d184e60>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<built-in function eq>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x10d184f80>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!=abc-cba'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 18), match='format_id!=abc-cba'>",
+                "comparison_value": "'abc-cba'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x10db280e0>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x10db25ef0>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x10db25f80>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x10db28050>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<built-in function eq>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x10db28200>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "builtin_function_or_method",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "builtin_function_or_method",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "builtin_function_or_method",
+                "_filter": "function"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "filter_spec": "'format_id=abc-cba'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 17), match='format_id=abc-cba'>",
+                "comparison_value": "'abc-cba'",
+                "op": "<built-in function eq>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108f8bdd0>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108f8be60>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108f8bef0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<built-in function eq>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x108f93050>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!=abc-cba'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 18), match='format_id!=abc-cba'>",
+                "comparison_value": "'abc-cba'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085ae170>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085adf80>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085ae050>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085ae0e0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<built-in function eq>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085ae290>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!=zxc-cxz'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 18), match='format_id!=zxc-cxz'>",
+                "comparison_value": "'zxc-cxz'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085be170>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085b2cb0>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085be050>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085be0e0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<built-in function eq>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085be290>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id^=abc'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 14), match='format_id^=abc'>",
+                "comparison_value": "'abc'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085b7440>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085b7440>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085b74d0>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085b7560>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085b7440>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085b75f0>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!^=abc'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 15), match='format_id!^=abc'>",
+                "comparison_value": "'abc'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085baa70>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085ba8c0>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085ba950>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085ba9e0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085ba8c0>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085bab90>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!^=zxc'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 15), match='format_id!^=zxc'>",
+                "comparison_value": "'zxc'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085c9440>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085c95f0>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085c9560>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085c94d0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085c95f0>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085c93b0>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id$=cba'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 14), match='format_id$=cba'>",
+                "comparison_value": "'cba'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bf320>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bf290>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bf320>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bf3b0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bf320>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085bf440>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!$=cba'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 15), match='format_id!$=cba'>",
+                "comparison_value": "'cba'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085cb830>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085cb680>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085cb710>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085cb7a0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085cb710>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085cb950>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!$=cxz'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 15), match='format_id!$=cxz'>",
+                "comparison_value": "'cxz'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085d6d40>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085d6b90>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085d6c20>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085d6cb0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085d6c20>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085d6dd0>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id*=bc-cb'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 16), match='format_id*=bc-cb'>",
+                "comparison_value": "'bc-cb'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bc8c0>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bc7a0>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bc830>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bc8c0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x1085bc8c0>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x1085bc9e0>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!*=bc-cb'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 17), match='format_id!*=bc-cb'>",
+                "comparison_value": "'bc-cb'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e1be60>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e1bcb0>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e1bd40>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e1bdd0>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e1bdd0>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x108e1bf80>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!*=abc'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 15), match='format_id!*=abc'>",
+                "comparison_value": "'abc'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e218c0>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e21710>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e217a0>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e21830>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e21830>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x108e21950>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!*=zxc'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 15), match='format_id!*=zxc'>",
+                "comparison_value": "'zxc'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e2e170>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e2e320>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e2e290>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e2e200>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e2e200>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x108e2e830>"
+            }
+        ],
+        [
+            {
+                "filter_spec": "'format_id!*=-'"
+            },
+            {
+                "OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n            (?P<key>width",
+                "m": "<re.Match object; span=(0, 13), match='format_id!*=-'>",
+                "comparison_value": "'-'",
+                "op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e39200>",
+                "STR_OPERATORS": "{'=': <built-in function eq>, '^=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e39050>, '$=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e390e0>, '*=': <function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e39170>}",
+                "str_operator_rex": "re.compile('(?x)\\n                \\\\s*(?P<key>ext",
+                "str_op": "<function YoutubeDL._build_format_filter.<locals>.<lambda> at 0x108e39170>",
+                "_filter": "<function YoutubeDL._build_format_filter.<locals>._filter at 0x108e39320>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "builtin_function_or_method",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "builtin_function_or_method",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "builtin_function_or_method",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "builtin_function_or_method",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ],
+        [
+            {
+                "filter_spec": "str"
+            },
+            {
+                "OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "comparison_value": "str",
+                "op": "function",
+                "STR_OPERATORS": "dict",
+                "str_operator_rex": "Pattern",
+                "str_op": "function",
+                "_filter": "function"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Format selection broken\n"
+    ],
+    "3.1.2": [
+        "Please follow the guide below\nYou will be asked some questions and requested to provide some information, please read them carefully and answer honestly\nPut an x into all the boxes [ ] relevant to your issue (like this: [x])\nUse the Preview tab to see what your issue will actually look like\nMake sure you are using the latest version: run youtube-dl --version and ensure your version is 2019.01.23. If it's not, read this FAQ entry and update. Issues with outdated version will be rejected.\n I've verified and I assure that I'm running youtube-dl 2019.01.23\nBefore submitting an issue make sure you have:\n At least skimmed through the README, most notably the FAQ and BUGS sections\n Searched the bugtracker for similar issues including closed ones\n Checked that provided video/audio/playlist URLs (if any) are alive and playable in a browser\nWhat is the purpose of your issue?\n Bug report (encountered problems with youtube-dl)\n Site support request (request for adding support for a new site)\n Feature request (request for a new functionality)\n Question\n Other\nThe following sections concretize particular purposed issues, you can erase any section (the contents between triple ---) not applicable to your issue\nIf the purpose of this issue is a bug report, site support request or you are not completely sure provide the full verbose output as follows:\nAdd the -v flag to your command line you run youtube-dl with (youtube-dl -v <your command line>), copy the whole output and insert it here. It should look similar to one below (replace it with your log inserted between triple "
+    ]
+}

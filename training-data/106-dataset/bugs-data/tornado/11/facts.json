@@ -1,0 +1,140 @@
+{
+    "1.1.1": "def _read_body(self, code, headers, delegate):\n    if \"Content-Length\" in headers:\n        if \"Transfer-Encoding\" in headers:\n            # Response cannot contain both Content-Length and\n            # Transfer-Encoding headers.\n            # http://tools.ietf.org/html/rfc7230#section-3.3.3\n            raise httputil.HTTPInputError(\n                \"Response with both Transfer-Encoding and Content-Length\")\n        if \",\" in headers[\"Content-Length\"]:\n            # Proxies sometimes cause Content-Length headers to get\n            # duplicated.  If all the values are identical then we can\n            # use them but if they differ it's an error.\n            pieces = re.split(r',\\s*', headers[\"Content-Length\"])\n            if any(i != pieces[0] for i in pieces):\n                raise httputil.HTTPInputError(\n                    \"Multiple unequal Content-Lengths: %r\" %\n                    headers[\"Content-Length\"])\n            headers[\"Content-Length\"] = pieces[0]\n\n        try:\n            content_length = int(headers[\"Content-Length\"])\n        except ValueError:\n            # Handles non-integer Content-Length value.\n            raise httputil.HTTPInputError(\n                \"Only integer Content-Length is allowed: %s\" % headers[\"Content-Length\"])\n\n        if content_length > self._max_body_size:\n            raise httputil.HTTPInputError(\"Content-Length too long\")\n    else:\n        content_length = None\n\n    if code == 204:\n        # This response code is not allowed to have a non-empty body,\n        # and has an implicit length of zero instead of read-until-close.\n        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.3\n        if (\"Transfer-Encoding\" in headers or\n                content_length not in (None, 0)):\n            raise httputil.HTTPInputError(\n                \"Response with code %d should not have body\" % code)\n        content_length = 0\n\n    if content_length is not None:\n        return self._read_fixed_body(content_length, delegate)\n    if headers.get(\"Transfer-Encoding\") == \"chunked\":\n        return self._read_chunked_body(delegate)\n    if self.is_client:\n        return self._read_body_until_close(delegate)\n    return None\n",
+    "1.1.2": null,
+    "1.2.1": "class HTTP1Connection(httputil.HTTPConnection)",
+    "1.2.2": "Implements the HTTP/1.x protocol.\n\nThis class can be on its own for clients, or via `HTTP1ServerConnection`\nfor servers.",
+    "1.2.3": [
+        "_read_fixed_body(self, content_length, delegate)",
+        "_read_chunked_body(self, delegate)",
+        "_read_body_until_close(self, delegate)"
+    ],
+    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/tornado_11/tornado/http1connection.py",
+    "1.3.2": [
+        "_read_fixed_body(self, content_length, delegate)",
+        "_read_chunked_body(self, delegate)",
+        "_read_body_until_close(self, delegate)"
+    ],
+    "1.4.1": [
+        "    def test_chunked_request_uppercase(self):\n        # As per RFC 2616 section 3.6, \"Transfer-Encoding\" header's value is\n        # case-insensitive.\n        self.stream.write(b\"\"\"\\\nPOST /echo HTTP/1.1\nTransfer-Encoding: Chunked\nContent-Type: application/x-www-form-urlencoded\n\n4\nfoo=\n3\nbar\n0\n\n\"\"\".replace(b\"\\n\", b\"\\r\\n\"))\n        read_stream_body(self.stream, self.stop)\n        headers, response = self.wait()\n        self.assertEqual(json_decode(response), {u'foo': [u'bar']})"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/tornado_11/tornado/test/httpserver_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E           AssertionError: {} != {'foo': ['bar']}\nE           - {}\nE           + {'foo': ['bar']}"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tornado.test.httpserver_test.HTTPServerRawTest testMethod=test_chunked_request_uppercase>\n\n        def test_chunked_request_uppercase(self):\n            # As per RFC 2616 section 3.6, \"Transfer-Encoding\" header's value is\n            # case-insensitive.\n            self.stream.write(b\"\"\"\\\n    POST /echo HTTP/1.1\n    Transfer-Encoding: Chunked\n    Content-Type: application/x-www-form-urlencoded\n    \n    4\n    foo=\n    3\n    bar\n    0\n    \n    \"\"\".replace(b\"\\n\", b\"\\r\\n\"))\n            read_stream_body(self.stream, self.stop)\n            headers, response = self.wait()\n>           self.assertEqual(json_decode(response), {u'foo': [u'bar']})",
+            "\ntornado/test/httpserver_test.py:461: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "headers": "<tornado.httputil.HTTPHeaders object at 0x10d072a10>",
+                "self._max_body_size": "104857600",
+                "self": "<tornado.http1connection.HTTP1Connection object at 0x10d072ed0>",
+                "code": "0",
+                "delegate": "<tornado.httpserver._ServerRequestAdapter object at 0x10d072c50>",
+                "self.is_client": "False"
+            },
+            {}
+        ],
+        [
+            {
+                "headers": "<tornado.httputil.HTTPHeaders object at 0x10d0b5dd0>",
+                "self._max_body_size": "104857600",
+                "self": "<tornado.http1connection.HTTP1Connection object at 0x10d0b55d0>",
+                "code": "200",
+                "delegate": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10d0b5d50>",
+                "self.is_client": "True"
+            },
+            {
+                "content_length": "2"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "headers": "HTTPHeaders",
+                "self._max_body_size": "int",
+                "self": "HTTP1Connection",
+                "code": "int",
+                "delegate": "_ServerRequestAdapter",
+                "self.is_client": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "headers": "HTTPHeaders",
+                "self._max_body_size": "int",
+                "self": "HTTP1Connection",
+                "code": "int",
+                "delegate": "Delegate",
+                "self.is_client": "bool"
+            },
+            {
+                "content_length": "int"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "headers": "<tornado.httputil.HTTPHeaders object at 0x10ed40110>",
+                "self._max_body_size": "104857600",
+                "self": "<tornado.http1connection.HTTP1Connection object at 0x10ed1ce10>",
+                "code": "0",
+                "delegate": "<tornado.httpserver._ServerRequestAdapter object at 0x10ed1ced0>",
+                "self.is_client": "False"
+            },
+            {}
+        ],
+        [
+            {
+                "headers": "<tornado.httputil.HTTPHeaders object at 0x10ed40a90>",
+                "self._max_body_size": "104857600",
+                "self": "<tornado.http1connection.HTTP1Connection object at 0x10ed1cad0>",
+                "code": "200",
+                "delegate": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10ed1c850>",
+                "self.is_client": "True"
+            },
+            {
+                "content_length": "16"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "headers": "HTTPHeaders",
+                "self._max_body_size": "int",
+                "self": "HTTP1Connection",
+                "code": "int",
+                "delegate": "_ServerRequestAdapter",
+                "self.is_client": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "headers": "HTTPHeaders",
+                "self._max_body_size": "int",
+                "self": "HTTP1Connection",
+                "code": "int",
+                "delegate": "Delegate",
+                "self.is_client": "bool"
+            },
+            {
+                "content_length": "int"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

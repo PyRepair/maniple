@@ -1,0 +1,1166 @@
+{
+    "scrapy:13": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_13/scrapy/pipelines/images.py": {
+            "buggy_functions": [],
+            "snippets": [
+                {
+                    "snippet_code": "EXPIRES = 0\n    THUMBS = {}",
+                    "start_line": 45,
+                    "end_line": 46
+                }
+            ],
+            "inscope_functions": [
+                "def __init__(self, store_uri, download_func=None, settings=None):\n    super(ImagesPipeline, self).__init__(store_uri, settings=settings,\n                                         download_func=download_func)\n\n    if isinstance(settings, dict) or settings is None:\n        settings = Settings(settings)\n\n    resolve = functools.partial(self._key_for_pipe,\n                                base_class_name=\"ImagesPipeline\")\n    self.expires = settings.getint(\n        resolve(\"IMAGES_EXPIRES\"), self.EXPIRES\n    )\n\n    if not hasattr(self, \"IMAGES_RESULT_FIELD\"):\n        self.IMAGES_RESULT_FIELD = self.DEFAULT_IMAGES_RESULT_FIELD\n    if not hasattr(self, \"IMAGES_URLS_FIELD\"):\n        self.IMAGES_URLS_FIELD = self.DEFAULT_IMAGES_URLS_FIELD\n\n    self.images_urls_field = settings.get(\n        resolve('IMAGES_URLS_FIELD'),\n        self.IMAGES_URLS_FIELD\n    )\n    self.images_result_field = settings.get(\n        resolve('IMAGES_RESULT_FIELD'),\n        self.IMAGES_RESULT_FIELD\n    )\n    self.min_width = settings.getint(\n        resolve('IMAGES_MIN_WIDTH'), self.MIN_WIDTH\n    )\n    self.min_height = settings.getint(\n        resolve('IMAGES_MIN_HEIGHT'), self.MIN_HEIGHT\n    )\n    self.thumbs = settings.get(\n        resolve('IMAGES_THUMBS'), self.THUMBS\n    )",
+                "@classmethod\ndef from_settings(cls, settings):\n    s3store = cls.STORE_SCHEMES['s3']\n    s3store.AWS_ACCESS_KEY_ID = settings['AWS_ACCESS_KEY_ID']\n    s3store.AWS_SECRET_ACCESS_KEY = settings['AWS_SECRET_ACCESS_KEY']\n    s3store.POLICY = settings['IMAGES_STORE_S3_ACL']\n\n    store_uri = settings['IMAGES_STORE']\n    return cls(store_uri, settings=settings)",
+                "def file_downloaded(self, response, request, info):\n    return self.image_downloaded(response, request, info)",
+                "def image_downloaded(self, response, request, info):\n    checksum = None\n    for path, image, buf in self.get_images(response, request, info):\n        if checksum is None:\n            buf.seek(0)\n            checksum = md5sum(buf)\n        width, height = image.size\n        self.store.persist_file(\n            path, buf, info,\n            meta={'width': width, 'height': height},\n            headers={'Content-Type': 'image/jpeg'})\n    return checksum",
+                "def get_images(self, response, request, info):\n    path = self.file_path(request, response=response, info=info)\n    orig_image = Image.open(BytesIO(response.body))\n\n    width, height = orig_image.size\n    if width < self.min_width or height < self.min_height:\n        raise ImageException(\"Image too small (%dx%d < %dx%d)\" %\n                             (width, height, self.min_width, self.min_height))\n\n    image, buf = self.convert_image(orig_image)\n    yield path, image, buf\n\n    for thumb_id, size in six.iteritems(self.thumbs):\n        thumb_path = self.thumb_path(request, thumb_id, response=response, info=info)\n        thumb_image, thumb_buf = self.convert_image(image, size)\n        yield thumb_path, thumb_image, thumb_buf",
+                "def convert_image(self, image, size=None):\n    if image.format == 'PNG' and image.mode == 'RGBA':\n        background = Image.new('RGBA', image.size, (255, 255, 255))\n        background.paste(image, image)\n        image = background.convert('RGB')\n    elif image.mode != 'RGB':\n        image = image.convert('RGB')\n\n    if size:\n        image = image.copy()\n        image.thumbnail(size, Image.ANTIALIAS)\n\n    buf = BytesIO()\n    image.save(buf, 'JPEG')\n    return image, buf",
+                "def get_media_requests(self, item, info):\n    return [Request(x) for x in item.get(self.images_urls_field, [])]",
+                "def item_completed(self, results, item, info):\n    if isinstance(item, dict) or self.images_result_field in item.fields:\n        item[self.images_result_field] = [x for ok, x in results if ok]\n    return item",
+                "def file_path(self, request, response=None, info=None):\n    ## start of deprecation warning block (can be removed in the future)\n    def _warn():\n        from scrapy.exceptions import ScrapyDeprecationWarning\n        import warnings\n        warnings.warn('ImagesPipeline.image_key(url) and file_key(url) methods are deprecated, '\n                      'please use file_path(request, response=None, info=None) instead',\n                      category=ScrapyDeprecationWarning, stacklevel=1)\n\n    # check if called from image_key or file_key with url as first argument\n    if not isinstance(request, Request):\n        _warn()\n        url = request\n    else:\n        url = request.url\n\n    # detect if file_key() or image_key() methods have been overridden\n    if not hasattr(self.file_key, '_base'):\n        _warn()\n        return self.file_key(url)\n    elif not hasattr(self.image_key, '_base'):\n        _warn()\n        return self.image_key(url)\n    ## end of deprecation warning block\n\n    image_guid = hashlib.sha1(to_bytes(url)).hexdigest()  # change to request.url after deprecation\n    return 'full/%s.jpg' % (image_guid)",
+                "def thumb_path(self, request, thumb_id, response=None, info=None):\n    ## start of deprecation warning block (can be removed in the future)\n    def _warn():\n        from scrapy.exceptions import ScrapyDeprecationWarning\n        import warnings\n        warnings.warn('ImagesPipeline.thumb_key(url) method is deprecated, please use '\n                      'thumb_path(request, thumb_id, response=None, info=None) instead',\n                      category=ScrapyDeprecationWarning, stacklevel=1)\n\n    # check if called from thumb_key with url as first argument\n    if not isinstance(request, Request):\n        _warn()\n        url = request\n    else:\n        url = request.url\n\n    # detect if thumb_key() method has been overridden\n    if not hasattr(self.thumb_key, '_base'):\n        _warn()\n        return self.thumb_key(url, thumb_id)\n    ## end of deprecation warning block\n\n    thumb_guid = hashlib.sha1(to_bytes(url)).hexdigest()  # change to request.url after deprecation\n    return 'thumbs/%s/%s.jpg' % (thumb_id, thumb_guid)",
+                "def file_key(self, url):\n    return self.image_key(url)",
+                "def image_key(self, url):\n    return self.file_path(url)",
+                "def thumb_key(self, url, thumb_id):\n    return self.thumb_path(url, thumb_id)",
+                "def _warn():\n    from scrapy.exceptions import ScrapyDeprecationWarning\n    import warnings\n    warnings.warn('ImagesPipeline.image_key(url) and file_key(url) methods are deprecated, '\n                  'please use file_path(request, response=None, info=None) instead',\n                  category=ScrapyDeprecationWarning, stacklevel=1)",
+                "def _warn():\n    from scrapy.exceptions import ScrapyDeprecationWarning\n    import warnings\n    warnings.warn('ImagesPipeline.thumb_key(url) method is deprecated, please use '\n                  'thumb_path(request, thumb_id, response=None, info=None) instead',\n                  category=ScrapyDeprecationWarning, stacklevel=1)"
+            ],
+            "inscope_function_signatures": [
+                "__init__(self, store_uri, download_func=None, settings=None)",
+                "from_settings(cls, settings)",
+                "file_downloaded(self, response, request, info)",
+                "image_downloaded(self, response, request, info)",
+                "get_images(self, response, request, info)",
+                "convert_image(self, image, size=None)",
+                "get_media_requests(self, item, info)",
+                "item_completed(self, results, item, info)",
+                "file_path(self, request, response=None, info=None)",
+                "thumb_path(self, request, thumb_id, response=None, info=None)",
+                "file_key(self, url)",
+                "image_key(self, url)",
+                "thumb_key(self, url, thumb_id)",
+                "_warn()",
+                "_warn()"
+            ],
+            "variables_in_file": {
+                "ImportError": [
+                    12
+                ],
+                "DropItem": [
+                    26
+                ],
+                "FileException": [
+                    30
+                ],
+                "FilesPipeline": [
+                    34
+                ],
+                "MEDIA_NAME": [
+                    39
+                ],
+                "MIN_WIDTH": [
+                    43
+                ],
+                "MIN_HEIGHT": [
+                    44
+                ],
+                "EXPIRES": [
+                    45
+                ],
+                "THUMBS": [
+                    46
+                ],
+                "DEFAULT_IMAGES_URLS_FIELD": [
+                    47
+                ],
+                "DEFAULT_IMAGES_RESULT_FIELD": [
+                    48
+                ],
+                "__init__": [
+                    51
+                ],
+                "super": [
+                    51
+                ],
+                "ImagesPipeline": [
+                    51
+                ],
+                "self": [
+                    146,
+                    149,
+                    150,
+                    170,
+                    172,
+                    173,
+                    175,
+                    51,
+                    57,
+                    59,
+                    60,
+                    63,
+                    64,
+                    65,
+                    66,
+                    68,
+                    70,
+                    198,
+                    72,
+                    200,
+                    74,
+                    76,
+                    77,
+                    79,
+                    80,
+                    208,
+                    82,
+                    83,
+                    213,
+                    218,
+                    97,
+                    101,
+                    106,
+                    113,
+                    117,
+                    119,
+                    121,
+                    124,
+                    125,
+                    126
+                ],
+                "store_uri": [
+                    51,
+                    93,
+                    94
+                ],
+                "settings": [
+                    68,
+                    72,
+                    91,
+                    76,
+                    79,
+                    82,
+                    51,
+                    54,
+                    55,
+                    89,
+                    90,
+                    59,
+                    93,
+                    94
+                ],
+                "download_func": [
+                    52
+                ],
+                "isinstance": [
+                    163,
+                    149,
+                    54,
+                    191
+                ],
+                "dict": [
+                    149,
+                    54
+                ],
+                "Settings": [
+                    55
+                ],
+                "resolve": [
+                    69,
+                    73,
+                    77,
+                    80,
+                    83,
+                    57,
+                    60
+                ],
+                "functools.partial": [
+                    57
+                ],
+                "functools": [
+                    57
+                ],
+                "self._key_for_pipe": [
+                    57
+                ],
+                "self.expires": [
+                    59
+                ],
+                "settings.getint": [
+                    59,
+                    76,
+                    79
+                ],
+                "self.EXPIRES": [
+                    60
+                ],
+                "hasattr": [
+                    65,
+                    198,
+                    170,
+                    173,
+                    63
+                ],
+                "self.IMAGES_RESULT_FIELD": [
+                    64,
+                    74
+                ],
+                "self.DEFAULT_IMAGES_RESULT_FIELD": [
+                    64
+                ],
+                "self.IMAGES_URLS_FIELD": [
+                    66,
+                    70
+                ],
+                "self.DEFAULT_IMAGES_URLS_FIELD": [
+                    66
+                ],
+                "self.images_urls_field": [
+                    146,
+                    68
+                ],
+                "settings.get": [
+                    72,
+                    82,
+                    68
+                ],
+                "self.images_result_field": [
+                    72,
+                    149,
+                    150
+                ],
+                "self.min_width": [
+                    76,
+                    117,
+                    119
+                ],
+                "self.MIN_WIDTH": [
+                    77
+                ],
+                "self.min_height": [
+                    119,
+                    117,
+                    79
+                ],
+                "self.MIN_HEIGHT": [
+                    80
+                ],
+                "self.thumbs": [
+                    82,
+                    124
+                ],
+                "self.THUMBS": [
+                    83
+                ],
+                "s3store": [
+                    88,
+                    89,
+                    90,
+                    91
+                ],
+                "cls.STORE_SCHEMES": [
+                    88
+                ],
+                "cls": [
+                    88,
+                    94
+                ],
+                "s3store.AWS_ACCESS_KEY_ID": [
+                    89
+                ],
+                "s3store.AWS_SECRET_ACCESS_KEY": [
+                    90
+                ],
+                "s3store.POLICY": [
+                    91
+                ],
+                "classmethod": [
+                    86
+                ],
+                "self.image_downloaded": [
+                    97
+                ],
+                "response": [
+                    97,
+                    101,
+                    113,
+                    114,
+                    125
+                ],
+                "request": [
+                    97,
+                    193,
+                    163,
+                    195,
+                    101,
+                    165,
+                    167,
+                    113,
+                    125,
+                    191
+                ],
+                "info": [
+                    97,
+                    101,
+                    107,
+                    113,
+                    125
+                ],
+                "checksum": [
+                    104,
+                    110,
+                    100,
+                    102
+                ],
+                "path": [
+                    113,
+                    122,
+                    107,
+                    101
+                ],
+                "image": [
+                    130,
+                    131,
+                    132,
+                    101,
+                    133,
+                    134,
+                    135,
+                    105,
+                    138,
+                    139,
+                    142,
+                    143,
+                    121,
+                    122,
+                    126
+                ],
+                "buf": [
+                    101,
+                    103,
+                    104,
+                    107,
+                    141,
+                    142,
+                    143,
+                    121,
+                    122
+                ],
+                "self.get_images": [
+                    101
+                ],
+                "buf.seek": [
+                    103
+                ],
+                "md5sum": [
+                    104
+                ],
+                "width": [
+                    105,
+                    108,
+                    116,
+                    117,
+                    119
+                ],
+                "height": [
+                    105,
+                    108,
+                    116,
+                    117,
+                    119
+                ],
+                "image.size": [
+                    105,
+                    131
+                ],
+                "self.store.persist_file": [
+                    106
+                ],
+                "self.store": [
+                    106
+                ],
+                "self.file_path": [
+                    113,
+                    213
+                ],
+                "orig_image": [
+                    121,
+                    114,
+                    116
+                ],
+                "Image.open": [
+                    114
+                ],
+                "Image": [
+                    114,
+                    131,
+                    139
+                ],
+                "BytesIO": [
+                    114,
+                    141
+                ],
+                "response.body": [
+                    114
+                ],
+                "orig_image.size": [
+                    116
+                ],
+                "ImageException": [
+                    118
+                ],
+                "self.convert_image": [
+                    121,
+                    126
+                ],
+                "thumb_id": [
+                    200,
+                    204,
+                    218,
+                    124,
+                    125
+                ],
+                "size": [
+                    137,
+                    139,
+                    124,
+                    126
+                ],
+                "six.iteritems": [
+                    124
+                ],
+                "six": [
+                    124
+                ],
+                "thumb_path": [
+                    125,
+                    127
+                ],
+                "self.thumb_path": [
+                    218,
+                    125
+                ],
+                "thumb_image": [
+                    126,
+                    127
+                ],
+                "thumb_buf": [
+                    126,
+                    127
+                ],
+                "image.format": [
+                    130
+                ],
+                "image.mode": [
+                    130,
+                    134
+                ],
+                "background": [
+                    131,
+                    132,
+                    133
+                ],
+                "Image.new": [
+                    131
+                ],
+                "background.paste": [
+                    132
+                ],
+                "background.convert": [
+                    133
+                ],
+                "image.convert": [
+                    135
+                ],
+                "image.copy": [
+                    138
+                ],
+                "image.thumbnail": [
+                    139
+                ],
+                "Image.ANTIALIAS": [
+                    139
+                ],
+                "image.save": [
+                    142
+                ],
+                "Request": [
+                    146,
+                    163,
+                    191
+                ],
+                "x": [
+                    146,
+                    150
+                ],
+                "item.get": [
+                    146
+                ],
+                "item": [
+                    146,
+                    149,
+                    150,
+                    151
+                ],
+                "item.fields": [
+                    149
+                ],
+                "ok": [
+                    150
+                ],
+                "results": [
+                    150
+                ],
+                "warnings.warn": [
+                    186,
+                    158
+                ],
+                "warnings": [
+                    186,
+                    158
+                ],
+                "ScrapyDeprecationWarning": [
+                    160,
+                    188
+                ],
+                "_warn": [
+                    192,
+                    164,
+                    199,
+                    171,
+                    174
+                ],
+                "url": [
+                    193,
+                    195,
+                    165,
+                    167,
+                    200,
+                    203,
+                    172,
+                    175,
+                    208,
+                    178,
+                    213,
+                    218
+                ],
+                "request.url": [
+                    195,
+                    167
+                ],
+                "self.file_key": [
+                    170,
+                    172
+                ],
+                "self.image_key": [
+                    208,
+                    173,
+                    175
+                ],
+                "image_guid": [
+                    178,
+                    179
+                ],
+                "hexdigest": [
+                    178,
+                    203
+                ],
+                "hashlib.sha1": [
+                    178,
+                    203
+                ],
+                "hashlib": [
+                    178,
+                    203
+                ],
+                "to_bytes": [
+                    178,
+                    203
+                ],
+                "self.thumb_key": [
+                    200,
+                    198
+                ],
+                "thumb_guid": [
+                    203,
+                    204
+                ],
+                "file_key._base": [
+                    209
+                ],
+                "file_key": [
+                    209
+                ],
+                "image_key._base": [
+                    214
+                ],
+                "image_key": [
+                    214
+                ],
+                "thumb_key._base": [
+                    219
+                ],
+                "thumb_key": [
+                    219
+                ]
+            },
+            "filtered_variables_in_file": {
+                "DropItem": [
+                    26
+                ],
+                "FileException": [
+                    30
+                ],
+                "FilesPipeline": [
+                    34
+                ],
+                "MEDIA_NAME": [
+                    39
+                ],
+                "MIN_WIDTH": [
+                    43
+                ],
+                "MIN_HEIGHT": [
+                    44
+                ],
+                "EXPIRES": [
+                    45
+                ],
+                "THUMBS": [
+                    46
+                ],
+                "DEFAULT_IMAGES_URLS_FIELD": [
+                    47
+                ],
+                "DEFAULT_IMAGES_RESULT_FIELD": [
+                    48
+                ],
+                "__init__": [
+                    51
+                ],
+                "ImagesPipeline": [
+                    51
+                ],
+                "self": [
+                    146,
+                    149,
+                    150,
+                    170,
+                    172,
+                    173,
+                    175,
+                    51,
+                    57,
+                    59,
+                    60,
+                    63,
+                    64,
+                    65,
+                    66,
+                    68,
+                    70,
+                    198,
+                    72,
+                    200,
+                    74,
+                    76,
+                    77,
+                    79,
+                    80,
+                    208,
+                    82,
+                    83,
+                    213,
+                    218,
+                    97,
+                    101,
+                    106,
+                    113,
+                    117,
+                    119,
+                    121,
+                    124,
+                    125,
+                    126
+                ],
+                "store_uri": [
+                    51,
+                    93,
+                    94
+                ],
+                "settings": [
+                    68,
+                    72,
+                    91,
+                    76,
+                    79,
+                    82,
+                    51,
+                    54,
+                    55,
+                    89,
+                    90,
+                    59,
+                    93,
+                    94
+                ],
+                "download_func": [
+                    52
+                ],
+                "Settings": [
+                    55
+                ],
+                "resolve": [
+                    69,
+                    73,
+                    77,
+                    80,
+                    83,
+                    57,
+                    60
+                ],
+                "functools.partial": [
+                    57
+                ],
+                "functools": [
+                    57
+                ],
+                "self._key_for_pipe": [
+                    57
+                ],
+                "self.expires": [
+                    59
+                ],
+                "settings.getint": [
+                    59,
+                    76,
+                    79
+                ],
+                "self.EXPIRES": [
+                    60
+                ],
+                "self.IMAGES_RESULT_FIELD": [
+                    64,
+                    74
+                ],
+                "self.DEFAULT_IMAGES_RESULT_FIELD": [
+                    64
+                ],
+                "self.IMAGES_URLS_FIELD": [
+                    66,
+                    70
+                ],
+                "self.DEFAULT_IMAGES_URLS_FIELD": [
+                    66
+                ],
+                "self.images_urls_field": [
+                    146,
+                    68
+                ],
+                "settings.get": [
+                    72,
+                    82,
+                    68
+                ],
+                "self.images_result_field": [
+                    72,
+                    149,
+                    150
+                ],
+                "self.min_width": [
+                    76,
+                    117,
+                    119
+                ],
+                "self.MIN_WIDTH": [
+                    77
+                ],
+                "self.min_height": [
+                    119,
+                    117,
+                    79
+                ],
+                "self.MIN_HEIGHT": [
+                    80
+                ],
+                "self.thumbs": [
+                    82,
+                    124
+                ],
+                "self.THUMBS": [
+                    83
+                ],
+                "s3store": [
+                    88,
+                    89,
+                    90,
+                    91
+                ],
+                "cls.STORE_SCHEMES": [
+                    88
+                ],
+                "cls": [
+                    88,
+                    94
+                ],
+                "s3store.AWS_ACCESS_KEY_ID": [
+                    89
+                ],
+                "s3store.AWS_SECRET_ACCESS_KEY": [
+                    90
+                ],
+                "s3store.POLICY": [
+                    91
+                ],
+                "self.image_downloaded": [
+                    97
+                ],
+                "response": [
+                    97,
+                    101,
+                    113,
+                    114,
+                    125
+                ],
+                "request": [
+                    97,
+                    193,
+                    163,
+                    195,
+                    101,
+                    165,
+                    167,
+                    113,
+                    125,
+                    191
+                ],
+                "info": [
+                    97,
+                    101,
+                    107,
+                    113,
+                    125
+                ],
+                "checksum": [
+                    104,
+                    110,
+                    100,
+                    102
+                ],
+                "path": [
+                    113,
+                    122,
+                    107,
+                    101
+                ],
+                "image": [
+                    130,
+                    131,
+                    132,
+                    101,
+                    133,
+                    134,
+                    135,
+                    105,
+                    138,
+                    139,
+                    142,
+                    143,
+                    121,
+                    122,
+                    126
+                ],
+                "buf": [
+                    101,
+                    103,
+                    104,
+                    107,
+                    141,
+                    142,
+                    143,
+                    121,
+                    122
+                ],
+                "self.get_images": [
+                    101
+                ],
+                "buf.seek": [
+                    103
+                ],
+                "md5sum": [
+                    104
+                ],
+                "width": [
+                    105,
+                    108,
+                    116,
+                    117,
+                    119
+                ],
+                "height": [
+                    105,
+                    108,
+                    116,
+                    117,
+                    119
+                ],
+                "image.size": [
+                    105,
+                    131
+                ],
+                "self.store.persist_file": [
+                    106
+                ],
+                "self.store": [
+                    106
+                ],
+                "self.file_path": [
+                    113,
+                    213
+                ],
+                "orig_image": [
+                    121,
+                    114,
+                    116
+                ],
+                "Image.open": [
+                    114
+                ],
+                "Image": [
+                    114,
+                    131,
+                    139
+                ],
+                "BytesIO": [
+                    114,
+                    141
+                ],
+                "response.body": [
+                    114
+                ],
+                "orig_image.size": [
+                    116
+                ],
+                "ImageException": [
+                    118
+                ],
+                "self.convert_image": [
+                    121,
+                    126
+                ],
+                "thumb_id": [
+                    200,
+                    204,
+                    218,
+                    124,
+                    125
+                ],
+                "size": [
+                    137,
+                    139,
+                    124,
+                    126
+                ],
+                "six.iteritems": [
+                    124
+                ],
+                "six": [
+                    124
+                ],
+                "thumb_path": [
+                    125,
+                    127
+                ],
+                "self.thumb_path": [
+                    218,
+                    125
+                ],
+                "thumb_image": [
+                    126,
+                    127
+                ],
+                "thumb_buf": [
+                    126,
+                    127
+                ],
+                "image.format": [
+                    130
+                ],
+                "image.mode": [
+                    130,
+                    134
+                ],
+                "background": [
+                    131,
+                    132,
+                    133
+                ],
+                "Image.new": [
+                    131
+                ],
+                "background.paste": [
+                    132
+                ],
+                "background.convert": [
+                    133
+                ],
+                "image.convert": [
+                    135
+                ],
+                "image.copy": [
+                    138
+                ],
+                "image.thumbnail": [
+                    139
+                ],
+                "Image.ANTIALIAS": [
+                    139
+                ],
+                "image.save": [
+                    142
+                ],
+                "Request": [
+                    146,
+                    163,
+                    191
+                ],
+                "x": [
+                    146,
+                    150
+                ],
+                "item.get": [
+                    146
+                ],
+                "item": [
+                    146,
+                    149,
+                    150,
+                    151
+                ],
+                "item.fields": [
+                    149
+                ],
+                "ok": [
+                    150
+                ],
+                "results": [
+                    150
+                ],
+                "warnings.warn": [
+                    186,
+                    158
+                ],
+                "warnings": [
+                    186,
+                    158
+                ],
+                "ScrapyDeprecationWarning": [
+                    160,
+                    188
+                ],
+                "_warn": [
+                    192,
+                    164,
+                    199,
+                    171,
+                    174
+                ],
+                "url": [
+                    193,
+                    195,
+                    165,
+                    167,
+                    200,
+                    203,
+                    172,
+                    175,
+                    208,
+                    178,
+                    213,
+                    218
+                ],
+                "request.url": [
+                    195,
+                    167
+                ],
+                "self.file_key": [
+                    170,
+                    172
+                ],
+                "self.image_key": [
+                    208,
+                    173,
+                    175
+                ],
+                "image_guid": [
+                    178,
+                    179
+                ],
+                "hexdigest": [
+                    178,
+                    203
+                ],
+                "hashlib.sha1": [
+                    178,
+                    203
+                ],
+                "hashlib": [
+                    178,
+                    203
+                ],
+                "to_bytes": [
+                    178,
+                    203
+                ],
+                "self.thumb_key": [
+                    200,
+                    198
+                ],
+                "thumb_guid": [
+                    203,
+                    204
+                ],
+                "file_key._base": [
+                    209
+                ],
+                "file_key": [
+                    209
+                ],
+                "image_key._base": [
+                    214
+                ],
+                "image_key": [
+                    214
+                ],
+                "thumb_key._base": [
+                    219
+                ],
+                "thumb_key": [
+                    219
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_13/tests/test_pipeline_images.py",
+                "test_function": "test_different_settings_for_different_instances",
+                "test_function_code": "    def test_different_settings_for_different_instances(self):\n        \"\"\"\n        If there are two instances of ImagesPipeline class with different settings, they should\n        have different settings.\n        \"\"\"\n        custom_settings = self._generate_fake_settings()\n        default_settings = Settings()\n        default_sts_pipe = ImagesPipeline(self.tempdir, settings=default_settings)\n        user_sts_pipe = ImagesPipeline.from_settings(Settings(custom_settings))\n        for pipe_attr, settings_attr in self.img_cls_attribute_names:\n            expected_default_value = self.default_pipeline_settings.get(pipe_attr)\n            custom_value = custom_settings.get(settings_attr)\n            self.assertNotEqual(expected_default_value, custom_value)\n            self.assertEqual(getattr(default_sts_pipe, pipe_attr.lower()), expected_default_value)\n            self.assertEqual(getattr(user_sts_pipe, pipe_attr.lower()), custom_value)",
+                "test_error": "twisted.trial.unittest.FailTest: 0 != 90",
+                "full_test_error": "self = <tests.test_pipeline_images.ImagesPipelineTestCaseCustomSettings testMethod=test_different_settings_for_different_instances>\n\n    def test_different_settings_for_different_instances(self):\n        \"\"\"\n        If there are two instances of ImagesPipeline class with different settings, they should\n        have different settings.\n        \"\"\"\n        custom_settings = self._generate_fake_settings()\n        default_settings = Settings()\n        default_sts_pipe = ImagesPipeline(self.tempdir, settings=default_settings)\n        user_sts_pipe = ImagesPipeline.from_settings(Settings(custom_settings))\n        for pipe_attr, settings_attr in self.img_cls_attribute_names:\n            expected_default_value = self.default_pipeline_settings.get(pipe_attr)\n            custom_value = custom_settings.get(settings_attr)\n            self.assertNotEqual(expected_default_value, custom_value)\n>           self.assertEqual(getattr(default_sts_pipe, pipe_attr.lower()), expected_default_value)\n\n/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_13/tests/test_pipeline_images.py:294: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/Volumes/SSD2T/bgp_envs_non_pandas/envs/scrapy_13/lib/python3.8/site-packages/twisted/trial/_synctest.py:434: in assertEqual\n    super(_Assertions, self).assertEqual(first, second, msg)\nE   twisted.trial.unittest.FailTest: 0 != 90",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            },
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_13/tests/test_pipeline_images.py",
+                "test_function": "test_no_custom_settings_for_subclasses",
+                "test_function_code": "    def test_no_custom_settings_for_subclasses(self):\n        \"\"\"\n        If there are no settings for subclass and no subclass attributes, pipeline should use\n        attributes of base class.\n        \"\"\"\n        class UserDefinedImagePipeline(ImagesPipeline):\n            pass\n\n        user_pipeline = UserDefinedImagePipeline.from_settings(Settings({\"IMAGES_STORE\": self.tempdir}))\n        for pipe_attr, settings_attr in self.img_cls_attribute_names:\n            # Values from settings for custom pipeline should be set on pipeline instance.\n            custom_value = self.default_pipeline_settings.get(pipe_attr.upper())\n            self.assertEqual(getattr(user_pipeline, pipe_attr.lower()), custom_value)",
+                "test_error": "twisted.trial.unittest.FailTest: 0 != 90",
+                "full_test_error": "self = <tests.test_pipeline_images.ImagesPipelineTestCaseCustomSettings testMethod=test_no_custom_settings_for_subclasses>\n\n    def test_no_custom_settings_for_subclasses(self):\n        \"\"\"\n        If there are no settings for subclass and no subclass attributes, pipeline should use\n        attributes of base class.\n        \"\"\"\n        class UserDefinedImagePipeline(ImagesPipeline):\n            pass\n    \n        user_pipeline = UserDefinedImagePipeline.from_settings(Settings({\"IMAGES_STORE\": self.tempdir}))\n        for pipe_attr, settings_attr in self.img_cls_attribute_names:\n            # Values from settings for custom pipeline should be set on pipeline instance.\n            custom_value = self.default_pipeline_settings.get(pipe_attr.upper())\n>           self.assertEqual(getattr(user_pipeline, pipe_attr.lower()), custom_value)\n\n/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_13/tests/test_pipeline_images.py:336: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/Volumes/SSD2T/bgp_envs_non_pandas/envs/scrapy_13/lib/python3.8/site-packages/twisted/trial/_synctest.py:434: in assertEqual\n    super(_Assertions, self).assertEqual(first, second, msg)\nE   twisted.trial.unittest.FailTest: 0 != 90",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

@@ -1,0 +1,457 @@
+{
+    "1.1.1": "@classmethod\ndef get_param_values(cls, params, args, kwargs):\n    \n    result = {}\n\n    params_dict = dict(params)\n\n    task_name = cls.task_family\n\n    # In case any exceptions are thrown, create a helpful description of how the Task was invoked\n    # TODO: should we detect non-reprable arguments? These will lead to mysterious errors\n    exc_desc = '%s[args=%s, kwargs=%s]' % (task_name, args, kwargs)\n\n    # Fill in the positional arguments\n    positional_params = [(n, p) for n, p in params if p.significant]\n    for i, arg in enumerate(args):\n        if i >= len(positional_params):\n            raise parameter.UnknownParameterException('%s: takes at most %d parameters (%d given)' % (exc_desc, len(positional_params), len(args)))\n        param_name, param_obj = positional_params[i]\n        result[param_name] = arg\n\n    # Then the optional arguments\n    for param_name, arg in six.iteritems(kwargs):\n        if param_name in result:\n            raise parameter.DuplicateParameterException('%s: parameter %s was already set as a positional parameter' % (exc_desc, param_name))\n        if param_name not in params_dict:\n            raise parameter.UnknownParameterException('%s: unknown parameter %s' % (exc_desc, param_name))\n        result[param_name] = arg\n\n    # Then use the defaults for anything not filled in\n    for param_name, param_obj in params:\n        if param_name not in result:\n            if not param_obj.has_task_value(task_name, param_name):\n                raise parameter.MissingParameterException(\"%s: requires the '%s' parameter to be set\" % (exc_desc, param_name))\n            result[param_name] = param_obj.task_value(task_name, param_name)\n\n    def list_to_tuple(x):\n        \n        if isinstance(x, list) or isinstance(x, set):\n            return tuple(x)\n        else:\n            return x\n    # Sort it by the correct order and make a list\n    return [(param_name, list_to_tuple(result[param_name])) for param_name, param_obj in params]\n",
+    "1.1.2": "Get the values of the parameters from the args and kwargs.\n\n:param params: list of (param_name, Parameter).\n:param args: positional arguments\n:param kwargs: keyword arguments.\n:returns: list of `(name, value)` tuples, one for each parameter.",
+    "1.2.1": "@six.add_metaclass(Register)\nclass Task(object)",
+    "1.2.2": "This is the base class of all Luigi Tasks, the base unit of work in Luigi.\n\nA Luigi Task describes a unit or work.\n\nThe key methods of a Task, which must be implemented in a subclass are:\n\n* :py:meth:`run` - the computation done by this task.\n* :py:meth:`requires` - the list of Tasks that this Task depends on.\n* :py:meth:`output` - the output :py:class:`Target` that this Task creates.\n\nParameters to the Task should be declared as members of the class, e.g.::\n\n.. code-block:: python\n\n    class MyTask(luigi.Task):\n        count = luigi.IntParameter()\n\nEach Task exposes a constructor accepting all :py:class:`Parameter` (and\nvalues) as kwargs. e.g. ``MyTask(count=10)`` would instantiate `MyTask`.\n\nIn addition to any declared properties and methods, there are a few\nnon-declared properties, which are created by the :py:class:`Register`\nmetaclass:\n\n``Task.task_namespace``\n  optional string which is prepended to the task name for the sake of\n  scheduling. If it isn't overridden in a Task, whatever was last declared\n  using `luigi.namespace` will be used.\n\n``Task._parameters``\n  list of ``(parameter_name, parameter)`` tuples for this task class",
+    "1.2.3": [
+        "task_family(self)",
+        "list_to_tuple(x)"
+    ],
+    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_33/luigi/task.py",
+    "1.3.2": [
+        "task_family(cls)",
+        "task_family(self)",
+        "list_to_tuple(x)"
+    ],
+    "1.4.1": [
+        "    def test_local_insignificant_param(self):\n        \"\"\" Ensure we have the same behavior as in before a78338c  \"\"\"\n        class MyTask(luigi.Task):\n            # This could typically be \"--num-threads=True\"\n            x = luigi.Parameter(significant=False)\n\n        MyTask('arg')\n        self.assertRaises(luigi.parameter.MissingParameterException,\n                          lambda: MyTask())",
+        "    def test_global_significant_param(self):\n        \"\"\" We don't want any kind of global param to be positional \"\"\"\n        class MyTask(luigi.Task):\n            # This could typically be called \"--test-dry-run\"\n            x_g1 = luigi.Parameter(default='y', is_global=True, significant=True)\n\n        self.assertRaises(luigi.parameter.UnknownParameterException,\n                          lambda: MyTask('arg'))",
+        "    def test_mixed_params(self):\n        \"\"\" Essentially for what broke in a78338c and was reported in #738 \"\"\"\n        class MyTask(luigi.Task):\n            # This could typically be \"--num-threads=True\"\n            x_g3 = luigi.Parameter(default='y', is_global=True)\n            local_param = luigi.Parameter()\n\n        MyTask('setting_local_param')",
+        "    def test_mixed_params_inheritence(self):\n        \"\"\" A slightly more real-world like test case \"\"\"\n        class TaskWithOneGlobalParam(luigi.Task):\n            non_positional_param = luigi.Parameter(default='y', is_global=True)\n\n        class TaskWithOnePositionalParam(TaskWithOneGlobalParam):\n            \"\"\" Try to mess with positional parameters by subclassing \"\"\"\n            only_positional_param = luigi.Parameter()\n\n            def complete(self):\n                return True\n\n        class PositionalParamsRequirer(luigi.Task):\n\n            def requires(self):\n                return TaskWithOnePositionalParam('only_positional_value')\n\n            def run(self):\n                pass\n\n        self.run_and_check(['PositionalParamsRequirer'])\n        self.run_and_check(['PositionalParamsRequirer', '--non-positional-param', 'z'])"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_33/test/parameter_test.py",
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_33/test/parameter_test.py",
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_33/test/parameter_test.py",
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_33/test/parameter_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E               luigi.parameter.UnknownParameterException: MyTask[args=('arg',), kwargs={}]: takes at most 0 parameters (1 given)"
+        ],
+        [
+            "E       AssertionError: UnknownParameterException not raised by <lambda>"
+        ],
+        [
+            "E                   luigi.parameter.MissingParameterException: MyTask[args=('setting_local_param',), kwargs={}]: requires the 'local_param' parameter to be set"
+        ],
+        [
+            "E   AssertionError: False is not true"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <parameter_test.ParameterTest testMethod=test_local_insignificant_param>\n\n    def test_local_insignificant_param(self):\n        \"\"\" Ensure we have the same behavior as in before a78338c  \"\"\"\n        class MyTask(luigi.Task):\n            # This could typically be \"--num-threads=True\"\n            x = luigi.Parameter(significant=False)\n    \n>       MyTask('arg')\n\ntest/parameter_test.py:304: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/task.py:103: in __call__\n    param_values = cls.get_param_values(params, args, kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncls = <class 'parameter_test.ParameterTest.test_local_insignificant_param.<locals>.MyTask'>\nparams = [('x', <luigi.parameter.Parameter object at 0x106cb5ee0>)]\nargs = ('arg',), kwargs = {}\n\n    @classmethod\n    def get_param_values(cls, params, args, kwargs):\n        \"\"\"\n        Get the values of the parameters from the args and kwargs.\n    \n        :param params: list of (param_name, Parameter).\n        :param args: positional arguments\n        :param kwargs: keyword arguments.\n        :returns: list of `(name, value)` tuples, one for each parameter.\n        \"\"\"\n        result = {}\n    \n        params_dict = dict(params)\n    \n        task_name = cls.task_family\n    \n        # In case any exceptions are thrown, create a helpful description of how the Task was invoked\n        # TODO: should we detect non-reprable arguments? These will lead to mysterious errors\n        exc_desc = '%s[args=%s, kwargs=%s]' % (task_name, args, kwargs)\n    \n        # Fill in the positional arguments\n        positional_params = [(n, p) for n, p in params if p.significant]\n        for i, arg in enumerate(args):\n            if i >= len(positional_params):\n>               raise parameter.UnknownParameterException('%s: takes at most %d parameters (%d given)' % (exc_desc, len(positional_params), len(args)))",
+            "\nluigi/task.py:337: UnknownParameterException"
+        ],
+        [
+            "self = <parameter_test.TestRemoveGlobalParameters testMethod=test_global_significant_param>\n\n    def test_global_significant_param(self):\n        \"\"\" We don't want any kind of global param to be positional \"\"\"\n        class MyTask(luigi.Task):\n            # This could typically be called \"--test-dry-run\"\n            x_g1 = luigi.Parameter(default='y', is_global=True, significant=True)\n    \n>       self.assertRaises(luigi.parameter.UnknownParameterException,\n                          lambda: MyTask('arg'))",
+            "\ntest/parameter_test.py:428: AssertionError"
+        ],
+        [
+            "self = <parameter_test.TestRemoveGlobalParameters testMethod=test_mixed_params>\n\n    def test_mixed_params(self):\n        \"\"\" Essentially for what broke in a78338c and was reported in #738 \"\"\"\n        class MyTask(luigi.Task):\n            # This could typically be \"--num-threads=True\"\n            x_g3 = luigi.Parameter(default='y', is_global=True)\n            local_param = luigi.Parameter()\n    \n>       MyTask('setting_local_param')\n\ntest/parameter_test.py:447: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/task.py:103: in __call__\n    param_values = cls.get_param_values(params, args, kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncls = <class 'parameter_test.TestRemoveGlobalParameters.test_mixed_params.<locals>.MyTask'>\nparams = [('x_g3', <luigi.parameter.Parameter object at 0x106ca12e0>), ('local_param', <luigi.parameter.Parameter object at 0x106ca1340>)]\nargs = ('setting_local_param',), kwargs = {}\n\n    @classmethod\n    def get_param_values(cls, params, args, kwargs):\n        \"\"\"\n        Get the values of the parameters from the args and kwargs.\n    \n        :param params: list of (param_name, Parameter).\n        :param args: positional arguments\n        :param kwargs: keyword arguments.\n        :returns: list of `(name, value)` tuples, one for each parameter.\n        \"\"\"\n        result = {}\n    \n        params_dict = dict(params)\n    \n        task_name = cls.task_family\n    \n        # In case any exceptions are thrown, create a helpful description of how the Task was invoked\n        # TODO: should we detect non-reprable arguments? These will lead to mysterious errors\n        exc_desc = '%s[args=%s, kwargs=%s]' % (task_name, args, kwargs)\n    \n        # Fill in the positional arguments\n        positional_params = [(n, p) for n, p in params if p.significant]\n        for i, arg in enumerate(args):\n            if i >= len(positional_params):\n                raise parameter.UnknownParameterException('%s: takes at most %d parameters (%d given)' % (exc_desc, len(positional_params), len(args)))\n            param_name, param_obj = positional_params[i]\n            result[param_name] = arg\n    \n        # Then the optional arguments\n        for param_name, arg in six.iteritems(kwargs):\n            if param_name in result:\n                raise parameter.DuplicateParameterException('%s: parameter %s was already set as a positional parameter' % (exc_desc, param_name))\n            if param_name not in params_dict:\n                raise parameter.UnknownParameterException('%s: unknown parameter %s' % (exc_desc, param_name))\n            result[param_name] = arg\n    \n        # Then use the defaults for anything not filled in\n        for param_name, param_obj in params:\n            if param_name not in result:\n                if not param_obj.has_task_value(task_name, param_name):\n>                   raise parameter.MissingParameterException(\"%s: requires the '%s' parameter to be set\" % (exc_desc, param_name))",
+            "\nluigi/task.py:353: MissingParameterException"
+        ],
+        [
+            "self = <parameter_test.TestRemoveGlobalParameters testMethod=test_mixed_params_inheritence>\n\n    def test_mixed_params_inheritence(self):\n        \"\"\" A slightly more real-world like test case \"\"\"\n        class TaskWithOneGlobalParam(luigi.Task):\n            non_positional_param = luigi.Parameter(default='y', is_global=True)\n    \n        class TaskWithOnePositionalParam(TaskWithOneGlobalParam):\n            \"\"\" Try to mess with positional parameters by subclassing \"\"\"\n            only_positional_param = luigi.Parameter()\n    \n            def complete(self):\n                return True\n    \n        class PositionalParamsRequirer(luigi.Task):\n    \n            def requires(self):\n                return TaskWithOnePositionalParam('only_positional_value')\n    \n            def run(self):\n                pass\n    \n>       self.run_and_check(['PositionalParamsRequirer'])\n\ntest/parameter_test.py:469: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntest/parameter_test.py:367: in run_and_check\n    self.assertTrue(run_exit_status)"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "params": "[('x_g1', <luigi.parameter.Parameter object at 0x107f5c9d0>)]",
+                "cls.task_family": "'MyTask'",
+                "cls": "<class 'parameter_test.TestRemoveGlobalParameters.test_global_significant_param.<locals>.MyTask'>",
+                "args": "('arg',)",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'x_g1': 'arg'}",
+                "params_dict": "{'x_g1': <luigi.parameter.Parameter object at 0x107f5c9d0>}",
+                "task_name": "'MyTask'",
+                "exc_desc": "\"MyTask[args=('arg',), kwargs={}]\"",
+                "positional_params": "[('x_g1', <luigi.parameter.Parameter object at 0x107f5c9d0>)]",
+                "i": "0",
+                "arg": "'arg'",
+                "param_name": "'x_g1'",
+                "param_obj": "<luigi.parameter.Parameter object at 0x107f5c9d0>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x107f1c1f0>"
+            }
+        ],
+        [
+            {
+                "params": "[]",
+                "cls.task_family": "'PositionalParamsRequirer'",
+                "cls": "<class 'parameter_test.TestRemoveGlobalParameters.test_mixed_params_inheritence.<locals>.PositionalParamsRequirer'>",
+                "args": "()",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{}",
+                "params_dict": "{}",
+                "task_name": "'PositionalParamsRequirer'",
+                "exc_desc": "'PositionalParamsRequirer[args=(), kwargs={}]'",
+                "positional_params": "[]",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x107f1db80>"
+            }
+        ],
+        [
+            {
+                "params": "array of shape 10",
+                "cls.task_family": "'core'",
+                "cls": "<class 'luigi.interface.core'>",
+                "args": "()",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'local_scheduler': True, 'scheduler_host': 'localhost', 'scheduler_port': 8082, 'lock_size': 1, 'no_lock': True, 'lock_pid_dir': '/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/luigi', 'workers': 1, 'logging_conf_file': None, 'module': None, 'parallel_scheduling': False}",
+                "params_dict": "array of shape 10",
+                "task_name": "'core'",
+                "exc_desc": "'core[args=(), kwargs={}]'",
+                "positional_params": "array of shape 10",
+                "param_name": "'parallel_scheduling'",
+                "param_obj": "<luigi.parameter.BoolParameter object at 0x107df8c10>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x1084531f0>"
+            }
+        ],
+        [
+            {
+                "params": "array of shape 9",
+                "cls.task_family": "'scheduler'",
+                "cls": "<class 'luigi.scheduler.scheduler'>",
+                "args": "()",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'retry_delay': 900.0, 'remove_delay': 600.0, 'worker_disconnect_delay': 60.0, 'state_path': '/var/lib/luigi-server/state.pickle', 'disable_window': 3600, 'disable_failures': None, 'disable_persist': 86400, 'max_shown_tasks': 100000, 'record_task_history': False}",
+                "params_dict": "array of shape 9",
+                "task_name": "'scheduler'",
+                "exc_desc": "'scheduler[args=(), kwargs={}]'",
+                "positional_params": "array of shape 9",
+                "param_name": "'record_task_history'",
+                "param_obj": "<luigi.parameter.BoolParameter object at 0x1085c1850>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x108453d30>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "i": "int",
+                "arg": "str",
+                "param_name": "str",
+                "param_obj": "Parameter",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "param_name": "str",
+                "param_obj": "BoolParameter",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "param_name": "str",
+                "param_obj": "BoolParameter",
+                "list_to_tuple": "function"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "params": "[('x', <luigi.parameter.Parameter object at 0x10eef5df0>)]",
+                "cls.task_family": "'MyTask'",
+                "cls": "<class 'parameter_test.ParameterTest.test_local_insignificant_param.<locals>.MyTask'>",
+                "args": "('arg',)",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'x': 'arg'}",
+                "params_dict": "{'x': <luigi.parameter.Parameter object at 0x10eef5df0>}",
+                "task_name": "'MyTask'",
+                "exc_desc": "\"MyTask[args=('arg',), kwargs={}]\"",
+                "positional_params": "[('x', <luigi.parameter.Parameter object at 0x10eef5df0>)]",
+                "i": "0",
+                "arg": "'arg'",
+                "param_name": "'x'",
+                "param_obj": "<luigi.parameter.Parameter object at 0x10eef5df0>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x10eefaa60>"
+            }
+        ],
+        [
+            {
+                "params": "[('x_g3', <luigi.parameter.Parameter object at 0x10ef1a430>), ('local_param', <luigi.parameter.Parameter object at 0x10ef1a220>)]",
+                "cls.task_family": "'MyTask'",
+                "cls": "<class 'parameter_test.TestRemoveGlobalParameters.test_mixed_params.<locals>.MyTask'>",
+                "args": "('setting_local_param',)",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'local_param': 'setting_local_param', 'x_g3': 'y'}",
+                "params_dict": "{'x_g3': <luigi.parameter.Parameter object at 0x10ef1a430>, 'local_param': <luigi.parameter.Parameter object at 0x10ef1a220>}",
+                "task_name": "'MyTask'",
+                "exc_desc": "\"MyTask[args=('setting_local_param',), kwargs={}]\"",
+                "positional_params": "[('local_param', <luigi.parameter.Parameter object at 0x10ef1a220>)]",
+                "i": "0",
+                "arg": "'setting_local_param'",
+                "param_name": "'local_param'",
+                "param_obj": "<luigi.parameter.Parameter object at 0x10ef1a220>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x10ef16c10>"
+            }
+        ],
+        [
+            {
+                "params": "[]",
+                "cls.task_family": "'PositionalParamsRequirer'",
+                "cls": "<class 'parameter_test.TestRemoveGlobalParameters.test_mixed_params_inheritence.<locals>.PositionalParamsRequirer'>",
+                "args": "()",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{}",
+                "params_dict": "{}",
+                "task_name": "'PositionalParamsRequirer'",
+                "exc_desc": "'PositionalParamsRequirer[args=(), kwargs={}]'",
+                "positional_params": "[]",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x10ef165e0>"
+            }
+        ],
+        [
+            {
+                "params": "array of shape 10",
+                "cls.task_family": "'core'",
+                "cls": "<class 'luigi.interface.core'>",
+                "args": "()",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'local_scheduler': True, 'scheduler_host': 'localhost', 'scheduler_port': 8082, 'lock_size': 1, 'no_lock': True, 'lock_pid_dir': '/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/luigi', 'workers': 1, 'logging_conf_file': None, 'module': None, 'parallel_scheduling': False}",
+                "params_dict": "array of shape 10",
+                "task_name": "'core'",
+                "exc_desc": "'core[args=(), kwargs={}]'",
+                "positional_params": "array of shape 10",
+                "param_name": "'parallel_scheduling'",
+                "param_obj": "<luigi.parameter.BoolParameter object at 0x10ee1fd30>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x10ef29430>"
+            }
+        ],
+        [
+            {
+                "params": "array of shape 9",
+                "cls.task_family": "'scheduler'",
+                "cls": "<class 'luigi.scheduler.scheduler'>",
+                "args": "()",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'retry_delay': 900.0, 'remove_delay': 600.0, 'worker_disconnect_delay': 60.0, 'state_path': '/var/lib/luigi-server/state.pickle', 'disable_window': 3600, 'disable_failures': None, 'disable_persist': 86400, 'max_shown_tasks': 100000, 'record_task_history': False}",
+                "params_dict": "array of shape 9",
+                "task_name": "'scheduler'",
+                "exc_desc": "'scheduler[args=(), kwargs={}]'",
+                "positional_params": "array of shape 9",
+                "param_name": "'record_task_history'",
+                "param_obj": "<luigi.parameter.BoolParameter object at 0x10efbf970>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x10ef16670>"
+            }
+        ],
+        [
+            {
+                "params": "[('non_positional_param', <luigi.parameter.Parameter object at 0x10ef287f0>), ('only_positional_param', <luigi.parameter.Parameter object at 0x10ef28880>)]",
+                "cls.task_family": "'TaskWithOnePositionalParam'",
+                "cls": "<class 'parameter_test.TestRemoveGlobalParameters.test_mixed_params_inheritence.<locals>.TaskWithOnePositionalParam'>",
+                "args": "('only_positional_value',)",
+                "kwargs": "{}"
+            },
+            {
+                "result": "{'only_positional_param': 'only_positional_value', 'non_positional_param': 'y'}",
+                "params_dict": "{'non_positional_param': <luigi.parameter.Parameter object at 0x10ef287f0>, 'only_positional_param': <luigi.parameter.Parameter object at 0x10ef28880>}",
+                "task_name": "'TaskWithOnePositionalParam'",
+                "exc_desc": "\"TaskWithOnePositionalParam[args=('only_positional_value',), kwargs={}]\"",
+                "positional_params": "[('only_positional_param', <luigi.parameter.Parameter object at 0x10ef28880>)]",
+                "i": "0",
+                "arg": "'only_positional_value'",
+                "param_name": "'only_positional_param'",
+                "param_obj": "<luigi.parameter.Parameter object at 0x10ef28880>",
+                "list_to_tuple": "<function Task.get_param_values.<locals>.list_to_tuple at 0x10f49cee0>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "i": "int",
+                "arg": "str",
+                "param_name": "str",
+                "param_obj": "Parameter",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "i": "int",
+                "arg": "str",
+                "param_name": "str",
+                "param_obj": "Parameter",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "param_name": "str",
+                "param_obj": "BoolParameter",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "param_name": "str",
+                "param_obj": "BoolParameter",
+                "list_to_tuple": "function"
+            }
+        ],
+        [
+            {
+                "params": "list",
+                "cls.task_family": "str",
+                "cls": "Register",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "result": "dict",
+                "params_dict": "dict",
+                "task_name": "str",
+                "exc_desc": "str",
+                "positional_params": "list",
+                "i": "int",
+                "arg": "str",
+                "param_name": "str",
+                "param_obj": "Parameter",
+                "list_to_tuple": "function"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}
