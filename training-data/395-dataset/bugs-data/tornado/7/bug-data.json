@@ -1,0 +1,3322 @@
+{
+    "tornado:7": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/tornado_7/tornado/ioloop.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "run_in_executor",
+                    "function_code": "def run_in_executor(self, executor, func, *args):\n    \"\"\"Runs a function in a ``concurrent.futures.Executor``. If\n    ``executor`` is ``None``, the IO loop's default executor will be used.\n\n    Use `functools.partial` to pass keyword arguments to `func`.\n\n    \"\"\"\n    if ThreadPoolExecutor is None:\n        raise RuntimeError(\n            \"concurrent.futures is required to use IOLoop.run_in_executor\")\n\n    if executor is None:\n        if not hasattr(self, '_executor'):\n            from tornado.process import cpu_count\n            self._executor = ThreadPoolExecutor(max_workers=(cpu_count() * 5))\n        executor = self._executor\n\n    return executor.submit(func, *args)\n",
+                    "decorators": [],
+                    "docstring": "Runs a function in a ``concurrent.futures.Executor``. If\n``executor`` is ``None``, the IO loop's default executor will be used.\n\nUse `functools.partial` to pass keyword arguments to `func`.",
+                    "start_line": 642,
+                    "end_line": 659,
+                    "variables": {
+                        "ThreadPoolExecutor": [
+                            656,
+                            649
+                        ],
+                        "RuntimeError": [
+                            650
+                        ],
+                        "executor": [
+                            657,
+                            659,
+                            653
+                        ],
+                        "hasattr": [
+                            654
+                        ],
+                        "self": [
+                            656,
+                            657,
+                            654
+                        ],
+                        "self._executor": [
+                            656,
+                            657
+                        ],
+                        "cpu_count": [
+                            656
+                        ],
+                        "executor.submit": [
+                            659
+                        ],
+                        "func": [
+                            659
+                        ],
+                        "args": [
+                            659
+                        ]
+                    },
+                    "filtered_variables": {
+                        "ThreadPoolExecutor": [
+                            656,
+                            649
+                        ],
+                        "executor": [
+                            657,
+                            659,
+                            653
+                        ],
+                        "self": [
+                            656,
+                            657,
+                            654
+                        ],
+                        "self._executor": [
+                            656,
+                            657
+                        ],
+                        "cpu_count": [
+                            656
+                        ],
+                        "executor.submit": [
+                            659
+                        ],
+                        "func": [
+                            659
+                        ],
+                        "args": [
+                            659
+                        ]
+                    },
+                    "diff_line_number": 658,
+                    "class_data": {
+                        "signature": "class IOLoop(Configurable)",
+                        "docstring": "A level-triggered I/O loop.\n\nWe use ``epoll`` (Linux) or ``kqueue`` (BSD and Mac OS X) if they\nare available, or else we fall back on select(). If you are\nimplementing a system that needs to handle thousands of\nsimultaneous connections, you should use a system that supports\neither ``epoll`` or ``kqueue``.\n\nExample usage for a simple TCP server:\n\n.. testcode::\n\n    import errno\n    import functools\n    import tornado.ioloop\n    import socket\n\n    def connection_ready(sock, fd, events):\n        while True:\n            try:\n                connection, address = sock.accept()\n            except socket.error as e:\n                if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):\n                    raise\n                return\n            connection.setblocking(0)\n            handle_connection(connection, address)\n\n    if __name__ == '__main__':\n        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)\n        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n        sock.setblocking(0)\n        sock.bind((\"\", port))\n        sock.listen(128)\n\n        io_loop = tornado.ioloop.IOLoop.current()\n        callback = functools.partial(connection_ready, sock)\n        io_loop.add_handler(sock.fileno(), callback, io_loop.READ)\n        io_loop.start()\n\n.. testoutput::\n   :hide:\n\nBy default, a newly-constructed `IOLoop` becomes the thread's current\n`IOLoop`, unless there already is a current `IOLoop`. This behavior\ncan be controlled with the ``make_current`` argument to the `IOLoop`\nconstructor: if ``make_current=True``, the new `IOLoop` will always\ntry to become current and it raises an error if there is already a\ncurrent instance. If ``make_current=False``, the new `IOLoop` will\nnot try to become current.\n\nIn general, an `IOLoop` cannot survive a fork or be shared across\nprocesses in any way. When multiple processes are being used, each\nprocess should create its own `IOLoop`, which also implies that\nany objects which depend on the `IOLoop` (such as\n`.AsyncHTTPClient`) must also be created in the child processes.\nAs a guideline, anything that starts processes (including the\n`tornado.process` and `multiprocessing` modules) should do so as\nearly as possible, ideally the first thing the application does\nafter loading its configuration in ``main()``.\n\n.. versionchanged:: 4.2\n   Added the ``make_current`` keyword argument to the `IOLoop`\n   constructor.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "@staticmethod\ndef instance():\n    \"\"\"Deprecated alias for `IOLoop.current()`.\n\n    .. versionchanged:: 5.0\n\n       Previously, this method returned a global singleton\n       `IOLoop`, in contrast with the per-thread `IOLoop` returned\n       by `current()`. In nearly all cases the two were the same\n       (when they differed, it was generally used from non-Tornado\n       threads to communicate back to the main thread's `IOLoop`).\n       This distinction is not present in `asyncio`, so in order\n       to facilitate integration with that package `instance()`\n       was changed to be an alias to `current()`. Applications\n       using the cross-thread communications aspect of\n       `instance()` should instead set their own global variable\n       to point to the `IOLoop` they want to use.\n\n    .. deprecated:: 5.0\n    \"\"\"\n    return IOLoop.current()",
+                            "@staticmethod\ndef initialized():\n    \"\"\"Returns true if there is a current IOLoop.\n\n    .. versionchanged:: 5.0\n\n       Redefined in terms of `current()` instead of `instance()`.\n\n    .. deprecated:: 5.0\n\n       This method only knows about `IOLoop` objects (and not, for\n       example, `asyncio` event loops), so it is of limited use.\n    \"\"\"\n    return IOLoop.current(instance=False) is not None",
+                            "def install(self):\n    \"\"\"Deprecated alias for `make_current()`.\n\n    .. versionchanged:: 5.0\n\n       Previously, this method would set this `IOLoop` as the\n       global singleton used by `IOLoop.instance()`. Now that\n       `instance()` is an alias for `current()`, `install()`\n       is an alias for `make_current()`.\n\n    .. deprecated:: 5.0\n    \"\"\"\n    self.make_current()",
+                            "@staticmethod\ndef clear_instance():\n    \"\"\"Deprecated alias for `clear_current()`.\n\n    .. versionchanged:: 5.0\n\n       Previously, this method would clear the `IOLoop` used as\n       the global singleton by `IOLoop.instance()`. Now that\n       `instance()` is an alias for `current()`,\n       `clear_instance()` is an alias for `clear_instance()`.\n\n    .. deprecated:: 5.0\n\n    \"\"\"\n    IOLoop.clear_current()",
+                            "@staticmethod\ndef current(instance=True):\n    \"\"\"Returns the current thread's `IOLoop`.\n\n    If an `IOLoop` is currently running or has been marked as\n    current by `make_current`, returns that instance.  If there is\n    no current `IOLoop` and ``instance`` is true, creates one.\n\n    .. versionchanged:: 4.1\n       Added ``instance`` argument to control the fallback to\n       `IOLoop.instance()`.\n    .. versionchanged:: 5.0\n       The ``instance`` argument now controls whether an `IOLoop`\n       is created automatically when there is none, instead of\n       whether we fall back to `IOLoop.instance()` (which is now\n       an alias for this method)\n    \"\"\"\n    current = getattr(IOLoop._current, 'instance', None)\n    if current is None and instance:\n        current = None\n        if asyncio is not None:\n            from tornado.platform.asyncio import AsyncIOLoop, AsyncIOMainLoop\n            if IOLoop.configured_class() is AsyncIOLoop:\n                current = AsyncIOMainLoop()\n        if current is None:\n            current = IOLoop()\n        if IOLoop._current.instance is not current:\n            raise RuntimeError('new IOLoop did not become current')\n    return current",
+                            "def make_current(self):\n    \"\"\"Makes this the `IOLoop` for the current thread.\n\n    An `IOLoop` automatically becomes current for its thread\n    when it is started, but it is sometimes useful to call\n    `make_current` explicitly before starting the `IOLoop`,\n    so that code run at startup time can find the right\n    instance.\n\n    .. versionchanged:: 4.1\n       An `IOLoop` created while there is no current `IOLoop`\n       will automatically become current.\n    \"\"\"\n    IOLoop._current.instance = self",
+                            "@staticmethod\ndef clear_current():\n    \"\"\"Clears the `IOLoop` for the current thread.\n\n    Intended primarily for use by test frameworks in between tests.\n    \"\"\"\n    IOLoop._current.instance = None",
+                            "@classmethod\ndef configurable_base(cls):\n    return IOLoop",
+                            "@classmethod\ndef configurable_default(cls):\n    if asyncio is not None:\n        from tornado.platform.asyncio import AsyncIOLoop\n        return AsyncIOLoop\n    return PollIOLoop",
+                            "def initialize(self, make_current=None):\n    if make_current is None:\n        if IOLoop.current(instance=False) is None:\n            self.make_current()\n    elif make_current:\n        if IOLoop.current(instance=False) is not None:\n            raise RuntimeError('current IOLoop already exists')\n        self.make_current()",
+                            "def close(self, all_fds=False):\n    \"\"\"Closes the `IOLoop`, freeing any resources used.\n\n    If ``all_fds`` is true, all file descriptors registered on the\n    IOLoop will be closed (not just the ones created by the\n    `IOLoop` itself).\n\n    Many applications will only use a single `IOLoop` that runs for the\n    entire lifetime of the process.  In that case closing the `IOLoop`\n    is not necessary since everything will be cleaned up when the\n    process exits.  `IOLoop.close` is provided mainly for scenarios\n    such as unit tests, which create and destroy a large number of\n    ``IOLoops``.\n\n    An `IOLoop` must be completely stopped before it can be closed.  This\n    means that `IOLoop.stop()` must be called *and* `IOLoop.start()` must\n    be allowed to return before attempting to call `IOLoop.close()`.\n    Therefore the call to `close` will usually appear just after\n    the call to `start` rather than near the call to `stop`.\n\n    .. versionchanged:: 3.1\n       If the `IOLoop` implementation supports non-integer objects\n       for \"file descriptors\", those objects will have their\n       ``close`` method when ``all_fds`` is true.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def add_handler(self, fd, handler, events):\n    \"\"\"Registers the given handler to receive the given events for ``fd``.\n\n    The ``fd`` argument may either be an integer file descriptor or\n    a file-like object with a ``fileno()`` method (and optionally a\n    ``close()`` method, which may be called when the `IOLoop` is shut\n    down).\n\n    The ``events`` argument is a bitwise or of the constants\n    ``IOLoop.READ``, ``IOLoop.WRITE``, and ``IOLoop.ERROR``.\n\n    When an event occurs, ``handler(fd, events)`` will be run.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def update_handler(self, fd, events):\n    \"\"\"Changes the events we listen for ``fd``.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def remove_handler(self, fd):\n    \"\"\"Stop listening for events on ``fd``.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def set_blocking_signal_threshold(self, seconds, action):\n    \"\"\"Sends a signal if the `IOLoop` is blocked for more than\n    ``s`` seconds.\n\n    Pass ``seconds=None`` to disable.  Requires Python 2.6 on a unixy\n    platform.\n\n    The action parameter is a Python signal handler.  Read the\n    documentation for the `signal` module for more information.\n    If ``action`` is None, the process will be killed if it is\n    blocked for too long.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def set_blocking_log_threshold(self, seconds):\n    \"\"\"Logs a stack trace if the `IOLoop` is blocked for more than\n    ``s`` seconds.\n\n    Equivalent to ``set_blocking_signal_threshold(seconds,\n    self.log_stack)``\n    \"\"\"\n    self.set_blocking_signal_threshold(seconds, self.log_stack)",
+                            "def log_stack(self, signal, frame):\n    \"\"\"Signal handler to log the stack trace of the current thread.\n\n    For use with `set_blocking_signal_threshold`.\n    \"\"\"\n    gen_log.warning('IOLoop blocked for %f seconds in\\n%s', self._blocking_signal_threshold, ''.join(traceback.format_stack(frame)))",
+                            "def start(self):\n    \"\"\"Starts the I/O loop.\n\n    The loop will run until one of the callbacks calls `stop()`, which\n    will make the loop stop after the current event iteration completes.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def _setup_logging(self):\n    \"\"\"The IOLoop catches and logs exceptions, so it's\n    important that log output be visible.  However, python's\n    default behavior for non-root loggers (prior to python\n    3.2) is to print an unhelpful \"no handlers could be\n    found\" message rather than the actual log entry, so we\n    must explicitly configure logging if we've made it this\n    far without anything.\n\n    This method should be called from start() in subclasses.\n    \"\"\"\n    if not any([logging.getLogger().handlers, logging.getLogger('tornado').handlers, logging.getLogger('tornado.application').handlers]):\n        logging.basicConfig()",
+                            "def stop(self):\n    \"\"\"Stop the I/O loop.\n\n    If the event loop is not currently running, the next call to `start()`\n    will return immediately.\n\n    To use asynchronous methods from otherwise-synchronous code (such as\n    unit tests), you can start and stop the event loop like this::\n\n      ioloop = IOLoop()\n      async_method(ioloop=ioloop, callback=ioloop.stop)\n      ioloop.start()\n\n    ``ioloop.start()`` will return after ``async_method`` has run\n    its callback, whether that callback was invoked before or\n    after ``ioloop.start``.\n\n    Note that even after `stop` has been called, the `IOLoop` is not\n    completely stopped until `IOLoop.start` has also returned.\n    Some work that was scheduled before the call to `stop` may still\n    be run before the `IOLoop` shuts down.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def run_sync(self, func, timeout=None):\n    \"\"\"Starts the `IOLoop`, runs the given function, and stops the loop.\n\n    The function must return either a yieldable object or\n    ``None``. If the function returns a yieldable object, the\n    `IOLoop` will run until the yieldable is resolved (and\n    `run_sync()` will return the yieldable's result). If it raises\n    an exception, the `IOLoop` will stop and the exception will be\n    re-raised to the caller.\n\n    The keyword-only argument ``timeout`` may be used to set\n    a maximum duration for the function.  If the timeout expires,\n    a `tornado.util.TimeoutError` is raised.\n\n    This method is useful in conjunction with `tornado.gen.coroutine`\n    to allow asynchronous calls in a ``main()`` function::\n\n        @gen.coroutine\n        def main():\n            # do stuff...\n\n        if __name__ == '__main__':\n            IOLoop.current().run_sync(main)\n\n    .. versionchanged:: 4.3\n       Returning a non-``None``, non-yieldable value is now an error.\n    \"\"\"\n    future_cell = [None]\n\n    def run():\n        try:\n            result = func()\n            if result is not None:\n                from tornado.gen import convert_yielded\n                result = convert_yielded(result)\n        except Exception:\n            future_cell[0] = TracebackFuture()\n            future_cell[0].set_exc_info(sys.exc_info())\n        else:\n            if is_future(result):\n                future_cell[0] = result\n            else:\n                future_cell[0] = TracebackFuture()\n                future_cell[0].set_result(result)\n        self.add_future(future_cell[0], lambda future: self.stop())\n    self.add_callback(run)\n    if timeout is not None:\n        timeout_handle = self.add_timeout(self.time() + timeout, self.stop)\n    self.start()\n    if timeout is not None:\n        self.remove_timeout(timeout_handle)\n    if not future_cell[0].done():\n        raise TimeoutError('Operation timed out after %s seconds' % timeout)\n    return future_cell[0].result()",
+                            "def time(self):\n    \"\"\"Returns the current time according to the `IOLoop`'s clock.\n\n    The return value is a floating-point number relative to an\n    unspecified time in the past.\n\n    By default, the `IOLoop`'s time function is `time.time`.  However,\n    it may be configured to use e.g. `time.monotonic` instead.\n    Calls to `add_timeout` that pass a number instead of a\n    `datetime.timedelta` should use this function to compute the\n    appropriate time, so they can work no matter what time function\n    is chosen.\n    \"\"\"\n    return time.time()",
+                            "def add_timeout(self, deadline, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` at the time ``deadline`` from the I/O loop.\n\n    Returns an opaque handle that may be passed to\n    `remove_timeout` to cancel.\n\n    ``deadline`` may be a number denoting a time (on the same\n    scale as `IOLoop.time`, normally `time.time`), or a\n    `datetime.timedelta` object for a deadline relative to the\n    current time.  Since Tornado 4.0, `call_later` is a more\n    convenient alternative for the relative case since it does not\n    require a timedelta object.\n\n    Note that it is not safe to call `add_timeout` from other threads.\n    Instead, you must use `add_callback` to transfer control to the\n    `IOLoop`'s thread, and then call `add_timeout` from there.\n\n    Subclasses of IOLoop must implement either `add_timeout` or\n    `call_at`; the default implementations of each will call\n    the other.  `call_at` is usually easier to implement, but\n    subclasses that wish to maintain compatibility with Tornado\n    versions prior to 4.0 must use `add_timeout` instead.\n\n    .. versionchanged:: 4.0\n       Now passes through ``*args`` and ``**kwargs`` to the callback.\n    \"\"\"\n    if isinstance(deadline, numbers.Real):\n        return self.call_at(deadline, callback, *args, **kwargs)\n    elif isinstance(deadline, datetime.timedelta):\n        return self.call_at(self.time() + timedelta_to_seconds(deadline), callback, *args, **kwargs)\n    else:\n        raise TypeError('Unsupported deadline %r' % deadline)",
+                            "def call_later(self, delay, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` after ``delay`` seconds have passed.\n\n    Returns an opaque handle that may be passed to `remove_timeout`\n    to cancel.  Note that unlike the `asyncio` method of the same\n    name, the returned object does not have a ``cancel()`` method.\n\n    See `add_timeout` for comments on thread-safety and subclassing.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    return self.call_at(self.time() + delay, callback, *args, **kwargs)",
+                            "def call_at(self, when, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` at the absolute time designated by ``when``.\n\n    ``when`` must be a number using the same reference point as\n    `IOLoop.time`.\n\n    Returns an opaque handle that may be passed to `remove_timeout`\n    to cancel.  Note that unlike the `asyncio` method of the same\n    name, the returned object does not have a ``cancel()`` method.\n\n    See `add_timeout` for comments on thread-safety and subclassing.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    return self.add_timeout(when, callback, *args, **kwargs)",
+                            "def remove_timeout(self, timeout):\n    \"\"\"Cancels a pending timeout.\n\n    The argument is a handle as returned by `add_timeout`.  It is\n    safe to call `remove_timeout` even if the callback has already\n    been run.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def add_callback(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next I/O loop iteration.\n\n    It is safe to call this method from any thread at any time,\n    except from a signal handler.  Note that this is the **only**\n    method in `IOLoop` that makes this thread-safety guarantee; all\n    other interaction with the `IOLoop` must be done from that\n    `IOLoop`'s thread.  `add_callback()` may be used to transfer\n    control from other threads to the `IOLoop`'s thread.\n\n    To add a callback from a signal handler, see\n    `add_callback_from_signal`.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def add_callback_from_signal(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next I/O loop iteration.\n\n    Safe for use from a Python signal handler; should not be used\n    otherwise.\n\n    Callbacks added with this method will be run without any\n    `.stack_context`, to avoid picking up the context of the function\n    that was interrupted by the signal.\n    \"\"\"\n    raise NotImplementedError()",
+                            "def spawn_callback(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next IOLoop iteration.\n\n    Unlike all other callback-related methods on IOLoop,\n    ``spawn_callback`` does not associate the callback with its caller's\n    ``stack_context``, so it is suitable for fire-and-forget callbacks\n    that should not interfere with the caller.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    with stack_context.NullContext():\n        self.add_callback(callback, *args, **kwargs)",
+                            "def add_future(self, future, callback):\n    \"\"\"Schedules a callback on the ``IOLoop`` when the given\n    `.Future` is finished.\n\n    The callback is invoked with one argument, the\n    `.Future`.\n    \"\"\"\n    assert is_future(future)\n    callback = stack_context.wrap(callback)\n    future.add_done_callback(lambda future: self.add_callback(callback, future))",
+                            "def run_in_executor(self, executor, func, *args):\n    \"\"\"Runs a function in a ``concurrent.futures.Executor``. If\n    ``executor`` is ``None``, the IO loop's default executor will be used.\n\n    Use `functools.partial` to pass keyword arguments to `func`.\n\n    \"\"\"\n    if ThreadPoolExecutor is None:\n        raise RuntimeError('concurrent.futures is required to use IOLoop.run_in_executor')\n    if executor is None:\n        if not hasattr(self, '_executor'):\n            from tornado.process import cpu_count\n            self._executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)\n        executor = self._executor\n    return executor.submit(func, *args)",
+                            "def set_default_executor(self, executor):\n    \"\"\"Sets the default executor to use with :meth:`run_in_executor`.\"\"\"\n    self._executor = executor",
+                            "def _run_callback(self, callback):\n    \"\"\"Runs a callback with error handling.\n\n    For use in subclasses.\n    \"\"\"\n    try:\n        ret = callback()\n        if ret is not None:\n            from tornado import gen\n            try:\n                ret = gen.convert_yielded(ret)\n            except gen.BadYieldError:\n                pass\n            else:\n                self.add_future(ret, self._discard_future_result)\n    except Exception:\n        self.handle_callback_exception(callback)",
+                            "def _discard_future_result(self, future):\n    \"\"\"Avoid unhandled-exception warnings from spawned coroutines.\"\"\"\n    future.result()",
+                            "def handle_callback_exception(self, callback):\n    \"\"\"This method is called whenever a callback run by the `IOLoop`\n    throws an exception.\n\n    By default simply logs the exception as an error.  Subclasses\n    may override this method to customize reporting of exceptions.\n\n    The exception itself is not passed explicitly, but is available\n    in `sys.exc_info`.\n    \"\"\"\n    app_log.error('Exception in callback %r', callback, exc_info=True)",
+                            "def split_fd(self, fd):\n    \"\"\"Returns an (fd, obj) pair from an ``fd`` parameter.\n\n    We accept both raw file descriptors and file-like objects as\n    input to `add_handler` and related methods.  When a file-like\n    object is passed, we must retain the object itself so we can\n    close it correctly when the `IOLoop` shuts down, but the\n    poller interfaces favor file descriptors (they will accept\n    file-like objects and call ``fileno()`` for you, but they\n    always return the descriptor itself).\n\n    This method is provided for use by `IOLoop` subclasses and should\n    not generally be used by application code.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    try:\n        return (fd.fileno(), fd)\n    except AttributeError:\n        return (fd, fd)",
+                            "def close_fd(self, fd):\n    \"\"\"Utility method to close an ``fd``.\n\n    If ``fd`` is a file-like object, we close it directly; otherwise\n    we use `os.close`.\n\n    This method is provided for use by `IOLoop` subclasses (in\n    implementations of ``IOLoop.close(all_fds=True)`` and should\n    not generally be used by application code.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    try:\n        try:\n            fd.close()\n        except AttributeError:\n            os.close(fd)\n    except OSError:\n        pass",
+                            "def run():\n    try:\n        result = func()\n        if result is not None:\n            from tornado.gen import convert_yielded\n            result = convert_yielded(result)\n    except Exception:\n        future_cell[0] = TracebackFuture()\n        future_cell[0].set_exc_info(sys.exc_info())\n    else:\n        if is_future(result):\n            future_cell[0] = result\n        else:\n            future_cell[0] = TracebackFuture()\n            future_cell[0].set_result(result)\n    self.add_future(future_cell[0], lambda future: self.stop())"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "_EPOLLIN",
+                            "_EPOLLPRI",
+                            "_EPOLLOUT",
+                            "_EPOLLERR",
+                            "_EPOLLHUP",
+                            "_EPOLLRDHUP",
+                            "_EPOLLONESHOT",
+                            "_EPOLLET",
+                            "NONE",
+                            "READ",
+                            "WRITE",
+                            "ERROR",
+                            "_instance_lock",
+                            "_current"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "instance()",
+                            "initialized()",
+                            "install(self)",
+                            "clear_instance()",
+                            "current(instance=True)",
+                            "make_current(self)",
+                            "clear_current()",
+                            "configurable_base(cls)",
+                            "configurable_default(cls)",
+                            "initialize(self, make_current=None)",
+                            "close(self, all_fds=False)",
+                            "add_handler(self, fd, handler, events)",
+                            "update_handler(self, fd, events)",
+                            "remove_handler(self, fd)",
+                            "set_blocking_signal_threshold(self, seconds, action)",
+                            "set_blocking_log_threshold(self, seconds)",
+                            "log_stack(self, signal, frame)",
+                            "start(self)",
+                            "_setup_logging(self)",
+                            "stop(self)",
+                            "run_sync(self, func, timeout=None)",
+                            "time(self)",
+                            "add_timeout(self, deadline, callback, *args, **kwargs)",
+                            "call_later(self, delay, callback, *args, **kwargs)",
+                            "call_at(self, when, callback, *args, **kwargs)",
+                            "remove_timeout(self, timeout)",
+                            "add_callback(self, callback, *args, **kwargs)",
+                            "add_callback_from_signal(self, callback, *args, **kwargs)",
+                            "spawn_callback(self, callback, *args, **kwargs)",
+                            "add_future(self, future, callback)",
+                            "run_in_executor(self, executor, func, *args)",
+                            "set_default_executor(self, executor)",
+                            "_run_callback(self, callback)",
+                            "_discard_future_result(self, future)",
+                            "handle_callback_exception(self, callback)",
+                            "split_fd(self, fd)",
+                            "close_fd(self, fd)",
+                            "run()"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x10dc0d150>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10dc1f200>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x10dc0d610>, <threading.Event object at 0x10dc0d690>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                }
+                            },
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x10dc264d0>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x10dc0d150>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x10dc264d0>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": "<function cpu_count at 0x10db1aa70>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "<bound method ThreadPoolExecutor.submit of <concurrent.futures.thread.ThreadPoolExecutor object at 0x10dc264d0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10dc1f200>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x10dc0d610>, <threading.Event object at 0x10dc0d690>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x10dc0d150>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x10dc264d0>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10dc1f200>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x10dc0d690>, <threading.Event object at 0x10dc0d610>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                }
+                            },
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x10dc264d0>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x10dc0d150>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x10dc264d0>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "<bound method ThreadPoolExecutor.submit of <concurrent.futures.thread.ThreadPoolExecutor object at 0x10dc264d0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10dc1f200>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x10dc0d690>, <threading.Event object at 0x10dc0d610>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10509b320>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x105092290>, <threading.Event object at 0x105092250>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "t_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "TracebackFuture": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.add_future": {
+                                    "variable_value": "<bound method IOLoop.add_future of <tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "chain_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "f": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x1050a9050>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x1050a9050>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": "<function cpu_count at 0x105047b90>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "c_future": {
+                                    "variable_value": "<Future at 0x1050a9090 state=running>",
+                                    "variable_type": "Future",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "<bound method ThreadPoolExecutor.submit of <concurrent.futures.thread.ThreadPoolExecutor object at 0x1050a9050>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10509b320>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x105092290>, <threading.Event object at 0x105092250>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "t_future": {
+                                    "variable_value": "<tornado.concurrent.Future object at 0x1050a9190>",
+                                    "variable_type": "Future",
+                                    "variable_shape": null
+                                },
+                                "TracebackFuture": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.add_future": {
+                                    "variable_value": "<bound method IOLoop.add_future of <tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "chain_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "f": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x1050a9050>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10509b320>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x105092250>, <threading.Event object at 0x105092290>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "t_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "TracebackFuture": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.add_future": {
+                                    "variable_value": "<bound method IOLoop.add_future of <tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "chain_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "f": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "ThreadPoolExecutor": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x1050a9050>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>",
+                                    "variable_type": "AsyncIOLoop",
+                                    "variable_shape": null
+                                },
+                                "self._executor": {
+                                    "variable_value": "<concurrent.futures.thread.ThreadPoolExecutor object at 0x1050a9050>",
+                                    "variable_type": "ThreadPoolExecutor",
+                                    "variable_shape": null
+                                },
+                                "cpu_count": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c_future": {
+                                    "variable_value": "<Future at 0x1050af890 state=finished returned Event>",
+                                    "variable_type": "Future",
+                                    "variable_shape": null
+                                },
+                                "executor.submit": {
+                                    "variable_value": "<bound method ThreadPoolExecutor.submit of <concurrent.futures.thread.ThreadPoolExecutor object at 0x1050a9050>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "func": {
+                                    "variable_value": "<function TestIOLoopFutures.test_run_in_executor_native.<locals>.sync_func at 0x10509b320>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "args": {
+                                    "variable_value": "(<threading.Event object at 0x105092250>, <threading.Event object at 0x105092290>)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "t_future": {
+                                    "variable_value": "<tornado.concurrent.Future object at 0x1050af8d0>",
+                                    "variable_type": "Future",
+                                    "variable_shape": null
+                                },
+                                "TracebackFuture": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.add_future": {
+                                    "variable_value": "<bound method IOLoop.add_future of <tornado.platform.asyncio.AsyncIOLoop object at 0x105068390>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "chain_future": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "f": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "from tornado.concurrent import TracebackFuture, is_future\nfrom tornado.log import app_log, gen_log",
+                    "start_line": 47,
+                    "end_line": 48
+                }
+            ],
+            "inscope_functions": [
+                "@staticmethod\ndef instance():\n    \"\"\"Deprecated alias for `IOLoop.current()`.\n\n    .. versionchanged:: 5.0\n\n       Previously, this method returned a global singleton\n       `IOLoop`, in contrast with the per-thread `IOLoop` returned\n       by `current()`. In nearly all cases the two were the same\n       (when they differed, it was generally used from non-Tornado\n       threads to communicate back to the main thread's `IOLoop`).\n       This distinction is not present in `asyncio`, so in order\n       to facilitate integration with that package `instance()`\n       was changed to be an alias to `current()`. Applications\n       using the cross-thread communications aspect of\n       `instance()` should instead set their own global variable\n       to point to the `IOLoop` they want to use.\n\n    .. deprecated:: 5.0\n    \"\"\"\n    return IOLoop.current()",
+                "@staticmethod\ndef initialized():\n    \"\"\"Returns true if there is a current IOLoop.\n\n    .. versionchanged:: 5.0\n\n       Redefined in terms of `current()` instead of `instance()`.\n\n    .. deprecated:: 5.0\n\n       This method only knows about `IOLoop` objects (and not, for\n       example, `asyncio` event loops), so it is of limited use.\n    \"\"\"\n    return IOLoop.current(instance=False) is not None",
+                "def install(self):\n    \"\"\"Deprecated alias for `make_current()`.\n\n    .. versionchanged:: 5.0\n\n       Previously, this method would set this `IOLoop` as the\n       global singleton used by `IOLoop.instance()`. Now that\n       `instance()` is an alias for `current()`, `install()`\n       is an alias for `make_current()`.\n\n    .. deprecated:: 5.0\n    \"\"\"\n    self.make_current()",
+                "@staticmethod\ndef clear_instance():\n    \"\"\"Deprecated alias for `clear_current()`.\n\n    .. versionchanged:: 5.0\n\n       Previously, this method would clear the `IOLoop` used as\n       the global singleton by `IOLoop.instance()`. Now that\n       `instance()` is an alias for `current()`,\n       `clear_instance()` is an alias for `clear_instance()`.\n\n    .. deprecated:: 5.0\n\n    \"\"\"\n    IOLoop.clear_current()",
+                "@staticmethod\ndef current(instance=True):\n    \"\"\"Returns the current thread's `IOLoop`.\n\n    If an `IOLoop` is currently running or has been marked as\n    current by `make_current`, returns that instance.  If there is\n    no current `IOLoop` and ``instance`` is true, creates one.\n\n    .. versionchanged:: 4.1\n       Added ``instance`` argument to control the fallback to\n       `IOLoop.instance()`.\n    .. versionchanged:: 5.0\n       The ``instance`` argument now controls whether an `IOLoop`\n       is created automatically when there is none, instead of\n       whether we fall back to `IOLoop.instance()` (which is now\n       an alias for this method)\n    \"\"\"\n    current = getattr(IOLoop._current, \"instance\", None)\n    if current is None and instance:\n        current = None\n        if asyncio is not None:\n            from tornado.platform.asyncio import AsyncIOLoop, AsyncIOMainLoop\n            if IOLoop.configured_class() is AsyncIOLoop:\n                current = AsyncIOMainLoop()\n        if current is None:\n            current = IOLoop()\n        if IOLoop._current.instance is not current:\n            raise RuntimeError(\"new IOLoop did not become current\")\n    return current",
+                "def make_current(self):\n    \"\"\"Makes this the `IOLoop` for the current thread.\n\n    An `IOLoop` automatically becomes current for its thread\n    when it is started, but it is sometimes useful to call\n    `make_current` explicitly before starting the `IOLoop`,\n    so that code run at startup time can find the right\n    instance.\n\n    .. versionchanged:: 4.1\n       An `IOLoop` created while there is no current `IOLoop`\n       will automatically become current.\n    \"\"\"\n    IOLoop._current.instance = self",
+                "@staticmethod\ndef clear_current():\n    \"\"\"Clears the `IOLoop` for the current thread.\n\n    Intended primarily for use by test frameworks in between tests.\n    \"\"\"\n    IOLoop._current.instance = None",
+                "@classmethod\ndef configurable_base(cls):\n    return IOLoop",
+                "@classmethod\ndef configurable_default(cls):\n    if asyncio is not None:\n        from tornado.platform.asyncio import AsyncIOLoop\n        return AsyncIOLoop\n    return PollIOLoop",
+                "def initialize(self, make_current=None):\n    if make_current is None:\n        if IOLoop.current(instance=False) is None:\n            self.make_current()\n    elif make_current:\n        if IOLoop.current(instance=False) is not None:\n            raise RuntimeError(\"current IOLoop already exists\")\n        self.make_current()",
+                "def close(self, all_fds=False):\n    \"\"\"Closes the `IOLoop`, freeing any resources used.\n\n    If ``all_fds`` is true, all file descriptors registered on the\n    IOLoop will be closed (not just the ones created by the\n    `IOLoop` itself).\n\n    Many applications will only use a single `IOLoop` that runs for the\n    entire lifetime of the process.  In that case closing the `IOLoop`\n    is not necessary since everything will be cleaned up when the\n    process exits.  `IOLoop.close` is provided mainly for scenarios\n    such as unit tests, which create and destroy a large number of\n    ``IOLoops``.\n\n    An `IOLoop` must be completely stopped before it can be closed.  This\n    means that `IOLoop.stop()` must be called *and* `IOLoop.start()` must\n    be allowed to return before attempting to call `IOLoop.close()`.\n    Therefore the call to `close` will usually appear just after\n    the call to `start` rather than near the call to `stop`.\n\n    .. versionchanged:: 3.1\n       If the `IOLoop` implementation supports non-integer objects\n       for \"file descriptors\", those objects will have their\n       ``close`` method when ``all_fds`` is true.\n    \"\"\"\n    raise NotImplementedError()",
+                "def add_handler(self, fd, handler, events):\n    \"\"\"Registers the given handler to receive the given events for ``fd``.\n\n    The ``fd`` argument may either be an integer file descriptor or\n    a file-like object with a ``fileno()`` method (and optionally a\n    ``close()`` method, which may be called when the `IOLoop` is shut\n    down).\n\n    The ``events`` argument is a bitwise or of the constants\n    ``IOLoop.READ``, ``IOLoop.WRITE``, and ``IOLoop.ERROR``.\n\n    When an event occurs, ``handler(fd, events)`` will be run.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                "def update_handler(self, fd, events):\n    \"\"\"Changes the events we listen for ``fd``.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                "def remove_handler(self, fd):\n    \"\"\"Stop listening for events on ``fd``.\n\n    .. versionchanged:: 4.0\n       Added the ability to pass file-like objects in addition to\n       raw file descriptors.\n    \"\"\"\n    raise NotImplementedError()",
+                "def set_blocking_signal_threshold(self, seconds, action):\n    \"\"\"Sends a signal if the `IOLoop` is blocked for more than\n    ``s`` seconds.\n\n    Pass ``seconds=None`` to disable.  Requires Python 2.6 on a unixy\n    platform.\n\n    The action parameter is a Python signal handler.  Read the\n    documentation for the `signal` module for more information.\n    If ``action`` is None, the process will be killed if it is\n    blocked for too long.\n    \"\"\"\n    raise NotImplementedError()",
+                "def set_blocking_log_threshold(self, seconds):\n    \"\"\"Logs a stack trace if the `IOLoop` is blocked for more than\n    ``s`` seconds.\n\n    Equivalent to ``set_blocking_signal_threshold(seconds,\n    self.log_stack)``\n    \"\"\"\n    self.set_blocking_signal_threshold(seconds, self.log_stack)",
+                "def log_stack(self, signal, frame):\n    \"\"\"Signal handler to log the stack trace of the current thread.\n\n    For use with `set_blocking_signal_threshold`.\n    \"\"\"\n    gen_log.warning('IOLoop blocked for %f seconds in\\n%s',\n                    self._blocking_signal_threshold,\n                    ''.join(traceback.format_stack(frame)))",
+                "def start(self):\n    \"\"\"Starts the I/O loop.\n\n    The loop will run until one of the callbacks calls `stop()`, which\n    will make the loop stop after the current event iteration completes.\n    \"\"\"\n    raise NotImplementedError()",
+                "def _setup_logging(self):\n    \"\"\"The IOLoop catches and logs exceptions, so it's\n    important that log output be visible.  However, python's\n    default behavior for non-root loggers (prior to python\n    3.2) is to print an unhelpful \"no handlers could be\n    found\" message rather than the actual log entry, so we\n    must explicitly configure logging if we've made it this\n    far without anything.\n\n    This method should be called from start() in subclasses.\n    \"\"\"\n    if not any([logging.getLogger().handlers,\n                logging.getLogger('tornado').handlers,\n                logging.getLogger('tornado.application').handlers]):\n        logging.basicConfig()",
+                "def stop(self):\n    \"\"\"Stop the I/O loop.\n\n    If the event loop is not currently running, the next call to `start()`\n    will return immediately.\n\n    To use asynchronous methods from otherwise-synchronous code (such as\n    unit tests), you can start and stop the event loop like this::\n\n      ioloop = IOLoop()\n      async_method(ioloop=ioloop, callback=ioloop.stop)\n      ioloop.start()\n\n    ``ioloop.start()`` will return after ``async_method`` has run\n    its callback, whether that callback was invoked before or\n    after ``ioloop.start``.\n\n    Note that even after `stop` has been called, the `IOLoop` is not\n    completely stopped until `IOLoop.start` has also returned.\n    Some work that was scheduled before the call to `stop` may still\n    be run before the `IOLoop` shuts down.\n    \"\"\"\n    raise NotImplementedError()",
+                "def run_sync(self, func, timeout=None):\n    \"\"\"Starts the `IOLoop`, runs the given function, and stops the loop.\n\n    The function must return either a yieldable object or\n    ``None``. If the function returns a yieldable object, the\n    `IOLoop` will run until the yieldable is resolved (and\n    `run_sync()` will return the yieldable's result). If it raises\n    an exception, the `IOLoop` will stop and the exception will be\n    re-raised to the caller.\n\n    The keyword-only argument ``timeout`` may be used to set\n    a maximum duration for the function.  If the timeout expires,\n    a `tornado.util.TimeoutError` is raised.\n\n    This method is useful in conjunction with `tornado.gen.coroutine`\n    to allow asynchronous calls in a ``main()`` function::\n\n        @gen.coroutine\n        def main():\n            # do stuff...\n\n        if __name__ == '__main__':\n            IOLoop.current().run_sync(main)\n\n    .. versionchanged:: 4.3\n       Returning a non-``None``, non-yieldable value is now an error.\n    \"\"\"\n    future_cell = [None]\n\n    def run():\n        try:\n            result = func()\n            if result is not None:\n                from tornado.gen import convert_yielded\n                result = convert_yielded(result)\n        except Exception:\n            future_cell[0] = TracebackFuture()\n            future_cell[0].set_exc_info(sys.exc_info())\n        else:\n            if is_future(result):\n                future_cell[0] = result\n            else:\n                future_cell[0] = TracebackFuture()\n                future_cell[0].set_result(result)\n        self.add_future(future_cell[0], lambda future: self.stop())\n    self.add_callback(run)\n    if timeout is not None:\n        timeout_handle = self.add_timeout(self.time() + timeout, self.stop)\n    self.start()\n    if timeout is not None:\n        self.remove_timeout(timeout_handle)\n    if not future_cell[0].done():\n        raise TimeoutError('Operation timed out after %s seconds' % timeout)\n    return future_cell[0].result()",
+                "def time(self):\n    \"\"\"Returns the current time according to the `IOLoop`'s clock.\n\n    The return value is a floating-point number relative to an\n    unspecified time in the past.\n\n    By default, the `IOLoop`'s time function is `time.time`.  However,\n    it may be configured to use e.g. `time.monotonic` instead.\n    Calls to `add_timeout` that pass a number instead of a\n    `datetime.timedelta` should use this function to compute the\n    appropriate time, so they can work no matter what time function\n    is chosen.\n    \"\"\"\n    return time.time()",
+                "def add_timeout(self, deadline, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` at the time ``deadline`` from the I/O loop.\n\n    Returns an opaque handle that may be passed to\n    `remove_timeout` to cancel.\n\n    ``deadline`` may be a number denoting a time (on the same\n    scale as `IOLoop.time`, normally `time.time`), or a\n    `datetime.timedelta` object for a deadline relative to the\n    current time.  Since Tornado 4.0, `call_later` is a more\n    convenient alternative for the relative case since it does not\n    require a timedelta object.\n\n    Note that it is not safe to call `add_timeout` from other threads.\n    Instead, you must use `add_callback` to transfer control to the\n    `IOLoop`'s thread, and then call `add_timeout` from there.\n\n    Subclasses of IOLoop must implement either `add_timeout` or\n    `call_at`; the default implementations of each will call\n    the other.  `call_at` is usually easier to implement, but\n    subclasses that wish to maintain compatibility with Tornado\n    versions prior to 4.0 must use `add_timeout` instead.\n\n    .. versionchanged:: 4.0\n       Now passes through ``*args`` and ``**kwargs`` to the callback.\n    \"\"\"\n    if isinstance(deadline, numbers.Real):\n        return self.call_at(deadline, callback, *args, **kwargs)\n    elif isinstance(deadline, datetime.timedelta):\n        return self.call_at(self.time() + timedelta_to_seconds(deadline),\n                            callback, *args, **kwargs)\n    else:\n        raise TypeError(\"Unsupported deadline %r\" % deadline)",
+                "def call_later(self, delay, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` after ``delay`` seconds have passed.\n\n    Returns an opaque handle that may be passed to `remove_timeout`\n    to cancel.  Note that unlike the `asyncio` method of the same\n    name, the returned object does not have a ``cancel()`` method.\n\n    See `add_timeout` for comments on thread-safety and subclassing.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    return self.call_at(self.time() + delay, callback, *args, **kwargs)",
+                "def call_at(self, when, callback, *args, **kwargs):\n    \"\"\"Runs the ``callback`` at the absolute time designated by ``when``.\n\n    ``when`` must be a number using the same reference point as\n    `IOLoop.time`.\n\n    Returns an opaque handle that may be passed to `remove_timeout`\n    to cancel.  Note that unlike the `asyncio` method of the same\n    name, the returned object does not have a ``cancel()`` method.\n\n    See `add_timeout` for comments on thread-safety and subclassing.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    return self.add_timeout(when, callback, *args, **kwargs)",
+                "def remove_timeout(self, timeout):\n    \"\"\"Cancels a pending timeout.\n\n    The argument is a handle as returned by `add_timeout`.  It is\n    safe to call `remove_timeout` even if the callback has already\n    been run.\n    \"\"\"\n    raise NotImplementedError()",
+                "def add_callback(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next I/O loop iteration.\n\n    It is safe to call this method from any thread at any time,\n    except from a signal handler.  Note that this is the **only**\n    method in `IOLoop` that makes this thread-safety guarantee; all\n    other interaction with the `IOLoop` must be done from that\n    `IOLoop`'s thread.  `add_callback()` may be used to transfer\n    control from other threads to the `IOLoop`'s thread.\n\n    To add a callback from a signal handler, see\n    `add_callback_from_signal`.\n    \"\"\"\n    raise NotImplementedError()",
+                "def add_callback_from_signal(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next I/O loop iteration.\n\n    Safe for use from a Python signal handler; should not be used\n    otherwise.\n\n    Callbacks added with this method will be run without any\n    `.stack_context`, to avoid picking up the context of the function\n    that was interrupted by the signal.\n    \"\"\"\n    raise NotImplementedError()",
+                "def spawn_callback(self, callback, *args, **kwargs):\n    \"\"\"Calls the given callback on the next IOLoop iteration.\n\n    Unlike all other callback-related methods on IOLoop,\n    ``spawn_callback`` does not associate the callback with its caller's\n    ``stack_context``, so it is suitable for fire-and-forget callbacks\n    that should not interfere with the caller.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    with stack_context.NullContext():\n        self.add_callback(callback, *args, **kwargs)",
+                "def add_future(self, future, callback):\n    \"\"\"Schedules a callback on the ``IOLoop`` when the given\n    `.Future` is finished.\n\n    The callback is invoked with one argument, the\n    `.Future`.\n    \"\"\"\n    assert is_future(future)\n    callback = stack_context.wrap(callback)\n    future.add_done_callback(\n        lambda future: self.add_callback(callback, future))",
+                "def run_in_executor(self, executor, func, *args):\n    \"\"\"Runs a function in a ``concurrent.futures.Executor``. If\n    ``executor`` is ``None``, the IO loop's default executor will be used.\n\n    Use `functools.partial` to pass keyword arguments to `func`.\n\n    \"\"\"\n    if ThreadPoolExecutor is None:\n        raise RuntimeError(\n            \"concurrent.futures is required to use IOLoop.run_in_executor\")\n\n    if executor is None:\n        if not hasattr(self, '_executor'):\n            from tornado.process import cpu_count\n            self._executor = ThreadPoolExecutor(max_workers=(cpu_count() * 5))\n        executor = self._executor\n\n    return executor.submit(func, *args)",
+                "def set_default_executor(self, executor):\n    \"\"\"Sets the default executor to use with :meth:`run_in_executor`.\"\"\"\n    self._executor = executor",
+                "def _run_callback(self, callback):\n    \"\"\"Runs a callback with error handling.\n\n    For use in subclasses.\n    \"\"\"\n    try:\n        ret = callback()\n        if ret is not None:\n            from tornado import gen\n            # Functions that return Futures typically swallow all\n            # exceptions and store them in the Future.  If a Future\n            # makes it out to the IOLoop, ensure its exception (if any)\n            # gets logged too.\n            try:\n                ret = gen.convert_yielded(ret)\n            except gen.BadYieldError:\n                # It's not unusual for add_callback to be used with\n                # methods returning a non-None and non-yieldable\n                # result, which should just be ignored.\n                pass\n            else:\n                self.add_future(ret, self._discard_future_result)\n    except Exception:\n        self.handle_callback_exception(callback)",
+                "def _discard_future_result(self, future):\n    \"\"\"Avoid unhandled-exception warnings from spawned coroutines.\"\"\"\n    future.result()",
+                "def handle_callback_exception(self, callback):\n    \"\"\"This method is called whenever a callback run by the `IOLoop`\n    throws an exception.\n\n    By default simply logs the exception as an error.  Subclasses\n    may override this method to customize reporting of exceptions.\n\n    The exception itself is not passed explicitly, but is available\n    in `sys.exc_info`.\n    \"\"\"\n    app_log.error(\"Exception in callback %r\", callback, exc_info=True)",
+                "def split_fd(self, fd):\n    \"\"\"Returns an (fd, obj) pair from an ``fd`` parameter.\n\n    We accept both raw file descriptors and file-like objects as\n    input to `add_handler` and related methods.  When a file-like\n    object is passed, we must retain the object itself so we can\n    close it correctly when the `IOLoop` shuts down, but the\n    poller interfaces favor file descriptors (they will accept\n    file-like objects and call ``fileno()`` for you, but they\n    always return the descriptor itself).\n\n    This method is provided for use by `IOLoop` subclasses and should\n    not generally be used by application code.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    try:\n        return fd.fileno(), fd\n    except AttributeError:\n        return fd, fd",
+                "def close_fd(self, fd):\n    \"\"\"Utility method to close an ``fd``.\n\n    If ``fd`` is a file-like object, we close it directly; otherwise\n    we use `os.close`.\n\n    This method is provided for use by `IOLoop` subclasses (in\n    implementations of ``IOLoop.close(all_fds=True)`` and should\n    not generally be used by application code.\n\n    .. versionadded:: 4.0\n    \"\"\"\n    try:\n        try:\n            fd.close()\n        except AttributeError:\n            os.close(fd)\n    except OSError:\n        pass",
+                "def initialize(self, impl, time_func=None, **kwargs):\n    super(PollIOLoop, self).initialize(**kwargs)\n    self._impl = impl\n    if hasattr(self._impl, 'fileno'):\n        set_close_exec(self._impl.fileno())\n    self.time_func = time_func or time.time\n    self._handlers = {}\n    self._events = {}\n    self._callbacks = collections.deque()\n    self._timeouts = []\n    self._cancellations = 0\n    self._running = False\n    self._stopped = False\n    self._closing = False\n    self._thread_ident = None\n    self._pid = os.getpid()\n    self._blocking_signal_threshold = None\n    self._timeout_counter = itertools.count()\n\n    # Create a pipe that we send bogus data to when we want to wake\n    # the I/O loop when it is idle\n    self._waker = Waker()\n    self.add_handler(self._waker.fileno(),\n                     lambda fd, events: self._waker.consume(),\n                     self.READ)",
+                "@classmethod\ndef configurable_base(cls):\n    return PollIOLoop",
+                "@classmethod\ndef configurable_default(cls):\n    if hasattr(select, \"epoll\"):\n        from tornado.platform.epoll import EPollIOLoop\n        return EPollIOLoop\n    if hasattr(select, \"kqueue\"):\n        # Python 2.6+ on BSD or Mac\n        from tornado.platform.kqueue import KQueueIOLoop\n        return KQueueIOLoop\n    from tornado.platform.select import SelectIOLoop\n    return SelectIOLoop",
+                "def close(self, all_fds=False):\n    self._closing = True\n    self.remove_handler(self._waker.fileno())\n    if all_fds:\n        for fd, handler in list(self._handlers.values()):\n            self.close_fd(fd)\n    self._waker.close()\n    self._impl.close()\n    self._callbacks = None\n    self._timeouts = None\n    if hasattr(self, '_executor'):\n        self._executor.shutdown()",
+                "def add_handler(self, fd, handler, events):\n    fd, obj = self.split_fd(fd)\n    self._handlers[fd] = (obj, stack_context.wrap(handler))\n    self._impl.register(fd, events | self.ERROR)",
+                "def update_handler(self, fd, events):\n    fd, obj = self.split_fd(fd)\n    self._impl.modify(fd, events | self.ERROR)",
+                "def remove_handler(self, fd):\n    fd, obj = self.split_fd(fd)\n    self._handlers.pop(fd, None)\n    self._events.pop(fd, None)\n    try:\n        self._impl.unregister(fd)\n    except Exception:\n        gen_log.debug(\"Error deleting fd from IOLoop\", exc_info=True)",
+                "def set_blocking_signal_threshold(self, seconds, action):\n    if not hasattr(signal, \"setitimer\"):\n        gen_log.error(\"set_blocking_signal_threshold requires a signal module \"\n                      \"with the setitimer method\")\n        return\n    self._blocking_signal_threshold = seconds\n    if seconds is not None:\n        signal.signal(signal.SIGALRM,\n                      action if action is not None else signal.SIG_DFL)",
+                "def start(self):\n    if self._running:\n        raise RuntimeError(\"IOLoop is already running\")\n    if os.getpid() != self._pid:\n        raise RuntimeError(\"Cannot share PollIOLoops across processes\")\n    self._setup_logging()\n    if self._stopped:\n        self._stopped = False\n        return\n    old_current = getattr(IOLoop._current, \"instance\", None)\n    IOLoop._current.instance = self\n    self._thread_ident = thread.get_ident()\n    self._running = True\n\n    # signal.set_wakeup_fd closes a race condition in event loops:\n    # a signal may arrive at the beginning of select/poll/etc\n    # before it goes into its interruptible sleep, so the signal\n    # will be consumed without waking the select.  The solution is\n    # for the (C, synchronous) signal handler to write to a pipe,\n    # which will then be seen by select.\n    #\n    # In python's signal handling semantics, this only matters on the\n    # main thread (fortunately, set_wakeup_fd only works on the main\n    # thread and will raise a ValueError otherwise).\n    #\n    # If someone has already set a wakeup fd, we don't want to\n    # disturb it.  This is an issue for twisted, which does its\n    # SIGCHLD processing in response to its own wakeup fd being\n    # written to.  As long as the wakeup fd is registered on the IOLoop,\n    # the loop will still wake up and everything should work.\n    old_wakeup_fd = None\n    if hasattr(signal, 'set_wakeup_fd') and os.name == 'posix':\n        # requires python 2.6+, unix.  set_wakeup_fd exists but crashes\n        # the python process on windows.\n        try:\n            old_wakeup_fd = signal.set_wakeup_fd(self._waker.write_fileno())\n            if old_wakeup_fd != -1:\n                # Already set, restore previous value.  This is a little racy,\n                # but there's no clean get_wakeup_fd and in real use the\n                # IOLoop is just started once at the beginning.\n                signal.set_wakeup_fd(old_wakeup_fd)\n                old_wakeup_fd = None\n        except ValueError:\n            # Non-main thread, or the previous value of wakeup_fd\n            # is no longer valid.\n            old_wakeup_fd = None\n\n    try:\n        while True:\n            # Prevent IO event starvation by delaying new callbacks\n            # to the next iteration of the event loop.\n            ncallbacks = len(self._callbacks)\n\n            # Add any timeouts that have come due to the callback list.\n            # Do not run anything until we have determined which ones\n            # are ready, so timeouts that call add_timeout cannot\n            # schedule anything in this iteration.\n            due_timeouts = []\n            if self._timeouts:\n                now = self.time()\n                while self._timeouts:\n                    if self._timeouts[0].callback is None:\n                        # The timeout was cancelled.  Note that the\n                        # cancellation check is repeated below for timeouts\n                        # that are cancelled by another timeout or callback.\n                        heapq.heappop(self._timeouts)\n                        self._cancellations -= 1\n                    elif self._timeouts[0].deadline <= now:\n                        due_timeouts.append(heapq.heappop(self._timeouts))\n                    else:\n                        break\n                if (self._cancellations > 512 and\n                        self._cancellations > (len(self._timeouts) >> 1)):\n                    # Clean up the timeout queue when it gets large and it's\n                    # more than half cancellations.\n                    self._cancellations = 0\n                    self._timeouts = [x for x in self._timeouts\n                                      if x.callback is not None]\n                    heapq.heapify(self._timeouts)\n\n            for i in range(ncallbacks):\n                self._run_callback(self._callbacks.popleft())\n            for timeout in due_timeouts:\n                if timeout.callback is not None:\n                    self._run_callback(timeout.callback)\n            # Closures may be holding on to a lot of memory, so allow\n            # them to be freed before we go into our poll wait.\n            due_timeouts = timeout = None\n\n            if self._callbacks:\n                # If any callbacks or timeouts called add_callback,\n                # we don't want to wait in poll() before we run them.\n                poll_timeout = 0.0\n            elif self._timeouts:\n                # If there are any timeouts, schedule the first one.\n                # Use self.time() instead of 'now' to account for time\n                # spent running callbacks.\n                poll_timeout = self._timeouts[0].deadline - self.time()\n                poll_timeout = max(0, min(poll_timeout, _POLL_TIMEOUT))\n            else:\n                # No timeouts and no callbacks, so use the default.\n                poll_timeout = _POLL_TIMEOUT\n\n            if not self._running:\n                break\n\n            if self._blocking_signal_threshold is not None:\n                # clear alarm so it doesn't fire while poll is waiting for\n                # events.\n                signal.setitimer(signal.ITIMER_REAL, 0, 0)\n\n            try:\n                event_pairs = self._impl.poll(poll_timeout)\n            except Exception as e:\n                # Depending on python version and IOLoop implementation,\n                # different exception types may be thrown and there are\n                # two ways EINTR might be signaled:\n                # * e.errno == errno.EINTR\n                # * e.args is like (errno.EINTR, 'Interrupted system call')\n                if errno_from_exception(e) == errno.EINTR:\n                    continue\n                else:\n                    raise\n\n            if self._blocking_signal_threshold is not None:\n                signal.setitimer(signal.ITIMER_REAL,\n                                 self._blocking_signal_threshold, 0)\n\n            # Pop one fd at a time from the set of pending fds and run\n            # its handler. Since that handler may perform actions on\n            # other file descriptors, there may be reentrant calls to\n            # this IOLoop that modify self._events\n            self._events.update(event_pairs)\n            while self._events:\n                fd, events = self._events.popitem()\n                try:\n                    fd_obj, handler_func = self._handlers[fd]\n                    handler_func(fd_obj, events)\n                except (OSError, IOError) as e:\n                    if errno_from_exception(e) == errno.EPIPE:\n                        # Happens when the client closes the connection\n                        pass\n                    else:\n                        self.handle_callback_exception(self._handlers.get(fd))\n                except Exception:\n                    self.handle_callback_exception(self._handlers.get(fd))\n            fd_obj = handler_func = None\n\n    finally:\n        # reset the stopped flag so another start/stop pair can be issued\n        self._stopped = False\n        if self._blocking_signal_threshold is not None:\n            signal.setitimer(signal.ITIMER_REAL, 0, 0)\n        IOLoop._current.instance = old_current\n        if old_wakeup_fd is not None:\n            signal.set_wakeup_fd(old_wakeup_fd)",
+                "def stop(self):\n    self._running = False\n    self._stopped = True\n    self._waker.wake()",
+                "def time(self):\n    return self.time_func()",
+                "def call_at(self, deadline, callback, *args, **kwargs):\n    timeout = _Timeout(\n        deadline,\n        functools.partial(stack_context.wrap(callback), *args, **kwargs),\n        self)\n    heapq.heappush(self._timeouts, timeout)\n    return timeout",
+                "def remove_timeout(self, timeout):\n    # Removing from a heap is complicated, so just leave the defunct\n    # timeout object in the queue (see discussion in\n    # http://docs.python.org/library/heapq.html).\n    # If this turns out to be a problem, we could add a garbage\n    # collection pass whenever there are too many dead timeouts.\n    timeout.callback = None\n    self._cancellations += 1",
+                "def add_callback(self, callback, *args, **kwargs):\n    if self._closing:\n        return\n    # Blindly insert into self._callbacks. This is safe even\n    # from signal handlers because deque.append is atomic.\n    self._callbacks.append(functools.partial(\n        stack_context.wrap(callback), *args, **kwargs))\n    if thread.get_ident() != self._thread_ident:\n        # This will write one byte but Waker.consume() reads many\n        # at once, so it's ok to write even when not strictly\n        # necessary.\n        self._waker.wake()\n    else:\n        # If we're on the IOLoop's thread, we don't need to wake anyone.\n        pass",
+                "def add_callback_from_signal(self, callback, *args, **kwargs):\n    with stack_context.NullContext():\n        self.add_callback(callback, *args, **kwargs)",
+                "def __init__(self, deadline, callback, io_loop):\n    if not isinstance(deadline, numbers.Real):\n        raise TypeError(\"Unsupported deadline %r\" % deadline)\n    self.deadline = deadline\n    self.callback = callback\n    self.tdeadline = (deadline, next(io_loop._timeout_counter))",
+                "def __lt__(self, other):\n    return self.tdeadline < other.tdeadline",
+                "def __le__(self, other):\n    return self.tdeadline <= other.tdeadline",
+                "def __init__(self, callback, callback_time):\n    self.callback = callback\n    if callback_time <= 0:\n        raise ValueError(\"Periodic callback must have a positive callback_time\")\n    self.callback_time = callback_time\n    self.io_loop = IOLoop.current()\n    self._running = False\n    self._timeout = None",
+                "def start(self):\n    \"\"\"Starts the timer.\"\"\"\n    self._running = True\n    self._next_timeout = self.io_loop.time()\n    self._schedule_next()",
+                "def stop(self):\n    \"\"\"Stops the timer.\"\"\"\n    self._running = False\n    if self._timeout is not None:\n        self.io_loop.remove_timeout(self._timeout)\n        self._timeout = None",
+                "def is_running(self):\n    \"\"\"Return True if this `.PeriodicCallback` has been started.\n\n    .. versionadded:: 4.1\n    \"\"\"\n    return self._running",
+                "def _run(self):\n    if not self._running:\n        return\n    try:\n        return self.callback()\n    except Exception:\n        self.io_loop.handle_callback_exception(self.callback)\n    finally:\n        self._schedule_next()",
+                "def _schedule_next(self):\n    if self._running:\n        current_time = self.io_loop.time()\n\n        if self._next_timeout <= current_time:\n            callback_time_sec = self.callback_time / 1000.0\n            self._next_timeout += (math.floor((current_time - self._next_timeout) /\n                                              callback_time_sec) + 1) * callback_time_sec\n\n        self._timeout = self.io_loop.add_timeout(self._next_timeout, self._run)",
+                "def run():\n    try:\n        result = func()\n        if result is not None:\n            from tornado.gen import convert_yielded\n            result = convert_yielded(result)\n    except Exception:\n        future_cell[0] = TracebackFuture()\n        future_cell[0].set_exc_info(sys.exc_info())\n    else:\n        if is_future(result):\n            future_cell[0] = result\n        else:\n            future_cell[0] = TracebackFuture()\n            future_cell[0].set_result(result)\n    self.add_future(future_cell[0], lambda future: self.stop())"
+            ],
+            "inscope_function_signatures": [
+                "instance()",
+                "initialized()",
+                "install(self)",
+                "clear_instance()",
+                "current(instance=True)",
+                "make_current(self)",
+                "clear_current()",
+                "configurable_base(cls)",
+                "configurable_default(cls)",
+                "initialize(self, make_current=None)",
+                "close(self, all_fds=False)",
+                "add_handler(self, fd, handler, events)",
+                "update_handler(self, fd, events)",
+                "remove_handler(self, fd)",
+                "set_blocking_signal_threshold(self, seconds, action)",
+                "set_blocking_log_threshold(self, seconds)",
+                "log_stack(self, signal, frame)",
+                "start(self)",
+                "_setup_logging(self)",
+                "stop(self)",
+                "run_sync(self, func, timeout=None)",
+                "time(self)",
+                "add_timeout(self, deadline, callback, *args, **kwargs)",
+                "call_later(self, delay, callback, *args, **kwargs)",
+                "call_at(self, when, callback, *args, **kwargs)",
+                "remove_timeout(self, timeout)",
+                "add_callback(self, callback, *args, **kwargs)",
+                "add_callback_from_signal(self, callback, *args, **kwargs)",
+                "spawn_callback(self, callback, *args, **kwargs)",
+                "add_future(self, future, callback)",
+                "run_in_executor(self, executor, func, *args)",
+                "set_default_executor(self, executor)",
+                "_run_callback(self, callback)",
+                "_discard_future_result(self, future)",
+                "handle_callback_exception(self, callback)",
+                "split_fd(self, fd)",
+                "close_fd(self, fd)",
+                "initialize(self, impl, time_func=None, **kwargs)",
+                "configurable_base(cls)",
+                "configurable_default(cls)",
+                "close(self, all_fds=False)",
+                "add_handler(self, fd, handler, events)",
+                "update_handler(self, fd, events)",
+                "remove_handler(self, fd)",
+                "set_blocking_signal_threshold(self, seconds, action)",
+                "start(self)",
+                "stop(self)",
+                "time(self)",
+                "call_at(self, deadline, callback, *args, **kwargs)",
+                "remove_timeout(self, timeout)",
+                "add_callback(self, callback, *args, **kwargs)",
+                "add_callback_from_signal(self, callback, *args, **kwargs)",
+                "__init__(self, deadline, callback, io_loop)",
+                "__lt__(self, other)",
+                "__le__(self, other)",
+                "__init__(self, callback, callback_time)",
+                "start(self)",
+                "stop(self)",
+                "is_running(self)",
+                "_run(self)",
+                "_schedule_next(self)",
+                "run()"
+            ],
+            "variables_in_file": {
+                "ImportError": [
+                    60,
+                    70,
+                    55
+                ],
+                "signal": [
+                    993,
+                    835,
+                    836,
+                    869,
+                    963,
+                    873,
+                    878,
+                    947,
+                    56,
+                    829,
+                    990
+                ],
+                "ThreadPoolExecutor": [
+                    656,
+                    649,
+                    61
+                ],
+                "PY3": [
+                    63
+                ],
+                "asyncio": [
+                    290,
+                    251,
+                    71
+                ],
+                "_POLL_TIMEOUT": [
+                    936,
+                    74,
+                    939
+                ],
+                "Configurable": [
+                    77
+                ],
+                "_EPOLLIN": [
+                    144,
+                    155
+                ],
+                "_EPOLLPRI": [
+                    145
+                ],
+                "_EPOLLOUT": [
+                    146,
+                    156
+                ],
+                "_EPOLLERR": [
+                    147,
+                    157
+                ],
+                "_EPOLLHUP": [
+                    148,
+                    157
+                ],
+                "_EPOLLRDHUP": [
+                    149
+                ],
+                "_EPOLLONESHOT": [
+                    150
+                ],
+                "_EPOLLET": [
+                    151
+                ],
+                "NONE": [
+                    154
+                ],
+                "READ": [
+                    155
+                ],
+                "WRITE": [
+                    156
+                ],
+                "ERROR": [
+                    157
+                ],
+                "_instance_lock": [
+                    160
+                ],
+                "threading.Lock": [
+                    160
+                ],
+                "threading": [
+                    160,
+                    162
+                ],
+                "_current": [
+                    162
+                ],
+                "threading.local": [
+                    162
+                ],
+                "IOLoop.current": [
+                    199,
+                    297,
+                    300,
+                    184,
+                    1085
+                ],
+                "IOLoop": [
+                    248,
+                    256,
+                    257,
+                    229,
+                    199,
+                    297,
+                    300,
+                    748,
+                    847,
+                    848,
+                    274,
+                    1085,
+                    184,
+                    282,
+                    253,
+                    286,
+                    991
+                ],
+                "staticmethod": [
+                    164,
+                    231,
+                    276,
+                    215,
+                    186
+                ],
+                "self.make_current": [
+                    298,
+                    213,
+                    302
+                ],
+                "self": [
+                    1025,
+                    1027,
+                    1031,
+                    1038,
+                    1050,
+                    1051,
+                    1052,
+                    545,
+                    547,
+                    1059,
+                    1062,
+                    563,
+                    1081,
+                    1084,
+                    1085,
+                    1086,
+                    1087,
+                    579,
+                    1091,
+                    1092,
+                    1093,
+                    1097,
+                    1098,
+                    1099,
+                    1100,
+                    1107,
+                    1110,
+                    1113,
+                    1115,
+                    1117,
+                    1120,
+                    1121,
+                    1123,
+                    1124,
+                    1125,
+                    1128,
+                    628,
+                    640,
+                    654,
+                    656,
+                    657,
+                    663,
+                    686,
+                    688,
+                    213,
+                    756,
+                    757,
+                    758,
+                    759,
+                    760,
+                    761,
+                    762,
+                    763,
+                    764,
+                    765,
+                    766,
+                    767,
+                    768,
+                    769,
+                    770,
+                    771,
+                    772,
+                    776,
+                    777,
+                    778,
+                    779,
+                    274,
+                    798,
+                    799,
+                    801,
+                    802,
+                    803,
+                    804,
+                    805,
+                    806,
+                    807,
+                    808,
+                    298,
+                    811,
+                    812,
+                    813,
+                    302,
+                    816,
+                    817,
+                    820,
+                    821,
+                    822,
+                    824,
+                    833,
+                    839,
+                    841,
+                    843,
+                    844,
+                    845,
+                    848,
+                    849,
+                    850,
+                    873,
+                    889,
+                    896,
+                    897,
+                    898,
+                    899,
+                    389,
+                    903,
+                    904,
+                    905,
+                    906,
+                    397,
+                    909,
+                    910,
+                    913,
+                    914,
+                    916,
+                    919,
+                    922,
+                    927,
+                    931,
+                    935,
+                    941,
+                    944,
+                    950,
+                    962,
+                    964,
+                    970,
+                    971,
+                    972,
+                    974,
+                    981,
+                    983,
+                    988,
+                    989,
+                    996,
+                    997,
+                    998,
+                    1001,
+                    492,
+                    493,
+                    495,
+                    496,
+                    1007,
+                    498,
+                    1008,
+                    1018,
+                    1021
+                ],
+                "IOLoop.clear_current": [
+                    229
+                ],
+                "current": [
+                    256,
+                    257,
+                    259,
+                    248,
+                    249,
+                    250,
+                    254,
+                    255
+                ],
+                "getattr": [
+                    248,
+                    847
+                ],
+                "IOLoop._current": [
+                    257,
+                    847,
+                    848,
+                    274,
+                    248,
+                    282,
+                    991
+                ],
+                "instance": [
+                    249
+                ],
+                "IOLoop.configured_class": [
+                    253
+                ],
+                "AsyncIOLoop": [
+                    292,
+                    253
+                ],
+                "AsyncIOMainLoop": [
+                    254
+                ],
+                "IOLoop._current.instance": [
+                    257,
+                    848,
+                    274,
+                    282,
+                    991
+                ],
+                "RuntimeError": [
+                    258,
+                    840,
+                    842,
+                    650,
+                    301
+                ],
+                "classmethod": [
+                    288,
+                    785,
+                    284,
+                    781
+                ],
+                "PollIOLoop": [
+                    756,
+                    293,
+                    783
+                ],
+                "make_current": [
+                    296,
+                    299
+                ],
+                "NotImplementedError": [
+                    357,
+                    615,
+                    329,
+                    588,
+                    366,
+                    406,
+                    348,
+                    603,
+                    380,
+                    446
+                ],
+                "self.set_blocking_signal_threshold": [
+                    389
+                ],
+                "seconds": [
+                    833,
+                    834,
+                    389
+                ],
+                "self.log_stack": [
+                    389
+                ],
+                "gen_log.warning": [
+                    396
+                ],
+                "gen_log": [
+                    826,
+                    396,
+                    830
+                ],
+                "self._blocking_signal_threshold": [
+                    833,
+                    962,
+                    771,
+                    964,
+                    397,
+                    944,
+                    989
+                ],
+                "join": [
+                    398
+                ],
+                "traceback.format_stack": [
+                    398
+                ],
+                "traceback": [
+                    398
+                ],
+                "frame": [
+                    398
+                ],
+                "any": [
+                    419
+                ],
+                "handlers": [
+                    419,
+                    420,
+                    421
+                ],
+                "logging.getLogger": [
+                    419,
+                    420,
+                    421
+                ],
+                "logging": [
+                    419,
+                    420,
+                    421,
+                    422
+                ],
+                "logging.basicConfig": [
+                    422
+                ],
+                "future_cell": [
+                    484,
+                    485,
+                    488,
+                    490,
+                    491,
+                    492,
+                    499,
+                    501,
+                    475
+                ],
+                "result": [
+                    480,
+                    482,
+                    487,
+                    488,
+                    491,
+                    501,
+                    479
+                ],
+                "func": [
+                    659,
+                    479
+                ],
+                "convert_yielded": [
+                    482
+                ],
+                "Exception": [
+                    483,
+                    687,
+                    982,
+                    951,
+                    825,
+                    1114
+                ],
+                "TracebackFuture": [
+                    490,
+                    484
+                ],
+                "set_exc_info": [
+                    485
+                ],
+                "sys.exc_info": [
+                    485
+                ],
+                "sys": [
+                    485
+                ],
+                "is_future": [
+                    637,
+                    487
+                ],
+                "set_result": [
+                    491
+                ],
+                "self.add_future": [
+                    492,
+                    686
+                ],
+                "self.stop": [
+                    492,
+                    495
+                ],
+                "self.add_callback": [
+                    640,
+                    628,
+                    493,
+                    1038
+                ],
+                "run": [
+                    493
+                ],
+                "timeout": [
+                    1004,
+                    494,
+                    495,
+                    1008,
+                    497,
+                    1009,
+                    1017,
+                    500,
+                    920,
+                    921,
+                    922,
+                    925
+                ],
+                "timeout_handle": [
+                    498,
+                    495
+                ],
+                "self.add_timeout": [
+                    579,
+                    495
+                ],
+                "self.time": [
+                    897,
+                    547,
+                    935,
+                    495,
+                    563
+                ],
+                "self.start": [
+                    496
+                ],
+                "self.remove_timeout": [
+                    498
+                ],
+                "done": [
+                    499
+                ],
+                "TimeoutError": [
+                    500
+                ],
+                "time.time": [
+                    760,
+                    516
+                ],
+                "time": [
+                    760,
+                    516
+                ],
+                "isinstance": [
+                    544,
+                    1048,
+                    546
+                ],
+                "deadline": [
+                    544,
+                    545,
+                    546,
+                    547,
+                    550,
+                    935,
+                    905,
+                    1005,
+                    1048,
+                    1049,
+                    1050,
+                    1052
+                ],
+                "numbers.Real": [
+                    544,
+                    1048
+                ],
+                "numbers": [
+                    544,
+                    1048
+                ],
+                "self.call_at": [
+                    545,
+                    547,
+                    563
+                ],
+                "callback": [
+                    640,
+                    545,
+                    704,
+                    579,
+                    548,
+                    899,
+                    1026,
+                    1006,
+                    1038,
+                    688,
+                    563,
+                    628,
+                    1081,
+                    1051,
+                    638,
+                    671
+                ],
+                "args": [
+                    545,
+                    1026,
+                    579,
+                    548,
+                    1006,
+                    1038,
+                    563,
+                    628,
+                    659
+                ],
+                "kwargs": [
+                    545,
+                    1026,
+                    579,
+                    548,
+                    1006,
+                    1038,
+                    563,
+                    628,
+                    756
+                ],
+                "datetime.timedelta": [
+                    546
+                ],
+                "datetime": [
+                    546
+                ],
+                "timedelta_to_seconds": [
+                    547
+                ],
+                "TypeError": [
+                    1049,
+                    550
+                ],
+                "delay": [
+                    563
+                ],
+                "when": [
+                    579
+                ],
+                "stack_context.NullContext": [
+                    627,
+                    1037
+                ],
+                "stack_context": [
+                    1026,
+                    812,
+                    1037,
+                    1006,
+                    627,
+                    638
+                ],
+                "future": [
+                    640,
+                    692,
+                    637,
+                    639
+                ],
+                "stack_context.wrap": [
+                    1026,
+                    812,
+                    638,
+                    1006
+                ],
+                "future.add_done_callback": [
+                    639
+                ],
+                "executor": [
+                    657,
+                    659,
+                    653,
+                    663
+                ],
+                "hasattr": [
+                    869,
+                    807,
+                    654,
+                    787,
+                    790,
+                    758,
+                    829
+                ],
+                "self._executor": [
+                    656,
+                    657,
+                    808,
+                    663
+                ],
+                "cpu_count": [
+                    656
+                ],
+                "executor.submit": [
+                    659
+                ],
+                "ret": [
+                    672,
+                    679,
+                    686,
+                    671
+                ],
+                "gen.convert_yielded": [
+                    679
+                ],
+                "gen": [
+                    680,
+                    679
+                ],
+                "gen.BadYieldError": [
+                    680
+                ],
+                "self._discard_future_result": [
+                    686
+                ],
+                "self.handle_callback_exception": [
+                    688,
+                    981,
+                    983
+                ],
+                "future.result": [
+                    692
+                ],
+                "app_log.error": [
+                    704
+                ],
+                "app_log": [
+                    704
+                ],
+                "fd.fileno": [
+                    723
+                ],
+                "fd": [
+                    801,
+                    802,
+                    811,
+                    812,
+                    813,
+                    816,
+                    817,
+                    820,
+                    821,
+                    822,
+                    824,
+                    972,
+                    974,
+                    723,
+                    725,
+                    981,
+                    983,
+                    741,
+                    743
+                ],
+                "AttributeError": [
+                    724,
+                    742
+                ],
+                "fd.close": [
+                    741
+                ],
+                "os.close": [
+                    743
+                ],
+                "os": [
+                    841,
+                    770,
+                    869,
+                    743
+                ],
+                "OSError": [
+                    744,
+                    976
+                ],
+                "initialize": [
+                    756
+                ],
+                "super": [
+                    756
+                ],
+                "self._impl": [
+                    804,
+                    813,
+                    817,
+                    757,
+                    758,
+                    759,
+                    824,
+                    950
+                ],
+                "impl": [
+                    757
+                ],
+                "set_close_exec": [
+                    759
+                ],
+                "self._impl.fileno": [
+                    759
+                ],
+                "self.time_func": [
+                    760,
+                    1001
+                ],
+                "time_func": [
+                    760
+                ],
+                "self._handlers": [
+                    801,
+                    812,
+                    974,
+                    821,
+                    981,
+                    983,
+                    761
+                ],
+                "self._events": [
+                    970,
+                    971,
+                    972,
+                    822,
+                    762
+                ],
+                "self._callbacks": [
+                    1025,
+                    805,
+                    919,
+                    889,
+                    763,
+                    927
+                ],
+                "collections.deque": [
+                    763
+                ],
+                "collections": [
+                    763
+                ],
+                "self._timeouts": [
+                    896,
+                    898,
+                    899,
+                    931,
+                    806,
+                    903,
+                    935,
+                    905,
+                    906,
+                    910,
+                    1008,
+                    914,
+                    916,
+                    764
+                ],
+                "self._cancellations": [
+                    904,
+                    909,
+                    910,
+                    913,
+                    1018,
+                    765
+                ],
+                "self._running": [
+                    1120,
+                    1091,
+                    996,
+                    839,
+                    1097,
+                    941,
+                    850,
+                    1107,
+                    1110,
+                    1086,
+                    766
+                ],
+                "self._stopped": [
+                    997,
+                    844,
+                    845,
+                    988,
+                    767
+                ],
+                "self._closing": [
+                    768,
+                    1021,
+                    798
+                ],
+                "self._thread_ident": [
+                    849,
+                    769,
+                    1027
+                ],
+                "self._pid": [
+                    841,
+                    770
+                ],
+                "os.getpid": [
+                    841,
+                    770
+                ],
+                "self._timeout_counter": [
+                    772
+                ],
+                "itertools.count": [
+                    772
+                ],
+                "itertools": [
+                    772
+                ],
+                "self._waker": [
+                    803,
+                    998,
+                    1031,
+                    776,
+                    777,
+                    778,
+                    873,
+                    799
+                ],
+                "Waker": [
+                    776
+                ],
+                "self.add_handler": [
+                    777
+                ],
+                "self._waker.fileno": [
+                    777,
+                    799
+                ],
+                "self._waker.consume": [
+                    778
+                ],
+                "self.READ": [
+                    779
+                ],
+                "select": [
+                    787,
+                    790
+                ],
+                "EPollIOLoop": [
+                    789
+                ],
+                "KQueueIOLoop": [
+                    793
+                ],
+                "SelectIOLoop": [
+                    795
+                ],
+                "self.remove_handler": [
+                    799
+                ],
+                "all_fds": [
+                    800
+                ],
+                "handler": [
+                    801,
+                    812
+                ],
+                "list": [
+                    801
+                ],
+                "self._handlers.values": [
+                    801
+                ],
+                "self.close_fd": [
+                    802
+                ],
+                "self._waker.close": [
+                    803
+                ],
+                "self._impl.close": [
+                    804
+                ],
+                "self._executor.shutdown": [
+                    808
+                ],
+                "obj": [
+                    816,
+                    811,
+                    812,
+                    820
+                ],
+                "self.split_fd": [
+                    816,
+                    811,
+                    820
+                ],
+                "self._impl.register": [
+                    813
+                ],
+                "events": [
+                    817,
+                    972,
+                    813,
+                    975
+                ],
+                "self.ERROR": [
+                    817,
+                    813
+                ],
+                "self._impl.modify": [
+                    817
+                ],
+                "self._handlers.pop": [
+                    821
+                ],
+                "self._events.pop": [
+                    822
+                ],
+                "self._impl.unregister": [
+                    824
+                ],
+                "gen_log.debug": [
+                    826
+                ],
+                "gen_log.error": [
+                    830
+                ],
+                "signal.signal": [
+                    835
+                ],
+                "signal.SIGALRM": [
+                    835
+                ],
+                "action": [
+                    836
+                ],
+                "signal.SIG_DFL": [
+                    836
+                ],
+                "self._setup_logging": [
+                    843
+                ],
+                "old_current": [
+                    991,
+                    847
+                ],
+                "thread.get_ident": [
+                    849,
+                    1027
+                ],
+                "thread": [
+                    849,
+                    1027
+                ],
+                "old_wakeup_fd": [
+                    992,
+                    993,
+                    868,
+                    873,
+                    874,
+                    878,
+                    879,
+                    883
+                ],
+                "os.name": [
+                    869
+                ],
+                "signal.set_wakeup_fd": [
+                    873,
+                    993,
+                    878
+                ],
+                "self._waker.write_fileno": [
+                    873
+                ],
+                "ValueError": [
+                    880,
+                    1083
+                ],
+                "ncallbacks": [
+                    889,
+                    918
+                ],
+                "len": [
+                    889,
+                    910
+                ],
+                "due_timeouts": [
+                    920,
+                    906,
+                    925,
+                    895
+                ],
+                "now": [
+                    897,
+                    905
+                ],
+                "heapq.heappop": [
+                    906,
+                    903
+                ],
+                "heapq": [
+                    1008,
+                    906,
+                    916,
+                    903
+                ],
+                "due_timeouts.append": [
+                    906
+                ],
+                "x": [
+                    914,
+                    915
+                ],
+                "x.callback": [
+                    915
+                ],
+                "heapq.heapify": [
+                    916
+                ],
+                "i": [
+                    918
+                ],
+                "range": [
+                    918
+                ],
+                "self._run_callback": [
+                    922,
+                    919
+                ],
+                "self._callbacks.popleft": [
+                    919
+                ],
+                "timeout.callback": [
+                    921,
+                    922,
+                    1017
+                ],
+                "poll_timeout": [
+                    930,
+                    935,
+                    936,
+                    939,
+                    950
+                ],
+                "max": [
+                    936
+                ],
+                "min": [
+                    936
+                ],
+                "signal.setitimer": [
+                    947,
+                    990,
+                    963
+                ],
+                "signal.ITIMER_REAL": [
+                    947,
+                    990,
+                    963
+                ],
+                "event_pairs": [
+                    970,
+                    950
+                ],
+                "self._impl.poll": [
+                    950
+                ],
+                "errno_from_exception": [
+                    977,
+                    957
+                ],
+                "e": [
+                    977,
+                    957
+                ],
+                "errno.EINTR": [
+                    957
+                ],
+                "errno": [
+                    977,
+                    957
+                ],
+                "self._events.update": [
+                    970
+                ],
+                "self._events.popitem": [
+                    972
+                ],
+                "fd_obj": [
+                    984,
+                    974,
+                    975
+                ],
+                "handler_func": [
+                    984,
+                    974,
+                    975
+                ],
+                "IOError": [
+                    976
+                ],
+                "errno.EPIPE": [
+                    977
+                ],
+                "self._handlers.get": [
+                    981,
+                    983
+                ],
+                "self._waker.wake": [
+                    998,
+                    1031
+                ],
+                "_Timeout": [
+                    1004
+                ],
+                "functools.partial": [
+                    1025,
+                    1006
+                ],
+                "functools": [
+                    1025,
+                    1006
+                ],
+                "heapq.heappush": [
+                    1008
+                ],
+                "self._callbacks.append": [
+                    1025
+                ],
+                "object": [
+                    1041,
+                    1065
+                ],
+                "__slots__": [
+                    1045
+                ],
+                "self.deadline": [
+                    1050
+                ],
+                "self.callback": [
+                    1113,
+                    1081,
+                    1115,
+                    1051
+                ],
+                "self.tdeadline": [
+                    1059,
+                    1052,
+                    1062
+                ],
+                "next": [
+                    1052
+                ],
+                "io_loop._timeout_counter": [
+                    1052
+                ],
+                "io_loop": [
+                    1052
+                ],
+                "other.tdeadline": [
+                    1059,
+                    1062
+                ],
+                "other": [
+                    1059,
+                    1062
+                ],
+                "callback_time": [
+                    1082,
+                    1084
+                ],
+                "self.callback_time": [
+                    1124,
+                    1084
+                ],
+                "self.io_loop": [
+                    1121,
+                    1092,
+                    1128,
+                    1099,
+                    1115,
+                    1085
+                ],
+                "self._timeout": [
+                    1128,
+                    1098,
+                    1099,
+                    1100,
+                    1087
+                ],
+                "self._next_timeout": [
+                    1128,
+                    1123,
+                    1092,
+                    1125
+                ],
+                "self.io_loop.time": [
+                    1121,
+                    1092
+                ],
+                "self._schedule_next": [
+                    1117,
+                    1093
+                ],
+                "self.io_loop.remove_timeout": [
+                    1099
+                ],
+                "self.io_loop.handle_callback_exception": [
+                    1115
+                ],
+                "current_time": [
+                    1121,
+                    1123,
+                    1125
+                ],
+                "callback_time_sec": [
+                    1124,
+                    1126
+                ],
+                "math.floor": [
+                    1125
+                ],
+                "math": [
+                    1125
+                ],
+                "self.io_loop.add_timeout": [
+                    1128
+                ],
+                "self._run": [
+                    1128
+                ]
+            },
+            "filtered_variables_in_file": {
+                "signal": [
+                    993,
+                    835,
+                    836,
+                    869,
+                    963,
+                    873,
+                    878,
+                    947,
+                    56,
+                    829,
+                    990
+                ],
+                "ThreadPoolExecutor": [
+                    656,
+                    649,
+                    61
+                ],
+                "PY3": [
+                    63
+                ],
+                "asyncio": [
+                    290,
+                    251,
+                    71
+                ],
+                "_POLL_TIMEOUT": [
+                    936,
+                    74,
+                    939
+                ],
+                "Configurable": [
+                    77
+                ],
+                "_EPOLLIN": [
+                    144,
+                    155
+                ],
+                "_EPOLLPRI": [
+                    145
+                ],
+                "_EPOLLOUT": [
+                    146,
+                    156
+                ],
+                "_EPOLLERR": [
+                    147,
+                    157
+                ],
+                "_EPOLLHUP": [
+                    148,
+                    157
+                ],
+                "_EPOLLRDHUP": [
+                    149
+                ],
+                "_EPOLLONESHOT": [
+                    150
+                ],
+                "_EPOLLET": [
+                    151
+                ],
+                "NONE": [
+                    154
+                ],
+                "READ": [
+                    155
+                ],
+                "WRITE": [
+                    156
+                ],
+                "ERROR": [
+                    157
+                ],
+                "_instance_lock": [
+                    160
+                ],
+                "threading.Lock": [
+                    160
+                ],
+                "threading": [
+                    160,
+                    162
+                ],
+                "_current": [
+                    162
+                ],
+                "threading.local": [
+                    162
+                ],
+                "IOLoop.current": [
+                    199,
+                    297,
+                    300,
+                    184,
+                    1085
+                ],
+                "IOLoop": [
+                    248,
+                    256,
+                    257,
+                    229,
+                    199,
+                    297,
+                    300,
+                    748,
+                    847,
+                    848,
+                    274,
+                    1085,
+                    184,
+                    282,
+                    253,
+                    286,
+                    991
+                ],
+                "self.make_current": [
+                    298,
+                    213,
+                    302
+                ],
+                "self": [
+                    1025,
+                    1027,
+                    1031,
+                    1038,
+                    1050,
+                    1051,
+                    1052,
+                    545,
+                    547,
+                    1059,
+                    1062,
+                    563,
+                    1081,
+                    1084,
+                    1085,
+                    1086,
+                    1087,
+                    579,
+                    1091,
+                    1092,
+                    1093,
+                    1097,
+                    1098,
+                    1099,
+                    1100,
+                    1107,
+                    1110,
+                    1113,
+                    1115,
+                    1117,
+                    1120,
+                    1121,
+                    1123,
+                    1124,
+                    1125,
+                    1128,
+                    628,
+                    640,
+                    654,
+                    656,
+                    657,
+                    663,
+                    686,
+                    688,
+                    213,
+                    756,
+                    757,
+                    758,
+                    759,
+                    760,
+                    761,
+                    762,
+                    763,
+                    764,
+                    765,
+                    766,
+                    767,
+                    768,
+                    769,
+                    770,
+                    771,
+                    772,
+                    776,
+                    777,
+                    778,
+                    779,
+                    274,
+                    798,
+                    799,
+                    801,
+                    802,
+                    803,
+                    804,
+                    805,
+                    806,
+                    807,
+                    808,
+                    298,
+                    811,
+                    812,
+                    813,
+                    302,
+                    816,
+                    817,
+                    820,
+                    821,
+                    822,
+                    824,
+                    833,
+                    839,
+                    841,
+                    843,
+                    844,
+                    845,
+                    848,
+                    849,
+                    850,
+                    873,
+                    889,
+                    896,
+                    897,
+                    898,
+                    899,
+                    389,
+                    903,
+                    904,
+                    905,
+                    906,
+                    397,
+                    909,
+                    910,
+                    913,
+                    914,
+                    916,
+                    919,
+                    922,
+                    927,
+                    931,
+                    935,
+                    941,
+                    944,
+                    950,
+                    962,
+                    964,
+                    970,
+                    971,
+                    972,
+                    974,
+                    981,
+                    983,
+                    988,
+                    989,
+                    996,
+                    997,
+                    998,
+                    1001,
+                    492,
+                    493,
+                    495,
+                    496,
+                    1007,
+                    498,
+                    1008,
+                    1018,
+                    1021
+                ],
+                "IOLoop.clear_current": [
+                    229
+                ],
+                "current": [
+                    256,
+                    257,
+                    259,
+                    248,
+                    249,
+                    250,
+                    254,
+                    255
+                ],
+                "IOLoop._current": [
+                    257,
+                    847,
+                    848,
+                    274,
+                    248,
+                    282,
+                    991
+                ],
+                "instance": [
+                    249
+                ],
+                "IOLoop.configured_class": [
+                    253
+                ],
+                "AsyncIOLoop": [
+                    292,
+                    253
+                ],
+                "AsyncIOMainLoop": [
+                    254
+                ],
+                "IOLoop._current.instance": [
+                    257,
+                    848,
+                    274,
+                    282,
+                    991
+                ],
+                "PollIOLoop": [
+                    756,
+                    293,
+                    783
+                ],
+                "make_current": [
+                    296,
+                    299
+                ],
+                "self.set_blocking_signal_threshold": [
+                    389
+                ],
+                "seconds": [
+                    833,
+                    834,
+                    389
+                ],
+                "self.log_stack": [
+                    389
+                ],
+                "gen_log.warning": [
+                    396
+                ],
+                "gen_log": [
+                    826,
+                    396,
+                    830
+                ],
+                "self._blocking_signal_threshold": [
+                    833,
+                    962,
+                    771,
+                    964,
+                    397,
+                    944,
+                    989
+                ],
+                "join": [
+                    398
+                ],
+                "traceback.format_stack": [
+                    398
+                ],
+                "traceback": [
+                    398
+                ],
+                "frame": [
+                    398
+                ],
+                "handlers": [
+                    419,
+                    420,
+                    421
+                ],
+                "logging.getLogger": [
+                    419,
+                    420,
+                    421
+                ],
+                "logging": [
+                    419,
+                    420,
+                    421,
+                    422
+                ],
+                "logging.basicConfig": [
+                    422
+                ],
+                "future_cell": [
+                    484,
+                    485,
+                    488,
+                    490,
+                    491,
+                    492,
+                    499,
+                    501,
+                    475
+                ],
+                "result": [
+                    480,
+                    482,
+                    487,
+                    488,
+                    491,
+                    501,
+                    479
+                ],
+                "func": [
+                    659,
+                    479
+                ],
+                "convert_yielded": [
+                    482
+                ],
+                "TracebackFuture": [
+                    490,
+                    484
+                ],
+                "set_exc_info": [
+                    485
+                ],
+                "sys.exc_info": [
+                    485
+                ],
+                "sys": [
+                    485
+                ],
+                "is_future": [
+                    637,
+                    487
+                ],
+                "set_result": [
+                    491
+                ],
+                "self.add_future": [
+                    492,
+                    686
+                ],
+                "self.stop": [
+                    492,
+                    495
+                ],
+                "self.add_callback": [
+                    640,
+                    628,
+                    493,
+                    1038
+                ],
+                "run": [
+                    493
+                ],
+                "timeout": [
+                    1004,
+                    494,
+                    495,
+                    1008,
+                    497,
+                    1009,
+                    1017,
+                    500,
+                    920,
+                    921,
+                    922,
+                    925
+                ],
+                "timeout_handle": [
+                    498,
+                    495
+                ],
+                "self.add_timeout": [
+                    579,
+                    495
+                ],
+                "self.time": [
+                    897,
+                    547,
+                    935,
+                    495,
+                    563
+                ],
+                "self.start": [
+                    496
+                ],
+                "self.remove_timeout": [
+                    498
+                ],
+                "done": [
+                    499
+                ],
+                "time.time": [
+                    760,
+                    516
+                ],
+                "time": [
+                    760,
+                    516
+                ],
+                "deadline": [
+                    544,
+                    545,
+                    546,
+                    547,
+                    550,
+                    935,
+                    905,
+                    1005,
+                    1048,
+                    1049,
+                    1050,
+                    1052
+                ],
+                "numbers.Real": [
+                    544,
+                    1048
+                ],
+                "numbers": [
+                    544,
+                    1048
+                ],
+                "self.call_at": [
+                    545,
+                    547,
+                    563
+                ],
+                "callback": [
+                    640,
+                    545,
+                    704,
+                    579,
+                    548,
+                    899,
+                    1026,
+                    1006,
+                    1038,
+                    688,
+                    563,
+                    628,
+                    1081,
+                    1051,
+                    638,
+                    671
+                ],
+                "args": [
+                    545,
+                    1026,
+                    579,
+                    548,
+                    1006,
+                    1038,
+                    563,
+                    628,
+                    659
+                ],
+                "kwargs": [
+                    545,
+                    1026,
+                    579,
+                    548,
+                    1006,
+                    1038,
+                    563,
+                    628,
+                    756
+                ],
+                "datetime.timedelta": [
+                    546
+                ],
+                "datetime": [
+                    546
+                ],
+                "timedelta_to_seconds": [
+                    547
+                ],
+                "delay": [
+                    563
+                ],
+                "when": [
+                    579
+                ],
+                "stack_context.NullContext": [
+                    627,
+                    1037
+                ],
+                "stack_context": [
+                    1026,
+                    812,
+                    1037,
+                    1006,
+                    627,
+                    638
+                ],
+                "future": [
+                    640,
+                    692,
+                    637,
+                    639
+                ],
+                "stack_context.wrap": [
+                    1026,
+                    812,
+                    638,
+                    1006
+                ],
+                "future.add_done_callback": [
+                    639
+                ],
+                "executor": [
+                    657,
+                    659,
+                    653,
+                    663
+                ],
+                "self._executor": [
+                    656,
+                    657,
+                    808,
+                    663
+                ],
+                "cpu_count": [
+                    656
+                ],
+                "executor.submit": [
+                    659
+                ],
+                "ret": [
+                    672,
+                    679,
+                    686,
+                    671
+                ],
+                "gen.convert_yielded": [
+                    679
+                ],
+                "gen": [
+                    680,
+                    679
+                ],
+                "gen.BadYieldError": [
+                    680
+                ],
+                "self._discard_future_result": [
+                    686
+                ],
+                "self.handle_callback_exception": [
+                    688,
+                    981,
+                    983
+                ],
+                "future.result": [
+                    692
+                ],
+                "app_log.error": [
+                    704
+                ],
+                "app_log": [
+                    704
+                ],
+                "fd.fileno": [
+                    723
+                ],
+                "fd": [
+                    801,
+                    802,
+                    811,
+                    812,
+                    813,
+                    816,
+                    817,
+                    820,
+                    821,
+                    822,
+                    824,
+                    972,
+                    974,
+                    723,
+                    725,
+                    981,
+                    983,
+                    741,
+                    743
+                ],
+                "fd.close": [
+                    741
+                ],
+                "os.close": [
+                    743
+                ],
+                "os": [
+                    841,
+                    770,
+                    869,
+                    743
+                ],
+                "initialize": [
+                    756
+                ],
+                "self._impl": [
+                    804,
+                    813,
+                    817,
+                    757,
+                    758,
+                    759,
+                    824,
+                    950
+                ],
+                "impl": [
+                    757
+                ],
+                "set_close_exec": [
+                    759
+                ],
+                "self._impl.fileno": [
+                    759
+                ],
+                "self.time_func": [
+                    760,
+                    1001
+                ],
+                "time_func": [
+                    760
+                ],
+                "self._handlers": [
+                    801,
+                    812,
+                    974,
+                    821,
+                    981,
+                    983,
+                    761
+                ],
+                "self._events": [
+                    970,
+                    971,
+                    972,
+                    822,
+                    762
+                ],
+                "self._callbacks": [
+                    1025,
+                    805,
+                    919,
+                    889,
+                    763,
+                    927
+                ],
+                "collections.deque": [
+                    763
+                ],
+                "collections": [
+                    763
+                ],
+                "self._timeouts": [
+                    896,
+                    898,
+                    899,
+                    931,
+                    806,
+                    903,
+                    935,
+                    905,
+                    906,
+                    910,
+                    1008,
+                    914,
+                    916,
+                    764
+                ],
+                "self._cancellations": [
+                    904,
+                    909,
+                    910,
+                    913,
+                    1018,
+                    765
+                ],
+                "self._running": [
+                    1120,
+                    1091,
+                    996,
+                    839,
+                    1097,
+                    941,
+                    850,
+                    1107,
+                    1110,
+                    1086,
+                    766
+                ],
+                "self._stopped": [
+                    997,
+                    844,
+                    845,
+                    988,
+                    767
+                ],
+                "self._closing": [
+                    768,
+                    1021,
+                    798
+                ],
+                "self._thread_ident": [
+                    849,
+                    769,
+                    1027
+                ],
+                "self._pid": [
+                    841,
+                    770
+                ],
+                "os.getpid": [
+                    841,
+                    770
+                ],
+                "self._timeout_counter": [
+                    772
+                ],
+                "itertools.count": [
+                    772
+                ],
+                "itertools": [
+                    772
+                ],
+                "self._waker": [
+                    803,
+                    998,
+                    1031,
+                    776,
+                    777,
+                    778,
+                    873,
+                    799
+                ],
+                "Waker": [
+                    776
+                ],
+                "self.add_handler": [
+                    777
+                ],
+                "self._waker.fileno": [
+                    777,
+                    799
+                ],
+                "self._waker.consume": [
+                    778
+                ],
+                "self.READ": [
+                    779
+                ],
+                "select": [
+                    787,
+                    790
+                ],
+                "EPollIOLoop": [
+                    789
+                ],
+                "KQueueIOLoop": [
+                    793
+                ],
+                "SelectIOLoop": [
+                    795
+                ],
+                "self.remove_handler": [
+                    799
+                ],
+                "all_fds": [
+                    800
+                ],
+                "handler": [
+                    801,
+                    812
+                ],
+                "self._handlers.values": [
+                    801
+                ],
+                "self.close_fd": [
+                    802
+                ],
+                "self._waker.close": [
+                    803
+                ],
+                "self._impl.close": [
+                    804
+                ],
+                "self._executor.shutdown": [
+                    808
+                ],
+                "obj": [
+                    816,
+                    811,
+                    812,
+                    820
+                ],
+                "self.split_fd": [
+                    816,
+                    811,
+                    820
+                ],
+                "self._impl.register": [
+                    813
+                ],
+                "events": [
+                    817,
+                    972,
+                    813,
+                    975
+                ],
+                "self.ERROR": [
+                    817,
+                    813
+                ],
+                "self._impl.modify": [
+                    817
+                ],
+                "self._handlers.pop": [
+                    821
+                ],
+                "self._events.pop": [
+                    822
+                ],
+                "self._impl.unregister": [
+                    824
+                ],
+                "gen_log.debug": [
+                    826
+                ],
+                "gen_log.error": [
+                    830
+                ],
+                "signal.signal": [
+                    835
+                ],
+                "signal.SIGALRM": [
+                    835
+                ],
+                "action": [
+                    836
+                ],
+                "signal.SIG_DFL": [
+                    836
+                ],
+                "self._setup_logging": [
+                    843
+                ],
+                "old_current": [
+                    991,
+                    847
+                ],
+                "thread.get_ident": [
+                    849,
+                    1027
+                ],
+                "thread": [
+                    849,
+                    1027
+                ],
+                "old_wakeup_fd": [
+                    992,
+                    993,
+                    868,
+                    873,
+                    874,
+                    878,
+                    879,
+                    883
+                ],
+                "os.name": [
+                    869
+                ],
+                "signal.set_wakeup_fd": [
+                    873,
+                    993,
+                    878
+                ],
+                "self._waker.write_fileno": [
+                    873
+                ],
+                "ncallbacks": [
+                    889,
+                    918
+                ],
+                "due_timeouts": [
+                    920,
+                    906,
+                    925,
+                    895
+                ],
+                "now": [
+                    897,
+                    905
+                ],
+                "heapq.heappop": [
+                    906,
+                    903
+                ],
+                "heapq": [
+                    1008,
+                    906,
+                    916,
+                    903
+                ],
+                "due_timeouts.append": [
+                    906
+                ],
+                "x": [
+                    914,
+                    915
+                ],
+                "x.callback": [
+                    915
+                ],
+                "heapq.heapify": [
+                    916
+                ],
+                "i": [
+                    918
+                ],
+                "self._run_callback": [
+                    922,
+                    919
+                ],
+                "self._callbacks.popleft": [
+                    919
+                ],
+                "timeout.callback": [
+                    921,
+                    922,
+                    1017
+                ],
+                "poll_timeout": [
+                    930,
+                    935,
+                    936,
+                    939,
+                    950
+                ],
+                "signal.setitimer": [
+                    947,
+                    990,
+                    963
+                ],
+                "signal.ITIMER_REAL": [
+                    947,
+                    990,
+                    963
+                ],
+                "event_pairs": [
+                    970,
+                    950
+                ],
+                "self._impl.poll": [
+                    950
+                ],
+                "errno_from_exception": [
+                    977,
+                    957
+                ],
+                "e": [
+                    977,
+                    957
+                ],
+                "errno.EINTR": [
+                    957
+                ],
+                "errno": [
+                    977,
+                    957
+                ],
+                "self._events.update": [
+                    970
+                ],
+                "self._events.popitem": [
+                    972
+                ],
+                "fd_obj": [
+                    984,
+                    974,
+                    975
+                ],
+                "handler_func": [
+                    984,
+                    974,
+                    975
+                ],
+                "errno.EPIPE": [
+                    977
+                ],
+                "self._handlers.get": [
+                    981,
+                    983
+                ],
+                "self._waker.wake": [
+                    998,
+                    1031
+                ],
+                "_Timeout": [
+                    1004
+                ],
+                "functools.partial": [
+                    1025,
+                    1006
+                ],
+                "functools": [
+                    1025,
+                    1006
+                ],
+                "heapq.heappush": [
+                    1008
+                ],
+                "self._callbacks.append": [
+                    1025
+                ],
+                "__slots__": [
+                    1045
+                ],
+                "self.deadline": [
+                    1050
+                ],
+                "self.callback": [
+                    1113,
+                    1081,
+                    1115,
+                    1051
+                ],
+                "self.tdeadline": [
+                    1059,
+                    1052,
+                    1062
+                ],
+                "io_loop._timeout_counter": [
+                    1052
+                ],
+                "io_loop": [
+                    1052
+                ],
+                "other.tdeadline": [
+                    1059,
+                    1062
+                ],
+                "other": [
+                    1059,
+                    1062
+                ],
+                "callback_time": [
+                    1082,
+                    1084
+                ],
+                "self.callback_time": [
+                    1124,
+                    1084
+                ],
+                "self.io_loop": [
+                    1121,
+                    1092,
+                    1128,
+                    1099,
+                    1115,
+                    1085
+                ],
+                "self._timeout": [
+                    1128,
+                    1098,
+                    1099,
+                    1100,
+                    1087
+                ],
+                "self._next_timeout": [
+                    1128,
+                    1123,
+                    1092,
+                    1125
+                ],
+                "self.io_loop.time": [
+                    1121,
+                    1092
+                ],
+                "self._schedule_next": [
+                    1117,
+                    1093
+                ],
+                "self.io_loop.remove_timeout": [
+                    1099
+                ],
+                "self.io_loop.handle_callback_exception": [
+                    1115
+                ],
+                "current_time": [
+                    1121,
+                    1123,
+                    1125
+                ],
+                "callback_time_sec": [
+                    1124,
+                    1126
+                ],
+                "math.floor": [
+                    1125
+                ],
+                "math": [
+                    1125
+                ],
+                "self.io_loop.add_timeout": [
+                    1128
+                ],
+                "self._run": [
+                    1128
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/tornado_7/tornado/test/ioloop_test.py",
+                "test_function": "test_run_in_executor_native",
+                "test_function_code": "    @skipBefore35\n    @gen_test\n    def test_run_in_executor_native(self):\n        event1 = threading.Event()\n        event2 = threading.Event()\n\n        def sync_func(self_event, other_event):\n            self_event.set()\n            other_event.wait()\n            return self_event\n\n        # Go through an async wrapper to ensure that the result of\n        # run_in_executor works with await and not just gen.coroutine\n        # (simply passing the underlying concurrrent future would do that).\n        namespace = exec_test(globals(), locals(), \"\"\"\n            async def async_wrapper(self_event, other_event):\n                return await IOLoop.current().run_in_executor(\n                    None, sync_func, self_event, other_event)\n        \"\"\")\n\n        res = yield [\n            namespace[\"async_wrapper\"](event1, event2),\n            namespace[\"async_wrapper\"](event2, event1)\n            ]\n\n        self.assertEqual([event1, event2], res)",
+                "test_error": "TypeError: object Future can't be used in 'await' expression",
+                "full_test_error": "self = <tornado.test.ioloop_test.TestIOLoopFutures testMethod=test_run_in_executor_native>\n\n    @skipBefore35\n    @gen_test\n    def test_run_in_executor_native(self):\n        event1 = threading.Event()\n        event2 = threading.Event()\n    \n        def sync_func(self_event, other_event):\n            self_event.set()\n            other_event.wait()\n            return self_event\n    \n        # Go through an async wrapper to ensure that the result of\n        # run_in_executor works with await and not just gen.coroutine\n        # (simply passing the underlying concurrrent future would do that).\n        namespace = exec_test(globals(), locals(), \"\"\"\n            async def async_wrapper(self_event, other_event):\n                return await IOLoop.current().run_in_executor(\n                    None, sync_func, self_event, other_event)\n        \"\"\")\n    \n        res = yield [\n            namespace[\"async_wrapper\"](event1, event2),\n>           namespace[\"async_wrapper\"](event2, event1)\n            ]\n\ntornado/test/ioloop_test.py:646: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/gen.py:1049: in run\n    value = future.result()\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:823: in callback\n    result_list.append(f.result())\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:303: in wrapper\n    yielded = next(result)\n<string>:6: in _wrap_awaitable\n    ???\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself_event = <threading.Event object at 0x10bad0e50>\nother_event = <threading.Event object at 0x10bad0ed0>\n\n>   ???\nE   TypeError: object Future can't be used in 'await' expression\n\n<string>:4: TypeError",
+                "traceback": "tornado/gen.py:1049: in run\n    value = future.result()\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:823: in callback\n    result_list.append(f.result())\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:303: in wrapper\n    yielded = next(result)\n<string>:6: in _wrap_awaitable\n    ???",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself_event = <threading.Event object at 0x10bad0e50>\nother_event = <threading.Event object at 0x10bad0ed0>\n\n>   ???\nE   TypeError: object Future can't be used in 'await' expression\n\n<string>:4: TypeError",
+                "test_function_decorators": [
+                    "skipBefore35",
+                    "gen_test"
+                ]
+            }
+        ]
+    }
+}

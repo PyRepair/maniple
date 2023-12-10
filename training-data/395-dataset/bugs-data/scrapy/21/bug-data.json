@@ -1,0 +1,797 @@
+{
+    "scrapy:21": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_21/scrapy/downloadermiddlewares/robotstxt.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_robots_error",
+                    "function_code": "def _robots_error(self, failure, netloc):\n    self._parsers.pop(netloc).callback(None)\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 103,
+                    "end_line": 104,
+                    "variables": {
+                        "callback": [
+                            104
+                        ],
+                        "self._parsers.pop": [
+                            104
+                        ],
+                        "self._parsers": [
+                            104
+                        ],
+                        "self": [
+                            104
+                        ],
+                        "netloc": [
+                            104
+                        ]
+                    },
+                    "filtered_variables": {
+                        "callback": [
+                            104
+                        ],
+                        "self._parsers.pop": [
+                            104
+                        ],
+                        "self._parsers": [
+                            104
+                        ],
+                        "self": [
+                            104
+                        ],
+                        "netloc": [
+                            104
+                        ]
+                    },
+                    "diff_line_number": 104,
+                    "class_data": {
+                        "signature": "class RobotsTxtMiddleware(object)",
+                        "docstring": null,
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, crawler):\n    if not crawler.settings.getbool('ROBOTSTXT_OBEY'):\n        raise NotConfigured\n    self.crawler = crawler\n    self._useragent = crawler.settings.get('USER_AGENT')\n    self._parsers = {}",
+                            "@classmethod\ndef from_crawler(cls, crawler):\n    return cls(crawler)",
+                            "def process_request(self, request, spider):\n    if request.meta.get('dont_obey_robotstxt'):\n        return\n    d = maybeDeferred(self.robot_parser, request, spider)\n    d.addCallback(self.process_request_2, request, spider)\n    return d",
+                            "def process_request_2(self, rp, request, spider):\n    if rp is not None and (not rp.can_fetch(self._useragent, request.url)):\n        logger.debug('Forbidden by robots.txt: %(request)s', {'request': request}, extra={'spider': spider})\n        raise IgnoreRequest()",
+                            "def robot_parser(self, request, spider):\n    url = urlparse_cached(request)\n    netloc = url.netloc\n    if netloc not in self._parsers:\n        self._parsers[netloc] = Deferred()\n        robotsurl = '%s://%s/robots.txt' % (url.scheme, url.netloc)\n        robotsreq = Request(robotsurl, priority=self.DOWNLOAD_PRIORITY, meta={'dont_obey_robotstxt': True})\n        dfd = self.crawler.engine.download(robotsreq, spider)\n        dfd.addCallback(self._parse_robots, netloc)\n        dfd.addErrback(self._logerror, robotsreq, spider)\n        dfd.addErrback(self._robots_error, netloc)\n    if isinstance(self._parsers[netloc], Deferred):\n        d = Deferred()\n\n        def cb(result):\n            d.callback(result)\n            return result\n        self._parsers[netloc].addCallback(cb)\n        return d\n    else:\n        return self._parsers[netloc]",
+                            "def _logerror(self, failure, request, spider):\n    if failure.type is not IgnoreRequest:\n        logger.error('Error downloading %(request)s: %(f_exception)s', {'request': request, 'f_exception': failure.value}, exc_info=failure_to_exc_info(failure), extra={'spider': spider})\n    return failure",
+                            "def _parse_robots(self, response, netloc):\n    rp = robotparser.RobotFileParser(response.url)\n    body = ''\n    if hasattr(response, 'text'):\n        body = response.text\n    else:\n        try:\n            body = response.body.decode('utf-8')\n        except UnicodeDecodeError:\n            pass\n    rp.parse(body.splitlines())\n    rp_dfd = self._parsers[netloc]\n    self._parsers[netloc] = rp\n    rp_dfd.callback(rp)",
+                            "def _robots_error(self, failure, netloc):\n    self._parsers.pop(netloc).callback(None)",
+                            "def cb(result):\n    d.callback(result)\n    return result"
+                        ],
+                        "constructor_variables": [
+                            "crawler",
+                            "_useragent",
+                            "_parsers"
+                        ],
+                        "class_level_variables": [
+                            "DOWNLOAD_PRIORITY"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, crawler)",
+                            "from_crawler(cls, crawler)",
+                            "process_request(self, request, spider)",
+                            "process_request_2(self, rp, request, spider)",
+                            "robot_parser(self, request, spider)",
+                            "_logerror(self, failure, request, spider)",
+                            "_parse_robots(self, response, netloc)",
+                            "_robots_error(self, failure, netloc)",
+                            "cb(result)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "callback": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._parsers.pop": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._parsers": {
+                                    "variable_value": "{'site.local': <Deferred at 0x10e210760>}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "self": {
+                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x10e2105b0>",
+                                    "variable_type": "RobotsTxtMiddleware",
+                                    "variable_shape": null
+                                },
+                                "netloc": {
+                                    "variable_value": "'site.local'",
+                                    "variable_type": "str",
+                                    "variable_shape": "10"
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "rp_dfd": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._parsers": {
+                                    "variable_value": "{'site.local': <Deferred at 0x104d5a4f0>}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "self": {
+                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x104d5a340>",
+                                    "variable_type": "RobotsTxtMiddleware",
+                                    "variable_shape": null
+                                },
+                                "netloc": {
+                                    "variable_value": "'site.local'",
+                                    "variable_type": "str",
+                                    "variable_shape": "10"
+                                },
+                                "rp_dfd.callback": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def __init__(self, crawler):\n    if not crawler.settings.getbool('ROBOTSTXT_OBEY'):\n        raise NotConfigured\n\n    self.crawler = crawler\n    self._useragent = crawler.settings.get('USER_AGENT')\n    self._parsers = {}",
+                "@classmethod\ndef from_crawler(cls, crawler):\n    return cls(crawler)",
+                "def process_request(self, request, spider):\n    if request.meta.get('dont_obey_robotstxt'):\n        return\n    d = maybeDeferred(self.robot_parser, request, spider)\n    d.addCallback(self.process_request_2, request, spider)\n    return d",
+                "def process_request_2(self, rp, request, spider):\n    if rp is not None and not rp.can_fetch(self._useragent, request.url):\n        logger.debug(\"Forbidden by robots.txt: %(request)s\",\n                     {'request': request}, extra={'spider': spider})\n        raise IgnoreRequest()",
+                "def robot_parser(self, request, spider):\n    url = urlparse_cached(request)\n    netloc = url.netloc\n\n    if netloc not in self._parsers:\n        self._parsers[netloc] = Deferred()\n        robotsurl = \"%s://%s/robots.txt\" % (url.scheme, url.netloc)\n        robotsreq = Request(\n            robotsurl,\n            priority=self.DOWNLOAD_PRIORITY,\n            meta={'dont_obey_robotstxt': True}\n        )\n        dfd = self.crawler.engine.download(robotsreq, spider)\n        dfd.addCallback(self._parse_robots, netloc)\n        dfd.addErrback(self._logerror, robotsreq, spider)\n        dfd.addErrback(self._robots_error, netloc)\n\n    if isinstance(self._parsers[netloc], Deferred):\n        d = Deferred()\n        def cb(result):\n            d.callback(result)\n            return result\n        self._parsers[netloc].addCallback(cb)\n        return d\n    else:\n        return self._parsers[netloc]",
+                "def _logerror(self, failure, request, spider):\n    if failure.type is not IgnoreRequest:\n        logger.error(\"Error downloading %(request)s: %(f_exception)s\",\n                     {'request': request, 'f_exception': failure.value},\n                     exc_info=failure_to_exc_info(failure),\n                     extra={'spider': spider})\n    return failure",
+                "def _parse_robots(self, response, netloc):\n    rp = robotparser.RobotFileParser(response.url)\n    body = ''\n    if hasattr(response, 'text'):\n        body = response.text\n    else: # last effort try\n        try:\n            body = response.body.decode('utf-8')\n        except UnicodeDecodeError:\n            # If we found garbage, disregard it:,\n            # but keep the lookup cached (in self._parsers)\n            # Running rp.parse() will set rp state from\n            # 'disallow all' to 'allow any'.\n            pass\n    rp.parse(body.splitlines())\n\n    rp_dfd = self._parsers[netloc]\n    self._parsers[netloc] = rp\n    rp_dfd.callback(rp)",
+                "def _robots_error(self, failure, netloc):\n    self._parsers.pop(netloc).callback(None)",
+                "def cb(result):\n    d.callback(result)\n    return result"
+            ],
+            "inscope_function_signatures": [
+                "__init__(self, crawler)",
+                "from_crawler(cls, crawler)",
+                "process_request(self, request, spider)",
+                "process_request_2(self, rp, request, spider)",
+                "robot_parser(self, request, spider)",
+                "_logerror(self, failure, request, spider)",
+                "_parse_robots(self, response, netloc)",
+                "_robots_error(self, failure, netloc)",
+                "cb(result)"
+            ],
+            "variables_in_file": {
+                "logger": [
+                    17,
+                    44,
+                    77
+                ],
+                "logging.getLogger": [
+                    17
+                ],
+                "logging": [
+                    17
+                ],
+                "__name__": [
+                    17
+                ],
+                "object": [
+                    20
+                ],
+                "DOWNLOAD_PRIORITY": [
+                    21
+                ],
+                "crawler.settings.getbool": [
+                    24
+                ],
+                "crawler.settings": [
+                    24,
+                    28
+                ],
+                "crawler": [
+                    24,
+                    33,
+                    27,
+                    28
+                ],
+                "NotConfigured": [
+                    25
+                ],
+                "self.crawler": [
+                    27,
+                    60
+                ],
+                "self": [
+                    27,
+                    28,
+                    29,
+                    38,
+                    39,
+                    43,
+                    52,
+                    53,
+                    57,
+                    60,
+                    61,
+                    62,
+                    63,
+                    65,
+                    70,
+                    73,
+                    99,
+                    100,
+                    104
+                ],
+                "self._useragent": [
+                    43,
+                    28
+                ],
+                "crawler.settings.get": [
+                    28
+                ],
+                "self._parsers": [
+                    65,
+                    99,
+                    100,
+                    70,
+                    104,
+                    73,
+                    52,
+                    53,
+                    29
+                ],
+                "cls": [
+                    33
+                ],
+                "classmethod": [
+                    31
+                ],
+                "request.meta.get": [
+                    36
+                ],
+                "request.meta": [
+                    36
+                ],
+                "request": [
+                    36,
+                    38,
+                    39,
+                    43,
+                    45,
+                    78,
+                    49
+                ],
+                "d": [
+                    66,
+                    68,
+                    38,
+                    39,
+                    40,
+                    71
+                ],
+                "maybeDeferred": [
+                    38
+                ],
+                "self.robot_parser": [
+                    38
+                ],
+                "spider": [
+                    38,
+                    39,
+                    45,
+                    80,
+                    60,
+                    62
+                ],
+                "d.addCallback": [
+                    39
+                ],
+                "self.process_request_2": [
+                    39
+                ],
+                "rp": [
+                    97,
+                    100,
+                    101,
+                    43,
+                    84
+                ],
+                "rp.can_fetch": [
+                    43
+                ],
+                "request.url": [
+                    43
+                ],
+                "logger.debug": [
+                    44
+                ],
+                "IgnoreRequest": [
+                    76,
+                    46
+                ],
+                "url": [
+                    49,
+                    50,
+                    54
+                ],
+                "urlparse_cached": [
+                    49
+                ],
+                "netloc": [
+                    65,
+                    99,
+                    100,
+                    70,
+                    104,
+                    73,
+                    50,
+                    52,
+                    53,
+                    61,
+                    63
+                ],
+                "url.netloc": [
+                    50,
+                    54
+                ],
+                "Deferred": [
+                    65,
+                    66,
+                    53
+                ],
+                "robotsurl": [
+                    56,
+                    54
+                ],
+                "url.scheme": [
+                    54
+                ],
+                "robotsreq": [
+                    60,
+                    62,
+                    55
+                ],
+                "Request": [
+                    55
+                ],
+                "self.DOWNLOAD_PRIORITY": [
+                    57
+                ],
+                "dfd": [
+                    60,
+                    61,
+                    62,
+                    63
+                ],
+                "self.crawler.engine.download": [
+                    60
+                ],
+                "self.crawler.engine": [
+                    60
+                ],
+                "dfd.addCallback": [
+                    61
+                ],
+                "self._parse_robots": [
+                    61
+                ],
+                "dfd.addErrback": [
+                    62,
+                    63
+                ],
+                "self._logerror": [
+                    62
+                ],
+                "self._robots_error": [
+                    63
+                ],
+                "isinstance": [
+                    65
+                ],
+                "d.callback": [
+                    68
+                ],
+                "result": [
+                    68,
+                    69
+                ],
+                "addCallback": [
+                    70
+                ],
+                "cb": [
+                    70
+                ],
+                "failure.type": [
+                    76
+                ],
+                "failure": [
+                    81,
+                    76,
+                    78,
+                    79
+                ],
+                "logger.error": [
+                    77
+                ],
+                "failure.value": [
+                    78
+                ],
+                "failure_to_exc_info": [
+                    79
+                ],
+                "robotparser.RobotFileParser": [
+                    84
+                ],
+                "robotparser": [
+                    84
+                ],
+                "response.url": [
+                    84
+                ],
+                "response": [
+                    90,
+                    84,
+                    86,
+                    87
+                ],
+                "body": [
+                    97,
+                    90,
+                    85,
+                    87
+                ],
+                "hasattr": [
+                    86
+                ],
+                "response.text": [
+                    87
+                ],
+                "response.body.decode": [
+                    90
+                ],
+                "response.body": [
+                    90
+                ],
+                "UnicodeDecodeError": [
+                    91
+                ],
+                "rp.parse": [
+                    97
+                ],
+                "body.splitlines": [
+                    97
+                ],
+                "rp_dfd": [
+                    99,
+                    101
+                ],
+                "rp_dfd.callback": [
+                    101
+                ],
+                "callback": [
+                    104
+                ],
+                "self._parsers.pop": [
+                    104
+                ]
+            },
+            "filtered_variables_in_file": {
+                "logger": [
+                    17,
+                    44,
+                    77
+                ],
+                "logging.getLogger": [
+                    17
+                ],
+                "logging": [
+                    17
+                ],
+                "DOWNLOAD_PRIORITY": [
+                    21
+                ],
+                "crawler.settings.getbool": [
+                    24
+                ],
+                "crawler.settings": [
+                    24,
+                    28
+                ],
+                "crawler": [
+                    24,
+                    33,
+                    27,
+                    28
+                ],
+                "NotConfigured": [
+                    25
+                ],
+                "self.crawler": [
+                    27,
+                    60
+                ],
+                "self": [
+                    27,
+                    28,
+                    29,
+                    38,
+                    39,
+                    43,
+                    52,
+                    53,
+                    57,
+                    60,
+                    61,
+                    62,
+                    63,
+                    65,
+                    70,
+                    73,
+                    99,
+                    100,
+                    104
+                ],
+                "self._useragent": [
+                    43,
+                    28
+                ],
+                "crawler.settings.get": [
+                    28
+                ],
+                "self._parsers": [
+                    65,
+                    99,
+                    100,
+                    70,
+                    104,
+                    73,
+                    52,
+                    53,
+                    29
+                ],
+                "cls": [
+                    33
+                ],
+                "request.meta.get": [
+                    36
+                ],
+                "request.meta": [
+                    36
+                ],
+                "request": [
+                    36,
+                    38,
+                    39,
+                    43,
+                    45,
+                    78,
+                    49
+                ],
+                "d": [
+                    66,
+                    68,
+                    38,
+                    39,
+                    40,
+                    71
+                ],
+                "maybeDeferred": [
+                    38
+                ],
+                "self.robot_parser": [
+                    38
+                ],
+                "spider": [
+                    38,
+                    39,
+                    45,
+                    80,
+                    60,
+                    62
+                ],
+                "d.addCallback": [
+                    39
+                ],
+                "self.process_request_2": [
+                    39
+                ],
+                "rp": [
+                    97,
+                    100,
+                    101,
+                    43,
+                    84
+                ],
+                "rp.can_fetch": [
+                    43
+                ],
+                "request.url": [
+                    43
+                ],
+                "logger.debug": [
+                    44
+                ],
+                "IgnoreRequest": [
+                    76,
+                    46
+                ],
+                "url": [
+                    49,
+                    50,
+                    54
+                ],
+                "urlparse_cached": [
+                    49
+                ],
+                "netloc": [
+                    65,
+                    99,
+                    100,
+                    70,
+                    104,
+                    73,
+                    50,
+                    52,
+                    53,
+                    61,
+                    63
+                ],
+                "url.netloc": [
+                    50,
+                    54
+                ],
+                "Deferred": [
+                    65,
+                    66,
+                    53
+                ],
+                "robotsurl": [
+                    56,
+                    54
+                ],
+                "url.scheme": [
+                    54
+                ],
+                "robotsreq": [
+                    60,
+                    62,
+                    55
+                ],
+                "Request": [
+                    55
+                ],
+                "self.DOWNLOAD_PRIORITY": [
+                    57
+                ],
+                "dfd": [
+                    60,
+                    61,
+                    62,
+                    63
+                ],
+                "self.crawler.engine.download": [
+                    60
+                ],
+                "self.crawler.engine": [
+                    60
+                ],
+                "dfd.addCallback": [
+                    61
+                ],
+                "self._parse_robots": [
+                    61
+                ],
+                "dfd.addErrback": [
+                    62,
+                    63
+                ],
+                "self._logerror": [
+                    62
+                ],
+                "self._robots_error": [
+                    63
+                ],
+                "d.callback": [
+                    68
+                ],
+                "result": [
+                    68,
+                    69
+                ],
+                "addCallback": [
+                    70
+                ],
+                "cb": [
+                    70
+                ],
+                "failure.type": [
+                    76
+                ],
+                "failure": [
+                    81,
+                    76,
+                    78,
+                    79
+                ],
+                "logger.error": [
+                    77
+                ],
+                "failure.value": [
+                    78
+                ],
+                "failure_to_exc_info": [
+                    79
+                ],
+                "robotparser.RobotFileParser": [
+                    84
+                ],
+                "robotparser": [
+                    84
+                ],
+                "response.url": [
+                    84
+                ],
+                "response": [
+                    90,
+                    84,
+                    86,
+                    87
+                ],
+                "body": [
+                    97,
+                    90,
+                    85,
+                    87
+                ],
+                "response.text": [
+                    87
+                ],
+                "response.body.decode": [
+                    90
+                ],
+                "response.body": [
+                    90
+                ],
+                "rp.parse": [
+                    97
+                ],
+                "body.splitlines": [
+                    97
+                ],
+                "rp_dfd": [
+                    99,
+                    101
+                ],
+                "rp_dfd.callback": [
+                    101
+                ],
+                "callback": [
+                    104
+                ],
+                "self._parsers.pop": [
+                    104
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_21/tests/test_downloadermiddleware_robotstxt.py",
+                "test_function": "test_robotstxt_immediate_error",
+                "test_function_code": "    def test_robotstxt_immediate_error(self):\n        self.crawler.settings.set('ROBOTSTXT_OBEY', True)\n        err = error.DNSLookupError('Robotstxt address not found')\n        def immediate_failure(request, spider):\n            deferred = Deferred()\n            deferred.errback(failure.Failure(err))\n            return deferred\n        self.crawler.engine.download.side_effect = immediate_failure\n\n        middleware = RobotsTxtMiddleware(self.crawler)\n        return self.assertNotIgnored(Request('http://site.local'), middleware)",
+                "test_error": "KeyError: 'site.local'",
+                "full_test_error": "f = <bound method RobotsTxtMiddleware.robot_parser of <scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x104656310>>\nargs = (<GET http://site.local>, None), kw = {}\n\n    def maybeDeferred(f, *args, **kw):\n        \"\"\"\n        Invoke a function that may or may not return a L{Deferred}.\n    \n        Call the given function with the given arguments.  If the returned\n        object is a L{Deferred}, return it.  If the returned object is a L{Failure},\n        wrap it with L{fail} and return it.  Otherwise, wrap it in L{succeed} and\n        return it.  If an exception is raised, convert it to a L{Failure}, wrap it\n        in L{fail}, and then return it.\n    \n        @type f: Any callable\n        @param f: The callable to invoke\n    \n        @param args: The arguments to pass to C{f}\n        @param kw: The keyword arguments to pass to C{f}\n    \n        @rtype: L{Deferred}\n        @return: The result of the function call, wrapped in a L{Deferred} if\n        necessary.\n        \"\"\"\n        try:\n>           result = f(*args, **kw)\n\n/Volumes/SSD2T/bgp_envs_non_pandas/envs/scrapy_21/lib/python3.8/site-packages/twisted/internet/defer.py:151: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x104656310>\nrequest = <GET http://site.local>, spider = None\n\n    def robot_parser(self, request, spider):\n        url = urlparse_cached(request)\n        netloc = url.netloc\n    \n        if netloc not in self._parsers:\n            self._parsers[netloc] = Deferred()\n            robotsurl = \"%s://%s/robots.txt\" % (url.scheme, url.netloc)\n            robotsreq = Request(\n                robotsurl,\n                priority=self.DOWNLOAD_PRIORITY,\n                meta={'dont_obey_robotstxt': True}\n            )\n            dfd = self.crawler.engine.download(robotsreq, spider)\n            dfd.addCallback(self._parse_robots, netloc)\n            dfd.addErrback(self._logerror, robotsreq, spider)\n            dfd.addErrback(self._robots_error, netloc)\n    \n>       if isinstance(self._parsers[netloc], Deferred):\nE       KeyError: 'site.local'\n\n/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_21/scrapy/downloadermiddlewares/robotstxt.py:65: KeyError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

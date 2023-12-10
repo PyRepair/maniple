@@ -1,0 +1,641 @@
+{
+    "youtube-dl:36": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/youtube-dl_36/youtube_dl/extractor/facebook.py": {
+            "buggy_functions": [],
+            "snippets": [
+                {
+                    "snippet_code": "(?:[^#?]*\\#!/)?\n        (?:video/video\\.php|photo\\.php|video/embed)\\?(?:.*?)",
+                    "start_line": 23,
+                    "end_line": 24
+                }
+            ],
+            "inscope_functions": [
+                "def _login(self):\n    (useremail, password) = self._get_login_info()\n    if useremail is None:\n        return\n\n    login_page_req = compat_urllib_request.Request(self._LOGIN_URL)\n    login_page_req.add_header('Cookie', 'locale=en_US')\n    login_page = self._download_webpage(login_page_req, None,\n        note='Downloading login page',\n        errnote='Unable to download login page')\n    lsd = self._search_regex(\n        r'<input type=\"hidden\" name=\"lsd\" value=\"([^\"]*)\"',\n        login_page, 'lsd')\n    lgnrnd = self._search_regex(r'name=\"lgnrnd\" value=\"([^\"]*?)\"', login_page, 'lgnrnd')\n\n    login_form = {\n        'email': useremail,\n        'pass': password,\n        'lsd': lsd,\n        'lgnrnd': lgnrnd,\n        'next': 'http://facebook.com/home.php',\n        'default_persistent': '0',\n        'legacy_return': '1',\n        'timezone': '-60',\n        'trynum': '1',\n        }\n    request = compat_urllib_request.Request(self._LOGIN_URL, urlencode_postdata(login_form))\n    request.add_header('Content-Type', 'application/x-www-form-urlencoded')\n    try:\n        login_results = self._download_webpage(request, None,\n            note='Logging in', errnote='unable to fetch login page')\n        if re.search(r'<form(.*)name=\"login\"(.*)</form>', login_results) is not None:\n            self._downloader.report_warning('unable to log in: bad username/password, or exceded login rate limit (~3/min). Check credentials or wait.')\n            return\n\n        check_form = {\n            'fb_dtsg': self._search_regex(r'name=\"fb_dtsg\" value=\"(.+?)\"', login_results, 'fb_dtsg'),\n            'h': self._search_regex(r'name=\"h\" value=\"(\\w*?)\"', login_results, 'h'),\n            'name_action_selected': 'dont_save',\n        }\n        check_req = compat_urllib_request.Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))\n        check_req.add_header('Content-Type', 'application/x-www-form-urlencoded')\n        check_response = self._download_webpage(check_req, None,\n            note='Confirming login')\n        if re.search(r'id=\"checkpointSubmitButton\"', check_response) is not None:\n            self._downloader.report_warning('Unable to confirm login, you have to login in your brower and authorize the login.')\n    except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:\n        self._downloader.report_warning('unable to log in: %s' % compat_str(err))\n        return",
+                "def _real_initialize(self):\n    self._login()",
+                "def _real_extract(self, url):\n    mobj = re.match(self._VALID_URL, url)\n    video_id = mobj.group('id')\n\n    url = 'https://www.facebook.com/video/video.php?v=%s' % video_id\n    webpage = self._download_webpage(url, video_id)\n\n    BEFORE = '{swf.addParam(param[0], param[1]);});\\n'\n    AFTER = '.forEach(function(variable) {swf.addVariable(variable[0], variable[1]);});'\n    m = re.search(re.escape(BEFORE) + '(.*?)' + re.escape(AFTER), webpage)\n    if not m:\n        m_msg = re.search(r'class=\"[^\"]*uiInterstitialContent[^\"]*\"><div>(.*?)</div>', webpage)\n        if m_msg is not None:\n            raise ExtractorError(\n                'The video is not available, Facebook said: \"%s\"' % m_msg.group(1),\n                expected=True)\n        else:\n            raise ExtractorError('Cannot parse data')\n    data = dict(json.loads(m.group(1)))\n    params_raw = compat_urllib_parse.unquote(data['params'])\n    params = json.loads(params_raw)\n    video_data = params['video_data'][0]\n    video_url = video_data.get('hd_src')\n    if not video_url:\n        video_url = video_data['sd_src']\n    if not video_url:\n        raise ExtractorError('Cannot find video URL')\n\n    video_title = self._html_search_regex(\n        r'<h2 class=\"uiHeaderTitle\">([^<]*)</h2>', webpage, 'title')\n\n    return {\n        'id': video_id,\n        'title': video_title,\n        'url': video_url,\n        'duration': int(video_data['video_duration']),\n        'thumbnail': video_data['thumbnail_src'],\n    }"
+            ],
+            "inscope_function_signatures": [
+                "_login(self)",
+                "_real_initialize(self)",
+                "_real_extract(self, url)"
+            ],
+            "variables_in_file": {
+                "InfoExtractor": [
+                    20
+                ],
+                "_VALID_URL": [
+                    21
+                ],
+                "_LOGIN_URL": [
+                    27
+                ],
+                "_CHECKPOINT_URL": [
+                    28
+                ],
+                "_NETRC_MACHINE": [
+                    29
+                ],
+                "IE_NAME": [
+                    30
+                ],
+                "_TEST": [
+                    31
+                ],
+                "useremail": [
+                    58,
+                    43,
+                    44
+                ],
+                "password": [
+                    59,
+                    43
+                ],
+                "self._get_login_info": [
+                    43
+                ],
+                "self": [
+                    96,
+                    68,
+                    100,
+                    71,
+                    74,
+                    43,
+                    78,
+                    47,
+                    79,
+                    49,
+                    82,
+                    52,
+                    84,
+                    87,
+                    55,
+                    89,
+                    123,
+                    93
+                ],
+                "login_page_req": [
+                    48,
+                    49,
+                    47
+                ],
+                "compat_urllib_request.Request": [
+                    82,
+                    68,
+                    47
+                ],
+                "compat_urllib_request": [
+                    82,
+                    68,
+                    47
+                ],
+                "self._LOGIN_URL": [
+                    68,
+                    47
+                ],
+                "login_page_req.add_header": [
+                    48
+                ],
+                "login_page": [
+                    49,
+                    54,
+                    55
+                ],
+                "self._download_webpage": [
+                    100,
+                    49,
+                    84,
+                    71
+                ],
+                "lsd": [
+                    52,
+                    60
+                ],
+                "self._search_regex": [
+                    52,
+                    79,
+                    78,
+                    55
+                ],
+                "lgnrnd": [
+                    61,
+                    55
+                ],
+                "login_form": [
+                    57,
+                    68
+                ],
+                "request": [
+                    68,
+                    69,
+                    71
+                ],
+                "urlencode_postdata": [
+                    82,
+                    68
+                ],
+                "request.add_header": [
+                    69
+                ],
+                "login_results": [
+                    73,
+                    79,
+                    78,
+                    71
+                ],
+                "re.search": [
+                    104,
+                    73,
+                    106,
+                    86
+                ],
+                "re": [
+                    96,
+                    104,
+                    73,
+                    106,
+                    86
+                ],
+                "self._downloader.report_warning": [
+                    89,
+                    74,
+                    87
+                ],
+                "self._downloader": [
+                    89,
+                    74,
+                    87
+                ],
+                "check_form": [
+                    82,
+                    77
+                ],
+                "check_req": [
+                    82,
+                    83,
+                    84
+                ],
+                "self._CHECKPOINT_URL": [
+                    82
+                ],
+                "check_req.add_header": [
+                    83
+                ],
+                "check_response": [
+                    84,
+                    86
+                ],
+                "compat_urllib_error.URLError": [
+                    88
+                ],
+                "compat_urllib_error": [
+                    88
+                ],
+                "compat_http_client.HTTPException": [
+                    88
+                ],
+                "compat_http_client": [
+                    88
+                ],
+                "socket.error": [
+                    88
+                ],
+                "socket": [
+                    88
+                ],
+                "compat_str": [
+                    89
+                ],
+                "err": [
+                    89
+                ],
+                "self._login": [
+                    93
+                ],
+                "mobj": [
+                    96,
+                    97
+                ],
+                "re.match": [
+                    96
+                ],
+                "self._VALID_URL": [
+                    96
+                ],
+                "url": [
+                    96,
+                    99,
+                    100
+                ],
+                "video_id": [
+                    97,
+                    99,
+                    100,
+                    127
+                ],
+                "mobj.group": [
+                    97
+                ],
+                "webpage": [
+                    104,
+                    124,
+                    106,
+                    100
+                ],
+                "BEFORE": [
+                    104,
+                    102
+                ],
+                "AFTER": [
+                    104,
+                    103
+                ],
+                "m": [
+                    104,
+                    105,
+                    113
+                ],
+                "re.escape": [
+                    104
+                ],
+                "m_msg": [
+                    106,
+                    107,
+                    109
+                ],
+                "ExtractorError": [
+                    112,
+                    121,
+                    108
+                ],
+                "m_msg.group": [
+                    109
+                ],
+                "data": [
+                    113,
+                    114
+                ],
+                "dict": [
+                    113
+                ],
+                "json.loads": [
+                    113,
+                    115
+                ],
+                "json": [
+                    113,
+                    115
+                ],
+                "m.group": [
+                    113
+                ],
+                "params_raw": [
+                    114,
+                    115
+                ],
+                "compat_urllib_parse.unquote": [
+                    114
+                ],
+                "compat_urllib_parse": [
+                    114
+                ],
+                "params": [
+                    115,
+                    116
+                ],
+                "video_data": [
+                    130,
+                    131,
+                    116,
+                    117,
+                    119
+                ],
+                "video_url": [
+                    129,
+                    117,
+                    118,
+                    119,
+                    120
+                ],
+                "video_data.get": [
+                    117
+                ],
+                "video_title": [
+                    128,
+                    123
+                ],
+                "self._html_search_regex": [
+                    123
+                ],
+                "int": [
+                    130
+                ]
+            },
+            "filtered_variables_in_file": {
+                "InfoExtractor": [
+                    20
+                ],
+                "_VALID_URL": [
+                    21
+                ],
+                "_LOGIN_URL": [
+                    27
+                ],
+                "_CHECKPOINT_URL": [
+                    28
+                ],
+                "_NETRC_MACHINE": [
+                    29
+                ],
+                "IE_NAME": [
+                    30
+                ],
+                "_TEST": [
+                    31
+                ],
+                "useremail": [
+                    58,
+                    43,
+                    44
+                ],
+                "password": [
+                    59,
+                    43
+                ],
+                "self._get_login_info": [
+                    43
+                ],
+                "self": [
+                    96,
+                    68,
+                    100,
+                    71,
+                    74,
+                    43,
+                    78,
+                    47,
+                    79,
+                    49,
+                    82,
+                    52,
+                    84,
+                    87,
+                    55,
+                    89,
+                    123,
+                    93
+                ],
+                "login_page_req": [
+                    48,
+                    49,
+                    47
+                ],
+                "compat_urllib_request.Request": [
+                    82,
+                    68,
+                    47
+                ],
+                "compat_urllib_request": [
+                    82,
+                    68,
+                    47
+                ],
+                "self._LOGIN_URL": [
+                    68,
+                    47
+                ],
+                "login_page_req.add_header": [
+                    48
+                ],
+                "login_page": [
+                    49,
+                    54,
+                    55
+                ],
+                "self._download_webpage": [
+                    100,
+                    49,
+                    84,
+                    71
+                ],
+                "lsd": [
+                    52,
+                    60
+                ],
+                "self._search_regex": [
+                    52,
+                    79,
+                    78,
+                    55
+                ],
+                "lgnrnd": [
+                    61,
+                    55
+                ],
+                "login_form": [
+                    57,
+                    68
+                ],
+                "request": [
+                    68,
+                    69,
+                    71
+                ],
+                "urlencode_postdata": [
+                    82,
+                    68
+                ],
+                "request.add_header": [
+                    69
+                ],
+                "login_results": [
+                    73,
+                    79,
+                    78,
+                    71
+                ],
+                "re.search": [
+                    104,
+                    73,
+                    106,
+                    86
+                ],
+                "re": [
+                    96,
+                    104,
+                    73,
+                    106,
+                    86
+                ],
+                "self._downloader.report_warning": [
+                    89,
+                    74,
+                    87
+                ],
+                "self._downloader": [
+                    89,
+                    74,
+                    87
+                ],
+                "check_form": [
+                    82,
+                    77
+                ],
+                "check_req": [
+                    82,
+                    83,
+                    84
+                ],
+                "self._CHECKPOINT_URL": [
+                    82
+                ],
+                "check_req.add_header": [
+                    83
+                ],
+                "check_response": [
+                    84,
+                    86
+                ],
+                "compat_urllib_error.URLError": [
+                    88
+                ],
+                "compat_urllib_error": [
+                    88
+                ],
+                "compat_http_client.HTTPException": [
+                    88
+                ],
+                "compat_http_client": [
+                    88
+                ],
+                "socket.error": [
+                    88
+                ],
+                "socket": [
+                    88
+                ],
+                "compat_str": [
+                    89
+                ],
+                "err": [
+                    89
+                ],
+                "self._login": [
+                    93
+                ],
+                "mobj": [
+                    96,
+                    97
+                ],
+                "re.match": [
+                    96
+                ],
+                "self._VALID_URL": [
+                    96
+                ],
+                "url": [
+                    96,
+                    99,
+                    100
+                ],
+                "video_id": [
+                    97,
+                    99,
+                    100,
+                    127
+                ],
+                "mobj.group": [
+                    97
+                ],
+                "webpage": [
+                    104,
+                    124,
+                    106,
+                    100
+                ],
+                "BEFORE": [
+                    104,
+                    102
+                ],
+                "AFTER": [
+                    104,
+                    103
+                ],
+                "m": [
+                    104,
+                    105,
+                    113
+                ],
+                "re.escape": [
+                    104
+                ],
+                "m_msg": [
+                    106,
+                    107,
+                    109
+                ],
+                "ExtractorError": [
+                    112,
+                    121,
+                    108
+                ],
+                "m_msg.group": [
+                    109
+                ],
+                "data": [
+                    113,
+                    114
+                ],
+                "json.loads": [
+                    113,
+                    115
+                ],
+                "json": [
+                    113,
+                    115
+                ],
+                "m.group": [
+                    113
+                ],
+                "params_raw": [
+                    114,
+                    115
+                ],
+                "compat_urllib_parse.unquote": [
+                    114
+                ],
+                "compat_urllib_parse": [
+                    114
+                ],
+                "params": [
+                    115,
+                    116
+                ],
+                "video_data": [
+                    130,
+                    131,
+                    116,
+                    117,
+                    119
+                ],
+                "video_url": [
+                    129,
+                    117,
+                    118,
+                    119,
+                    120
+                ],
+                "video_data.get": [
+                    117
+                ],
+                "video_title": [
+                    128,
+                    123
+                ],
+                "self._html_search_regex": [
+                    123
+                ]
+            }
+        },
+        "test_data": []
+    }
+}

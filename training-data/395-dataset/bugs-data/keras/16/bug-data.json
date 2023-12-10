@@ -1,0 +1,2684 @@
+{
+    "keras:16": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_16/keras/engine/sequential.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "__init__",
+                    "function_code": "def __init__(self, layers=None, name=None):\n    super(Sequential, self).__init__(name=name)\n\n    # Add to the model any layers passed to the constructor.\n    if layers:\n        for layer in layers:\n            self.add(layer)\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 86,
+                    "end_line": 92,
+                    "variables": {
+                        "__init__": [
+                            87
+                        ],
+                        "super": [
+                            87
+                        ],
+                        "Sequential": [
+                            87
+                        ],
+                        "self": [
+                            92,
+                            87
+                        ],
+                        "name": [
+                            87
+                        ],
+                        "layers": [
+                            90,
+                            91
+                        ],
+                        "layer": [
+                            91,
+                            92
+                        ],
+                        "self.add": [
+                            92
+                        ]
+                    },
+                    "filtered_variables": {
+                        "__init__": [
+                            87
+                        ],
+                        "Sequential": [
+                            87
+                        ],
+                        "self": [
+                            92,
+                            87
+                        ],
+                        "name": [
+                            87
+                        ],
+                        "layers": [
+                            90,
+                            91
+                        ],
+                        "layer": [
+                            91,
+                            92
+                        ],
+                        "self.add": [
+                            92
+                        ]
+                    },
+                    "diff_line_number": 87,
+                    "class_data": {
+                        "signature": "class Sequential(Model)",
+                        "docstring": "Linear stack of layers.\n\n# Arguments\n    layers: list of layers to add to the model.\n\n# Example\n\n```python\n# Optionally, the first layer can receive an `input_shape` argument:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\n\n# Afterwards, we do automatic shape inference:\nmodel.add(Dense(32))\n\n# This is identical to the following:\nmodel = Sequential()\nmodel.add(Dense(32, input_dim=500))\n\n# And to the following:\nmodel = Sequential()\nmodel.add(Dense(32, batch_input_shape=(None, 500)))\n\n# Note that you can also omit the `input_shape` argument:\n# In that case the model gets built the first time you call `fit` (or other\n# training and evaluation methods).\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.compile(optimizer=optimizer, loss=loss)\n\n# This builds the model for the first time:\nmodel.fit(x, y, batch_size=32, epochs=10)\n\n# Note that when using this delayed-build pattern\n# (no input shape specified),\n# the model doesn't have any weights until the first call\n# to a training/evaluation method (since it isn't yet built):\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.weights  # returns []\n\n# Whereas if you specify the input shape, the model gets built continuously\n# as you are adding layers:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\nmodel.add(Dense(32))\nmodel.weights  # returns list of length 4\n\n# When using the delayed-build pattern (no input shape specified), you can\n# choose to manually build your model by calling\n# `build(batch_input_shape)`:\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.build((None, 500))\nmodel.weights  # returns list of length 4\n```",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, layers=None, name=None):\n    super(Sequential, self).__init__(name=name)\n    if layers:\n        for layer in layers:\n            self.add(layer)",
+                            "@property\ndef layers(self):\n    if self._layers and isinstance(self._layers[0], InputLayer):\n        return self._layers[1:]\n    return self._layers",
+                            "@property\ndef model(self):\n    warnings.warn('`Sequential.model` is deprecated. `Sequential` is a subclass of `Model`, you can just use your `Sequential` instance directly.')\n    return self",
+                            "def add(self, layer):\n    \"\"\"Adds a layer instance on top of the layer stack.\n\n    # Arguments\n        layer: layer instance.\n\n    # Raises\n        TypeError: If `layer` is not a layer instance.\n        ValueError: In case the `layer` argument does not\n            know its input shape.\n        ValueError: In case the `layer` argument has\n            multiple output tensors, or is already connected\n            somewhere else (forbidden in `Sequential` models).\n    \"\"\"\n    if not isinstance(layer, Layer):\n        raise TypeError('The added layer must be an instance of class Layer. Found: ' + str(layer))\n    self.built = False\n    if not self._layers:\n        set_inputs = False\n        if not isinstance(layer, InputLayer):\n            first_layer = layer\n            if isinstance(layer, (Model, Sequential)):\n                if not layer.layers:\n                    raise ValueError('Cannot add an empty model to a `Sequential` model.')\n                first_layer = layer.layers[0]\n                while isinstance(first_layer, (Model, Sequential)):\n                    first_layer = first_layer.layers[0]\n            if hasattr(first_layer, 'batch_input_shape'):\n                batch_shape = first_layer.batch_input_shape\n                dtype = first_layer.dtype\n                x = Input(batch_shape=batch_shape, dtype=dtype, name=layer.name + '_input')\n                layer(x)\n                set_inputs = True\n        else:\n            assert len(layer._inbound_nodes[-1].output_tensors) == 1\n            set_inputs = True\n        if set_inputs:\n            if len(layer._inbound_nodes[-1].output_tensors) != 1:\n                raise ValueError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n            self.outputs = [layer._inbound_nodes[-1].output_tensors[0]]\n            self.inputs = network.get_source_inputs(self.outputs[0])\n    elif self.outputs:\n        output_tensor = layer(self.outputs[0])\n        if isinstance(output_tensor, list):\n            raise TypeError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n        self.outputs = [output_tensor]\n    if self.inputs:\n        self.build()\n    else:\n        self._layers.append(layer)",
+                            "def pop(self):\n    \"\"\"Removes the last layer in the model.\n\n    # Raises\n        TypeError: if there are no layers in the model.\n    \"\"\"\n    if not self.layers:\n        raise TypeError('There are no layers in the model.')\n    self._layers.pop()\n    self.built = False\n    if not self.layers:\n        self.outputs = None\n        self.inputs = None\n    elif self.outputs:\n        self.layers[-1]._outbound_nodes = []\n        self.outputs = [self.layers[-1].output]\n        self.build()",
+                            "def build(self, input_shape=None):\n    if input_shape and (not self.inputs):\n        batch_shape = tuple(input_shape)\n        dtype = K.floatx()\n        x = Input(batch_shape=batch_shape, dtype=dtype, name=self.name + '_input')\n        self.inputs = [x]\n        for layer in self._layers:\n            x = layer(x)\n        self.outputs = [x]\n        if self._layers:\n            self._layers[0].batch_input_shape = batch_shape\n    if self.inputs:\n        self._init_graph_network(self.inputs, self.outputs, name=self.name)\n        self.built = True",
+                            "def predict_proba(self, x, batch_size=32, verbose=0):\n    \"\"\"Generates class probability predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns\n        A Numpy array of probability predictions.\n    \"\"\"\n    preds = self.predict(x, batch_size, verbose)\n    if preds.min() < 0.0 or preds.max() > 1.0:\n        warnings.warn('Network returning invalid probability values. The last layer might not normalize predictions into probabilities (like softmax or sigmoid would).')\n    return preds",
+                            "def predict_classes(self, x, batch_size=32, verbose=0):\n    \"\"\"Generate class predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns:\n        A numpy array of class predictions.\n    \"\"\"\n    proba = self.predict(x, batch_size=batch_size, verbose=verbose)\n    if proba.shape[-1] > 1:\n        return proba.argmax(axis=-1)\n    else:\n        return (proba > 0.5).astype('int32')",
+                            "def get_config(self):\n    config = []\n    for layer in self.layers:\n        config.append({'class_name': layer.__class__.__name__, 'config': layer.get_config()})\n    return copy.deepcopy(config)",
+                            "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    model = cls()\n    for conf in config:\n        layer = layer_module.deserialize(conf, custom_objects=custom_objects)\n        model.add(layer)\n    return model"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, layers=None, name=None)",
+                            "layers(self)",
+                            "model(self)",
+                            "add(self, layer)",
+                            "pop(self)",
+                            "build(self, input_shape=None)",
+                            "predict_proba(self, x, batch_size=32, verbose=0)",
+                            "predict_classes(self, x, batch_size=32, verbose=0)",
+                            "get_config(self)",
+                            "from_config(cls, config, custom_objects=None)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "__init__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Sequential": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x130054050>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layers": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.add": {
+                                    "variable_value": "<bound method Sequential.add of <keras.engine.sequential.Sequential object at 0x130054050>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "__init__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Sequential": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x12f71b990>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layers": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.add": {
+                                    "variable_value": "<bound method Sequential.add of <keras.engine.sequential.Sequential object at 0x12f71b990>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "build",
+                    "function_code": "def build(self, input_shape=None):\n    if input_shape and not self.inputs:\n        batch_shape = tuple(input_shape)\n        dtype = K.floatx()\n        x = Input(batch_shape=batch_shape,\n                  dtype=dtype,\n                  name=self.name + '_input')\n        self.inputs = [x]\n        for layer in self._layers:\n            x = layer(x)\n        self.outputs = [x]\n        if self._layers:\n            self._layers[0].batch_input_shape = batch_shape\n\n    if self.inputs:\n        self._init_graph_network(self.inputs,\n                                 self.outputs,\n                                 name=self.name)\n        self.built = True\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 211,
+                    "end_line": 229,
+                    "variables": {
+                        "input_shape": [
+                            212,
+                            213
+                        ],
+                        "self.inputs": [
+                            225,
+                            218,
+                            226,
+                            212
+                        ],
+                        "self": [
+                            225,
+                            226,
+                            227,
+                            228,
+                            229,
+                            212,
+                            217,
+                            218,
+                            219,
+                            221,
+                            222,
+                            223
+                        ],
+                        "batch_shape": [
+                            223,
+                            213,
+                            215
+                        ],
+                        "tuple": [
+                            213
+                        ],
+                        "dtype": [
+                            216,
+                            214
+                        ],
+                        "K.floatx": [
+                            214
+                        ],
+                        "K": [
+                            214
+                        ],
+                        "x": [
+                            218,
+                            220,
+                            221,
+                            215
+                        ],
+                        "Input": [
+                            215
+                        ],
+                        "self.name": [
+                            217,
+                            228
+                        ],
+                        "layer": [
+                            219,
+                            220
+                        ],
+                        "self._layers": [
+                            219,
+                            222,
+                            223
+                        ],
+                        "self.outputs": [
+                            227,
+                            221
+                        ],
+                        "batch_input_shape": [
+                            223
+                        ],
+                        "self._init_graph_network": [
+                            226
+                        ],
+                        "self.built": [
+                            229
+                        ]
+                    },
+                    "filtered_variables": {
+                        "input_shape": [
+                            212,
+                            213
+                        ],
+                        "self.inputs": [
+                            225,
+                            218,
+                            226,
+                            212
+                        ],
+                        "self": [
+                            225,
+                            226,
+                            227,
+                            228,
+                            229,
+                            212,
+                            217,
+                            218,
+                            219,
+                            221,
+                            222,
+                            223
+                        ],
+                        "batch_shape": [
+                            223,
+                            213,
+                            215
+                        ],
+                        "dtype": [
+                            216,
+                            214
+                        ],
+                        "K.floatx": [
+                            214
+                        ],
+                        "K": [
+                            214
+                        ],
+                        "x": [
+                            218,
+                            220,
+                            221,
+                            215
+                        ],
+                        "Input": [
+                            215
+                        ],
+                        "self.name": [
+                            217,
+                            228
+                        ],
+                        "layer": [
+                            219,
+                            220
+                        ],
+                        "self._layers": [
+                            219,
+                            222,
+                            223
+                        ],
+                        "self.outputs": [
+                            227,
+                            221
+                        ],
+                        "batch_input_shape": [
+                            223
+                        ],
+                        "self._init_graph_network": [
+                            226
+                        ],
+                        "self.built": [
+                            229
+                        ]
+                    },
+                    "diff_line_number": 222,
+                    "class_data": {
+                        "signature": "class Sequential(Model)",
+                        "docstring": "Linear stack of layers.\n\n# Arguments\n    layers: list of layers to add to the model.\n\n# Example\n\n```python\n# Optionally, the first layer can receive an `input_shape` argument:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\n\n# Afterwards, we do automatic shape inference:\nmodel.add(Dense(32))\n\n# This is identical to the following:\nmodel = Sequential()\nmodel.add(Dense(32, input_dim=500))\n\n# And to the following:\nmodel = Sequential()\nmodel.add(Dense(32, batch_input_shape=(None, 500)))\n\n# Note that you can also omit the `input_shape` argument:\n# In that case the model gets built the first time you call `fit` (or other\n# training and evaluation methods).\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.compile(optimizer=optimizer, loss=loss)\n\n# This builds the model for the first time:\nmodel.fit(x, y, batch_size=32, epochs=10)\n\n# Note that when using this delayed-build pattern\n# (no input shape specified),\n# the model doesn't have any weights until the first call\n# to a training/evaluation method (since it isn't yet built):\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.weights  # returns []\n\n# Whereas if you specify the input shape, the model gets built continuously\n# as you are adding layers:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\nmodel.add(Dense(32))\nmodel.weights  # returns list of length 4\n\n# When using the delayed-build pattern (no input shape specified), you can\n# choose to manually build your model by calling\n# `build(batch_input_shape)`:\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.build((None, 500))\nmodel.weights  # returns list of length 4\n```",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, layers=None, name=None):\n    super(Sequential, self).__init__(name=name)\n    if layers:\n        for layer in layers:\n            self.add(layer)",
+                            "@property\ndef layers(self):\n    if self._layers and isinstance(self._layers[0], InputLayer):\n        return self._layers[1:]\n    return self._layers",
+                            "@property\ndef model(self):\n    warnings.warn('`Sequential.model` is deprecated. `Sequential` is a subclass of `Model`, you can just use your `Sequential` instance directly.')\n    return self",
+                            "def add(self, layer):\n    \"\"\"Adds a layer instance on top of the layer stack.\n\n    # Arguments\n        layer: layer instance.\n\n    # Raises\n        TypeError: If `layer` is not a layer instance.\n        ValueError: In case the `layer` argument does not\n            know its input shape.\n        ValueError: In case the `layer` argument has\n            multiple output tensors, or is already connected\n            somewhere else (forbidden in `Sequential` models).\n    \"\"\"\n    if not isinstance(layer, Layer):\n        raise TypeError('The added layer must be an instance of class Layer. Found: ' + str(layer))\n    self.built = False\n    if not self._layers:\n        set_inputs = False\n        if not isinstance(layer, InputLayer):\n            first_layer = layer\n            if isinstance(layer, (Model, Sequential)):\n                if not layer.layers:\n                    raise ValueError('Cannot add an empty model to a `Sequential` model.')\n                first_layer = layer.layers[0]\n                while isinstance(first_layer, (Model, Sequential)):\n                    first_layer = first_layer.layers[0]\n            if hasattr(first_layer, 'batch_input_shape'):\n                batch_shape = first_layer.batch_input_shape\n                dtype = first_layer.dtype\n                x = Input(batch_shape=batch_shape, dtype=dtype, name=layer.name + '_input')\n                layer(x)\n                set_inputs = True\n        else:\n            assert len(layer._inbound_nodes[-1].output_tensors) == 1\n            set_inputs = True\n        if set_inputs:\n            if len(layer._inbound_nodes[-1].output_tensors) != 1:\n                raise ValueError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n            self.outputs = [layer._inbound_nodes[-1].output_tensors[0]]\n            self.inputs = network.get_source_inputs(self.outputs[0])\n    elif self.outputs:\n        output_tensor = layer(self.outputs[0])\n        if isinstance(output_tensor, list):\n            raise TypeError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n        self.outputs = [output_tensor]\n    if self.inputs:\n        self.build()\n    else:\n        self._layers.append(layer)",
+                            "def pop(self):\n    \"\"\"Removes the last layer in the model.\n\n    # Raises\n        TypeError: if there are no layers in the model.\n    \"\"\"\n    if not self.layers:\n        raise TypeError('There are no layers in the model.')\n    self._layers.pop()\n    self.built = False\n    if not self.layers:\n        self.outputs = None\n        self.inputs = None\n    elif self.outputs:\n        self.layers[-1]._outbound_nodes = []\n        self.outputs = [self.layers[-1].output]\n        self.build()",
+                            "def build(self, input_shape=None):\n    if input_shape and (not self.inputs):\n        batch_shape = tuple(input_shape)\n        dtype = K.floatx()\n        x = Input(batch_shape=batch_shape, dtype=dtype, name=self.name + '_input')\n        self.inputs = [x]\n        for layer in self._layers:\n            x = layer(x)\n        self.outputs = [x]\n        if self._layers:\n            self._layers[0].batch_input_shape = batch_shape\n    if self.inputs:\n        self._init_graph_network(self.inputs, self.outputs, name=self.name)\n        self.built = True",
+                            "def predict_proba(self, x, batch_size=32, verbose=0):\n    \"\"\"Generates class probability predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns\n        A Numpy array of probability predictions.\n    \"\"\"\n    preds = self.predict(x, batch_size, verbose)\n    if preds.min() < 0.0 or preds.max() > 1.0:\n        warnings.warn('Network returning invalid probability values. The last layer might not normalize predictions into probabilities (like softmax or sigmoid would).')\n    return preds",
+                            "def predict_classes(self, x, batch_size=32, verbose=0):\n    \"\"\"Generate class predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns:\n        A numpy array of class predictions.\n    \"\"\"\n    proba = self.predict(x, batch_size=batch_size, verbose=verbose)\n    if proba.shape[-1] > 1:\n        return proba.argmax(axis=-1)\n    else:\n        return (proba > 0.5).astype('int32')",
+                            "def get_config(self):\n    config = []\n    for layer in self.layers:\n        config.append({'class_name': layer.__class__.__name__, 'config': layer.get_config()})\n    return copy.deepcopy(config)",
+                            "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    model = cls()\n    for conf in config:\n        layer = layer_module.deserialize(conf, custom_objects=custom_objects)\n        model.add(layer)\n    return model"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, layers=None, name=None)",
+                            "layers(self)",
+                            "model(self)",
+                            "add(self, layer)",
+                            "pop(self)",
+                            "build(self, input_shape=None)",
+                            "predict_proba(self, x, batch_size=32, verbose=0)",
+                            "predict_classes(self, x, batch_size=32, verbose=0)",
+                            "get_config(self)",
+                            "from_config(cls, config, custom_objects=None)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.inputs": {
+                                    "variable_value": "[<tf.Tensor 'dense_3_input:0' shape=(?, 16) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x1234c4a10>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "batch_shape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "K.floatx": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "K": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Input": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._layers": {
+                                    "variable_value": "[<keras.engine.input_layer.InputLayer object at 0x1234d23d0>, <keras.layers.core.Dense object at 0x122f5df50>, <keras.layers.core.Activation object at 0x122f5da50>, <keras.layers.core.Dense object at 0x1234db790>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self.outputs": {
+                                    "variable_value": "[<tf.Tensor 'activation_4/Softmax:0' shape=(?, 4) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "batch_input_shape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._init_graph_network": {
+                                    "variable_value": "<bound method Network._init_graph_network of <keras.engine.sequential.Sequential object at 0x1234c4a10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.built": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.inputs": {
+                                    "variable_value": "[<tf.Tensor 'dense_3_input_3:0' shape=(?, 16) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x12d638610>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "batch_shape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "K.floatx": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "K": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Input": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._layers": {
+                                    "variable_value": "[<keras.engine.input_layer.InputLayer object at 0x12d6511d0>, <keras.layers.core.Dense object at 0x12d644b90>, <keras.layers.core.Activation object at 0x12d651150>, <keras.layers.core.Dense object at 0x12d651490>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self.outputs": {
+                                    "variable_value": "[<tf.Tensor 'activation_4_3/Softmax:0' shape=(?, 4) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._init_graph_network": {
+                                    "variable_value": "<bound method Network._init_graph_network of <keras.engine.sequential.Sequential object at 0x12d638610>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.built": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "get_config",
+                    "function_code": "def get_config(self):\n    config = []\n    for layer in self.layers:\n        config.append({\n            'class_name': layer.__class__.__name__,\n            'config': layer.get_config()\n        })\n    return copy.deepcopy(config)\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 273,
+                    "end_line": 280,
+                    "variables": {
+                        "config": [
+                            280,
+                            274,
+                            276
+                        ],
+                        "layer": [
+                            275,
+                            277,
+                            278
+                        ],
+                        "self.layers": [
+                            275
+                        ],
+                        "self": [
+                            275
+                        ],
+                        "config.append": [
+                            276
+                        ],
+                        "layer.__class__.__name__": [
+                            277
+                        ],
+                        "layer.__class__": [
+                            277
+                        ],
+                        "layer.get_config": [
+                            278
+                        ],
+                        "copy.deepcopy": [
+                            280
+                        ],
+                        "copy": [
+                            280
+                        ]
+                    },
+                    "filtered_variables": {
+                        "config": [
+                            280,
+                            274,
+                            276
+                        ],
+                        "layer": [
+                            275,
+                            277,
+                            278
+                        ],
+                        "self.layers": [
+                            275
+                        ],
+                        "self": [
+                            275
+                        ],
+                        "config.append": [
+                            276
+                        ],
+                        "layer.__class__.__name__": [
+                            277
+                        ],
+                        "layer.__class__": [
+                            277
+                        ],
+                        "layer.get_config": [
+                            278
+                        ],
+                        "copy.deepcopy": [
+                            280
+                        ],
+                        "copy": [
+                            280
+                        ]
+                    },
+                    "diff_line_number": 274,
+                    "class_data": {
+                        "signature": "class Sequential(Model)",
+                        "docstring": "Linear stack of layers.\n\n# Arguments\n    layers: list of layers to add to the model.\n\n# Example\n\n```python\n# Optionally, the first layer can receive an `input_shape` argument:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\n\n# Afterwards, we do automatic shape inference:\nmodel.add(Dense(32))\n\n# This is identical to the following:\nmodel = Sequential()\nmodel.add(Dense(32, input_dim=500))\n\n# And to the following:\nmodel = Sequential()\nmodel.add(Dense(32, batch_input_shape=(None, 500)))\n\n# Note that you can also omit the `input_shape` argument:\n# In that case the model gets built the first time you call `fit` (or other\n# training and evaluation methods).\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.compile(optimizer=optimizer, loss=loss)\n\n# This builds the model for the first time:\nmodel.fit(x, y, batch_size=32, epochs=10)\n\n# Note that when using this delayed-build pattern\n# (no input shape specified),\n# the model doesn't have any weights until the first call\n# to a training/evaluation method (since it isn't yet built):\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.weights  # returns []\n\n# Whereas if you specify the input shape, the model gets built continuously\n# as you are adding layers:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\nmodel.add(Dense(32))\nmodel.weights  # returns list of length 4\n\n# When using the delayed-build pattern (no input shape specified), you can\n# choose to manually build your model by calling\n# `build(batch_input_shape)`:\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.build((None, 500))\nmodel.weights  # returns list of length 4\n```",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, layers=None, name=None):\n    super(Sequential, self).__init__(name=name)\n    if layers:\n        for layer in layers:\n            self.add(layer)",
+                            "@property\ndef layers(self):\n    if self._layers and isinstance(self._layers[0], InputLayer):\n        return self._layers[1:]\n    return self._layers",
+                            "@property\ndef model(self):\n    warnings.warn('`Sequential.model` is deprecated. `Sequential` is a subclass of `Model`, you can just use your `Sequential` instance directly.')\n    return self",
+                            "def add(self, layer):\n    \"\"\"Adds a layer instance on top of the layer stack.\n\n    # Arguments\n        layer: layer instance.\n\n    # Raises\n        TypeError: If `layer` is not a layer instance.\n        ValueError: In case the `layer` argument does not\n            know its input shape.\n        ValueError: In case the `layer` argument has\n            multiple output tensors, or is already connected\n            somewhere else (forbidden in `Sequential` models).\n    \"\"\"\n    if not isinstance(layer, Layer):\n        raise TypeError('The added layer must be an instance of class Layer. Found: ' + str(layer))\n    self.built = False\n    if not self._layers:\n        set_inputs = False\n        if not isinstance(layer, InputLayer):\n            first_layer = layer\n            if isinstance(layer, (Model, Sequential)):\n                if not layer.layers:\n                    raise ValueError('Cannot add an empty model to a `Sequential` model.')\n                first_layer = layer.layers[0]\n                while isinstance(first_layer, (Model, Sequential)):\n                    first_layer = first_layer.layers[0]\n            if hasattr(first_layer, 'batch_input_shape'):\n                batch_shape = first_layer.batch_input_shape\n                dtype = first_layer.dtype\n                x = Input(batch_shape=batch_shape, dtype=dtype, name=layer.name + '_input')\n                layer(x)\n                set_inputs = True\n        else:\n            assert len(layer._inbound_nodes[-1].output_tensors) == 1\n            set_inputs = True\n        if set_inputs:\n            if len(layer._inbound_nodes[-1].output_tensors) != 1:\n                raise ValueError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n            self.outputs = [layer._inbound_nodes[-1].output_tensors[0]]\n            self.inputs = network.get_source_inputs(self.outputs[0])\n    elif self.outputs:\n        output_tensor = layer(self.outputs[0])\n        if isinstance(output_tensor, list):\n            raise TypeError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n        self.outputs = [output_tensor]\n    if self.inputs:\n        self.build()\n    else:\n        self._layers.append(layer)",
+                            "def pop(self):\n    \"\"\"Removes the last layer in the model.\n\n    # Raises\n        TypeError: if there are no layers in the model.\n    \"\"\"\n    if not self.layers:\n        raise TypeError('There are no layers in the model.')\n    self._layers.pop()\n    self.built = False\n    if not self.layers:\n        self.outputs = None\n        self.inputs = None\n    elif self.outputs:\n        self.layers[-1]._outbound_nodes = []\n        self.outputs = [self.layers[-1].output]\n        self.build()",
+                            "def build(self, input_shape=None):\n    if input_shape and (not self.inputs):\n        batch_shape = tuple(input_shape)\n        dtype = K.floatx()\n        x = Input(batch_shape=batch_shape, dtype=dtype, name=self.name + '_input')\n        self.inputs = [x]\n        for layer in self._layers:\n            x = layer(x)\n        self.outputs = [x]\n        if self._layers:\n            self._layers[0].batch_input_shape = batch_shape\n    if self.inputs:\n        self._init_graph_network(self.inputs, self.outputs, name=self.name)\n        self.built = True",
+                            "def predict_proba(self, x, batch_size=32, verbose=0):\n    \"\"\"Generates class probability predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns\n        A Numpy array of probability predictions.\n    \"\"\"\n    preds = self.predict(x, batch_size, verbose)\n    if preds.min() < 0.0 or preds.max() > 1.0:\n        warnings.warn('Network returning invalid probability values. The last layer might not normalize predictions into probabilities (like softmax or sigmoid would).')\n    return preds",
+                            "def predict_classes(self, x, batch_size=32, verbose=0):\n    \"\"\"Generate class predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns:\n        A numpy array of class predictions.\n    \"\"\"\n    proba = self.predict(x, batch_size=batch_size, verbose=verbose)\n    if proba.shape[-1] > 1:\n        return proba.argmax(axis=-1)\n    else:\n        return (proba > 0.5).astype('int32')",
+                            "def get_config(self):\n    config = []\n    for layer in self.layers:\n        config.append({'class_name': layer.__class__.__name__, 'config': layer.get_config()})\n    return copy.deepcopy(config)",
+                            "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    model = cls()\n    for conf in config:\n        layer = layer_module.deserialize(conf, custom_objects=custom_objects)\n        model.add(layer)\n    return model"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, layers=None, name=None)",
+                            "layers(self)",
+                            "model(self)",
+                            "add(self, layer)",
+                            "pop(self)",
+                            "build(self, input_shape=None)",
+                            "predict_proba(self, x, batch_size=32, verbose=0)",
+                            "predict_classes(self, x, batch_size=32, verbose=0)",
+                            "get_config(self)",
+                            "from_config(cls, config, custom_objects=None)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x1304ff490>, <keras.layers.core.Dense object at 0x1304ff550>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x1304ddf50>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "config.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "config": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_1', 'trainable': True, 'batch_input_shape': (None, 4), 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Dense', 'config': {'name': 'dense_2', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Dense object at 0x1304ff550>",
+                                    "variable_type": "Dense",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x1304ff490>, <keras.layers.core.Dense object at 0x1304ff550>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x1304ddf50>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "config.append": {
+                                    "variable_value": "<built-in method append of list object at 0x13055fdc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": "<class 'keras.layers.core.Dense'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": "<bound method Dense.get_config of <keras.layers.core.Dense object at 0x1304ff550>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x127ff3810>, <keras.layers.core.Activation object at 0x128007750>, <keras.layers.core.Dense object at 0x128007dd0>, <keras.layers.core.Activation object at 0x128013e90>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x127ff0090>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "config.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "config": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Activation object at 0x128013e90>",
+                                    "variable_type": "Activation",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x127ff3810>, <keras.layers.core.Activation object at 0x128007750>, <keras.layers.core.Dense object at 0x128007dd0>, <keras.layers.core.Activation object at 0x128013e90>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x127ff0090>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "config.append": {
+                                    "variable_value": "<built-in method append of list object at 0x12802ff00>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": "<class 'keras.layers.core.Activation'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": "<bound method Activation.get_config of <keras.layers.core.Activation object at 0x128013e90>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "layer_configs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x126bb9510>, <keras.layers.core.Dense object at 0x126bb9710>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x126bb9050>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_1'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "(None, 4)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                }
+                            },
+                            {
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_1', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Dense', 'config': {'name': 'dense_2', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Dense object at 0x126bb9710>",
+                                    "variable_type": "Dense",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x126bb9510>, <keras.layers.core.Dense object at 0x126bb9710>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x126bb9050>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": "<built-in method append of list object at 0x126c1bd70>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": "<class 'keras.layers.core.Dense'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": "<bound method Dense.get_config of <keras.layers.core.Dense object at 0x126bb9710>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": "{'name': 'sequential_1', 'layers': [{'class_name': 'Dense', 'config': {'name': 'dense_1', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Dense', 'config': {'name': 'dense_2', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}], 'build_input_shape': (None, 4)}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "3"
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_1'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "(None, 4)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "layer_configs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x123948d10>, <keras.layers.core.Activation object at 0x12395c950>, <keras.layers.core.Dense object at 0x123962910>, <keras.layers.core.Activation object at 0x123968d50>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x123945ad0>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Activation object at 0x123968d50>",
+                                    "variable_type": "Activation",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x123948d10>, <keras.layers.core.Activation object at 0x12395c950>, <keras.layers.core.Dense object at 0x123962910>, <keras.layers.core.Activation object at 0x123968d50>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x123945ad0>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": "<built-in method append of list object at 0x123988f00>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": "<class 'keras.layers.core.Activation'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": "<bound method Activation.get_config of <keras.layers.core.Activation object at 0x123968d50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": "{'name': 'sequential_2', 'layers': [{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "layer_configs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x123948d10>, <keras.layers.core.Activation object at 0x12395c950>, <keras.layers.core.Dense object at 0x123962910>, <keras.layers.core.Activation object at 0x123968d50>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x123945ad0>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Activation object at 0x123968d50>",
+                                    "variable_type": "Activation",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x123948d10>, <keras.layers.core.Activation object at 0x12395c950>, <keras.layers.core.Dense object at 0x123962910>, <keras.layers.core.Activation object at 0x123968d50>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x123945ad0>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": "<built-in method append of list object at 0x1239a41e0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": "<class 'keras.layers.core.Activation'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": "<bound method Activation.get_config of <keras.layers.core.Activation object at 0x123968d50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": "{'name': 'sequential_2', 'layers': [{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "layer_configs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x123948d10>, <keras.layers.core.Activation object at 0x12395c950>, <keras.layers.core.Dense object at 0x123962910>, <keras.layers.core.Activation object at 0x123968d50>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x123945ad0>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Activation object at 0x123968d50>",
+                                    "variable_type": "Activation",
+                                    "variable_shape": null
+                                },
+                                "self.layers": {
+                                    "variable_value": "[<keras.layers.core.Dense object at 0x123948d10>, <keras.layers.core.Activation object at 0x12395c950>, <keras.layers.core.Dense object at 0x123962910>, <keras.layers.core.Activation object at 0x123968d50>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "self": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x123945ad0>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "layer_configs.append": {
+                                    "variable_value": "<built-in method append of list object at 0x1239b2e60>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__.__name__": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "layer.__class__": {
+                                    "variable_value": "<class 'keras.layers.core.Activation'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "layer.get_config": {
+                                    "variable_value": "<bound method Activation.get_config of <keras.layers.core.Activation object at 0x123968d50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "config": {
+                                    "variable_value": "{'name': 'sequential_2', 'layers': [{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "self.name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "copy.deepcopy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "from_config",
+                    "function_code": "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    model = cls()\n    for conf in config:\n        layer = layer_module.deserialize(conf,\n                                         custom_objects=custom_objects)\n        model.add(layer)\n    return model\n",
+                    "decorators": [
+                        "classmethod"
+                    ],
+                    "docstring": null,
+                    "start_line": 282,
+                    "end_line": 289,
+                    "variables": {
+                        "model": [
+                            288,
+                            289,
+                            284
+                        ],
+                        "cls": [
+                            284
+                        ],
+                        "conf": [
+                            285,
+                            286
+                        ],
+                        "config": [
+                            285
+                        ],
+                        "layer": [
+                            288,
+                            286
+                        ],
+                        "layer_module.deserialize": [
+                            286
+                        ],
+                        "layer_module": [
+                            286
+                        ],
+                        "custom_objects": [
+                            287
+                        ],
+                        "model.add": [
+                            288
+                        ],
+                        "classmethod": [
+                            282
+                        ]
+                    },
+                    "filtered_variables": {
+                        "model": [
+                            288,
+                            289,
+                            284
+                        ],
+                        "cls": [
+                            284
+                        ],
+                        "conf": [
+                            285,
+                            286
+                        ],
+                        "config": [
+                            285
+                        ],
+                        "layer": [
+                            288,
+                            286
+                        ],
+                        "layer_module.deserialize": [
+                            286
+                        ],
+                        "layer_module": [
+                            286
+                        ],
+                        "custom_objects": [
+                            287
+                        ],
+                        "model.add": [
+                            288
+                        ]
+                    },
+                    "diff_line_number": 284,
+                    "class_data": {
+                        "signature": "class Sequential(Model)",
+                        "docstring": "Linear stack of layers.\n\n# Arguments\n    layers: list of layers to add to the model.\n\n# Example\n\n```python\n# Optionally, the first layer can receive an `input_shape` argument:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\n\n# Afterwards, we do automatic shape inference:\nmodel.add(Dense(32))\n\n# This is identical to the following:\nmodel = Sequential()\nmodel.add(Dense(32, input_dim=500))\n\n# And to the following:\nmodel = Sequential()\nmodel.add(Dense(32, batch_input_shape=(None, 500)))\n\n# Note that you can also omit the `input_shape` argument:\n# In that case the model gets built the first time you call `fit` (or other\n# training and evaluation methods).\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.compile(optimizer=optimizer, loss=loss)\n\n# This builds the model for the first time:\nmodel.fit(x, y, batch_size=32, epochs=10)\n\n# Note that when using this delayed-build pattern\n# (no input shape specified),\n# the model doesn't have any weights until the first call\n# to a training/evaluation method (since it isn't yet built):\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.weights  # returns []\n\n# Whereas if you specify the input shape, the model gets built continuously\n# as you are adding layers:\nmodel = Sequential()\nmodel.add(Dense(32, input_shape=(500,)))\nmodel.add(Dense(32))\nmodel.weights  # returns list of length 4\n\n# When using the delayed-build pattern (no input shape specified), you can\n# choose to manually build your model by calling\n# `build(batch_input_shape)`:\nmodel = Sequential()\nmodel.add(Dense(32))\nmodel.add(Dense(32))\nmodel.build((None, 500))\nmodel.weights  # returns list of length 4\n```",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, layers=None, name=None):\n    super(Sequential, self).__init__(name=name)\n    if layers:\n        for layer in layers:\n            self.add(layer)",
+                            "@property\ndef layers(self):\n    if self._layers and isinstance(self._layers[0], InputLayer):\n        return self._layers[1:]\n    return self._layers",
+                            "@property\ndef model(self):\n    warnings.warn('`Sequential.model` is deprecated. `Sequential` is a subclass of `Model`, you can just use your `Sequential` instance directly.')\n    return self",
+                            "def add(self, layer):\n    \"\"\"Adds a layer instance on top of the layer stack.\n\n    # Arguments\n        layer: layer instance.\n\n    # Raises\n        TypeError: If `layer` is not a layer instance.\n        ValueError: In case the `layer` argument does not\n            know its input shape.\n        ValueError: In case the `layer` argument has\n            multiple output tensors, or is already connected\n            somewhere else (forbidden in `Sequential` models).\n    \"\"\"\n    if not isinstance(layer, Layer):\n        raise TypeError('The added layer must be an instance of class Layer. Found: ' + str(layer))\n    self.built = False\n    if not self._layers:\n        set_inputs = False\n        if not isinstance(layer, InputLayer):\n            first_layer = layer\n            if isinstance(layer, (Model, Sequential)):\n                if not layer.layers:\n                    raise ValueError('Cannot add an empty model to a `Sequential` model.')\n                first_layer = layer.layers[0]\n                while isinstance(first_layer, (Model, Sequential)):\n                    first_layer = first_layer.layers[0]\n            if hasattr(first_layer, 'batch_input_shape'):\n                batch_shape = first_layer.batch_input_shape\n                dtype = first_layer.dtype\n                x = Input(batch_shape=batch_shape, dtype=dtype, name=layer.name + '_input')\n                layer(x)\n                set_inputs = True\n        else:\n            assert len(layer._inbound_nodes[-1].output_tensors) == 1\n            set_inputs = True\n        if set_inputs:\n            if len(layer._inbound_nodes[-1].output_tensors) != 1:\n                raise ValueError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n            self.outputs = [layer._inbound_nodes[-1].output_tensors[0]]\n            self.inputs = network.get_source_inputs(self.outputs[0])\n    elif self.outputs:\n        output_tensor = layer(self.outputs[0])\n        if isinstance(output_tensor, list):\n            raise TypeError('All layers in a Sequential model should have a single output tensor. For multi-output layers, use the functional API.')\n        self.outputs = [output_tensor]\n    if self.inputs:\n        self.build()\n    else:\n        self._layers.append(layer)",
+                            "def pop(self):\n    \"\"\"Removes the last layer in the model.\n\n    # Raises\n        TypeError: if there are no layers in the model.\n    \"\"\"\n    if not self.layers:\n        raise TypeError('There are no layers in the model.')\n    self._layers.pop()\n    self.built = False\n    if not self.layers:\n        self.outputs = None\n        self.inputs = None\n    elif self.outputs:\n        self.layers[-1]._outbound_nodes = []\n        self.outputs = [self.layers[-1].output]\n        self.build()",
+                            "def build(self, input_shape=None):\n    if input_shape and (not self.inputs):\n        batch_shape = tuple(input_shape)\n        dtype = K.floatx()\n        x = Input(batch_shape=batch_shape, dtype=dtype, name=self.name + '_input')\n        self.inputs = [x]\n        for layer in self._layers:\n            x = layer(x)\n        self.outputs = [x]\n        if self._layers:\n            self._layers[0].batch_input_shape = batch_shape\n    if self.inputs:\n        self._init_graph_network(self.inputs, self.outputs, name=self.name)\n        self.built = True",
+                            "def predict_proba(self, x, batch_size=32, verbose=0):\n    \"\"\"Generates class probability predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns\n        A Numpy array of probability predictions.\n    \"\"\"\n    preds = self.predict(x, batch_size, verbose)\n    if preds.min() < 0.0 or preds.max() > 1.0:\n        warnings.warn('Network returning invalid probability values. The last layer might not normalize predictions into probabilities (like softmax or sigmoid would).')\n    return preds",
+                            "def predict_classes(self, x, batch_size=32, verbose=0):\n    \"\"\"Generate class predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns:\n        A numpy array of class predictions.\n    \"\"\"\n    proba = self.predict(x, batch_size=batch_size, verbose=verbose)\n    if proba.shape[-1] > 1:\n        return proba.argmax(axis=-1)\n    else:\n        return (proba > 0.5).astype('int32')",
+                            "def get_config(self):\n    config = []\n    for layer in self.layers:\n        config.append({'class_name': layer.__class__.__name__, 'config': layer.get_config()})\n    return copy.deepcopy(config)",
+                            "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    model = cls()\n    for conf in config:\n        layer = layer_module.deserialize(conf, custom_objects=custom_objects)\n        model.add(layer)\n    return model"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, layers=None, name=None)",
+                            "layers(self)",
+                            "model(self)",
+                            "add(self, layer)",
+                            "pop(self)",
+                            "build(self, input_shape=None)",
+                            "predict_proba(self, x, batch_size=32, verbose=0)",
+                            "predict_classes(self, x, batch_size=32, verbose=0)",
+                            "get_config(self)",
+                            "from_config(cls, config, custom_objects=None)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {
+                                "config": {
+                                    "variable_value": "{'name': 'sequential_1', 'layers': [{'class_name': 'Dense', 'config': {'name': 'dense_1', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Dense', 'config': {'name': 'dense_2', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}], 'build_input_shape': (None, 4)}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "3"
+                                },
+                                "name": {
+                                    "variable_value": "'sequential_1'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "build_input_shape": {
+                                    "variable_value": "(None, 4)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "config.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x1258ceaf0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_1', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Dense', 'config': {'name': 'dense_2', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "model": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x1257c26d0>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "cls": {
+                                    "variable_value": "<class 'keras.engine.sequential.Sequential'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "conf": {
+                                    "variable_value": "{'class_name': 'Dense', 'config': {'name': 'dense_2', 'trainable': True, 'units': 3, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Dense object at 0x1258d6bd0>",
+                                    "variable_type": "Dense",
+                                    "variable_shape": null
+                                },
+                                "layer_module.deserialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer_module": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "custom_objects": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "model.add": {
+                                    "variable_value": "<bound method Sequential.add of <keras.engine.sequential.Sequential object at 0x1257c26d0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "model.inputs": {
+                                    "variable_value": "[<tf.Tensor 'sequential_1_input_1:0' shape=(?, 4) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "model.build": {
+                                    "variable_value": "<bound method Sequential.build of <keras.engine.sequential.Sequential object at 0x1257c26d0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {},
+                            {
+                                "config": {
+                                    "variable_value": "{'name': 'sequential_2', 'layers': [{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "config.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x130b49820>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': (None, 16), 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "model": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x130b24e50>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "cls": {
+                                    "variable_value": "<class 'keras.engine.sequential.Sequential'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "conf": {
+                                    "variable_value": "{'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Activation object at 0x130b5f7d0>",
+                                    "variable_type": "Activation",
+                                    "variable_shape": null
+                                },
+                                "layer_module.deserialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer_module": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "custom_objects": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "model.add": {
+                                    "variable_value": "<bound method Sequential.add of <keras.engine.sequential.Sequential object at 0x130b24e50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "model.inputs": {
+                                    "variable_value": "[<tf.Tensor 'dense_3_input_1:0' shape=(?, 16) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "model.build": {
+                                    "variable_value": "<bound method Sequential.build of <keras.engine.sequential.Sequential object at 0x130b24e50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {},
+                            {
+                                "config": {
+                                    "variable_value": "{'name': 'sequential_2', 'layers': [{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': [None, 16], 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "config.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x130b66230>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'name': 'dense_3', 'trainable': True, 'batch_input_shape': [None, 16], 'dtype': 'float32', 'units': 8, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_3', 'trainable': True, 'activation': 'relu'}}, {'class_name': 'Dense', 'config': {'name': 'dense_4', 'trainable': True, 'units': 4, 'activation': 'linear', 'use_bias': True, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'scale': 1.0, 'mode': 'fan_avg', 'distribution': 'uniform', 'seed': None}}, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'kernel_regularizer': None, 'bias_regularizer': None, 'activity_regularizer': None, 'kernel_constraint': None, 'bias_constraint': None}}, {'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "model": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x130b68450>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "cls": {
+                                    "variable_value": "<class 'keras.engine.sequential.Sequential'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "conf": {
+                                    "variable_value": "{'class_name': 'Activation', 'config': {'name': 'activation_4', 'trainable': True, 'activation': 'softmax'}}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Activation object at 0x130b7d150>",
+                                    "variable_type": "Activation",
+                                    "variable_shape": null
+                                },
+                                "layer_module.deserialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer_module": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "custom_objects": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "model.add": {
+                                    "variable_value": "<bound method Sequential.add of <keras.engine.sequential.Sequential object at 0x130b68450>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "model.inputs": {
+                                    "variable_value": "[<tf.Tensor 'dense_3_input_2:0' shape=(?, 16) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "model.build": {
+                                    "variable_value": "<bound method Sequential.build of <keras.engine.sequential.Sequential object at 0x130b68450>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {},
+                            {
+                                "config": {
+                                    "variable_value": "{'layers': [{'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'batch_input_shape': (None, 16), 'bias_constraint': None, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'bias_regularizer': None, 'dtype': 'float32', 'kernel_constraint': None, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'distribution': 'uniform', 'mode': 'fan_avg', 'scale': 1.0, 'seed': None}}, 'kernel_regularizer': None, 'name': 'dense_3', 'trainable': True, 'units': 8, 'use_bias': True}}, {'class_name': 'Activation', 'config': {'activation': 'relu', 'name': 'activation_3', 'trainable': True}}, {'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'bias_constraint': None, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'bias_regularizer': None, 'kernel_constraint': None, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'distribution': 'uniform', 'mode': 'fan_avg', 'scale': 1.0, 'seed': None}}, 'kernel_regularizer': None, 'name': 'dense_4', 'trainable': True, 'units': 4, 'use_bias': True}}, {'class_name': 'Activation', 'config': {'activation': 'softmax', 'name': 'activation_4', 'trainable': True}}], 'name': 'sequential_2'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "name": {
+                                    "variable_value": "'sequential_2'",
+                                    "variable_type": "str",
+                                    "variable_shape": "12"
+                                },
+                                "build_input_shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "config.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x130babdc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "layer_configs": {
+                                    "variable_value": "[{'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'batch_input_shape': (None, 16), 'bias_constraint': None, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'bias_regularizer': None, 'dtype': 'float32', 'kernel_constraint': None, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'distribution': 'uniform', 'mode': 'fan_avg', 'scale': 1.0, 'seed': None}}, 'kernel_regularizer': None, 'name': 'dense_3', 'trainable': True, 'units': 8, 'use_bias': True}}, {'class_name': 'Activation', 'config': {'activation': 'relu', 'name': 'activation_3', 'trainable': True}}, {'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'bias_constraint': None, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, 'bias_regularizer': None, 'kernel_constraint': None, 'kernel_initializer': {'class_name': 'VarianceScaling', 'config': {'distribution': 'uniform', 'mode': 'fan_avg', 'scale': 1.0, 'seed': None}}, 'kernel_regularizer': None, 'name': 'dense_4', 'trainable': True, 'units': 4, 'use_bias': True}}, {'class_name': 'Activation', 'config': {'activation': 'softmax', 'name': 'activation_4', 'trainable': True}}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "model": {
+                                    "variable_value": "<keras.engine.sequential.Sequential object at 0x130b7db90>",
+                                    "variable_type": "Sequential",
+                                    "variable_shape": null
+                                },
+                                "cls": {
+                                    "variable_value": "<class 'keras.engine.sequential.Sequential'>",
+                                    "variable_type": "type",
+                                    "variable_shape": null
+                                },
+                                "conf": {
+                                    "variable_value": "{'class_name': 'Activation', 'config': {'activation': 'softmax', 'name': 'activation_4', 'trainable': True}}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "layer": {
+                                    "variable_value": "<keras.layers.core.Activation object at 0x130ba3cd0>",
+                                    "variable_type": "Activation",
+                                    "variable_shape": null
+                                },
+                                "layer_module.deserialize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "layer_module": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "custom_objects": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "model.add": {
+                                    "variable_value": "<bound method Sequential.add of <keras.engine.sequential.Sequential object at 0x130b7db90>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "model.inputs": {
+                                    "variable_value": "[<tf.Tensor 'dense_3_input_3:0' shape=(?, 16) dtype=float32>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "model.build": {
+                                    "variable_value": "<bound method Sequential.build of <keras.engine.sequential.Sequential object at 0x130b7db90>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def __init__(self, layers=None, name=None):\n    super(Sequential, self).__init__(name=name)\n\n    # Add to the model any layers passed to the constructor.\n    if layers:\n        for layer in layers:\n            self.add(layer)",
+                "@property\ndef layers(self):\n    # Historically, `sequential.layers` only returns layers that were added\n    # via `add`, and omits the auto-generated `InputLayer`\n    # that comes at the bottom of the stack.\n    if self._layers and isinstance(self._layers[0], InputLayer):\n        return self._layers[1:]\n    return self._layers",
+                "@property\ndef model(self):\n    # Historically, `Sequential` was once\n    # implemented as a wrapper for `Model` which maintained\n    # its underlying `Model` as the `model` property.\n    # We keep it for compatibility reasons.\n    warnings.warn('`Sequential.model` is deprecated. '\n                  '`Sequential` is a subclass of `Model`, you can '\n                  'just use your `Sequential` instance directly.')\n    return self",
+                "def add(self, layer):\n    \"\"\"Adds a layer instance on top of the layer stack.\n\n    # Arguments\n        layer: layer instance.\n\n    # Raises\n        TypeError: If `layer` is not a layer instance.\n        ValueError: In case the `layer` argument does not\n            know its input shape.\n        ValueError: In case the `layer` argument has\n            multiple output tensors, or is already connected\n            somewhere else (forbidden in `Sequential` models).\n    \"\"\"\n    if not isinstance(layer, Layer):\n        raise TypeError('The added layer must be '\n                        'an instance of class Layer. '\n                        'Found: ' + str(layer))\n    self.built = False\n    if not self._layers:\n        set_inputs = False\n        # First layer in model: check that it is an input layer.\n        if not isinstance(layer, InputLayer):\n            # Create an input tensor and call `layer` on the input tensor.\n            # First, we need to infer the expected input shape and dtype.\n            first_layer = layer\n            if isinstance(layer, (Model, Sequential)):\n                # We were passed a model as first layer.\n                # This requires a specific way to figure out the\n                # input shape and dtype.\n                if not layer.layers:\n                    raise ValueError('Cannot add an empty model '\n                                     'to a `Sequential` model.')\n                # In case of nested models: recover the first layer\n                # of the deepest model to infer input shape and dtype.\n                first_layer = layer.layers[0]\n                while isinstance(first_layer, (Model, Sequential)):\n                    first_layer = first_layer.layers[0]\n\n            if hasattr(first_layer, 'batch_input_shape'):\n                batch_shape = first_layer.batch_input_shape\n                dtype = first_layer.dtype\n                # Instantiate the input layer.\n                x = Input(\n                    batch_shape=batch_shape,\n                    dtype=dtype,\n                    name=layer.name + '_input')\n                # This will build the current layer\n                # and create the node connecting the current layer\n                # to the input layer we just created.\n                layer(x)\n                set_inputs = True\n        else:\n            # Corner case where the user passes an InputLayer via `add`.\n            assert len(layer._inbound_nodes[-1].output_tensors) == 1\n            set_inputs = True\n\n        if set_inputs:\n            if len(layer._inbound_nodes[-1].output_tensors) != 1:\n                raise ValueError('All layers in a Sequential model '\n                                 'should have a single output tensor. '\n                                 'For multi-output layers, '\n                                 'use the functional API.')\n            self.outputs = [layer._inbound_nodes[-1].output_tensors[0]]\n            self.inputs = network.get_source_inputs(self.outputs[0])\n    elif self.outputs:\n        output_tensor = layer(self.outputs[0])\n        if isinstance(output_tensor, list):\n            raise TypeError('All layers in a Sequential model '\n                            'should have a single output tensor. '\n                            'For multi-output layers, '\n                            'use the functional API.')\n        self.outputs = [output_tensor]\n    if self.inputs:\n        self.build()\n    else:\n        self._layers.append(layer)",
+                "def pop(self):\n    \"\"\"Removes the last layer in the model.\n\n    # Raises\n        TypeError: if there are no layers in the model.\n    \"\"\"\n    if not self.layers:\n        raise TypeError('There are no layers in the model.')\n\n    self._layers.pop()\n    self.built = False\n    if not self.layers:\n        self.outputs = None\n        self.inputs = None\n    elif self.outputs:\n        self.layers[-1]._outbound_nodes = []\n        self.outputs = [self.layers[-1].output]\n        self.build()",
+                "def build(self, input_shape=None):\n    if input_shape and not self.inputs:\n        batch_shape = tuple(input_shape)\n        dtype = K.floatx()\n        x = Input(batch_shape=batch_shape,\n                  dtype=dtype,\n                  name=self.name + '_input')\n        self.inputs = [x]\n        for layer in self._layers:\n            x = layer(x)\n        self.outputs = [x]\n        if self._layers:\n            self._layers[0].batch_input_shape = batch_shape\n\n    if self.inputs:\n        self._init_graph_network(self.inputs,\n                                 self.outputs,\n                                 name=self.name)\n        self.built = True",
+                "def predict_proba(self, x, batch_size=32, verbose=0):\n    \"\"\"Generates class probability predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns\n        A Numpy array of probability predictions.\n    \"\"\"\n    preds = self.predict(x, batch_size, verbose)\n    if preds.min() < 0. or preds.max() > 1.:\n        warnings.warn('Network returning invalid probability values. '\n                      'The last layer might not normalize predictions '\n                      'into probabilities '\n                      '(like softmax or sigmoid would).')\n    return preds",
+                "def predict_classes(self, x, batch_size=32, verbose=0):\n    \"\"\"Generate class predictions for the input samples.\n\n    The input samples are processed batch by batch.\n\n    # Arguments\n        x: input data, as a Numpy array or list of Numpy arrays\n            (if the model has multiple inputs).\n        batch_size: integer.\n        verbose: verbosity mode, 0 or 1.\n\n    # Returns:\n        A numpy array of class predictions.\n    \"\"\"\n    proba = self.predict(x, batch_size=batch_size, verbose=verbose)\n    if proba.shape[-1] > 1:\n        return proba.argmax(axis=-1)\n    else:\n        return (proba > 0.5).astype('int32')",
+                "def get_config(self):\n    config = []\n    for layer in self.layers:\n        config.append({\n            'class_name': layer.__class__.__name__,\n            'config': layer.get_config()\n        })\n    return copy.deepcopy(config)",
+                "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    model = cls()\n    for conf in config:\n        layer = layer_module.deserialize(conf,\n                                         custom_objects=custom_objects)\n        model.add(layer)\n    return model"
+            ],
+            "inscope_function_signatures": [
+                "__init__(self, layers=None, name=None)",
+                "layers(self)",
+                "model(self)",
+                "add(self, layer)",
+                "pop(self)",
+                "build(self, input_shape=None)",
+                "predict_proba(self, x, batch_size=32, verbose=0)",
+                "predict_classes(self, x, batch_size=32, verbose=0)",
+                "get_config(self)",
+                "from_config(cls, config, custom_objects=None)"
+            ],
+            "variables_in_file": {
+                "ImportError": [
+                    20
+                ],
+                "h5py": [
+                    21
+                ],
+                "Model": [
+                    24,
+                    140,
+                    150
+                ],
+                "__init__": [
+                    87
+                ],
+                "super": [
+                    87
+                ],
+                "Sequential": [
+                    140,
+                    150,
+                    87
+                ],
+                "self": [
+                    132,
+                    133,
+                    267,
+                    275,
+                    177,
+                    178,
+                    179,
+                    180,
+                    186,
+                    187,
+                    188,
+                    190,
+                    198,
+                    201,
+                    202,
+                    203,
+                    204,
+                    205,
+                    206,
+                    207,
+                    208,
+                    209,
+                    212,
+                    87,
+                    217,
+                    218,
+                    219,
+                    92,
+                    221,
+                    222,
+                    223,
+                    225,
+                    226,
+                    99,
+                    100,
+                    101,
+                    227,
+                    228,
+                    229,
+                    112,
+                    245
+                ],
+                "name": [
+                    87
+                ],
+                "layers": [
+                    90,
+                    91
+                ],
+                "layer": [
+                    128,
+                    131,
+                    136,
+                    139,
+                    140,
+                    144,
+                    275,
+                    149,
+                    277,
+                    278,
+                    286,
+                    160,
+                    288,
+                    164,
+                    168,
+                    172,
+                    177,
+                    180,
+                    190,
+                    219,
+                    220,
+                    91,
+                    92
+                ],
+                "self.add": [
+                    92
+                ],
+                "self._layers": [
+                    99,
+                    100,
+                    101,
+                    133,
+                    201,
+                    219,
+                    222,
+                    190,
+                    223
+                ],
+                "isinstance": [
+                    128,
+                    99,
+                    136,
+                    140,
+                    181,
+                    150
+                ],
+                "InputLayer": [
+                    136,
+                    99
+                ],
+                "property": [
+                    94,
+                    103
+                ],
+                "warnings.warn": [
+                    109,
+                    247
+                ],
+                "warnings": [
+                    109,
+                    247
+                ],
+                "Layer": [
+                    128
+                ],
+                "TypeError": [
+                    129,
+                    182,
+                    199
+                ],
+                "str": [
+                    131
+                ],
+                "self.built": [
+                    202,
+                    132,
+                    229
+                ],
+                "set_inputs": [
+                    169,
+                    171,
+                    165,
+                    134
+                ],
+                "first_layer": [
+                    139,
+                    149,
+                    150,
+                    151,
+                    153,
+                    154,
+                    155
+                ],
+                "layer.layers": [
+                    144,
+                    149
+                ],
+                "ValueError": [
+                    145,
+                    173
+                ],
+                "first_layer.layers": [
+                    151
+                ],
+                "hasattr": [
+                    153
+                ],
+                "batch_shape": [
+                    213,
+                    215,
+                    154,
+                    158,
+                    223
+                ],
+                "first_layer.batch_input_shape": [
+                    154
+                ],
+                "dtype": [
+                    216,
+                    155,
+                    214,
+                    159
+                ],
+                "first_layer.dtype": [
+                    155
+                ],
+                "x": [
+                    164,
+                    267,
+                    245,
+                    215,
+                    221,
+                    218,
+                    220,
+                    157
+                ],
+                "Input": [
+                    157,
+                    215
+                ],
+                "layer.name": [
+                    160
+                ],
+                "len": [
+                    168,
+                    172
+                ],
+                "output_tensors": [
+                    168,
+                    177,
+                    172
+                ],
+                "layer._inbound_nodes": [
+                    168,
+                    177,
+                    172
+                ],
+                "self.outputs": [
+                    227,
+                    204,
+                    206,
+                    208,
+                    177,
+                    178,
+                    179,
+                    180,
+                    186,
+                    221
+                ],
+                "self.inputs": [
+                    225,
+                    226,
+                    205,
+                    178,
+                    212,
+                    218,
+                    187
+                ],
+                "network.get_source_inputs": [
+                    178
+                ],
+                "network": [
+                    178
+                ],
+                "output_tensor": [
+                    186,
+                    180,
+                    181
+                ],
+                "list": [
+                    181
+                ],
+                "self.build": [
+                    209,
+                    188
+                ],
+                "self._layers.append": [
+                    190
+                ],
+                "self.layers": [
+                    198,
+                    203,
+                    207,
+                    208,
+                    275
+                ],
+                "self._layers.pop": [
+                    201
+                ],
+                "_outbound_nodes": [
+                    207
+                ],
+                "output": [
+                    208
+                ],
+                "input_shape": [
+                    212,
+                    213
+                ],
+                "tuple": [
+                    213
+                ],
+                "K.floatx": [
+                    214
+                ],
+                "K": [
+                    214
+                ],
+                "self.name": [
+                    217,
+                    228
+                ],
+                "batch_input_shape": [
+                    223
+                ],
+                "self._init_graph_network": [
+                    226
+                ],
+                "preds": [
+                    251,
+                    245,
+                    246
+                ],
+                "self.predict": [
+                    267,
+                    245
+                ],
+                "batch_size": [
+                    267,
+                    245
+                ],
+                "verbose": [
+                    267,
+                    245
+                ],
+                "preds.min": [
+                    246
+                ],
+                "preds.max": [
+                    246
+                ],
+                "proba": [
+                    267,
+                    268,
+                    269,
+                    271
+                ],
+                "proba.shape": [
+                    268
+                ],
+                "proba.argmax": [
+                    269
+                ],
+                "astype": [
+                    271
+                ],
+                "config": [
+                    280,
+                    274,
+                    276,
+                    285
+                ],
+                "config.append": [
+                    276
+                ],
+                "layer.__class__.__name__": [
+                    277
+                ],
+                "layer.__class__": [
+                    277
+                ],
+                "layer.get_config": [
+                    278
+                ],
+                "copy.deepcopy": [
+                    280
+                ],
+                "copy": [
+                    280
+                ],
+                "model": [
+                    288,
+                    289,
+                    284
+                ],
+                "cls": [
+                    284
+                ],
+                "conf": [
+                    285,
+                    286
+                ],
+                "layer_module.deserialize": [
+                    286
+                ],
+                "layer_module": [
+                    286
+                ],
+                "custom_objects": [
+                    287
+                ],
+                "model.add": [
+                    288
+                ],
+                "classmethod": [
+                    282
+                ]
+            },
+            "filtered_variables_in_file": {
+                "h5py": [
+                    21
+                ],
+                "Model": [
+                    24,
+                    140,
+                    150
+                ],
+                "__init__": [
+                    87
+                ],
+                "Sequential": [
+                    140,
+                    150,
+                    87
+                ],
+                "self": [
+                    132,
+                    133,
+                    267,
+                    275,
+                    177,
+                    178,
+                    179,
+                    180,
+                    186,
+                    187,
+                    188,
+                    190,
+                    198,
+                    201,
+                    202,
+                    203,
+                    204,
+                    205,
+                    206,
+                    207,
+                    208,
+                    209,
+                    212,
+                    87,
+                    217,
+                    218,
+                    219,
+                    92,
+                    221,
+                    222,
+                    223,
+                    225,
+                    226,
+                    99,
+                    100,
+                    101,
+                    227,
+                    228,
+                    229,
+                    112,
+                    245
+                ],
+                "name": [
+                    87
+                ],
+                "layers": [
+                    90,
+                    91
+                ],
+                "layer": [
+                    128,
+                    131,
+                    136,
+                    139,
+                    140,
+                    144,
+                    275,
+                    149,
+                    277,
+                    278,
+                    286,
+                    160,
+                    288,
+                    164,
+                    168,
+                    172,
+                    177,
+                    180,
+                    190,
+                    219,
+                    220,
+                    91,
+                    92
+                ],
+                "self.add": [
+                    92
+                ],
+                "self._layers": [
+                    99,
+                    100,
+                    101,
+                    133,
+                    201,
+                    219,
+                    222,
+                    190,
+                    223
+                ],
+                "InputLayer": [
+                    136,
+                    99
+                ],
+                "warnings.warn": [
+                    109,
+                    247
+                ],
+                "warnings": [
+                    109,
+                    247
+                ],
+                "Layer": [
+                    128
+                ],
+                "self.built": [
+                    202,
+                    132,
+                    229
+                ],
+                "set_inputs": [
+                    169,
+                    171,
+                    165,
+                    134
+                ],
+                "first_layer": [
+                    139,
+                    149,
+                    150,
+                    151,
+                    153,
+                    154,
+                    155
+                ],
+                "layer.layers": [
+                    144,
+                    149
+                ],
+                "first_layer.layers": [
+                    151
+                ],
+                "batch_shape": [
+                    213,
+                    215,
+                    154,
+                    158,
+                    223
+                ],
+                "first_layer.batch_input_shape": [
+                    154
+                ],
+                "dtype": [
+                    216,
+                    155,
+                    214,
+                    159
+                ],
+                "first_layer.dtype": [
+                    155
+                ],
+                "x": [
+                    164,
+                    267,
+                    245,
+                    215,
+                    221,
+                    218,
+                    220,
+                    157
+                ],
+                "Input": [
+                    157,
+                    215
+                ],
+                "layer.name": [
+                    160
+                ],
+                "output_tensors": [
+                    168,
+                    177,
+                    172
+                ],
+                "layer._inbound_nodes": [
+                    168,
+                    177,
+                    172
+                ],
+                "self.outputs": [
+                    227,
+                    204,
+                    206,
+                    208,
+                    177,
+                    178,
+                    179,
+                    180,
+                    186,
+                    221
+                ],
+                "self.inputs": [
+                    225,
+                    226,
+                    205,
+                    178,
+                    212,
+                    218,
+                    187
+                ],
+                "network.get_source_inputs": [
+                    178
+                ],
+                "network": [
+                    178
+                ],
+                "output_tensor": [
+                    186,
+                    180,
+                    181
+                ],
+                "self.build": [
+                    209,
+                    188
+                ],
+                "self._layers.append": [
+                    190
+                ],
+                "self.layers": [
+                    198,
+                    203,
+                    207,
+                    208,
+                    275
+                ],
+                "self._layers.pop": [
+                    201
+                ],
+                "_outbound_nodes": [
+                    207
+                ],
+                "output": [
+                    208
+                ],
+                "input_shape": [
+                    212,
+                    213
+                ],
+                "K.floatx": [
+                    214
+                ],
+                "K": [
+                    214
+                ],
+                "self.name": [
+                    217,
+                    228
+                ],
+                "batch_input_shape": [
+                    223
+                ],
+                "self._init_graph_network": [
+                    226
+                ],
+                "preds": [
+                    251,
+                    245,
+                    246
+                ],
+                "self.predict": [
+                    267,
+                    245
+                ],
+                "batch_size": [
+                    267,
+                    245
+                ],
+                "verbose": [
+                    267,
+                    245
+                ],
+                "preds.min": [
+                    246
+                ],
+                "preds.max": [
+                    246
+                ],
+                "proba": [
+                    267,
+                    268,
+                    269,
+                    271
+                ],
+                "proba.shape": [
+                    268
+                ],
+                "proba.argmax": [
+                    269
+                ],
+                "astype": [
+                    271
+                ],
+                "config": [
+                    280,
+                    274,
+                    276,
+                    285
+                ],
+                "config.append": [
+                    276
+                ],
+                "layer.__class__.__name__": [
+                    277
+                ],
+                "layer.__class__": [
+                    277
+                ],
+                "layer.get_config": [
+                    278
+                ],
+                "copy.deepcopy": [
+                    280
+                ],
+                "copy": [
+                    280
+                ],
+                "model": [
+                    288,
+                    289,
+                    284
+                ],
+                "cls": [
+                    284
+                ],
+                "conf": [
+                    285,
+                    286
+                ],
+                "layer_module.deserialize": [
+                    286
+                ],
+                "layer_module": [
+                    286
+                ],
+                "custom_objects": [
+                    287
+                ],
+                "model.add": [
+                    288
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_16/tests/keras/test_sequential_model.py",
+                "test_function": "test_sequential_deferred_build",
+                "test_function_code": "@keras_test\ndef test_sequential_deferred_build():\n    model = keras.models.Sequential()\n    model.add(keras.layers.Dense(3))\n    model.add(keras.layers.Dense(3))\n    model.compile('sgd', 'mse')\n\n    assert model.built is False\n    assert len(model.layers) == 2\n    assert len(model.weights) == 0\n\n    model.train_on_batch(\n        np.random.random((2, 4)), np.random.random((2, 3)))\n\n    assert model.built is True\n    assert len(model.layers) == 2\n    assert len(model.weights) == 4\n\n    # Test serialization\n    config = model.get_config()\n    assert 'name' in config\n    new_model = Sequential.from_config(config)\n    assert new_model.built is True\n    assert len(new_model.layers) == 2\n    assert len(new_model.weights) == 4",
+                "test_error": "AssertionError: assert 'name' in [{'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'batch_input_shape': (None, ...activity_regularizer': None, 'bias_constraint': None, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, ...}}]",
+                "full_test_error": "@keras_test\n    def test_sequential_deferred_build():\n        model = keras.models.Sequential()\n        model.add(keras.layers.Dense(3))\n        model.add(keras.layers.Dense(3))\n        model.compile('sgd', 'mse')\n    \n        assert model.built is False\n        assert len(model.layers) == 2\n        assert len(model.weights) == 0\n    \n        model.train_on_batch(\n            np.random.random((2, 4)), np.random.random((2, 3)))\n    \n        assert model.built is True\n        assert len(model.layers) == 2\n        assert len(model.weights) == 4\n    \n        # Test serialization\n        config = model.get_config()\n>       assert 'name' in config\nE       AssertionError: assert 'name' in [{'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'batch_input_shape': (None, ...activity_regularizer': None, 'bias_constraint': None, 'bias_initializer': {'class_name': 'Zeros', 'config': {}}, ...}}]\n\ntests/keras/test_sequential_model.py:433: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "keras_test"
+                ]
+            },
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_16/tests/keras/test_sequential_model.py",
+                "test_function": "test_sequential",
+                "test_function_code": "@keras_test\ndef test_sequential(in_tmpdir):\n    (x_train, y_train), (x_test, y_test) = _get_test_data()\n\n    # TODO: factor out\n    def data_generator(x, y, batch_size=50):\n        index_array = np.arange(len(x))\n        while 1:\n            batches = make_batches(len(x_test), batch_size)\n            for batch_index, (batch_start, batch_end) in enumerate(batches):\n                batch_ids = index_array[batch_start:batch_end]\n                x_batch = x[batch_ids]\n                y_batch = y[batch_ids]\n                yield (x_batch, y_batch)\n\n    model = Sequential()\n    model.add(Dense(num_hidden, input_shape=(input_dim,)))\n    model.add(Activation('relu'))\n    model.add(Dense(num_classes))\n    model.add(Activation('softmax'))\n    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')\n\n    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1,\n              validation_data=(x_test, y_test))\n    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=2,\n              validation_split=0.1)\n    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=0)\n    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1,\n              shuffle=False)\n\n    model.train_on_batch(x_train[:32], y_train[:32])\n\n    loss = model.evaluate(x_test, y_test)\n\n    prediction = model.predict_generator(data_generator(x_test, y_test), 1,\n                                         max_queue_size=2, verbose=1)\n    gen_loss = model.evaluate_generator(data_generator(x_test, y_test, 50), 1,\n                                        max_queue_size=2)\n    pred_loss = K.eval(K.mean(losses.get(model.loss)(K.variable(y_test),\n                                                     K.variable(prediction))))\n\n    assert(np.isclose(pred_loss, loss))\n    assert(np.isclose(gen_loss, loss))\n\n    model.predict(x_test, verbose=0)\n    model.predict_classes(x_test, verbose=0)\n    model.predict_proba(x_test, verbose=0)\n\n    fname = 'test_sequential_temp.h5'\n    model.save_weights(fname, overwrite=True)\n    model = Sequential()\n    model.add(Dense(num_hidden, input_shape=(input_dim,)))\n    model.add(Activation('relu'))\n    model.add(Dense(num_classes))\n    model.add(Activation('softmax'))\n    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')\n    model.load_weights(fname)\n    os.remove(fname)\n\n    nloss = model.evaluate(x_test, y_test, verbose=0)\n    assert(loss == nloss)\n\n    # Test serialization\n    config = model.get_config()\n    assert 'name' in config\n    new_model = Sequential.from_config(config)\n    assert new_model.weights  # Model should be built.\n\n    model.summary()\n    json_str = model.to_json()\n    model_from_json(json_str)\n\n    yaml_str = model.to_yaml()\n    model_from_yaml(yaml_str)",
+                "test_error": "AssertionError: assert 'name' in [{'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'batch_input_shape': (None, ...}, ...}}, {'class_name': 'Activation', 'config': {'activation': 'softmax', 'name': 'activation_4', 'trainable': True}}]",
+                "full_test_error": "in_tmpdir = None\n\n    @keras_test\n    def test_sequential(in_tmpdir):\n        (x_train, y_train), (x_test, y_test) = _get_test_data()\n    \n        # TODO: factor out\n        def data_generator(x, y, batch_size=50):\n            index_array = np.arange(len(x))\n            while 1:\n                batches = make_batches(len(x_test), batch_size)\n                for batch_index, (batch_start, batch_end) in enumerate(batches):\n                    batch_ids = index_array[batch_start:batch_end]\n                    x_batch = x[batch_ids]\n                    y_batch = y[batch_ids]\n                    yield (x_batch, y_batch)\n    \n        model = Sequential()\n        model.add(Dense(num_hidden, input_shape=(input_dim,)))\n        model.add(Activation('relu'))\n        model.add(Dense(num_classes))\n        model.add(Activation('softmax'))\n        model.compile(loss='categorical_crossentropy', optimizer='rmsprop')\n    \n        model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1,\n                  validation_data=(x_test, y_test))\n        model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=2,\n                  validation_split=0.1)\n        model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=0)\n        model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1,\n                  shuffle=False)\n    \n        model.train_on_batch(x_train[:32], y_train[:32])\n    \n        loss = model.evaluate(x_test, y_test)\n    \n        prediction = model.predict_generator(data_generator(x_test, y_test), 1,\n                                             max_queue_size=2, verbose=1)\n        gen_loss = model.evaluate_generator(data_generator(x_test, y_test, 50), 1,\n                                            max_queue_size=2)\n        pred_loss = K.eval(K.mean(losses.get(model.loss)(K.variable(y_test),\n                                                         K.variable(prediction))))\n    \n        assert(np.isclose(pred_loss, loss))\n        assert(np.isclose(gen_loss, loss))\n    \n        model.predict(x_test, verbose=0)\n        model.predict_classes(x_test, verbose=0)\n        model.predict_proba(x_test, verbose=0)\n    \n        fname = 'test_sequential_temp.h5'\n        model.save_weights(fname, overwrite=True)\n        model = Sequential()\n        model.add(Dense(num_hidden, input_shape=(input_dim,)))\n        model.add(Activation('relu'))\n        model.add(Dense(num_classes))\n        model.add(Activation('softmax'))\n        model.compile(loss='categorical_crossentropy', optimizer='rmsprop')\n        model.load_weights(fname)\n        os.remove(fname)\n    \n        nloss = model.evaluate(x_test, y_test, verbose=0)\n        assert(loss == nloss)\n    \n        # Test serialization\n        config = model.get_config()\n>       assert 'name' in config\nE       AssertionError: assert 'name' in [{'class_name': 'Dense', 'config': {'activation': 'linear', 'activity_regularizer': None, 'batch_input_shape': (None, ...}, ...}}, {'class_name': 'Activation', 'config': {'activation': 'softmax', 'name': 'activation_4', 'trainable': True}}]\n\n/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_16/tests/keras/test_sequential_model.py:173: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "keras_test"
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,2345 @@
+{
+    "keras:27": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_27/keras/layers/wrappers.py": {
+            "buggy_functions": [],
+            "snippets": [
+                {
+                    "snippet_code": "@property",
+                    "start_line": 489,
+                    "end_line": 490
+                },
+                {
+                    "snippet_code": "@property",
+                    "start_line": 495,
+                    "end_line": 496
+                }
+            ],
+            "inscope_functions": [
+                "def __init__(self, layer, **kwargs):\n    self.layer = layer\n    # Tracks mapping of Wrapper inputs to inner layer inputs. Useful when\n    # the inner layer has update ops that depend on its inputs (as opposed\n    # to the inputs to the Wrapper layer).\n    self._input_map = {}\n    super(Wrapper, self).__init__(**kwargs)",
+                "def build(self, input_shape=None):\n    self.built = True",
+                "@property\ndef activity_regularizer(self):\n    if hasattr(self.layer, 'activity_regularizer'):\n        return self.layer.activity_regularizer\n    else:\n        return None",
+                "@property\ndef trainable(self):\n    return self.layer.trainable",
+                "@trainable.setter\ndef trainable(self, value):\n    self.layer.trainable = value",
+                "@property\ndef trainable_weights(self):\n    return self.layer.trainable_weights",
+                "@property\ndef non_trainable_weights(self):\n    return self.layer.non_trainable_weights",
+                "@property\ndef updates(self):\n    if hasattr(self.layer, 'updates'):\n        return self.layer.updates\n    return []",
+                "def get_updates_for(self, inputs=None):\n    # If the wrapper modifies the inputs, use the modified inputs to\n    # get the updates from the inner layer.\n    inner_inputs = inputs\n    if inputs is not None:\n        uid = object_list_uid(inputs)\n        if uid in self._input_map:\n            inner_inputs = self._input_map[uid]\n\n    updates = self.layer.get_updates_for(inner_inputs)\n    updates += super(Wrapper, self).get_updates_for(inputs)\n    return updates",
+                "@property\ndef losses(self):\n    if hasattr(self.layer, 'losses'):\n        return self.layer.losses\n    return []",
+                "def get_losses_for(self, inputs=None):\n    if inputs is None:\n        losses = self.layer.get_losses_for(None)\n        return losses + super(Wrapper, self).get_losses_for(None)\n    return super(Wrapper, self).get_losses_for(inputs)",
+                "def get_weights(self):\n    return self.layer.get_weights()",
+                "def set_weights(self, weights):\n    self.layer.set_weights(weights)",
+                "def get_config(self):\n    config = {'layer': {'class_name': self.layer.__class__.__name__,\n                        'config': self.layer.get_config()}}\n    base_config = super(Wrapper, self).get_config()\n    return dict(list(base_config.items()) + list(config.items()))",
+                "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    from . import deserialize as deserialize_layer\n    layer = deserialize_layer(config.pop('layer'),\n                              custom_objects=custom_objects)\n    return cls(layer, **config)",
+                "def __init__(self, layer, **kwargs):\n    super(TimeDistributed, self).__init__(layer, **kwargs)\n    self.supports_masking = True",
+                "def build(self, input_shape):\n    assert len(input_shape) >= 3\n    self.input_spec = InputSpec(shape=input_shape)\n    child_input_shape = (input_shape[0],) + input_shape[2:]\n    if not self.layer.built:\n        self.layer.build(child_input_shape)\n        self.layer.built = True\n    super(TimeDistributed, self).build()",
+                "def compute_output_shape(self, input_shape):\n    child_input_shape = (input_shape[0],) + input_shape[2:]\n    child_output_shape = self.layer.compute_output_shape(child_input_shape)\n    timesteps = input_shape[1]\n    return (child_output_shape[0], timesteps) + child_output_shape[1:]",
+                "def call(self, inputs, training=None, mask=None):\n    kwargs = {}\n    if has_arg(self.layer.call, 'training'):\n        kwargs['training'] = training\n    uses_learning_phase = False\n\n    input_shape = K.int_shape(inputs)\n    if input_shape[0]:\n        # batch size matters, use rnn-based implementation\n        def step(x, _):\n            global uses_learning_phase\n            output = self.layer.call(x, **kwargs)\n            if hasattr(output, '_uses_learning_phase'):\n                uses_learning_phase = (output._uses_learning_phase or\n                                       uses_learning_phase)\n            return output, []\n\n        _, outputs, _ = K.rnn(step, inputs,\n                              initial_states=[],\n                              input_length=input_shape[1],\n                              unroll=False)\n        y = outputs\n    else:\n        # No batch size specified, therefore the layer will be able\n        # to process batches of any size.\n        # We can go with reshape-based implementation for performance.\n        input_length = input_shape[1]\n        if not input_length:\n            input_length = K.shape(inputs)[1]\n        # Shape: (num_samples * timesteps, ...). And track the\n        # transformation in self._input_map.\n        input_uid = object_list_uid(inputs)\n        inputs = K.reshape(inputs, (-1,) + input_shape[2:])\n        self._input_map[input_uid] = inputs\n        # (num_samples * timesteps, ...)\n        y = self.layer.call(inputs, **kwargs)\n        if hasattr(y, '_uses_learning_phase'):\n            uses_learning_phase = y._uses_learning_phase\n        # Shape: (num_samples, timesteps, ...)\n        output_shape = self.compute_output_shape(input_shape)\n        y = K.reshape(y, (-1, input_length) + output_shape[2:])\n\n    # Apply activity regularizer if any:\n    if (hasattr(self.layer, 'activity_regularizer') and\n       self.layer.activity_regularizer is not None):\n        regularization_loss = self.layer.activity_regularizer(y)\n        self.add_loss(regularization_loss, inputs)\n\n    if uses_learning_phase:\n        y._uses_learning_phase = True\n    return y",
+                "def __init__(self, layer, merge_mode='concat', weights=None, **kwargs):\n    if merge_mode not in ['sum', 'mul', 'ave', 'concat', None]:\n        raise ValueError('Invalid merge mode. '\n                         'Merge mode should be one of '\n                         '{\"sum\", \"mul\", \"ave\", \"concat\", None}')\n    self.forward_layer = copy.copy(layer)\n    config = layer.get_config()\n    config['go_backwards'] = not config['go_backwards']\n    self.backward_layer = layer.__class__.from_config(config)\n    self.forward_layer.name = 'forward_' + self.forward_layer.name\n    self.backward_layer.name = 'backward_' + self.backward_layer.name\n    self.merge_mode = merge_mode\n    if weights:\n        nw = len(weights)\n        self.forward_layer.initial_weights = weights[:nw // 2]\n        self.backward_layer.initial_weights = weights[nw // 2:]\n    self.stateful = layer.stateful\n    self.return_sequences = layer.return_sequences\n    self.return_state = layer.return_state\n    self.supports_masking = True\n    self._trainable = True\n    super(Bidirectional, self).__init__(layer, **kwargs)\n    self.input_spec = layer.input_spec\n    self._num_constants = None",
+                "@property\ndef trainable(self):\n    return self._trainable",
+                "@trainable.setter\ndef trainable(self, value):\n    self._trainable = value\n    self.forward_layer.trainable = value\n    self.backward_layer.trainable = value",
+                "def get_weights(self):\n    return self.forward_layer.get_weights() + self.backward_layer.get_weights()",
+                "def set_weights(self, weights):\n    nw = len(weights)\n    self.forward_layer.set_weights(weights[:nw // 2])\n    self.backward_layer.set_weights(weights[nw // 2:])",
+                "def compute_output_shape(self, input_shape):\n    output_shape = self.forward_layer.compute_output_shape(input_shape)\n    if self.return_state:\n        state_shape = output_shape[1:]\n        output_shape = output_shape[0]\n\n    if self.merge_mode == 'concat':\n        output_shape = list(output_shape)\n        output_shape[-1] *= 2\n        output_shape = tuple(output_shape)\n    elif self.merge_mode is None:\n        output_shape = [output_shape, copy.copy(output_shape)]\n\n    if self.return_state:\n        if self.merge_mode is None:\n            return output_shape + state_shape + copy.copy(state_shape)\n        return [output_shape] + state_shape + copy.copy(state_shape)\n    return output_shape",
+                "def __call__(self, inputs, initial_state=None, constants=None, **kwargs):\n    inputs, initial_state, constants = recurrent._standardize_args(\n        inputs, initial_state, constants, self._num_constants)\n\n    if initial_state is None and constants is None:\n        return super(Bidirectional, self).__call__(inputs, **kwargs)\n\n    # Applies the same workaround as in `RNN.__call__`\n    additional_inputs = []\n    additional_specs = []\n    if initial_state is not None:\n        # Check if `initial_state` can be splitted into half\n        num_states = len(initial_state)\n        if num_states % 2 > 0:\n            raise ValueError(\n                'When passing `initial_state` to a Bidirectional RNN, '\n                'the state should be a list containing the states of '\n                'the underlying RNNs. '\n                'Found: ' + str(initial_state))\n\n        kwargs['initial_state'] = initial_state\n        additional_inputs += initial_state\n        state_specs = [InputSpec(shape=K.int_shape(state))\n                       for state in initial_state]\n        self.forward_layer.state_spec = state_specs[:num_states // 2]\n        self.backward_layer.state_spec = state_specs[num_states // 2:]\n        additional_specs += state_specs\n    if constants is not None:\n        kwargs['constants'] = constants\n        additional_inputs += constants\n        constants_spec = [InputSpec(shape=K.int_shape(constant))\n                          for constant in constants]\n        self.forward_layer.constants_spec = constants_spec\n        self.backward_layer.constants_spec = constants_spec\n        additional_specs += constants_spec\n\n        self._num_constants = len(constants)\n        self.forward_layer._num_constants = self._num_constants\n        self.backward_layer._num_constants = self._num_constants\n\n    is_keras_tensor = K.is_keras_tensor(additional_inputs[0])\n    for tensor in additional_inputs:\n        if K.is_keras_tensor(tensor) != is_keras_tensor:\n            raise ValueError('The initial state of a Bidirectional'\n                             ' layer cannot be specified with a mix of'\n                             ' Keras tensors and non-Keras tensors'\n                             ' (a \"Keras tensor\" is a tensor that was'\n                             ' returned by a Keras layer, or by `Input`)')\n\n    if is_keras_tensor:\n        # Compute the full input spec, including state\n        full_input = [inputs] + additional_inputs\n        full_input_spec = self.input_spec + additional_specs\n\n        # Perform the call with temporarily replaced input_spec\n        original_input_spec = self.input_spec\n        self.input_spec = full_input_spec\n        output = super(Bidirectional, self).__call__(full_input, **kwargs)\n        self.input_spec = original_input_spec\n        return output\n    else:\n        return super(Bidirectional, self).__call__(inputs, **kwargs)",
+                "def call(self,\n         inputs,\n         mask=None,\n         training=None,\n         initial_state=None,\n         constants=None):\n    kwargs = {}\n    if has_arg(self.layer.call, 'training'):\n        kwargs['training'] = training\n    if has_arg(self.layer.call, 'mask'):\n        kwargs['mask'] = mask\n    if has_arg(self.layer.call, 'constants'):\n        kwargs['constants'] = constants\n\n    if initial_state is not None and has_arg(self.layer.call, 'initial_state'):\n        forward_state = initial_state[:len(initial_state) // 2]\n        backward_state = initial_state[len(initial_state) // 2:]\n        y = self.forward_layer.call(inputs, initial_state=forward_state, **kwargs)\n        y_rev = self.backward_layer.call(inputs, initial_state=backward_state, **kwargs)\n    else:\n        y = self.forward_layer.call(inputs, **kwargs)\n        y_rev = self.backward_layer.call(inputs, **kwargs)\n\n    if self.return_state:\n        states = y[1:] + y_rev[1:]\n        y = y[0]\n        y_rev = y_rev[0]\n\n    if self.return_sequences:\n        y_rev = K.reverse(y_rev, 1)\n    if self.merge_mode == 'concat':\n        output = K.concatenate([y, y_rev])\n    elif self.merge_mode == 'sum':\n        output = y + y_rev\n    elif self.merge_mode == 'ave':\n        output = (y + y_rev) / 2\n    elif self.merge_mode == 'mul':\n        output = y * y_rev\n    elif self.merge_mode is None:\n        output = [y, y_rev]\n\n    # Properly set learning phase\n    if (getattr(y, '_uses_learning_phase', False) or\n       getattr(y_rev, '_uses_learning_phase', False)):\n        if self.merge_mode is None:\n            for out in output:\n                out._uses_learning_phase = True\n        else:\n            output._uses_learning_phase = True\n\n    if self.return_state:\n        if self.merge_mode is None:\n            return output + states\n        return [output] + states\n    return output",
+                "def reset_states(self):\n    self.forward_layer.reset_states()\n    self.backward_layer.reset_states()",
+                "def build(self, input_shape):\n    with K.name_scope(self.forward_layer.name):\n        self.forward_layer.build(input_shape)\n    with K.name_scope(self.backward_layer.name):\n        self.backward_layer.build(input_shape)\n    self.built = True",
+                "def compute_mask(self, inputs, mask):\n    if isinstance(mask, list):\n        mask = mask[0]\n    if self.return_sequences:\n        if not self.merge_mode:\n            output_mask = [mask, mask]\n        else:\n            output_mask = mask\n    else:\n        output_mask = [None, None] if not self.merge_mode else None\n\n    if self.return_state:\n        states = self.forward_layer.states\n        state_mask = [None for _ in states]\n        if isinstance(output_mask, list):\n            return output_mask + state_mask * 2\n        return [output_mask] + state_mask * 2\n\n    return output_mask",
+                "@property\ndef trainable_weights(self):\n    if hasattr(self.forward_layer, 'trainable_weights'):\n        return (self.forward_layer.trainable_weights +\n                self.backward_layer.trainable_weights)\n    return []",
+                "@property\ndef non_trainable_weights(self):\n    if hasattr(self.forward_layer, 'non_trainable_weights'):\n        return (self.forward_layer.non_trainable_weights +\n                self.backward_layer.non_trainable_weights)\n    return []",
+                "@property\ndef updates(self):\n    if hasattr(self.forward_layer, 'updates'):\n        return self.forward_layer.updates + self.backward_layer.updates\n    return []",
+                "@property\ndef losses(self):\n    if hasattr(self.forward_layer, 'losses'):\n        return self.forward_layer.losses + self.backward_layer.losses\n    return []",
+                "@property\ndef constraints(self):\n    constraints = {}\n    if hasattr(self.forward_layer, 'constraints'):\n        constraints.update(self.forward_layer.constraints)\n        constraints.update(self.backward_layer.constraints)\n    return constraints",
+                "def get_config(self):\n    config = {'merge_mode': self.merge_mode}\n    if self._num_constants is not None:\n        config['num_constants'] = self._num_constants\n\n    base_config = super(Bidirectional, self).get_config()\n    return dict(list(base_config.items()) + list(config.items()))",
+                "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    from . import deserialize as deserialize_layer\n    rnn_layer = deserialize_layer(config.pop('layer'),\n                                  custom_objects=custom_objects)\n    num_constants = config.pop('num_constants', None)\n    layer = cls(rnn_layer, **config)\n    layer._num_constants = num_constants\n    return layer",
+                "def step(x, _):\n    global uses_learning_phase\n    output = self.layer.call(x, **kwargs)\n    if hasattr(output, '_uses_learning_phase'):\n        uses_learning_phase = (output._uses_learning_phase or\n                               uses_learning_phase)\n    return output, []"
+            ],
+            "inscope_function_signatures": [
+                "__init__(self, layer, **kwargs)",
+                "build(self, input_shape=None)",
+                "activity_regularizer(self)",
+                "trainable(self)",
+                "trainable(self, value)",
+                "trainable_weights(self)",
+                "non_trainable_weights(self)",
+                "updates(self)",
+                "get_updates_for(self, inputs=None)",
+                "losses(self)",
+                "get_losses_for(self, inputs=None)",
+                "get_weights(self)",
+                "set_weights(self, weights)",
+                "get_config(self)",
+                "from_config(cls, config, custom_objects=None)",
+                "__init__(self, layer, **kwargs)",
+                "build(self, input_shape)",
+                "compute_output_shape(self, input_shape)",
+                "call(self, inputs, training=None, mask=None)",
+                "__init__(self, layer, merge_mode='concat', weights=None, **kwargs)",
+                "trainable(self)",
+                "trainable(self, value)",
+                "get_weights(self)",
+                "set_weights(self, weights)",
+                "compute_output_shape(self, input_shape)",
+                "__call__(self, inputs, initial_state=None, constants=None, **kwargs)",
+                "call(self, inputs, mask=None, training=None, initial_state=None, constants=None)",
+                "reset_states(self)",
+                "build(self, input_shape)",
+                "compute_mask(self, inputs, mask)",
+                "trainable_weights(self)",
+                "non_trainable_weights(self)",
+                "updates(self)",
+                "losses(self)",
+                "constraints(self)",
+                "get_config(self)",
+                "from_config(cls, config, custom_objects=None)",
+                "step(x, _)"
+            ],
+            "variables_in_file": {
+                "Layer": [
+                    18
+                ],
+                "self.layer": [
+                    390,
+                    392,
+                    394,
+                    397,
+                    30,
+                    167,
+                    168,
+                    169,
+                    42,
+                    43,
+                    174,
+                    49,
+                    180,
+                    53,
+                    57,
+                    61,
+                    189,
+                    65,
+                    66,
+                    78,
+                    84,
+                    85,
+                    213,
+                    90,
+                    221,
+                    222,
+                    95,
+                    223,
+                    98,
+                    101,
+                    102
+                ],
+                "self": [
+                    30,
+                    34,
+                    35,
+                    38,
+                    42,
+                    43,
+                    49,
+                    53,
+                    57,
+                    61,
+                    65,
+                    66,
+                    75,
+                    76,
+                    78,
+                    79,
+                    84,
+                    85,
+                    90,
+                    91,
+                    92,
+                    95,
+                    98,
+                    101,
+                    102,
+                    103,
+                    160,
+                    161,
+                    165,
+                    167,
+                    168,
+                    169,
+                    170,
+                    174,
+                    180,
+                    189,
+                    211,
+                    213,
+                    217,
+                    221,
+                    222,
+                    223,
+                    224,
+                    263,
+                    266,
+                    267,
+                    268,
+                    269,
+                    272,
+                    273,
+                    274,
+                    275,
+                    276,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281,
+                    285,
+                    289,
+                    290,
+                    291,
+                    294,
+                    298,
+                    299,
+                    302,
+                    303,
+                    307,
+                    311,
+                    314,
+                    315,
+                    322,
+                    325,
+                    344,
+                    345,
+                    352,
+                    353,
+                    356,
+                    357,
+                    358,
+                    372,
+                    375,
+                    376,
+                    377,
+                    378,
+                    381,
+                    390,
+                    392,
+                    394,
+                    397,
+                    400,
+                    401,
+                    403,
+                    404,
+                    406,
+                    411,
+                    413,
+                    415,
+                    417,
+                    419,
+                    421,
+                    427,
+                    433,
+                    434,
+                    440,
+                    441,
+                    444,
+                    445,
+                    446,
+                    447,
+                    448,
+                    453,
+                    454,
+                    459,
+                    461,
+                    462,
+                    472,
+                    473,
+                    474,
+                    479,
+                    480,
+                    481,
+                    486,
+                    487,
+                    492,
+                    493,
+                    499,
+                    500,
+                    501,
+                    505,
+                    506,
+                    507,
+                    509
+                ],
+                "layer": [
+                    160,
+                    518,
+                    263,
+                    264,
+                    519,
+                    266,
+                    520,
+                    109,
+                    111,
+                    274,
+                    275,
+                    276,
+                    279,
+                    280,
+                    30
+                ],
+                "self._input_map": [
+                    34,
+                    75,
+                    76,
+                    211
+                ],
+                "__init__": [
+                    160,
+                    35,
+                    279
+                ],
+                "super": [
+                    160,
+                    509,
+                    35,
+                    325,
+                    103,
+                    170,
+                    79,
+                    279,
+                    377,
+                    91,
+                    92,
+                    381
+                ],
+                "Wrapper": [
+                    35,
+                    103,
+                    231,
+                    79,
+                    114,
+                    91,
+                    92
+                ],
+                "kwargs": [
+                    389,
+                    391,
+                    393,
+                    395,
+                    400,
+                    401,
+                    403,
+                    404,
+                    279,
+                    160,
+                    35,
+                    179,
+                    181,
+                    189,
+                    325,
+                    340,
+                    213,
+                    348,
+                    377,
+                    381
+                ],
+                "self.built": [
+                    448,
+                    38
+                ],
+                "hasattr": [
+                    65,
+                    486,
+                    42,
+                    492,
+                    499,
+                    84,
+                    214,
+                    472,
+                    221,
+                    190,
+                    479
+                ],
+                "self.layer.activity_regularizer": [
+                    43,
+                    222,
+                    223
+                ],
+                "property": [
+                    484,
+                    40,
+                    490,
+                    47,
+                    283,
+                    496,
+                    82,
+                    470,
+                    55,
+                    59,
+                    477,
+                    63
+                ],
+                "self.layer.trainable": [
+                    49,
+                    53
+                ],
+                "value": [
+                    289,
+                    290,
+                    291,
+                    53
+                ],
+                "trainable.setter": [
+                    51,
+                    287
+                ],
+                "trainable": [
+                    51,
+                    287
+                ],
+                "self.layer.trainable_weights": [
+                    57
+                ],
+                "self.layer.non_trainable_weights": [
+                    61
+                ],
+                "self.layer.updates": [
+                    66
+                ],
+                "inner_inputs": [
+                    72,
+                    76,
+                    78
+                ],
+                "inputs": [
+                    400,
+                    401,
+                    403,
+                    404,
+                    184,
+                    321,
+                    322,
+                    195,
+                    325,
+                    72,
+                    73,
+                    74,
+                    206,
+                    79,
+                    209,
+                    210,
+                    211,
+                    213,
+                    89,
+                    92,
+                    224,
+                    371,
+                    381
+                ],
+                "uid": [
+                    74,
+                    75,
+                    76
+                ],
+                "object_list_uid": [
+                    209,
+                    74
+                ],
+                "updates": [
+                    80,
+                    78,
+                    79
+                ],
+                "self.layer.get_updates_for": [
+                    78
+                ],
+                "get_updates_for": [
+                    79
+                ],
+                "self.layer.losses": [
+                    85
+                ],
+                "losses": [
+                    90,
+                    91
+                ],
+                "self.layer.get_losses_for": [
+                    90
+                ],
+                "get_losses_for": [
+                    91,
+                    92
+                ],
+                "self.layer.get_weights": [
+                    95
+                ],
+                "self.layer.set_weights": [
+                    98
+                ],
+                "weights": [
+                    98,
+                    297,
+                    298,
+                    299,
+                    270,
+                    271,
+                    272,
+                    273
+                ],
+                "config": [
+                    515,
+                    101,
+                    517,
+                    518,
+                    104,
+                    264,
+                    265,
+                    266,
+                    109,
+                    111,
+                    505,
+                    507,
+                    510
+                ],
+                "self.layer.__class__.__name__": [
+                    101
+                ],
+                "self.layer.__class__": [
+                    101
+                ],
+                "self.layer.get_config": [
+                    102
+                ],
+                "base_config": [
+                    104,
+                    509,
+                    510,
+                    103
+                ],
+                "get_config": [
+                    509,
+                    103
+                ],
+                "dict": [
+                    104,
+                    510
+                ],
+                "list": [
+                    451,
+                    104,
+                    464,
+                    308,
+                    510
+                ],
+                "base_config.items": [
+                    104,
+                    510
+                ],
+                "config.items": [
+                    104,
+                    510
+                ],
+                "deserialize_layer": [
+                    515,
+                    109
+                ],
+                "config.pop": [
+                    517,
+                    515,
+                    109
+                ],
+                "custom_objects": [
+                    516,
+                    110
+                ],
+                "cls": [
+                    518,
+                    111
+                ],
+                "classmethod": [
+                    512,
+                    106
+                ],
+                "TimeDistributed": [
+                    160,
+                    170
+                ],
+                "self.supports_masking": [
+                    161,
+                    277
+                ],
+                "len": [
+                    356,
+                    164,
+                    297,
+                    332,
+                    398,
+                    271,
+                    399
+                ],
+                "input_shape": [
+                    164,
+                    165,
+                    166,
+                    197,
+                    217,
+                    204,
+                    173,
+                    302,
+                    175,
+                    210,
+                    184,
+                    185,
+                    445,
+                    447
+                ],
+                "self.input_spec": [
+                    376,
+                    165,
+                    372,
+                    375,
+                    280,
+                    378
+                ],
+                "InputSpec": [
+                    350,
+                    165,
+                    342
+                ],
+                "child_input_shape": [
+                    168,
+                    174,
+                    173,
+                    166
+                ],
+                "self.layer.built": [
+                    169,
+                    167
+                ],
+                "self.layer.build": [
+                    168
+                ],
+                "build": [
+                    170
+                ],
+                "child_output_shape": [
+                    176,
+                    174
+                ],
+                "self.layer.compute_output_shape": [
+                    174
+                ],
+                "timesteps": [
+                    176,
+                    175
+                ],
+                "has_arg": [
+                    390,
+                    392,
+                    394,
+                    397,
+                    180
+                ],
+                "self.layer.call": [
+                    390,
+                    392,
+                    394,
+                    397,
+                    180,
+                    213,
+                    189
+                ],
+                "training": [
+                    181,
+                    391
+                ],
+                "uses_learning_phase": [
+                    192,
+                    226,
+                    182,
+                    215,
+                    191
+                ],
+                "K.int_shape": [
+                    184,
+                    350,
+                    342
+                ],
+                "K": [
+                    195,
+                    414,
+                    444,
+                    446,
+                    360,
+                    362,
+                    206,
+                    210,
+                    342,
+                    184,
+                    218,
+                    412,
+                    350
+                ],
+                "output": [
+                    416,
+                    193,
+                    418,
+                    414,
+                    420,
+                    422,
+                    428,
+                    431,
+                    435,
+                    436,
+                    437,
+                    377,
+                    379,
+                    189,
+                    190,
+                    191
+                ],
+                "x": [
+                    189
+                ],
+                "output._uses_learning_phase": [
+                    431,
+                    191
+                ],
+                "_": [
+                    195,
+                    463
+                ],
+                "outputs": [
+                    195,
+                    199
+                ],
+                "K.rnn": [
+                    195
+                ],
+                "step": [
+                    195
+                ],
+                "y": [
+                    407,
+                    416,
+                    418,
+                    227,
+                    228,
+                    420,
+                    422,
+                    199,
+                    425,
+                    400,
+                    403,
+                    213,
+                    214,
+                    215,
+                    408,
+                    218,
+                    414,
+                    223
+                ],
+                "input_length": [
+                    218,
+                    204,
+                    205,
+                    206
+                ],
+                "K.shape": [
+                    206
+                ],
+                "input_uid": [
+                    209,
+                    211
+                ],
+                "K.reshape": [
+                    218,
+                    210
+                ],
+                "y._uses_learning_phase": [
+                    227,
+                    215
+                ],
+                "output_shape": [
+                    302,
+                    304,
+                    305,
+                    308,
+                    309,
+                    310,
+                    312,
+                    217,
+                    218,
+                    316,
+                    317,
+                    318
+                ],
+                "self.compute_output_shape": [
+                    217
+                ],
+                "regularization_loss": [
+                    224,
+                    223
+                ],
+                "self.add_loss": [
+                    224
+                ],
+                "merge_mode": [
+                    259,
+                    269
+                ],
+                "ValueError": [
+                    363,
+                    260,
+                    334
+                ],
+                "self.forward_layer": [
+                    263,
+                    267,
+                    272,
+                    400,
+                    403,
+                    290,
+                    294,
+                    298,
+                    302,
+                    440,
+                    444,
+                    445,
+                    462,
+                    472,
+                    344,
+                    473,
+                    479,
+                    352,
+                    480,
+                    357,
+                    486,
+                    487,
+                    492,
+                    493,
+                    499,
+                    500
+                ],
+                "copy.copy": [
+                    312,
+                    316,
+                    317,
+                    263
+                ],
+                "copy": [
+                    312,
+                    316,
+                    317,
+                    263
+                ],
+                "layer.get_config": [
+                    264
+                ],
+                "self.backward_layer": [
+                    266,
+                    268,
+                    273,
+                    401,
+                    404,
+                    291,
+                    294,
+                    299,
+                    441,
+                    446,
+                    447,
+                    345,
+                    474,
+                    353,
+                    481,
+                    358,
+                    487,
+                    493,
+                    501
+                ],
+                "layer.__class__.from_config": [
+                    266
+                ],
+                "layer.__class__": [
+                    266
+                ],
+                "self.forward_layer.name": [
+                    267,
+                    444
+                ],
+                "self.backward_layer.name": [
+                    268,
+                    446
+                ],
+                "self.merge_mode": [
+                    417,
+                    419,
+                    421,
+                    454,
+                    427,
+                    459,
+                    269,
+                    434,
+                    307,
+                    311,
+                    505,
+                    315,
+                    413,
+                    415
+                ],
+                "nw": [
+                    297,
+                    298,
+                    299,
+                    271,
+                    272,
+                    273
+                ],
+                "self.forward_layer.initial_weights": [
+                    272
+                ],
+                "self.backward_layer.initial_weights": [
+                    273
+                ],
+                "self.stateful": [
+                    274
+                ],
+                "layer.stateful": [
+                    274
+                ],
+                "self.return_sequences": [
+                    275,
+                    411,
+                    453
+                ],
+                "layer.return_sequences": [
+                    275
+                ],
+                "self.return_state": [
+                    461,
+                    303,
+                    433,
+                    276,
+                    406,
+                    314
+                ],
+                "layer.return_state": [
+                    276
+                ],
+                "self._trainable": [
+                    289,
+                    285,
+                    278
+                ],
+                "Bidirectional": [
+                    509,
+                    325,
+                    279,
+                    377,
+                    381
+                ],
+                "layer.input_spec": [
+                    280
+                ],
+                "self._num_constants": [
+                    322,
+                    356,
+                    357,
+                    358,
+                    281,
+                    506,
+                    507
+                ],
+                "self.forward_layer.trainable": [
+                    290
+                ],
+                "self.backward_layer.trainable": [
+                    291
+                ],
+                "self.forward_layer.get_weights": [
+                    294
+                ],
+                "self.backward_layer.get_weights": [
+                    294
+                ],
+                "self.forward_layer.set_weights": [
+                    298
+                ],
+                "self.backward_layer.set_weights": [
+                    299
+                ],
+                "self.forward_layer.compute_output_shape": [
+                    302
+                ],
+                "state_shape": [
+                    304,
+                    316,
+                    317
+                ],
+                "tuple": [
+                    310
+                ],
+                "initial_state": [
+                    321,
+                    322,
+                    324,
+                    330,
+                    332,
+                    397,
+                    398,
+                    399,
+                    338,
+                    340,
+                    341,
+                    343
+                ],
+                "constants": [
+                    321,
+                    322,
+                    324,
+                    356,
+                    395,
+                    347,
+                    348,
+                    349,
+                    351
+                ],
+                "recurrent._standardize_args": [
+                    321
+                ],
+                "recurrent": [
+                    321
+                ],
+                "__call__": [
+                    377,
+                    381,
+                    325
+                ],
+                "additional_inputs": [
+                    328,
+                    361,
+                    360,
+                    371,
+                    341,
+                    349
+                ],
+                "additional_specs": [
+                    329,
+                    346,
+                    372,
+                    354
+                ],
+                "num_states": [
+                    344,
+                    345,
+                    332,
+                    333
+                ],
+                "str": [
+                    338
+                ],
+                "state_specs": [
+                    344,
+                    345,
+                    346,
+                    342
+                ],
+                "state": [
+                    342,
+                    343
+                ],
+                "self.forward_layer.state_spec": [
+                    344
+                ],
+                "self.backward_layer.state_spec": [
+                    345
+                ],
+                "constants_spec": [
+                    352,
+                    353,
+                    354,
+                    350
+                ],
+                "constant": [
+                    350,
+                    351
+                ],
+                "self.forward_layer.constants_spec": [
+                    352
+                ],
+                "self.backward_layer.constants_spec": [
+                    353
+                ],
+                "self.forward_layer._num_constants": [
+                    357
+                ],
+                "self.backward_layer._num_constants": [
+                    358
+                ],
+                "is_keras_tensor": [
+                    360,
+                    369,
+                    362
+                ],
+                "K.is_keras_tensor": [
+                    360,
+                    362
+                ],
+                "tensor": [
+                    361,
+                    362
+                ],
+                "full_input": [
+                    377,
+                    371
+                ],
+                "full_input_spec": [
+                    376,
+                    372
+                ],
+                "original_input_spec": [
+                    378,
+                    375
+                ],
+                "mask": [
+                    451,
+                    452,
+                    455,
+                    393,
+                    457
+                ],
+                "forward_state": [
+                    400,
+                    398
+                ],
+                "backward_state": [
+                    401,
+                    399
+                ],
+                "self.forward_layer.call": [
+                    400,
+                    403
+                ],
+                "y_rev": [
+                    416,
+                    418,
+                    420,
+                    422,
+                    426,
+                    401,
+                    404,
+                    407,
+                    409,
+                    412,
+                    414
+                ],
+                "self.backward_layer.call": [
+                    401,
+                    404
+                ],
+                "states": [
+                    462,
+                    463,
+                    435,
+                    436,
+                    407
+                ],
+                "K.reverse": [
+                    412
+                ],
+                "K.concatenate": [
+                    414
+                ],
+                "getattr": [
+                    425,
+                    426
+                ],
+                "out": [
+                    428,
+                    429
+                ],
+                "out._uses_learning_phase": [
+                    429
+                ],
+                "self.forward_layer.reset_states": [
+                    440
+                ],
+                "self.backward_layer.reset_states": [
+                    441
+                ],
+                "K.name_scope": [
+                    444,
+                    446
+                ],
+                "self.forward_layer.build": [
+                    445
+                ],
+                "self.backward_layer.build": [
+                    447
+                ],
+                "isinstance": [
+                    464,
+                    451
+                ],
+                "output_mask": [
+                    455,
+                    457,
+                    459,
+                    464,
+                    465,
+                    466,
+                    468
+                ],
+                "self.forward_layer.states": [
+                    462
+                ],
+                "state_mask": [
+                    465,
+                    466,
+                    463
+                ],
+                "self.forward_layer.trainable_weights": [
+                    473
+                ],
+                "self.backward_layer.trainable_weights": [
+                    474
+                ],
+                "self.forward_layer.non_trainable_weights": [
+                    480
+                ],
+                "self.backward_layer.non_trainable_weights": [
+                    481
+                ],
+                "self.forward_layer.updates": [
+                    487
+                ],
+                "self.backward_layer.updates": [
+                    487
+                ],
+                "self.forward_layer.losses": [
+                    493
+                ],
+                "self.backward_layer.losses": [
+                    493
+                ],
+                "constraints": [
+                    498,
+                    500,
+                    501,
+                    502
+                ],
+                "constraints.update": [
+                    500,
+                    501
+                ],
+                "self.forward_layer.constraints": [
+                    500
+                ],
+                "self.backward_layer.constraints": [
+                    501
+                ],
+                "rnn_layer": [
+                    515,
+                    518
+                ],
+                "num_constants": [
+                    517,
+                    519
+                ],
+                "layer._num_constants": [
+                    519
+                ]
+            },
+            "filtered_variables_in_file": {
+                "Layer": [
+                    18
+                ],
+                "self.layer": [
+                    390,
+                    392,
+                    394,
+                    397,
+                    30,
+                    167,
+                    168,
+                    169,
+                    42,
+                    43,
+                    174,
+                    49,
+                    180,
+                    53,
+                    57,
+                    61,
+                    189,
+                    65,
+                    66,
+                    78,
+                    84,
+                    85,
+                    213,
+                    90,
+                    221,
+                    222,
+                    95,
+                    223,
+                    98,
+                    101,
+                    102
+                ],
+                "self": [
+                    30,
+                    34,
+                    35,
+                    38,
+                    42,
+                    43,
+                    49,
+                    53,
+                    57,
+                    61,
+                    65,
+                    66,
+                    75,
+                    76,
+                    78,
+                    79,
+                    84,
+                    85,
+                    90,
+                    91,
+                    92,
+                    95,
+                    98,
+                    101,
+                    102,
+                    103,
+                    160,
+                    161,
+                    165,
+                    167,
+                    168,
+                    169,
+                    170,
+                    174,
+                    180,
+                    189,
+                    211,
+                    213,
+                    217,
+                    221,
+                    222,
+                    223,
+                    224,
+                    263,
+                    266,
+                    267,
+                    268,
+                    269,
+                    272,
+                    273,
+                    274,
+                    275,
+                    276,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281,
+                    285,
+                    289,
+                    290,
+                    291,
+                    294,
+                    298,
+                    299,
+                    302,
+                    303,
+                    307,
+                    311,
+                    314,
+                    315,
+                    322,
+                    325,
+                    344,
+                    345,
+                    352,
+                    353,
+                    356,
+                    357,
+                    358,
+                    372,
+                    375,
+                    376,
+                    377,
+                    378,
+                    381,
+                    390,
+                    392,
+                    394,
+                    397,
+                    400,
+                    401,
+                    403,
+                    404,
+                    406,
+                    411,
+                    413,
+                    415,
+                    417,
+                    419,
+                    421,
+                    427,
+                    433,
+                    434,
+                    440,
+                    441,
+                    444,
+                    445,
+                    446,
+                    447,
+                    448,
+                    453,
+                    454,
+                    459,
+                    461,
+                    462,
+                    472,
+                    473,
+                    474,
+                    479,
+                    480,
+                    481,
+                    486,
+                    487,
+                    492,
+                    493,
+                    499,
+                    500,
+                    501,
+                    505,
+                    506,
+                    507,
+                    509
+                ],
+                "layer": [
+                    160,
+                    518,
+                    263,
+                    264,
+                    519,
+                    266,
+                    520,
+                    109,
+                    111,
+                    274,
+                    275,
+                    276,
+                    279,
+                    280,
+                    30
+                ],
+                "self._input_map": [
+                    34,
+                    75,
+                    76,
+                    211
+                ],
+                "__init__": [
+                    160,
+                    35,
+                    279
+                ],
+                "Wrapper": [
+                    35,
+                    103,
+                    231,
+                    79,
+                    114,
+                    91,
+                    92
+                ],
+                "kwargs": [
+                    389,
+                    391,
+                    393,
+                    395,
+                    400,
+                    401,
+                    403,
+                    404,
+                    279,
+                    160,
+                    35,
+                    179,
+                    181,
+                    189,
+                    325,
+                    340,
+                    213,
+                    348,
+                    377,
+                    381
+                ],
+                "self.built": [
+                    448,
+                    38
+                ],
+                "self.layer.activity_regularizer": [
+                    43,
+                    222,
+                    223
+                ],
+                "self.layer.trainable": [
+                    49,
+                    53
+                ],
+                "value": [
+                    289,
+                    290,
+                    291,
+                    53
+                ],
+                "trainable.setter": [
+                    51,
+                    287
+                ],
+                "trainable": [
+                    51,
+                    287
+                ],
+                "self.layer.trainable_weights": [
+                    57
+                ],
+                "self.layer.non_trainable_weights": [
+                    61
+                ],
+                "self.layer.updates": [
+                    66
+                ],
+                "inner_inputs": [
+                    72,
+                    76,
+                    78
+                ],
+                "inputs": [
+                    400,
+                    401,
+                    403,
+                    404,
+                    184,
+                    321,
+                    322,
+                    195,
+                    325,
+                    72,
+                    73,
+                    74,
+                    206,
+                    79,
+                    209,
+                    210,
+                    211,
+                    213,
+                    89,
+                    92,
+                    224,
+                    371,
+                    381
+                ],
+                "uid": [
+                    74,
+                    75,
+                    76
+                ],
+                "object_list_uid": [
+                    209,
+                    74
+                ],
+                "updates": [
+                    80,
+                    78,
+                    79
+                ],
+                "self.layer.get_updates_for": [
+                    78
+                ],
+                "get_updates_for": [
+                    79
+                ],
+                "self.layer.losses": [
+                    85
+                ],
+                "losses": [
+                    90,
+                    91
+                ],
+                "self.layer.get_losses_for": [
+                    90
+                ],
+                "get_losses_for": [
+                    91,
+                    92
+                ],
+                "self.layer.get_weights": [
+                    95
+                ],
+                "self.layer.set_weights": [
+                    98
+                ],
+                "weights": [
+                    98,
+                    297,
+                    298,
+                    299,
+                    270,
+                    271,
+                    272,
+                    273
+                ],
+                "config": [
+                    515,
+                    101,
+                    517,
+                    518,
+                    104,
+                    264,
+                    265,
+                    266,
+                    109,
+                    111,
+                    505,
+                    507,
+                    510
+                ],
+                "self.layer.__class__.__name__": [
+                    101
+                ],
+                "self.layer.__class__": [
+                    101
+                ],
+                "self.layer.get_config": [
+                    102
+                ],
+                "base_config": [
+                    104,
+                    509,
+                    510,
+                    103
+                ],
+                "get_config": [
+                    509,
+                    103
+                ],
+                "base_config.items": [
+                    104,
+                    510
+                ],
+                "config.items": [
+                    104,
+                    510
+                ],
+                "deserialize_layer": [
+                    515,
+                    109
+                ],
+                "config.pop": [
+                    517,
+                    515,
+                    109
+                ],
+                "custom_objects": [
+                    516,
+                    110
+                ],
+                "cls": [
+                    518,
+                    111
+                ],
+                "TimeDistributed": [
+                    160,
+                    170
+                ],
+                "self.supports_masking": [
+                    161,
+                    277
+                ],
+                "input_shape": [
+                    164,
+                    165,
+                    166,
+                    197,
+                    217,
+                    204,
+                    173,
+                    302,
+                    175,
+                    210,
+                    184,
+                    185,
+                    445,
+                    447
+                ],
+                "self.input_spec": [
+                    376,
+                    165,
+                    372,
+                    375,
+                    280,
+                    378
+                ],
+                "InputSpec": [
+                    350,
+                    165,
+                    342
+                ],
+                "child_input_shape": [
+                    168,
+                    174,
+                    173,
+                    166
+                ],
+                "self.layer.built": [
+                    169,
+                    167
+                ],
+                "self.layer.build": [
+                    168
+                ],
+                "build": [
+                    170
+                ],
+                "child_output_shape": [
+                    176,
+                    174
+                ],
+                "self.layer.compute_output_shape": [
+                    174
+                ],
+                "timesteps": [
+                    176,
+                    175
+                ],
+                "has_arg": [
+                    390,
+                    392,
+                    394,
+                    397,
+                    180
+                ],
+                "self.layer.call": [
+                    390,
+                    392,
+                    394,
+                    397,
+                    180,
+                    213,
+                    189
+                ],
+                "training": [
+                    181,
+                    391
+                ],
+                "uses_learning_phase": [
+                    192,
+                    226,
+                    182,
+                    215,
+                    191
+                ],
+                "K.int_shape": [
+                    184,
+                    350,
+                    342
+                ],
+                "K": [
+                    195,
+                    414,
+                    444,
+                    446,
+                    360,
+                    362,
+                    206,
+                    210,
+                    342,
+                    184,
+                    218,
+                    412,
+                    350
+                ],
+                "output": [
+                    416,
+                    193,
+                    418,
+                    414,
+                    420,
+                    422,
+                    428,
+                    431,
+                    435,
+                    436,
+                    437,
+                    377,
+                    379,
+                    189,
+                    190,
+                    191
+                ],
+                "x": [
+                    189
+                ],
+                "output._uses_learning_phase": [
+                    431,
+                    191
+                ],
+                "_": [
+                    195,
+                    463
+                ],
+                "outputs": [
+                    195,
+                    199
+                ],
+                "K.rnn": [
+                    195
+                ],
+                "step": [
+                    195
+                ],
+                "y": [
+                    407,
+                    416,
+                    418,
+                    227,
+                    228,
+                    420,
+                    422,
+                    199,
+                    425,
+                    400,
+                    403,
+                    213,
+                    214,
+                    215,
+                    408,
+                    218,
+                    414,
+                    223
+                ],
+                "input_length": [
+                    218,
+                    204,
+                    205,
+                    206
+                ],
+                "K.shape": [
+                    206
+                ],
+                "input_uid": [
+                    209,
+                    211
+                ],
+                "K.reshape": [
+                    218,
+                    210
+                ],
+                "y._uses_learning_phase": [
+                    227,
+                    215
+                ],
+                "output_shape": [
+                    302,
+                    304,
+                    305,
+                    308,
+                    309,
+                    310,
+                    312,
+                    217,
+                    218,
+                    316,
+                    317,
+                    318
+                ],
+                "self.compute_output_shape": [
+                    217
+                ],
+                "regularization_loss": [
+                    224,
+                    223
+                ],
+                "self.add_loss": [
+                    224
+                ],
+                "merge_mode": [
+                    259,
+                    269
+                ],
+                "self.forward_layer": [
+                    263,
+                    267,
+                    272,
+                    400,
+                    403,
+                    290,
+                    294,
+                    298,
+                    302,
+                    440,
+                    444,
+                    445,
+                    462,
+                    472,
+                    344,
+                    473,
+                    479,
+                    352,
+                    480,
+                    357,
+                    486,
+                    487,
+                    492,
+                    493,
+                    499,
+                    500
+                ],
+                "copy.copy": [
+                    312,
+                    316,
+                    317,
+                    263
+                ],
+                "copy": [
+                    312,
+                    316,
+                    317,
+                    263
+                ],
+                "layer.get_config": [
+                    264
+                ],
+                "self.backward_layer": [
+                    266,
+                    268,
+                    273,
+                    401,
+                    404,
+                    291,
+                    294,
+                    299,
+                    441,
+                    446,
+                    447,
+                    345,
+                    474,
+                    353,
+                    481,
+                    358,
+                    487,
+                    493,
+                    501
+                ],
+                "layer.__class__.from_config": [
+                    266
+                ],
+                "layer.__class__": [
+                    266
+                ],
+                "self.forward_layer.name": [
+                    267,
+                    444
+                ],
+                "self.backward_layer.name": [
+                    268,
+                    446
+                ],
+                "self.merge_mode": [
+                    417,
+                    419,
+                    421,
+                    454,
+                    427,
+                    459,
+                    269,
+                    434,
+                    307,
+                    311,
+                    505,
+                    315,
+                    413,
+                    415
+                ],
+                "nw": [
+                    297,
+                    298,
+                    299,
+                    271,
+                    272,
+                    273
+                ],
+                "self.forward_layer.initial_weights": [
+                    272
+                ],
+                "self.backward_layer.initial_weights": [
+                    273
+                ],
+                "self.stateful": [
+                    274
+                ],
+                "layer.stateful": [
+                    274
+                ],
+                "self.return_sequences": [
+                    275,
+                    411,
+                    453
+                ],
+                "layer.return_sequences": [
+                    275
+                ],
+                "self.return_state": [
+                    461,
+                    303,
+                    433,
+                    276,
+                    406,
+                    314
+                ],
+                "layer.return_state": [
+                    276
+                ],
+                "self._trainable": [
+                    289,
+                    285,
+                    278
+                ],
+                "Bidirectional": [
+                    509,
+                    325,
+                    279,
+                    377,
+                    381
+                ],
+                "layer.input_spec": [
+                    280
+                ],
+                "self._num_constants": [
+                    322,
+                    356,
+                    357,
+                    358,
+                    281,
+                    506,
+                    507
+                ],
+                "self.forward_layer.trainable": [
+                    290
+                ],
+                "self.backward_layer.trainable": [
+                    291
+                ],
+                "self.forward_layer.get_weights": [
+                    294
+                ],
+                "self.backward_layer.get_weights": [
+                    294
+                ],
+                "self.forward_layer.set_weights": [
+                    298
+                ],
+                "self.backward_layer.set_weights": [
+                    299
+                ],
+                "self.forward_layer.compute_output_shape": [
+                    302
+                ],
+                "state_shape": [
+                    304,
+                    316,
+                    317
+                ],
+                "initial_state": [
+                    321,
+                    322,
+                    324,
+                    330,
+                    332,
+                    397,
+                    398,
+                    399,
+                    338,
+                    340,
+                    341,
+                    343
+                ],
+                "constants": [
+                    321,
+                    322,
+                    324,
+                    356,
+                    395,
+                    347,
+                    348,
+                    349,
+                    351
+                ],
+                "recurrent._standardize_args": [
+                    321
+                ],
+                "recurrent": [
+                    321
+                ],
+                "__call__": [
+                    377,
+                    381,
+                    325
+                ],
+                "additional_inputs": [
+                    328,
+                    361,
+                    360,
+                    371,
+                    341,
+                    349
+                ],
+                "additional_specs": [
+                    329,
+                    346,
+                    372,
+                    354
+                ],
+                "num_states": [
+                    344,
+                    345,
+                    332,
+                    333
+                ],
+                "state_specs": [
+                    344,
+                    345,
+                    346,
+                    342
+                ],
+                "state": [
+                    342,
+                    343
+                ],
+                "self.forward_layer.state_spec": [
+                    344
+                ],
+                "self.backward_layer.state_spec": [
+                    345
+                ],
+                "constants_spec": [
+                    352,
+                    353,
+                    354,
+                    350
+                ],
+                "constant": [
+                    350,
+                    351
+                ],
+                "self.forward_layer.constants_spec": [
+                    352
+                ],
+                "self.backward_layer.constants_spec": [
+                    353
+                ],
+                "self.forward_layer._num_constants": [
+                    357
+                ],
+                "self.backward_layer._num_constants": [
+                    358
+                ],
+                "is_keras_tensor": [
+                    360,
+                    369,
+                    362
+                ],
+                "K.is_keras_tensor": [
+                    360,
+                    362
+                ],
+                "tensor": [
+                    361,
+                    362
+                ],
+                "full_input": [
+                    377,
+                    371
+                ],
+                "full_input_spec": [
+                    376,
+                    372
+                ],
+                "original_input_spec": [
+                    378,
+                    375
+                ],
+                "mask": [
+                    451,
+                    452,
+                    455,
+                    393,
+                    457
+                ],
+                "forward_state": [
+                    400,
+                    398
+                ],
+                "backward_state": [
+                    401,
+                    399
+                ],
+                "self.forward_layer.call": [
+                    400,
+                    403
+                ],
+                "y_rev": [
+                    416,
+                    418,
+                    420,
+                    422,
+                    426,
+                    401,
+                    404,
+                    407,
+                    409,
+                    412,
+                    414
+                ],
+                "self.backward_layer.call": [
+                    401,
+                    404
+                ],
+                "states": [
+                    462,
+                    463,
+                    435,
+                    436,
+                    407
+                ],
+                "K.reverse": [
+                    412
+                ],
+                "K.concatenate": [
+                    414
+                ],
+                "out": [
+                    428,
+                    429
+                ],
+                "out._uses_learning_phase": [
+                    429
+                ],
+                "self.forward_layer.reset_states": [
+                    440
+                ],
+                "self.backward_layer.reset_states": [
+                    441
+                ],
+                "K.name_scope": [
+                    444,
+                    446
+                ],
+                "self.forward_layer.build": [
+                    445
+                ],
+                "self.backward_layer.build": [
+                    447
+                ],
+                "output_mask": [
+                    455,
+                    457,
+                    459,
+                    464,
+                    465,
+                    466,
+                    468
+                ],
+                "self.forward_layer.states": [
+                    462
+                ],
+                "state_mask": [
+                    465,
+                    466,
+                    463
+                ],
+                "self.forward_layer.trainable_weights": [
+                    473
+                ],
+                "self.backward_layer.trainable_weights": [
+                    474
+                ],
+                "self.forward_layer.non_trainable_weights": [
+                    480
+                ],
+                "self.backward_layer.non_trainable_weights": [
+                    481
+                ],
+                "self.forward_layer.updates": [
+                    487
+                ],
+                "self.backward_layer.updates": [
+                    487
+                ],
+                "self.forward_layer.losses": [
+                    493
+                ],
+                "self.backward_layer.losses": [
+                    493
+                ],
+                "constraints": [
+                    498,
+                    500,
+                    501,
+                    502
+                ],
+                "constraints.update": [
+                    500,
+                    501
+                ],
+                "self.forward_layer.constraints": [
+                    500
+                ],
+                "self.backward_layer.constraints": [
+                    501
+                ],
+                "rnn_layer": [
+                    515,
+                    518
+                ],
+                "num_constants": [
+                    517,
+                    519
+                ],
+                "layer._num_constants": [
+                    519
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_27/tests/keras/layers/wrappers_test.py",
+                "test_function": "test_Bidirectional_updates",
+                "test_function_code": "@keras_test\ndef test_Bidirectional_updates():\n    x = Input(shape=(3, 2))\n    layer = wrappers.Bidirectional(layers.SimpleRNN(3))\n    assert len(layer.updates) == 0\n    assert len(layer.get_updates_for(None)) == 0\n    assert len(layer.get_updates_for(x)) == 0\n    layer.forward_layer.add_update(0, inputs=x)\n    layer.forward_layer.add_update(1, inputs=None)\n    layer.backward_layer.add_update(0, inputs=x)\n    layer.backward_layer.add_update(1, inputs=None)\n    assert len(layer.updates) == 4\n    assert len(layer.get_updates_for(None)) == 2\n    assert len(layer.get_updates_for(x)) == 2",
+                "test_error": "assert 1 == 2   +1   -2",
+                "full_test_error": "@keras_test\n    def test_Bidirectional_updates():\n        x = Input(shape=(3, 2))\n        layer = wrappers.Bidirectional(layers.SimpleRNN(3))\n        assert len(layer.updates) == 0\n        assert len(layer.get_updates_for(None)) == 0\n        assert len(layer.get_updates_for(x)) == 0\n        layer.forward_layer.add_update(0, inputs=x)\n        layer.forward_layer.add_update(1, inputs=None)\n        layer.backward_layer.add_update(0, inputs=x)\n        layer.backward_layer.add_update(1, inputs=None)\n        assert len(layer.updates) == 4\n>       assert len(layer.get_updates_for(None)) == 2\nE       assert 1 == 2\nE         +1\nE         -2\n\ntests/keras/layers/wrappers_test.py:571: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "keras_test"
+                ]
+            },
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_27/tests/keras/layers/wrappers_test.py",
+                "test_function": "test_Bidirectional_losses",
+                "test_function_code": "@keras_test\ndef test_Bidirectional_losses():\n    x = Input(shape=(3, 2))\n    layer = wrappers.Bidirectional(\n        layers.SimpleRNN(3, kernel_regularizer='l1', bias_regularizer='l1'))\n    _ = layer(x)\n    assert len(layer.losses) == 4\n    assert len(layer.get_losses_for(None)) == 4\n    assert len(layer.get_losses_for(x)) == 0\n    layer.forward_layer.add_loss(0, inputs=x)\n    layer.forward_layer.add_loss(1, inputs=None)\n    layer.backward_layer.add_loss(0, inputs=x)\n    layer.backward_layer.add_loss(1, inputs=None)\n    assert len(layer.losses) == 8\n    assert len(layer.get_losses_for(None)) == 6\n    assert len(layer.get_losses_for(x)) == 2",
+                "test_error": "assert 2 == 4   +2   -4",
+                "full_test_error": "@keras_test\n    def test_Bidirectional_losses():\n        x = Input(shape=(3, 2))\n        layer = wrappers.Bidirectional(\n            layers.SimpleRNN(3, kernel_regularizer='l1', bias_regularizer='l1'))\n        _ = layer(x)\n        assert len(layer.losses) == 4\n>       assert len(layer.get_losses_for(None)) == 4\nE       assert 2 == 4\nE         +2\nE         -4\n\ntests/keras/layers/wrappers_test.py:582: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "keras_test"
+                ]
+            }
+        ]
+    }
+}

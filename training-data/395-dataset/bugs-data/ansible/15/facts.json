@@ -1,0 +1,98 @@
+{
+    "1.1.1": "def map_obj_to_commands(updates, module, warnings):\n    commands = list()\n    want, have = updates\n\n    def needs_update(x):\n        return want.get(x) is not None and (want.get(x) != have.get(x))\n\n    def add(cmd):\n        if 'management api http-commands' not in commands:\n            commands.insert(0, 'management api http-commands')\n        commands.append(cmd)\n\n    if any((needs_update('http'), needs_update('http_port'))):\n        if want['http'] is False:\n            add('no protocol http')\n        else:\n            if have['http'] is False and want['http'] in (False, None):\n                warnings.append('protocol http is not enabled, not configuring http port value')\n            else:\n                port = want['http_port'] or 80\n                add('protocol http port %s' % port)\n\n    if any((needs_update('https'), needs_update('https_port'))):\n        if want['https'] is False:\n            add('no protocol https')\n        else:\n            if have['https'] is False and want['https'] in (False, None):\n                warnings.append('protocol https is not enabled, not configuring https port value')\n            else:\n                port = want['https_port'] or 443\n                add('protocol https port %s' % port)\n\n    if any((needs_update('local_http'), needs_update('local_http_port'))):\n        if want['local_http'] is False:\n            add('no protocol http localhost')\n        else:\n            if have['local_http'] is False and want['local_http'] in (False, None):\n                warnings.append('protocol local_http is not enabled, not configuring local_http port value')\n            else:\n                port = want['local_http_port'] or 8080\n                add('protocol http localhost port %s' % port)\n\n    if any((needs_update('socket'), needs_update('socket'))):\n        if want['socket'] is False:\n            add('no protocol unix-socket')\n        else:\n            add('protocol unix-socket')\n\n    if needs_update('state') and not needs_update('vrf'):\n        if want['state'] == 'stopped':\n            add('shutdown')\n        elif want['state'] == 'started':\n            add('no shutdown')\n\n    if needs_update('vrf'):\n        add('vrf %s' % want['vrf'])\n        # switching operational vrfs here\n        # need to add the desired state as well\n        if want['state'] == 'stopped':\n            add('shutdown')\n        elif want['state'] == 'started':\n            add('no shutdown')\n\n    return commands\n",
+    "1.1.2": null,
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/ansible_15/lib/ansible/modules/network/eos/eos_eapi.py",
+    "1.3.2": [
+        "needs_update(x)",
+        "add(cmd)"
+    ],
+    "1.4.1": [
+        "    def test_eos_eapi_vrf(self):\n        set_module_args(dict(vrf='test'))\n        commands = ['management api http-commands', 'no shutdown', 'vrf test', 'no shutdown']\n        self.start_unconfigured(changed=True, commands=commands)"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/ansible_15/test/units/modules/network/eos/test_eos_eapi.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AssertionError: Lists differ: ['management api http-commands', 'no shutdown', 'no shutdown', 'vrf test'] != ['management api http-commands', 'no shutdown', 'vrf test']\nE   \nE   First differing element 2:\nE   'no shutdown'\nE   'vrf test'\nE   \nE   First list contains 1 additional elements.\nE   First extra element 3:\nE   'vrf test'\nE   \nE   - ['management api http-commands', 'no shutdown', 'no shutdown', 'vrf test']\nE   ?                                                 ---------------\nE   \nE   + ['management api http-commands', 'no shutdown', 'vrf test'] : ['management api http-commands', 'vrf test', 'no shutdown']"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <units.modules.network.eos.test_eos_eapi.TestEosEapiModule testMethod=test_eos_eapi_vrf>\n\n    def test_eos_eapi_vrf(self):\n        set_module_args(dict(vrf='test'))\n        commands = ['management api http-commands', 'no shutdown', 'vrf test', 'no shutdown']\n>       self.start_unconfigured(changed=True, commands=commands)\n\ntest/units/modules/network/eos/test_eos_eapi.py:138: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntest/units/modules/network/eos/test_eos_eapi.py:81: in start_unconfigured\n    return self.execute_module(*args, **kwargs)\ntest/units/modules/network/eos/eos_module.py:79: in execute_module\n    self.assertEqual(sorted(commands), sorted(result['commands']), result['commands'])"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "updates": "({'http': None, 'http_port': None, 'https': None, 'https_port': None, 'local_http': None, 'local_http_port': None, 'socket': None, 'vrf': 'test', 'state': 'started'}, {'http': False, 'http_port': 80, 'https': False, 'https_port': 443, 'local_http': False, 'local_http_port': 8080, 'socket': False, 'vrf': 'default', 'state': 'stopped'})",
+                "warnings": "[]"
+            },
+            {
+                "commands": "[]",
+                "want": "{'http': None, 'http_port': None, 'https': None, 'https_port': None, 'local_http': None, 'local_http_port': None, 'socket': None, 'vrf': 'test', 'state': 'started'}",
+                "have": "{'http': False, 'http_port': 80, 'https': False, 'https_port': 443, 'local_http': False, 'local_http_port': 8080, 'socket': False, 'vrf': 'default', 'state': 'stopped'}",
+                "x": "'http'",
+                "needs_update": "<function map_obj_to_commands.<locals>.needs_update at 0x10648d200>",
+                "add": "<function map_obj_to_commands.<locals>.add at 0x10648d950>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "updates": "tuple",
+                "warnings": "list"
+            },
+            {
+                "commands": "list",
+                "want": "dict",
+                "have": "dict",
+                "x": "str",
+                "needs_update": "function",
+                "add": "function"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "updates": "({'http': None, 'http_port': None, 'https': None, 'https_port': None, 'local_http': None, 'local_http_port': None, 'socket': None, 'vrf': 'test', 'state': 'started'}, {'http': False, 'http_port': 80, 'https': False, 'https_port': 443, 'local_http': False, 'local_http_port': 8080, 'socket': False, 'vrf': 'default', 'state': 'stopped'})",
+                "warnings": "[]"
+            },
+            {
+                "commands": "[]",
+                "want": "{'http': None, 'http_port': None, 'https': None, 'https_port': None, 'local_http': None, 'local_http_port': None, 'socket': None, 'vrf': 'test', 'state': 'started'}",
+                "have": "{'http': False, 'http_port': 80, 'https': False, 'https_port': 443, 'local_http': False, 'local_http_port': 8080, 'socket': False, 'vrf': 'default', 'state': 'stopped'}",
+                "x": "'http'",
+                "needs_update": "<function map_obj_to_commands.<locals>.needs_update at 0x10b91d8c0>",
+                "add": "<function map_obj_to_commands.<locals>.add at 0x10b91d950>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "updates": "tuple",
+                "warnings": "list"
+            },
+            {
+                "commands": "list",
+                "want": "dict",
+                "have": "dict",
+                "x": "str",
+                "needs_update": "function",
+                "add": "function"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "\n"
+    ],
+    "3.1.2": [
+        "\n"
+    ]
+}

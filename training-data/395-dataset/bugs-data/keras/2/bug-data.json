@@ -1,0 +1,3630 @@
+{
+    "keras:2": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_2/keras/backend/numpy_backend.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "binary_crossentropy",
+                    "function_code": "def binary_crossentropy(target, output, from_logits=False):\n    if not from_logits:\n        output = np.clip(output, 1e-7, 1 - 1e-7)\n        output = np.log(output / (1 - output))\n    return (target * -np.log(sigmoid(output)) +\n            (1 - target) * -np.log(1 - sigmoid(output)))\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 319,
+                    "end_line": 324,
+                    "variables": {
+                        "from_logits": [
+                            320
+                        ],
+                        "output": [
+                            321,
+                            322,
+                            323,
+                            324
+                        ],
+                        "np.clip": [
+                            321
+                        ],
+                        "np": [
+                            321,
+                            322,
+                            323,
+                            324
+                        ],
+                        "np.log": [
+                            322,
+                            323,
+                            324
+                        ],
+                        "target": [
+                            323,
+                            324
+                        ],
+                        "sigmoid": [
+                            323,
+                            324
+                        ]
+                    },
+                    "filtered_variables": {
+                        "from_logits": [
+                            320
+                        ],
+                        "output": [
+                            321,
+                            322,
+                            323,
+                            324
+                        ],
+                        "np.clip": [
+                            321
+                        ],
+                        "np": [
+                            321,
+                            322,
+                            323,
+                            324
+                        ],
+                        "np.log": [
+                            322,
+                            323,
+                            324
+                        ],
+                        "target": [
+                            323,
+                            324
+                        ],
+                        "sigmoid": [
+                            323,
+                            324
+                        ]
+                    },
+                    "diff_line_number": 319,
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def normalize_conv(func):\n    def wrapper(*args, **kwargs):\n        x = args[0]\n        w = args[1]\n        if x.ndim == 3:\n            w = np.flipud(w)\n            w = np.transpose(w, (1, 2, 0))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 2, 1))\n        elif x.ndim == 4:\n            w = np.fliplr(np.flipud(w))\n            w = np.transpose(w, (2, 3, 0, 1))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 3, 1, 2))\n        else:\n            w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n            w = np.transpose(w, (3, 4, 0, 1, 2))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 4, 1, 2, 3))\n\n        dilation_rate = kwargs.pop('dilation_rate', 1)\n        if isinstance(dilation_rate, int):\n            dilation_rate = (dilation_rate,) * (x.ndim - 2)\n        for (i, d) in enumerate(dilation_rate):\n            if d > 1:\n                for j in range(w.shape[2 + i] - 1):\n                    w = np.insert(w, 2 * j + 1, 0, axis=2 + i)\n\n        y = func(x, w, **kwargs)\n\n        if kwargs['data_format'] == 'channels_last':\n            if y.ndim == 3:\n                y = np.transpose(y, (0, 2, 1))\n            elif y.ndim == 4:\n                y = np.transpose(y, (0, 2, 3, 1))\n            else:\n                y = np.transpose(y, (0, 2, 3, 4, 1))\n\n        return y\n\n    return wrapper",
+                "@normalize_conv\ndef conv(x, w, padding, data_format):\n    y = []\n    for i in range(x.shape[0]):\n        _y = []\n        for j in range(w.shape[1]):\n            __y = []\n            for k in range(w.shape[0]):\n                __y.append(signal.convolve(x[i, k], w[k, j], mode=padding))\n            _y.append(np.sum(np.stack(__y, axis=-1), axis=-1))\n        y.append(_y)\n    y = np.array(y)\n    return y",
+                "@normalize_conv\ndef depthwise_conv(x, w, padding, data_format):\n    y = []\n    for i in range(x.shape[0]):\n        _y = []\n        for j in range(w.shape[0]):\n            __y = []\n            for k in range(w.shape[1]):\n                __y.append(signal.convolve(x[i, j], w[j, k], mode=padding))\n            _y.append(np.stack(__y, axis=0))\n        y.append(np.concatenate(_y, axis=0))\n    y = np.array(y)\n    return y",
+                "def separable_conv(x, w1, w2, padding, data_format):\n    x2 = depthwise_conv(x, w1, padding=padding, data_format=data_format)\n    return conv(x2, w2, padding=padding, data_format=data_format)",
+                "def conv_transpose(x, w, output_shape, padding, data_format, dilation_rate=1):\n    if x.ndim == 4:\n        w = np.fliplr(np.flipud(w))\n        w = np.transpose(w, (0, 1, 3, 2))\n    else:\n        w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n        w = np.transpose(w, (0, 1, 2, 4, 3))\n\n    if isinstance(dilation_rate, int):\n        dilation_rate = (dilation_rate,) * (x.ndim - 2)\n    for (i, d) in enumerate(dilation_rate):\n        if d > 1:\n            for j in range(w.shape[i] - 1):\n                w = np.insert(w, 2 * j + 1, 0, axis=i)\n\n    return conv(x, w, padding=padding, data_format=data_format)",
+                "def pool(x, pool_size, strides, padding, data_format, pool_mode):\n    if data_format == 'channels_last':\n        if x.ndim == 3:\n            x = np.transpose(x, (0, 2, 1))\n        elif x.ndim == 4:\n            x = np.transpose(x, (0, 3, 1, 2))\n        else:\n            x = np.transpose(x, (0, 4, 1, 2, 3))\n\n    if padding == 'same':\n        pad = [(0, 0), (0, 0)] + [(s // 2, s // 2) for s in pool_size]\n        x = np.pad(x, pad, 'constant', constant_values=-np.inf)\n\n    # indexing trick\n    x = np.pad(x, [(0, 0), (0, 0)] + [(0, 1) for _ in pool_size],\n               'constant', constant_values=0)\n\n    if x.ndim == 3:\n        y = [x[:, :, k:k1:strides[0]]\n             for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0))]\n    elif x.ndim == 4:\n        y = []\n        for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0)):\n            for (l, l1) in zip(range(pool_size[1]), range(-pool_size[1], 0)):\n                y.append(x[:, :, k:k1:strides[0], l:l1:strides[1]])\n    else:\n        y = []\n        for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0)):\n            for (l, l1) in zip(range(pool_size[1]), range(-pool_size[1], 0)):\n                for (m, m1) in zip(range(pool_size[2]), range(-pool_size[2], 0)):\n                    y.append(x[:,\n                               :,\n                               k:k1:strides[0],\n                               l:l1:strides[1],\n                               m:m1:strides[2]])\n    y = np.stack(y, axis=-1)\n    if pool_mode == 'avg':\n        y = np.mean(np.ma.masked_invalid(y), axis=-1).data\n    elif pool_mode == 'max':\n        y = np.max(y, axis=-1)\n\n    if data_format == 'channels_last':\n        if y.ndim == 3:\n            y = np.transpose(y, (0, 2, 1))\n        elif y.ndim == 4:\n            y = np.transpose(y, (0, 2, 3, 1))\n        else:\n            y = np.transpose(y, (0, 2, 3, 4, 1))\n\n    return y",
+                "def bias_add(x, y, data_format):\n    if data_format == 'channels_first':\n        if y.ndim > 1:\n            y = np.reshape(y, y.shape[::-1])\n        for _ in range(x.ndim - y.ndim - 1):\n            y = np.expand_dims(y, -1)\n    else:\n        for _ in range(x.ndim - y.ndim - 1):\n            y = np.expand_dims(y, 0)\n    return x + y",
+                "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n\n    if constants is None:\n        constants = []\n\n    output_sample, _ = step_function(inputs[:, 0], initial_states + constants)\n    if mask is not None:\n        if mask.dtype != np.bool:\n            mask = mask.astype(np.bool)\n        if mask.shape != inputs.shape[:2]:\n            raise ValueError(\n                'mask should have `shape=(samples, time)`, '\n                'got {}'.format(mask.shape))\n\n        def expand_mask(mask_, x):\n            # expand mask so that `mask[:, t].ndim == x.ndim`\n            while mask_.ndim < x.ndim + 1:\n                mask_ = np.expand_dims(mask_, axis=-1)\n            return mask_\n        output_mask = expand_mask(mask, output_sample)\n        states_masks = [expand_mask(mask, state) for state in initial_states]\n\n    if input_length is None:\n        input_length = inputs.shape[1]\n    assert input_length == inputs.shape[1]\n    time_index = range(input_length)\n    if go_backwards:\n        time_index = time_index[::-1]\n\n    outputs = []\n    states_tm1 = initial_states  # tm1 means \"t minus one\" as in \"previous timestep\"\n    output_tm1 = np.zeros(output_sample.shape)\n    for t in time_index:\n        output_t, states_t = step_function(inputs[:, t], states_tm1 + constants)\n        if mask is not None:\n            output_t = np.where(output_mask[:, t], output_t, output_tm1)\n            states_t = [np.where(state_mask[:, t], state_t, state_tm1)\n                        for state_mask, state_t, state_tm1\n                        in zip(states_masks, states_t, states_tm1)]\n        outputs.append(output_t)\n        states_tm1 = states_t\n        output_tm1 = output_t\n\n    return outputs[-1], np.stack(outputs, axis=1), states_tm1",
+                "def learning_phase():\n    return _LEARNING_PHASE",
+                "def set_learning_phase(value):\n    global _LEARNING_PHASE\n    _LEARNING_PHASE = value",
+                "def in_train_phase(x, alt, training=None):\n    if training is None:\n        training = learning_phase()\n\n    if training is 1 or training is True:\n        if callable(x):\n            return x()\n        else:\n            return x\n    else:\n        if callable(alt):\n            return alt()\n        else:\n            return alt",
+                "def in_test_phase(x, alt, training=None):\n    return in_train_phase(alt, x, training=training)",
+                "def relu(x, alpha=0., max_value=None, threshold=0.):\n    if max_value is None:\n        max_value = np.inf\n    above_threshold = x * (x >= threshold)\n    above_threshold = np.clip(above_threshold, 0.0, max_value)\n    below_threshold = alpha * (x - threshold) * (x < threshold)\n    return below_threshold + above_threshold",
+                "def switch(condition, then_expression, else_expression):\n    cond_float = condition.astype(floatx())\n    while cond_float.ndim < then_expression.ndim:\n        cond_float = cond_float[..., np.newaxis]\n    return cond_float * then_expression + (1 - cond_float) * else_expression",
+                "def softplus(x):\n    return np.log(1. + np.exp(x))",
+                "def softsign(x):\n    return x / (1 + np.abs(x))",
+                "def elu(x, alpha=1.):\n    return x * (x > 0) + alpha * (np.exp(x) - 1.) * (x < 0)",
+                "def sigmoid(x):\n    return 1. / (1. + np.exp(-x))",
+                "def hard_sigmoid(x):\n    y = 0.2 * x + 0.5\n    return np.clip(y, 0, 1)",
+                "def tanh(x):\n    return np.tanh(x)",
+                "def softmax(x, axis=-1):\n    y = np.exp(x - np.max(x, axis, keepdims=True))\n    return y / np.sum(y, axis, keepdims=True)",
+                "def l2_normalize(x, axis=-1):\n    y = np.max(np.sum(x ** 2, axis, keepdims=True), axis, keepdims=True)\n    return x / np.sqrt(y)",
+                "def binary_crossentropy(target, output, from_logits=False):\n    if not from_logits:\n        output = np.clip(output, 1e-7, 1 - 1e-7)\n        output = np.log(output / (1 - output))\n    return (target * -np.log(sigmoid(output)) +\n            (1 - target) * -np.log(1 - sigmoid(output)))",
+                "def categorical_crossentropy(target, output, from_logits=False):\n    if from_logits:\n        output = softmax(output)\n    else:\n        output /= output.sum(axis=-1, keepdims=True)\n    output = np.clip(output, 1e-7, 1 - 1e-7)\n    return np.sum(target * -np.log(output), axis=-1, keepdims=False)",
+                "def max(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.max(x, axis=axis, keepdims=keepdims)",
+                "def min(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.min(x, axis=axis, keepdims=keepdims)",
+                "def mean(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.mean(x, axis=axis, keepdims=keepdims)",
+                "def var(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.var(x, axis=axis, keepdims=keepdims)",
+                "def std(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.std(x, axis=axis, keepdims=keepdims)",
+                "def logsumexp(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return sp.misc.logsumexp(x, axis=axis, keepdims=keepdims)",
+                "def sum(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.sum(x, axis=axis, keepdims=keepdims)",
+                "def prod(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.prod(x, axis=axis, keepdims=keepdims)",
+                "def cumsum(x, axis=0):\n    return np.cumsum(x, axis=axis)",
+                "def cumprod(x, axis=0):\n    return np.cumprod(x, axis=axis)",
+                "def any(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.any(x, axis=axis, keepdims=keepdims)",
+                "def all(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.all(x, axis=axis, keepdims=keepdims)",
+                "def argmax(x, axis=-1):\n    return np.argmax(x, axis=axis)",
+                "def argmin(x, axis=-1):\n    return np.argmin(x, axis=axis)",
+                "def sqrt(x):\n    y = np.sqrt(x)\n    y[np.isnan(y)] = 0.\n    return y",
+                "def pow(x, a=1.):\n    return np.power(x, a)",
+                "def clip(x, min_value, max_value):\n    return np.clip(x, min_value, max_value)",
+                "def concatenate(tensors, axis=-1):\n    return np.concatenate(tensors, axis)",
+                "def permute_dimensions(x, pattern):\n    return np.transpose(x, pattern)",
+                "def reshape(x, shape):\n    return np.reshape(x, shape)",
+                "def repeat_elements(x, rep, axis):\n    return np.repeat(x, rep, axis=axis)",
+                "def repeat(x, n):\n    y = np.expand_dims(x, 1)\n    y = np.repeat(y, n, axis=1)\n    return y",
+                "def temporal_padding(x, padding=(1, 1)):\n    return np.pad(x, [(0, 0), padding, (0, 0)], mode='constant')",
+                "def spatial_2d_padding(x, padding=((1, 1), (1, 1)), data_format=None):\n    all_dims_padding = ((0, 0),) + padding + ((0, 0),)\n    all_dims_padding = transpose_shape(all_dims_padding, data_format,\n                                       spatial_axes=(1, 2))\n    return np.pad(x, all_dims_padding, mode='constant')",
+                "def spatial_3d_padding(x, padding=((1, 1), (1, 1), (1, 1)), data_format=None):\n    all_dims_padding = ((0, 0),) + padding + ((0, 0),)\n    all_dims_padding = transpose_shape(all_dims_padding, data_format,\n                                       spatial_axes=(1, 2, 3))\n    return np.pad(x, all_dims_padding, mode='constant')",
+                "def tile(x, n):\n    return np.tile(x, n)",
+                "def arange(start, stop=None, step=1, dtype='int32'):\n    return np.arange(start, stop, step, dtype)",
+                "def flatten(x):\n    return np.reshape(x, (-1,))",
+                "def batch_flatten(x):\n    return np.reshape(x, (x.shape[0], -1))",
+                "def gather(reference, indices):\n    return reference[indices]",
+                "def eval(x):\n    return x",
+                "def get_value(x):\n    return x",
+                "def count_params(x):\n    return x.size",
+                "def int_shape(x):\n    return x.shape",
+                "def get_variable_shape(x):\n    return int_shape(x)",
+                "def dtype(x):\n    return x.dtype.name",
+                "def constant(value, dtype=None, shape=None, name=None):\n    if dtype is None:\n        dtype = floatx()\n    if shape is None:\n        shape = ()\n    np_value = value * np.ones(shape)\n    np_value.astype(dtype)\n    return np_value",
+                "def print_tensor(x, message=''):\n    print(x, message)\n    return x",
+                "def dot(x, y):\n    return np.dot(x, y)",
+                "def batch_dot(x, y, axes=None):\n    if x.ndim < 2 or y.ndim < 2:\n        raise ValueError('Batch dot requires inputs of rank 2 or more.')\n\n    if isinstance(axes, int):\n        axes = [axes, axes]\n    elif isinstance(axes, tuple):\n        axes = list(axes)\n\n    if axes is None:\n        if y.ndim == 2:\n            axes = [x.ndim - 1, y.ndim - 1]\n        else:\n            axes = [x.ndim - 1, y.ndim - 2]\n\n    if any([isinstance(a, (list, tuple)) for a in axes]):\n        raise ValueError('Multiple target dimensions are not supported. ' +\n                         'Expected: None, int, (int, int), ' +\n                         'Provided: ' + str(axes))\n\n    # Handle negative axes\n    if axes[0] < 0:\n        axes[0] += x.ndim\n    if axes[1] < 0:\n        axes[1] += y.ndim\n\n    if 0 in axes:\n        raise ValueError('Can not perform batch dot over axis 0.')\n\n    if x.shape[0] != y.shape[0]:\n        raise ValueError('Can not perform batch dot on inputs'\n                         ' with different batch sizes.')\n\n    d1 = x.shape[axes[0]]\n    d2 = y.shape[axes[1]]\n    if d1 != d2:\n        raise ValueError('Can not do batch_dot on inputs with shapes ' +\n                         str(x.shape) + ' and ' + str(y.shape) +\n                         ' with axes=' + str(axes) + '. x.shape[%d] != '\n                         'y.shape[%d] (%d != %d).' % (axes[0], axes[1], d1, d2))\n\n    result = []\n    axes = [axes[0] - 1, axes[1] - 1]  # ignore batch dimension\n    for xi, yi in zip(x, y):\n        result.append(np.tensordot(xi, yi, axes))\n    result = np.array(result)\n\n    if result.ndim == 1:\n        result = np.expand_dims(result, -1)\n\n    return result",
+                "def transpose(x):\n    return np.transpose(x)",
+                "def reverse(x, axes):\n    if isinstance(axes, list):\n        axes = tuple(axes)\n    return np.flip(x, axes)",
+                "def slice(x, start, size):\n    slices = [py_slice(i, i + j) for i, j in zip(start, size)]\n    return x[tuple(slices)]",
+                "def variable(value, dtype=None, name=None, constraint=None):\n    if constraint is not None:\n        raise TypeError(\"Constraint must be None when \"\n                        \"using the NumPy backend.\")\n    return np.array(value, dtype)",
+                "def dropout(x, level, noise_shape=None, seed=None):\n    if noise_shape is None:\n        noise_shape = x.shape\n    if learning_phase():\n        noise = np.random.choice([0, 1],\n                                 noise_shape,\n                                 replace=True,\n                                 p=[level, 1 - level])\n        return x * noise / (1 - level)\n    else:\n        return x",
+                "def equal(x, y):\n    return x == y",
+                "def not_equal(x, y):\n    return x != y",
+                "def greater(x, y):\n    return x > y",
+                "def greater_equal(x, y):\n    return x >= y",
+                "def less(x, y):\n    return x < y",
+                "def less_equal(x, y):\n    return x <= y",
+                "def maximum(x, y):\n    return np.maximum(x, y)",
+                "def minimum(x, y):\n    return np.minimum(x, y)",
+                "def ndim(x):\n    return x.ndim",
+                "def random_uniform_variable(shape, low, high, dtype=None, name=None, seed=None):\n    return (high - low) * np.random.random(shape).astype(dtype) + low",
+                "def random_normal_variable(shape, mean, scale, dtype=None, name=None, seed=None):\n    return scale * np.random.randn(*shape).astype(dtype) + mean",
+                "def zeros(shape, dtype=floatx(), name=None):\n    return np.zeros(shape, dtype=dtype)",
+                "def zeros_like(x, dtype=floatx(), name=None):\n    return np.zeros_like(x, dtype=dtype)",
+                "def ones(shape, dtype=floatx(), name=None):\n    return np.ones(shape, dtype=dtype)",
+                "def ones_like(x, dtype=floatx(), name=None):\n    return np.ones_like(x, dtype=dtype)",
+                "def eye(size, dtype=None, name=None):\n    return np.eye(size, dtype=dtype)",
+                "def resize_images(x, height_factor, width_factor, data_format):\n    if data_format == 'channels_first':\n        x = repeat_elements(x, height_factor, axis=2)\n        x = repeat_elements(x, width_factor, axis=3)\n    elif data_format == 'channels_last':\n        x = repeat_elements(x, height_factor, axis=1)\n        x = repeat_elements(x, width_factor, axis=2)\n    return x",
+                "def resize_volumes(x, depth_factor, height_factor, width_factor, data_format):\n    if data_format == 'channels_first':\n        x = repeat_elements(x, depth_factor, axis=2)\n        x = repeat_elements(x, height_factor, axis=3)\n        x = repeat_elements(x, width_factor, axis=4)\n    elif data_format == 'channels_last':\n        x = repeat_elements(x, depth_factor, axis=1)\n        x = repeat_elements(x, height_factor, axis=2)\n        x = repeat_elements(x, width_factor, axis=3)\n    return x",
+                "def one_hot(indices, num_classes):\n    return to_categorical(indices, num_classes)",
+                "def ctc_decode(y_pred, input_length, greedy=True, beam_width=100, top_paths=1,\n               merge_repeated=False):\n    num_samples = y_pred.shape[0]\n    num_classes = y_pred.shape[-1]\n    log_prob = np.zeros((num_samples, 1))\n    decoded_dense = -np.ones_like(y_pred[..., 0])\n    decoded_length = np.zeros((num_samples,), dtype=np.int)\n    if greedy:\n        for i in range(num_samples):\n            prob = y_pred[i]\n            length = input_length[i]\n            decoded = np.argmax(prob[:length], axis=-1)\n            log_prob[i] = -np.sum(np.log(prob[np.arange(length), decoded]))\n            decoded = _remove_repeats(decoded)\n            decoded = _remove_blanks(decoded, num_classes)\n            decoded_length[i] = len(decoded)\n            decoded_dense[i, :len(decoded)] = decoded\n        return decoded_dense[:, :np.max(decoded_length)], log_prob\n    else:\n        raise NotImplementedError",
+                "def _remove_repeats(inds):\n    is_not_repeat = np.insert(np.diff(inds).astype(np.bool), 0, True)\n    return inds[is_not_repeat]",
+                "def _remove_blanks(inds, num_classes):\n    return inds[inds < (num_classes - 1)]",
+                "def stack(x, axis=0):\n    return np.stack(x, axis=axis)",
+                "def wrapper(*args, **kwargs):\n    x = args[0]\n    w = args[1]\n    if x.ndim == 3:\n        w = np.flipud(w)\n        w = np.transpose(w, (1, 2, 0))\n        if kwargs['data_format'] == 'channels_last':\n            x = np.transpose(x, (0, 2, 1))\n    elif x.ndim == 4:\n        w = np.fliplr(np.flipud(w))\n        w = np.transpose(w, (2, 3, 0, 1))\n        if kwargs['data_format'] == 'channels_last':\n            x = np.transpose(x, (0, 3, 1, 2))\n    else:\n        w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n        w = np.transpose(w, (3, 4, 0, 1, 2))\n        if kwargs['data_format'] == 'channels_last':\n            x = np.transpose(x, (0, 4, 1, 2, 3))\n\n    dilation_rate = kwargs.pop('dilation_rate', 1)\n    if isinstance(dilation_rate, int):\n        dilation_rate = (dilation_rate,) * (x.ndim - 2)\n    for (i, d) in enumerate(dilation_rate):\n        if d > 1:\n            for j in range(w.shape[2 + i] - 1):\n                w = np.insert(w, 2 * j + 1, 0, axis=2 + i)\n\n    y = func(x, w, **kwargs)\n\n    if kwargs['data_format'] == 'channels_last':\n        if y.ndim == 3:\n            y = np.transpose(y, (0, 2, 1))\n        elif y.ndim == 4:\n            y = np.transpose(y, (0, 2, 3, 1))\n        else:\n            y = np.transpose(y, (0, 2, 3, 4, 1))\n\n    return y",
+                "def expand_mask(mask_, x):\n    # expand mask so that `mask[:, t].ndim == x.ndim`\n    while mask_.ndim < x.ndim + 1:\n        mask_ = np.expand_dims(mask_, axis=-1)\n    return mask_"
+            ],
+            "inscope_function_signatures": [
+                "normalize_conv(func)",
+                "conv(x, w, padding, data_format)",
+                "depthwise_conv(x, w, padding, data_format)",
+                "separable_conv(x, w1, w2, padding, data_format)",
+                "conv_transpose(x, w, output_shape, padding, data_format, dilation_rate=1)",
+                "pool(x, pool_size, strides, padding, data_format, pool_mode)",
+                "bias_add(x, y, data_format)",
+                "rnn(step_function, inputs, initial_states, go_backwards=False, mask=None, constants=None, unroll=False, input_length=None)",
+                "learning_phase()",
+                "set_learning_phase(value)",
+                "in_train_phase(x, alt, training=None)",
+                "in_test_phase(x, alt, training=None)",
+                "relu(x, alpha=0.0, max_value=None, threshold=0.0)",
+                "switch(condition, then_expression, else_expression)",
+                "softplus(x)",
+                "softsign(x)",
+                "elu(x, alpha=1.0)",
+                "sigmoid(x)",
+                "hard_sigmoid(x)",
+                "tanh(x)",
+                "softmax(x, axis=-1)",
+                "l2_normalize(x, axis=-1)",
+                "binary_crossentropy(target, output, from_logits=False)",
+                "categorical_crossentropy(target, output, from_logits=False)",
+                "max(x, axis=None, keepdims=False)",
+                "min(x, axis=None, keepdims=False)",
+                "mean(x, axis=None, keepdims=False)",
+                "var(x, axis=None, keepdims=False)",
+                "std(x, axis=None, keepdims=False)",
+                "logsumexp(x, axis=None, keepdims=False)",
+                "sum(x, axis=None, keepdims=False)",
+                "prod(x, axis=None, keepdims=False)",
+                "cumsum(x, axis=0)",
+                "cumprod(x, axis=0)",
+                "any(x, axis=None, keepdims=False)",
+                "all(x, axis=None, keepdims=False)",
+                "argmax(x, axis=-1)",
+                "argmin(x, axis=-1)",
+                "sqrt(x)",
+                "pow(x, a=1.0)",
+                "clip(x, min_value, max_value)",
+                "concatenate(tensors, axis=-1)",
+                "permute_dimensions(x, pattern)",
+                "reshape(x, shape)",
+                "repeat_elements(x, rep, axis)",
+                "repeat(x, n)",
+                "temporal_padding(x, padding=(1, 1))",
+                "spatial_2d_padding(x, padding=((1, 1), (1, 1)), data_format=None)",
+                "spatial_3d_padding(x, padding=((1, 1), (1, 1), (1, 1)), data_format=None)",
+                "tile(x, n)",
+                "arange(start, stop=None, step=1, dtype='int32')",
+                "flatten(x)",
+                "batch_flatten(x)",
+                "gather(reference, indices)",
+                "eval(x)",
+                "get_value(x)",
+                "count_params(x)",
+                "int_shape(x)",
+                "get_variable_shape(x)",
+                "dtype(x)",
+                "constant(value, dtype=None, shape=None, name=None)",
+                "print_tensor(x, message='')",
+                "dot(x, y)",
+                "batch_dot(x, y, axes=None)",
+                "transpose(x)",
+                "reverse(x, axes)",
+                "slice(x, start, size)",
+                "variable(value, dtype=None, name=None, constraint=None)",
+                "dropout(x, level, noise_shape=None, seed=None)",
+                "equal(x, y)",
+                "not_equal(x, y)",
+                "greater(x, y)",
+                "greater_equal(x, y)",
+                "less(x, y)",
+                "less_equal(x, y)",
+                "maximum(x, y)",
+                "minimum(x, y)",
+                "ndim(x)",
+                "random_uniform_variable(shape, low, high, dtype=None, name=None, seed=None)",
+                "random_normal_variable(shape, mean, scale, dtype=None, name=None, seed=None)",
+                "zeros(shape, dtype=floatx(), name=None)",
+                "zeros_like(x, dtype=floatx(), name=None)",
+                "ones(shape, dtype=floatx(), name=None)",
+                "ones_like(x, dtype=floatx(), name=None)",
+                "eye(size, dtype=None, name=None)",
+                "resize_images(x, height_factor, width_factor, data_format)",
+                "resize_volumes(x, depth_factor, height_factor, width_factor, data_format)",
+                "one_hot(indices, num_classes)",
+                "ctc_decode(y_pred, input_length, greedy=True, beam_width=100, top_paths=1, merge_repeated=False)",
+                "_remove_repeats(inds)",
+                "_remove_blanks(inds, num_classes)",
+                "stack(x, axis=0)",
+                "wrapper(*args, **kwargs)",
+                "expand_mask(mask_, x)"
+            ],
+            "variables_in_file": {
+                "x": [
+                    521,
+                    522,
+                    526,
+                    16,
+                    18,
+                    530,
+                    22,
+                    23,
+                    27,
+                    540,
+                    542,
+                    32,
+                    36,
+                    551,
+                    42,
+                    558,
+                    562,
+                    566,
+                    60,
+                    572,
+                    65,
+                    583,
+                    75,
+                    589,
+                    80,
+                    597,
+                    88,
+                    93,
+                    609,
+                    101,
+                    615,
+                    617,
+                    107,
+                    621,
+                    625,
+                    629,
+                    633,
+                    122,
+                    123,
+                    124,
+                    125,
+                    637,
+                    127,
+                    641,
+                    131,
+                    645,
+                    134,
+                    137,
+                    138,
+                    649,
+                    140,
+                    653,
+                    144,
+                    150,
+                    669,
+                    677,
+                    686,
+                    687,
+                    689,
+                    690,
+                    691,
+                    180,
+                    183,
+                    696,
+                    185,
+                    697,
+                    698,
+                    700,
+                    701,
+                    702,
+                    703,
+                    206,
+                    742,
+                    253,
+                    254,
+                    256,
+                    265,
+                    271,
+                    273,
+                    285,
+                    289,
+                    293,
+                    297,
+                    301,
+                    306,
+                    310,
+                    315,
+                    316,
+                    339,
+                    345,
+                    351,
+                    357,
+                    363,
+                    369,
+                    375,
+                    381,
+                    385,
+                    389,
+                    395,
+                    401,
+                    405,
+                    409,
+                    413,
+                    419,
+                    423,
+                    431,
+                    435,
+                    439,
+                    443,
+                    449,
+                    456,
+                    463,
+                    467,
+                    475,
+                    479,
+                    487,
+                    491,
+                    495,
+                    499,
+                    503,
+                    507
+                ],
+                "args": [
+                    16,
+                    17
+                ],
+                "w": [
+                    17,
+                    19,
+                    20,
+                    24,
+                    25,
+                    29,
+                    30,
+                    39,
+                    40,
+                    42,
+                    62,
+                    64,
+                    65,
+                    77,
+                    79,
+                    80,
+                    94,
+                    95,
+                    97,
+                    98,
+                    104,
+                    105,
+                    107
+                ],
+                "x.ndim": [
+                    36,
+                    101,
+                    551,
+                    137,
+                    140,
+                    653,
+                    206,
+                    18,
+                    530,
+                    180,
+                    540,
+                    23,
+                    183,
+                    122,
+                    124,
+                    93,
+                    542
+                ],
+                "np.flipud": [
+                    97,
+                    19,
+                    24,
+                    29,
+                    94
+                ],
+                "np": [
+                    515,
+                    526,
+                    19,
+                    20,
+                    22,
+                    24,
+                    25,
+                    27,
+                    29,
+                    30,
+                    32,
+                    40,
+                    46,
+                    48,
+                    50,
+                    573,
+                    574,
+                    577,
+                    66,
+                    68,
+                    583,
+                    589,
+                    81,
+                    82,
+                    83,
+                    604,
+                    94,
+                    95,
+                    97,
+                    98,
+                    611,
+                    105,
+                    123,
+                    125,
+                    127,
+                    131,
+                    645,
+                    134,
+                    649,
+                    657,
+                    661,
+                    665,
+                    155,
+                    157,
+                    669,
+                    159,
+                    673,
+                    163,
+                    165,
+                    677,
+                    167,
+                    681,
+                    179,
+                    181,
+                    184,
+                    197,
+                    198,
+                    714,
+                    715,
+                    716,
+                    207,
+                    721,
+                    722,
+                    727,
+                    221,
+                    733,
+                    225,
+                    226,
+                    742,
+                    233,
+                    745,
+                    746,
+                    747,
+                    748,
+                    749,
+                    750,
+                    751,
+                    752,
+                    753,
+                    754,
+                    270,
+                    272,
+                    280,
+                    285,
+                    289,
+                    293,
+                    297,
+                    302,
+                    306,
+                    310,
+                    311,
+                    315,
+                    316,
+                    321,
+                    322,
+                    323,
+                    324,
+                    332,
+                    333,
+                    339,
+                    345,
+                    351,
+                    357,
+                    363,
+                    375,
+                    381,
+                    385,
+                    389,
+                    395,
+                    401,
+                    405,
+                    409,
+                    413,
+                    414,
+                    419,
+                    423,
+                    427,
+                    431,
+                    435,
+                    439,
+                    443,
+                    444,
+                    449,
+                    456,
+                    463,
+                    467,
+                    471,
+                    475,
+                    479
+                ],
+                "np.transpose": [
+                    20,
+                    22,
+                    25,
+                    27,
+                    30,
+                    32,
+                    163,
+                    165,
+                    167,
+                    46,
+                    431,
+                    48,
+                    50,
+                    583,
+                    95,
+                    98,
+                    123,
+                    125,
+                    127
+                ],
+                "kwargs": [
+                    34,
+                    42,
+                    44,
+                    21,
+                    26,
+                    31
+                ],
+                "np.fliplr": [
+                    24,
+                    97,
+                    29,
+                    94
+                ],
+                "np.flip": [
+                    97,
+                    589,
+                    29
+                ],
+                "dilation_rate": [
+                    34,
+                    35,
+                    100,
+                    36,
+                    37,
+                    101,
+                    102
+                ],
+                "kwargs.pop": [
+                    34
+                ],
+                "isinstance": [
+                    544,
+                    35,
+                    100,
+                    355,
+                    535,
+                    361,
+                    393,
+                    587,
+                    367,
+                    399,
+                    337,
+                    373,
+                    533,
+                    343,
+                    379,
+                    349
+                ],
+                "int": [
+                    35,
+                    100,
+                    533
+                ],
+                "i": [
+                    65,
+                    37,
+                    102,
+                    39,
+                    40,
+                    104,
+                    105,
+                    75,
+                    718,
+                    719,
+                    80,
+                    720,
+                    722,
+                    596,
+                    725,
+                    726,
+                    60
+                ],
+                "d": [
+                    102,
+                    37,
+                    38,
+                    103
+                ],
+                "enumerate": [
+                    37,
+                    102
+                ],
+                "j": [
+                    65,
+                    39,
+                    40,
+                    104,
+                    105,
+                    77,
+                    80,
+                    596,
+                    62
+                ],
+                "range": [
+                    64,
+                    39,
+                    104,
+                    75,
+                    139,
+                    77,
+                    142,
+                    79,
+                    143,
+                    718,
+                    147,
+                    148,
+                    149,
+                    180,
+                    183,
+                    215,
+                    60,
+                    62
+                ],
+                "w.shape": [
+                    64,
+                    39,
+                    104,
+                    77,
+                    79,
+                    62
+                ],
+                "np.insert": [
+                    40,
+                    105,
+                    733
+                ],
+                "y": [
+                    641,
+                    645,
+                    649,
+                    138,
+                    141,
+                    526,
+                    144,
+                    563,
+                    146,
+                    530,
+                    150,
+                    155,
+                    539,
+                    157,
+                    413,
+                    159,
+                    414,
+                    415,
+                    162,
+                    163,
+                    164,
+                    165,
+                    540,
+                    167,
+                    542,
+                    169,
+                    42,
+                    553,
+                    566,
+                    45,
+                    46,
+                    47,
+                    48,
+                    301,
+                    50,
+                    178,
+                    52,
+                    179,
+                    180,
+                    181,
+                    183,
+                    184,
+                    185,
+                    59,
+                    310,
+                    311,
+                    315,
+                    316,
+                    443,
+                    444,
+                    445,
+                    67,
+                    68,
+                    69,
+                    572,
+                    74,
+                    82,
+                    83,
+                    84,
+                    621,
+                    302,
+                    625,
+                    629,
+                    558,
+                    633,
+                    637
+                ],
+                "func": [
+                    42
+                ],
+                "y.ndim": [
+                    162,
+                    164,
+                    553,
+                    45,
+                    47,
+                    178,
+                    530,
+                    180,
+                    183,
+                    539,
+                    540,
+                    542
+                ],
+                "wrapper": [
+                    54
+                ],
+                "x.shape": [
+                    609,
+                    75,
+                    558,
+                    562,
+                    499,
+                    566,
+                    60,
+                    479
+                ],
+                "_y": [
+                    66,
+                    67,
+                    76,
+                    81,
+                    82,
+                    61
+                ],
+                "__y": [
+                    65,
+                    66,
+                    78,
+                    80,
+                    81,
+                    63
+                ],
+                "k": [
+                    64,
+                    65,
+                    138,
+                    139,
+                    142,
+                    79,
+                    80,
+                    144,
+                    147,
+                    152
+                ],
+                "__y.append": [
+                    80,
+                    65
+                ],
+                "signal.convolve": [
+                    80,
+                    65
+                ],
+                "signal": [
+                    80,
+                    65
+                ],
+                "padding": [
+                    65,
+                    129,
+                    449,
+                    453,
+                    107,
+                    460,
+                    80,
+                    88,
+                    89
+                ],
+                "_y.append": [
+                    81,
+                    66
+                ],
+                "np.sum": [
+                    66,
+                    333,
+                    722,
+                    375,
+                    315,
+                    311
+                ],
+                "np.stack": [
+                    66,
+                    742,
+                    233,
+                    81,
+                    155
+                ],
+                "y.append": [
+                    144,
+                    82,
+                    67,
+                    150
+                ],
+                "np.array": [
+                    83,
+                    68,
+                    574,
+                    604
+                ],
+                "normalize_conv": [
+                    72,
+                    57
+                ],
+                "np.concatenate": [
+                    82,
+                    427
+                ],
+                "x2": [
+                    88,
+                    89
+                ],
+                "depthwise_conv": [
+                    88,
+                    113
+                ],
+                "w1": [
+                    88
+                ],
+                "data_format": [
+                    121,
+                    161,
+                    454,
+                    107,
+                    461,
+                    685,
+                    688,
+                    177,
+                    695,
+                    88,
+                    89,
+                    699
+                ],
+                "conv": [
+                    107,
+                    110,
+                    111,
+                    112,
+                    89
+                ],
+                "w2": [
+                    89
+                ],
+                "conv1d": [
+                    110
+                ],
+                "conv2d": [
+                    111
+                ],
+                "conv3d": [
+                    112
+                ],
+                "depthwise_conv2d": [
+                    113
+                ],
+                "separable_conv1d": [
+                    114
+                ],
+                "separable_conv": [
+                    114,
+                    115
+                ],
+                "separable_conv2d": [
+                    115
+                ],
+                "conv2d_transpose": [
+                    116
+                ],
+                "conv_transpose": [
+                    116,
+                    117
+                ],
+                "conv3d_transpose": [
+                    117
+                ],
+                "pad": [
+                    130,
+                    131
+                ],
+                "s": [
+                    130
+                ],
+                "pool_size": [
+                    130,
+                    134,
+                    139,
+                    142,
+                    143,
+                    147,
+                    148,
+                    149
+                ],
+                "np.pad": [
+                    449,
+                    131,
+                    134,
+                    456,
+                    463
+                ],
+                "np.inf": [
+                    131,
+                    270
+                ],
+                "_": [
+                    195,
+                    180,
+                    134,
+                    183
+                ],
+                "k1": [
+                    138,
+                    139,
+                    142,
+                    144,
+                    147,
+                    152
+                ],
+                "strides": [
+                    138,
+                    144,
+                    152,
+                    153,
+                    154
+                ],
+                "zip": [
+                    228,
+                    139,
+                    142,
+                    143,
+                    147,
+                    148,
+                    149,
+                    596,
+                    572
+                ],
+                "l": [
+                    144,
+                    153,
+                    148,
+                    143
+                ],
+                "l1": [
+                    144,
+                    153,
+                    148,
+                    143
+                ],
+                "m": [
+                    154,
+                    149
+                ],
+                "m1": [
+                    154,
+                    149
+                ],
+                "pool_mode": [
+                    156,
+                    158
+                ],
+                "data": [
+                    157
+                ],
+                "np.mean": [
+                    157,
+                    351
+                ],
+                "np.ma.masked_invalid": [
+                    157
+                ],
+                "np.ma": [
+                    157
+                ],
+                "np.max": [
+                    339,
+                    310,
+                    727,
+                    315,
+                    159
+                ],
+                "pool2d": [
+                    172
+                ],
+                "pool": [
+                    172,
+                    173
+                ],
+                "pool3d": [
+                    173
+                ],
+                "np.reshape": [
+                    179,
+                    435,
+                    475,
+                    479
+                ],
+                "y.shape": [
+                    566,
+                    563,
+                    179,
+                    558
+                ],
+                "np.expand_dims": [
+                    577,
+                    207,
+                    751,
+                    181,
+                    184,
+                    443
+                ],
+                "constants": [
+                    192,
+                    193,
+                    195,
+                    223
+                ],
+                "output_sample": [
+                    209,
+                    195,
+                    221
+                ],
+                "step_function": [
+                    195,
+                    223
+                ],
+                "inputs": [
+                    195,
+                    199,
+                    213,
+                    214,
+                    223
+                ],
+                "initial_states": [
+                    210,
+                    195,
+                    220
+                ],
+                "mask": [
+                    224,
+                    196,
+                    197,
+                    198,
+                    199,
+                    202,
+                    209,
+                    210
+                ],
+                "mask.dtype": [
+                    197
+                ],
+                "np.bool": [
+                    733,
+                    197,
+                    198
+                ],
+                "mask.astype": [
+                    198
+                ],
+                "mask.shape": [
+                    202,
+                    199
+                ],
+                "inputs.shape": [
+                    213,
+                    214,
+                    199
+                ],
+                "ValueError": [
+                    545,
+                    200,
+                    556,
+                    559,
+                    531,
+                    565
+                ],
+                "format": [
+                    201
+                ],
+                "mask_.ndim": [
+                    206
+                ],
+                "mask_": [
+                    208,
+                    206,
+                    207
+                ],
+                "output_mask": [
+                    209,
+                    225
+                ],
+                "expand_mask": [
+                    209,
+                    210
+                ],
+                "states_masks": [
+                    210,
+                    228
+                ],
+                "state": [
+                    210
+                ],
+                "input_length": [
+                    720,
+                    212,
+                    213,
+                    214,
+                    215
+                ],
+                "time_index": [
+                    217,
+                    222,
+                    215
+                ],
+                "go_backwards": [
+                    216
+                ],
+                "outputs": [
+                    233,
+                    219,
+                    229
+                ],
+                "states_tm1": [
+                    228,
+                    230,
+                    233,
+                    220,
+                    223
+                ],
+                "output_tm1": [
+                    225,
+                    221,
+                    231
+                ],
+                "np.zeros": [
+                    665,
+                    714,
+                    716,
+                    221
+                ],
+                "output_sample.shape": [
+                    221
+                ],
+                "t": [
+                    225,
+                    226,
+                    222,
+                    223
+                ],
+                "output_t": [
+                    225,
+                    231,
+                    229,
+                    223
+                ],
+                "states_t": [
+                    226,
+                    228,
+                    230,
+                    223
+                ],
+                "np.where": [
+                    225,
+                    226
+                ],
+                "state_mask": [
+                    226,
+                    227
+                ],
+                "state_t": [
+                    226,
+                    227
+                ],
+                "state_tm1": [
+                    226,
+                    227
+                ],
+                "outputs.append": [
+                    229
+                ],
+                "_LEARNING_PHASE": [
+                    240,
+                    236,
+                    245
+                ],
+                "value": [
+                    515,
+                    604,
+                    245
+                ],
+                "training": [
+                    249,
+                    250,
+                    252,
+                    265
+                ],
+                "learning_phase": [
+                    250,
+                    610
+                ],
+                "callable": [
+                    258,
+                    253
+                ],
+                "alt": [
+                    265,
+                    258,
+                    259,
+                    261
+                ],
+                "in_train_phase": [
+                    265
+                ],
+                "max_value": [
+                    272,
+                    269,
+                    270,
+                    423
+                ],
+                "above_threshold": [
+                    272,
+                    274,
+                    271
+                ],
+                "threshold": [
+                    273,
+                    271
+                ],
+                "np.clip": [
+                    321,
+                    423,
+                    332,
+                    302,
+                    272
+                ],
+                "below_threshold": [
+                    273,
+                    274
+                ],
+                "alpha": [
+                    273,
+                    293
+                ],
+                "cond_float": [
+                    280,
+                    281,
+                    278,
+                    279
+                ],
+                "condition.astype": [
+                    278
+                ],
+                "condition": [
+                    278
+                ],
+                "floatx": [
+                    512,
+                    672,
+                    676,
+                    278,
+                    664,
+                    668
+                ],
+                "cond_float.ndim": [
+                    279
+                ],
+                "then_expression.ndim": [
+                    279
+                ],
+                "then_expression": [
+                    281,
+                    279
+                ],
+                "np.newaxis": [
+                    280
+                ],
+                "else_expression": [
+                    281
+                ],
+                "np.log": [
+                    322,
+                    323,
+                    324,
+                    748,
+                    333,
+                    722,
+                    285
+                ],
+                "np.exp": [
+                    293,
+                    297,
+                    747,
+                    310,
+                    285
+                ],
+                "np.abs": [
+                    289,
+                    746
+                ],
+                "np.tanh": [
+                    306
+                ],
+                "axis": [
+                    385,
+                    389,
+                    393,
+                    394,
+                    395,
+                    399,
+                    400,
+                    401,
+                    405,
+                    409,
+                    427,
+                    310,
+                    311,
+                    439,
+                    315,
+                    337,
+                    338,
+                    339,
+                    343,
+                    344,
+                    345,
+                    349,
+                    350,
+                    351,
+                    355,
+                    356,
+                    357,
+                    742,
+                    361,
+                    362,
+                    363,
+                    367,
+                    368,
+                    369,
+                    373,
+                    374,
+                    375,
+                    379,
+                    380,
+                    381
+                ],
+                "np.sqrt": [
+                    316,
+                    413
+                ],
+                "from_logits": [
+                    320,
+                    328
+                ],
+                "output": [
+                    321,
+                    322,
+                    323,
+                    324,
+                    329,
+                    331,
+                    332,
+                    333
+                ],
+                "target": [
+                    323,
+                    324,
+                    333
+                ],
+                "sigmoid": [
+                    323,
+                    324
+                ],
+                "softmax": [
+                    329
+                ],
+                "output.sum": [
+                    331
+                ],
+                "list": [
+                    544,
+                    355,
+                    361,
+                    393,
+                    587,
+                    367,
+                    399,
+                    337,
+                    373,
+                    343,
+                    536,
+                    379,
+                    349
+                ],
+                "tuple": [
+                    544,
+                    356,
+                    362,
+                    394,
+                    588,
+                    368,
+                    400,
+                    338,
+                    597,
+                    374,
+                    535,
+                    344,
+                    380,
+                    350
+                ],
+                "keepdims": [
+                    357,
+                    363,
+                    395,
+                    369,
+                    401,
+                    339,
+                    375,
+                    345,
+                    381,
+                    351
+                ],
+                "np.min": [
+                    345
+                ],
+                "np.var": [
+                    357
+                ],
+                "np.std": [
+                    363
+                ],
+                "sp.misc.logsumexp": [
+                    369
+                ],
+                "sp.misc": [
+                    369
+                ],
+                "sp": [
+                    369
+                ],
+                "np.prod": [
+                    381
+                ],
+                "np.cumsum": [
+                    385
+                ],
+                "np.cumprod": [
+                    389
+                ],
+                "np.any": [
+                    395
+                ],
+                "np.all": [
+                    401
+                ],
+                "np.argmax": [
+                    721,
+                    405
+                ],
+                "np.argmin": [
+                    409
+                ],
+                "np.isnan": [
+                    414
+                ],
+                "np.power": [
+                    419
+                ],
+                "a": [
+                    544,
+                    419
+                ],
+                "min_value": [
+                    423
+                ],
+                "tensors": [
+                    427
+                ],
+                "pattern": [
+                    431
+                ],
+                "shape": [
+                    513,
+                    514,
+                    515,
+                    673,
+                    657,
+                    435,
+                    661,
+                    665
+                ],
+                "np.repeat": [
+                    444,
+                    439
+                ],
+                "rep": [
+                    439
+                ],
+                "n": [
+                    467,
+                    444
+                ],
+                "all_dims_padding": [
+                    453,
+                    454,
+                    456,
+                    460,
+                    461,
+                    463
+                ],
+                "transpose_shape": [
+                    461,
+                    454
+                ],
+                "np.tile": [
+                    467
+                ],
+                "np.arange": [
+                    722,
+                    471
+                ],
+                "start": [
+                    596,
+                    471
+                ],
+                "stop": [
+                    471
+                ],
+                "step": [
+                    471
+                ],
+                "dtype": [
+                    512,
+                    673,
+                    516,
+                    677,
+                    681,
+                    657,
+                    661,
+                    471,
+                    665,
+                    604,
+                    669,
+                    511
+                ],
+                "reference": [
+                    483
+                ],
+                "indices": [
+                    483,
+                    707
+                ],
+                "x.size": [
+                    495
+                ],
+                "int_shape": [
+                    503
+                ],
+                "x.dtype.name": [
+                    507
+                ],
+                "x.dtype": [
+                    507
+                ],
+                "np_value": [
+                    515,
+                    516,
+                    517
+                ],
+                "np.ones": [
+                    673,
+                    515
+                ],
+                "np_value.astype": [
+                    516
+                ],
+                "print": [
+                    521
+                ],
+                "message": [
+                    521
+                ],
+                "np.dot": [
+                    526
+                ],
+                "axes": [
+                    533,
+                    534,
+                    535,
+                    536,
+                    538,
+                    540,
+                    542,
+                    544,
+                    547,
+                    550,
+                    551,
+                    552,
+                    553,
+                    555,
+                    562,
+                    563,
+                    567,
+                    568,
+                    571,
+                    573,
+                    587,
+                    588,
+                    589
+                ],
+                "any": [
+                    544
+                ],
+                "str": [
+                    547,
+                    566,
+                    567
+                ],
+                "d1": [
+                    568,
+                    562,
+                    564
+                ],
+                "d2": [
+                    568,
+                    563,
+                    564
+                ],
+                "result": [
+                    576,
+                    577,
+                    579,
+                    570,
+                    573,
+                    574
+                ],
+                "xi": [
+                    572,
+                    573
+                ],
+                "yi": [
+                    572,
+                    573
+                ],
+                "result.append": [
+                    573
+                ],
+                "np.tensordot": [
+                    573
+                ],
+                "result.ndim": [
+                    576
+                ],
+                "py_slice": [
+                    592,
+                    596
+                ],
+                "slice": [
+                    592
+                ],
+                "slices": [
+                    596,
+                    597
+                ],
+                "size": [
+                    681,
+                    596
+                ],
+                "constraint": [
+                    601
+                ],
+                "TypeError": [
+                    602
+                ],
+                "noise_shape": [
+                    608,
+                    609,
+                    612
+                ],
+                "noise": [
+                    611,
+                    615
+                ],
+                "np.random.choice": [
+                    611
+                ],
+                "np.random": [
+                    657,
+                    611,
+                    661
+                ],
+                "level": [
+                    614,
+                    615
+                ],
+                "np.maximum": [
+                    645
+                ],
+                "np.minimum": [
+                    649
+                ],
+                "high": [
+                    657
+                ],
+                "low": [
+                    657
+                ],
+                "astype": [
+                    733,
+                    657,
+                    661
+                ],
+                "np.random.random": [
+                    657
+                ],
+                "scale": [
+                    661
+                ],
+                "np.random.randn": [
+                    661
+                ],
+                "mean": [
+                    661
+                ],
+                "np.zeros_like": [
+                    669
+                ],
+                "np.ones_like": [
+                    715,
+                    677
+                ],
+                "np.eye": [
+                    681
+                ],
+                "repeat_elements": [
+                    686,
+                    687,
+                    689,
+                    690,
+                    696,
+                    697,
+                    698,
+                    700,
+                    701,
+                    702
+                ],
+                "height_factor": [
+                    689,
+                    697,
+                    701,
+                    686
+                ],
+                "width_factor": [
+                    698,
+                    690,
+                    702,
+                    687
+                ],
+                "depth_factor": [
+                    696,
+                    700
+                ],
+                "to_categorical": [
+                    707
+                ],
+                "num_classes": [
+                    713,
+                    738,
+                    707,
+                    724
+                ],
+                "num_samples": [
+                    712,
+                    714,
+                    716,
+                    718
+                ],
+                "y_pred.shape": [
+                    712,
+                    713
+                ],
+                "y_pred": [
+                    712,
+                    713,
+                    715,
+                    719
+                ],
+                "log_prob": [
+                    722,
+                    714,
+                    727
+                ],
+                "decoded_dense": [
+                    715,
+                    726,
+                    727
+                ],
+                "decoded_length": [
+                    716,
+                    725,
+                    727
+                ],
+                "np.int": [
+                    716
+                ],
+                "greedy": [
+                    717
+                ],
+                "prob": [
+                    721,
+                    722,
+                    719
+                ],
+                "length": [
+                    720,
+                    721,
+                    722
+                ],
+                "decoded": [
+                    721,
+                    722,
+                    723,
+                    724,
+                    725,
+                    726
+                ],
+                "_remove_repeats": [
+                    723
+                ],
+                "_remove_blanks": [
+                    724
+                ],
+                "len": [
+                    725,
+                    726
+                ],
+                "NotImplementedError": [
+                    729
+                ],
+                "is_not_repeat": [
+                    733,
+                    734
+                ],
+                "np.diff": [
+                    733
+                ],
+                "inds": [
+                    738,
+                    733,
+                    734
+                ],
+                "square": [
+                    745
+                ],
+                "np.square": [
+                    745
+                ],
+                "abs": [
+                    746
+                ],
+                "exp": [
+                    747
+                ],
+                "log": [
+                    748
+                ],
+                "round": [
+                    749
+                ],
+                "np.round": [
+                    749
+                ],
+                "sign": [
+                    750
+                ],
+                "np.sign": [
+                    750
+                ],
+                "expand_dims": [
+                    751
+                ],
+                "squeeze": [
+                    752
+                ],
+                "np.squeeze": [
+                    752
+                ],
+                "cos": [
+                    753
+                ],
+                "np.cos": [
+                    753
+                ],
+                "sin": [
+                    754
+                ],
+                "np.sin": [
+                    754
+                ]
+            },
+            "filtered_variables_in_file": {
+                "x": [
+                    521,
+                    522,
+                    526,
+                    16,
+                    18,
+                    530,
+                    22,
+                    23,
+                    27,
+                    540,
+                    542,
+                    32,
+                    36,
+                    551,
+                    42,
+                    558,
+                    562,
+                    566,
+                    60,
+                    572,
+                    65,
+                    583,
+                    75,
+                    589,
+                    80,
+                    597,
+                    88,
+                    93,
+                    609,
+                    101,
+                    615,
+                    617,
+                    107,
+                    621,
+                    625,
+                    629,
+                    633,
+                    122,
+                    123,
+                    124,
+                    125,
+                    637,
+                    127,
+                    641,
+                    131,
+                    645,
+                    134,
+                    137,
+                    138,
+                    649,
+                    140,
+                    653,
+                    144,
+                    150,
+                    669,
+                    677,
+                    686,
+                    687,
+                    689,
+                    690,
+                    691,
+                    180,
+                    183,
+                    696,
+                    185,
+                    697,
+                    698,
+                    700,
+                    701,
+                    702,
+                    703,
+                    206,
+                    742,
+                    253,
+                    254,
+                    256,
+                    265,
+                    271,
+                    273,
+                    285,
+                    289,
+                    293,
+                    297,
+                    301,
+                    306,
+                    310,
+                    315,
+                    316,
+                    339,
+                    345,
+                    351,
+                    357,
+                    363,
+                    369,
+                    375,
+                    381,
+                    385,
+                    389,
+                    395,
+                    401,
+                    405,
+                    409,
+                    413,
+                    419,
+                    423,
+                    431,
+                    435,
+                    439,
+                    443,
+                    449,
+                    456,
+                    463,
+                    467,
+                    475,
+                    479,
+                    487,
+                    491,
+                    495,
+                    499,
+                    503,
+                    507
+                ],
+                "args": [
+                    16,
+                    17
+                ],
+                "w": [
+                    17,
+                    19,
+                    20,
+                    24,
+                    25,
+                    29,
+                    30,
+                    39,
+                    40,
+                    42,
+                    62,
+                    64,
+                    65,
+                    77,
+                    79,
+                    80,
+                    94,
+                    95,
+                    97,
+                    98,
+                    104,
+                    105,
+                    107
+                ],
+                "x.ndim": [
+                    36,
+                    101,
+                    551,
+                    137,
+                    140,
+                    653,
+                    206,
+                    18,
+                    530,
+                    180,
+                    540,
+                    23,
+                    183,
+                    122,
+                    124,
+                    93,
+                    542
+                ],
+                "np.flipud": [
+                    97,
+                    19,
+                    24,
+                    29,
+                    94
+                ],
+                "np": [
+                    515,
+                    526,
+                    19,
+                    20,
+                    22,
+                    24,
+                    25,
+                    27,
+                    29,
+                    30,
+                    32,
+                    40,
+                    46,
+                    48,
+                    50,
+                    573,
+                    574,
+                    577,
+                    66,
+                    68,
+                    583,
+                    589,
+                    81,
+                    82,
+                    83,
+                    604,
+                    94,
+                    95,
+                    97,
+                    98,
+                    611,
+                    105,
+                    123,
+                    125,
+                    127,
+                    131,
+                    645,
+                    134,
+                    649,
+                    657,
+                    661,
+                    665,
+                    155,
+                    157,
+                    669,
+                    159,
+                    673,
+                    163,
+                    165,
+                    677,
+                    167,
+                    681,
+                    179,
+                    181,
+                    184,
+                    197,
+                    198,
+                    714,
+                    715,
+                    716,
+                    207,
+                    721,
+                    722,
+                    727,
+                    221,
+                    733,
+                    225,
+                    226,
+                    742,
+                    233,
+                    745,
+                    746,
+                    747,
+                    748,
+                    749,
+                    750,
+                    751,
+                    752,
+                    753,
+                    754,
+                    270,
+                    272,
+                    280,
+                    285,
+                    289,
+                    293,
+                    297,
+                    302,
+                    306,
+                    310,
+                    311,
+                    315,
+                    316,
+                    321,
+                    322,
+                    323,
+                    324,
+                    332,
+                    333,
+                    339,
+                    345,
+                    351,
+                    357,
+                    363,
+                    375,
+                    381,
+                    385,
+                    389,
+                    395,
+                    401,
+                    405,
+                    409,
+                    413,
+                    414,
+                    419,
+                    423,
+                    427,
+                    431,
+                    435,
+                    439,
+                    443,
+                    444,
+                    449,
+                    456,
+                    463,
+                    467,
+                    471,
+                    475,
+                    479
+                ],
+                "np.transpose": [
+                    20,
+                    22,
+                    25,
+                    27,
+                    30,
+                    32,
+                    163,
+                    165,
+                    167,
+                    46,
+                    431,
+                    48,
+                    50,
+                    583,
+                    95,
+                    98,
+                    123,
+                    125,
+                    127
+                ],
+                "kwargs": [
+                    34,
+                    42,
+                    44,
+                    21,
+                    26,
+                    31
+                ],
+                "np.fliplr": [
+                    24,
+                    97,
+                    29,
+                    94
+                ],
+                "np.flip": [
+                    97,
+                    589,
+                    29
+                ],
+                "dilation_rate": [
+                    34,
+                    35,
+                    100,
+                    36,
+                    37,
+                    101,
+                    102
+                ],
+                "kwargs.pop": [
+                    34
+                ],
+                "i": [
+                    65,
+                    37,
+                    102,
+                    39,
+                    40,
+                    104,
+                    105,
+                    75,
+                    718,
+                    719,
+                    80,
+                    720,
+                    722,
+                    596,
+                    725,
+                    726,
+                    60
+                ],
+                "d": [
+                    102,
+                    37,
+                    38,
+                    103
+                ],
+                "j": [
+                    65,
+                    39,
+                    40,
+                    104,
+                    105,
+                    77,
+                    80,
+                    596,
+                    62
+                ],
+                "w.shape": [
+                    64,
+                    39,
+                    104,
+                    77,
+                    79,
+                    62
+                ],
+                "np.insert": [
+                    40,
+                    105,
+                    733
+                ],
+                "y": [
+                    641,
+                    645,
+                    649,
+                    138,
+                    141,
+                    526,
+                    144,
+                    563,
+                    146,
+                    530,
+                    150,
+                    155,
+                    539,
+                    157,
+                    413,
+                    159,
+                    414,
+                    415,
+                    162,
+                    163,
+                    164,
+                    165,
+                    540,
+                    167,
+                    542,
+                    169,
+                    42,
+                    553,
+                    566,
+                    45,
+                    46,
+                    47,
+                    48,
+                    301,
+                    50,
+                    178,
+                    52,
+                    179,
+                    180,
+                    181,
+                    183,
+                    184,
+                    185,
+                    59,
+                    310,
+                    311,
+                    315,
+                    316,
+                    443,
+                    444,
+                    445,
+                    67,
+                    68,
+                    69,
+                    572,
+                    74,
+                    82,
+                    83,
+                    84,
+                    621,
+                    302,
+                    625,
+                    629,
+                    558,
+                    633,
+                    637
+                ],
+                "func": [
+                    42
+                ],
+                "y.ndim": [
+                    162,
+                    164,
+                    553,
+                    45,
+                    47,
+                    178,
+                    530,
+                    180,
+                    183,
+                    539,
+                    540,
+                    542
+                ],
+                "wrapper": [
+                    54
+                ],
+                "x.shape": [
+                    609,
+                    75,
+                    558,
+                    562,
+                    499,
+                    566,
+                    60,
+                    479
+                ],
+                "_y": [
+                    66,
+                    67,
+                    76,
+                    81,
+                    82,
+                    61
+                ],
+                "__y": [
+                    65,
+                    66,
+                    78,
+                    80,
+                    81,
+                    63
+                ],
+                "k": [
+                    64,
+                    65,
+                    138,
+                    139,
+                    142,
+                    79,
+                    80,
+                    144,
+                    147,
+                    152
+                ],
+                "__y.append": [
+                    80,
+                    65
+                ],
+                "signal.convolve": [
+                    80,
+                    65
+                ],
+                "signal": [
+                    80,
+                    65
+                ],
+                "padding": [
+                    65,
+                    129,
+                    449,
+                    453,
+                    107,
+                    460,
+                    80,
+                    88,
+                    89
+                ],
+                "_y.append": [
+                    81,
+                    66
+                ],
+                "np.sum": [
+                    66,
+                    333,
+                    722,
+                    375,
+                    315,
+                    311
+                ],
+                "np.stack": [
+                    66,
+                    742,
+                    233,
+                    81,
+                    155
+                ],
+                "y.append": [
+                    144,
+                    82,
+                    67,
+                    150
+                ],
+                "np.array": [
+                    83,
+                    68,
+                    574,
+                    604
+                ],
+                "normalize_conv": [
+                    72,
+                    57
+                ],
+                "np.concatenate": [
+                    82,
+                    427
+                ],
+                "x2": [
+                    88,
+                    89
+                ],
+                "depthwise_conv": [
+                    88,
+                    113
+                ],
+                "w1": [
+                    88
+                ],
+                "data_format": [
+                    121,
+                    161,
+                    454,
+                    107,
+                    461,
+                    685,
+                    688,
+                    177,
+                    695,
+                    88,
+                    89,
+                    699
+                ],
+                "conv": [
+                    107,
+                    110,
+                    111,
+                    112,
+                    89
+                ],
+                "w2": [
+                    89
+                ],
+                "conv1d": [
+                    110
+                ],
+                "conv2d": [
+                    111
+                ],
+                "conv3d": [
+                    112
+                ],
+                "depthwise_conv2d": [
+                    113
+                ],
+                "separable_conv1d": [
+                    114
+                ],
+                "separable_conv": [
+                    114,
+                    115
+                ],
+                "separable_conv2d": [
+                    115
+                ],
+                "conv2d_transpose": [
+                    116
+                ],
+                "conv_transpose": [
+                    116,
+                    117
+                ],
+                "conv3d_transpose": [
+                    117
+                ],
+                "pad": [
+                    130,
+                    131
+                ],
+                "s": [
+                    130
+                ],
+                "pool_size": [
+                    130,
+                    134,
+                    139,
+                    142,
+                    143,
+                    147,
+                    148,
+                    149
+                ],
+                "np.pad": [
+                    449,
+                    131,
+                    134,
+                    456,
+                    463
+                ],
+                "np.inf": [
+                    131,
+                    270
+                ],
+                "_": [
+                    195,
+                    180,
+                    134,
+                    183
+                ],
+                "k1": [
+                    138,
+                    139,
+                    142,
+                    144,
+                    147,
+                    152
+                ],
+                "strides": [
+                    138,
+                    144,
+                    152,
+                    153,
+                    154
+                ],
+                "l": [
+                    144,
+                    153,
+                    148,
+                    143
+                ],
+                "l1": [
+                    144,
+                    153,
+                    148,
+                    143
+                ],
+                "m": [
+                    154,
+                    149
+                ],
+                "m1": [
+                    154,
+                    149
+                ],
+                "pool_mode": [
+                    156,
+                    158
+                ],
+                "data": [
+                    157
+                ],
+                "np.mean": [
+                    157,
+                    351
+                ],
+                "np.ma.masked_invalid": [
+                    157
+                ],
+                "np.ma": [
+                    157
+                ],
+                "np.max": [
+                    339,
+                    310,
+                    727,
+                    315,
+                    159
+                ],
+                "pool2d": [
+                    172
+                ],
+                "pool": [
+                    172,
+                    173
+                ],
+                "pool3d": [
+                    173
+                ],
+                "np.reshape": [
+                    179,
+                    435,
+                    475,
+                    479
+                ],
+                "y.shape": [
+                    566,
+                    563,
+                    179,
+                    558
+                ],
+                "np.expand_dims": [
+                    577,
+                    207,
+                    751,
+                    181,
+                    184,
+                    443
+                ],
+                "constants": [
+                    192,
+                    193,
+                    195,
+                    223
+                ],
+                "output_sample": [
+                    209,
+                    195,
+                    221
+                ],
+                "step_function": [
+                    195,
+                    223
+                ],
+                "inputs": [
+                    195,
+                    199,
+                    213,
+                    214,
+                    223
+                ],
+                "initial_states": [
+                    210,
+                    195,
+                    220
+                ],
+                "mask": [
+                    224,
+                    196,
+                    197,
+                    198,
+                    199,
+                    202,
+                    209,
+                    210
+                ],
+                "mask.dtype": [
+                    197
+                ],
+                "np.bool": [
+                    733,
+                    197,
+                    198
+                ],
+                "mask.astype": [
+                    198
+                ],
+                "mask.shape": [
+                    202,
+                    199
+                ],
+                "inputs.shape": [
+                    213,
+                    214,
+                    199
+                ],
+                "mask_.ndim": [
+                    206
+                ],
+                "mask_": [
+                    208,
+                    206,
+                    207
+                ],
+                "output_mask": [
+                    209,
+                    225
+                ],
+                "expand_mask": [
+                    209,
+                    210
+                ],
+                "states_masks": [
+                    210,
+                    228
+                ],
+                "state": [
+                    210
+                ],
+                "input_length": [
+                    720,
+                    212,
+                    213,
+                    214,
+                    215
+                ],
+                "time_index": [
+                    217,
+                    222,
+                    215
+                ],
+                "go_backwards": [
+                    216
+                ],
+                "outputs": [
+                    233,
+                    219,
+                    229
+                ],
+                "states_tm1": [
+                    228,
+                    230,
+                    233,
+                    220,
+                    223
+                ],
+                "output_tm1": [
+                    225,
+                    221,
+                    231
+                ],
+                "np.zeros": [
+                    665,
+                    714,
+                    716,
+                    221
+                ],
+                "output_sample.shape": [
+                    221
+                ],
+                "t": [
+                    225,
+                    226,
+                    222,
+                    223
+                ],
+                "output_t": [
+                    225,
+                    231,
+                    229,
+                    223
+                ],
+                "states_t": [
+                    226,
+                    228,
+                    230,
+                    223
+                ],
+                "np.where": [
+                    225,
+                    226
+                ],
+                "state_mask": [
+                    226,
+                    227
+                ],
+                "state_t": [
+                    226,
+                    227
+                ],
+                "state_tm1": [
+                    226,
+                    227
+                ],
+                "outputs.append": [
+                    229
+                ],
+                "_LEARNING_PHASE": [
+                    240,
+                    236,
+                    245
+                ],
+                "value": [
+                    515,
+                    604,
+                    245
+                ],
+                "training": [
+                    249,
+                    250,
+                    252,
+                    265
+                ],
+                "learning_phase": [
+                    250,
+                    610
+                ],
+                "alt": [
+                    265,
+                    258,
+                    259,
+                    261
+                ],
+                "in_train_phase": [
+                    265
+                ],
+                "max_value": [
+                    272,
+                    269,
+                    270,
+                    423
+                ],
+                "above_threshold": [
+                    272,
+                    274,
+                    271
+                ],
+                "threshold": [
+                    273,
+                    271
+                ],
+                "np.clip": [
+                    321,
+                    423,
+                    332,
+                    302,
+                    272
+                ],
+                "below_threshold": [
+                    273,
+                    274
+                ],
+                "alpha": [
+                    273,
+                    293
+                ],
+                "cond_float": [
+                    280,
+                    281,
+                    278,
+                    279
+                ],
+                "condition.astype": [
+                    278
+                ],
+                "condition": [
+                    278
+                ],
+                "floatx": [
+                    512,
+                    672,
+                    676,
+                    278,
+                    664,
+                    668
+                ],
+                "cond_float.ndim": [
+                    279
+                ],
+                "then_expression.ndim": [
+                    279
+                ],
+                "then_expression": [
+                    281,
+                    279
+                ],
+                "np.newaxis": [
+                    280
+                ],
+                "else_expression": [
+                    281
+                ],
+                "np.log": [
+                    322,
+                    323,
+                    324,
+                    748,
+                    333,
+                    722,
+                    285
+                ],
+                "np.exp": [
+                    293,
+                    297,
+                    747,
+                    310,
+                    285
+                ],
+                "np.abs": [
+                    289,
+                    746
+                ],
+                "np.tanh": [
+                    306
+                ],
+                "axis": [
+                    385,
+                    389,
+                    393,
+                    394,
+                    395,
+                    399,
+                    400,
+                    401,
+                    405,
+                    409,
+                    427,
+                    310,
+                    311,
+                    439,
+                    315,
+                    337,
+                    338,
+                    339,
+                    343,
+                    344,
+                    345,
+                    349,
+                    350,
+                    351,
+                    355,
+                    356,
+                    357,
+                    742,
+                    361,
+                    362,
+                    363,
+                    367,
+                    368,
+                    369,
+                    373,
+                    374,
+                    375,
+                    379,
+                    380,
+                    381
+                ],
+                "np.sqrt": [
+                    316,
+                    413
+                ],
+                "from_logits": [
+                    320,
+                    328
+                ],
+                "output": [
+                    321,
+                    322,
+                    323,
+                    324,
+                    329,
+                    331,
+                    332,
+                    333
+                ],
+                "target": [
+                    323,
+                    324,
+                    333
+                ],
+                "sigmoid": [
+                    323,
+                    324
+                ],
+                "softmax": [
+                    329
+                ],
+                "output.sum": [
+                    331
+                ],
+                "keepdims": [
+                    357,
+                    363,
+                    395,
+                    369,
+                    401,
+                    339,
+                    375,
+                    345,
+                    381,
+                    351
+                ],
+                "np.min": [
+                    345
+                ],
+                "np.var": [
+                    357
+                ],
+                "np.std": [
+                    363
+                ],
+                "sp.misc.logsumexp": [
+                    369
+                ],
+                "sp.misc": [
+                    369
+                ],
+                "sp": [
+                    369
+                ],
+                "np.prod": [
+                    381
+                ],
+                "np.cumsum": [
+                    385
+                ],
+                "np.cumprod": [
+                    389
+                ],
+                "np.any": [
+                    395
+                ],
+                "np.all": [
+                    401
+                ],
+                "np.argmax": [
+                    721,
+                    405
+                ],
+                "np.argmin": [
+                    409
+                ],
+                "np.isnan": [
+                    414
+                ],
+                "np.power": [
+                    419
+                ],
+                "a": [
+                    544,
+                    419
+                ],
+                "min_value": [
+                    423
+                ],
+                "tensors": [
+                    427
+                ],
+                "pattern": [
+                    431
+                ],
+                "shape": [
+                    513,
+                    514,
+                    515,
+                    673,
+                    657,
+                    435,
+                    661,
+                    665
+                ],
+                "np.repeat": [
+                    444,
+                    439
+                ],
+                "rep": [
+                    439
+                ],
+                "n": [
+                    467,
+                    444
+                ],
+                "all_dims_padding": [
+                    453,
+                    454,
+                    456,
+                    460,
+                    461,
+                    463
+                ],
+                "transpose_shape": [
+                    461,
+                    454
+                ],
+                "np.tile": [
+                    467
+                ],
+                "np.arange": [
+                    722,
+                    471
+                ],
+                "start": [
+                    596,
+                    471
+                ],
+                "stop": [
+                    471
+                ],
+                "step": [
+                    471
+                ],
+                "dtype": [
+                    512,
+                    673,
+                    516,
+                    677,
+                    681,
+                    657,
+                    661,
+                    471,
+                    665,
+                    604,
+                    669,
+                    511
+                ],
+                "reference": [
+                    483
+                ],
+                "indices": [
+                    483,
+                    707
+                ],
+                "x.size": [
+                    495
+                ],
+                "int_shape": [
+                    503
+                ],
+                "x.dtype.name": [
+                    507
+                ],
+                "x.dtype": [
+                    507
+                ],
+                "np_value": [
+                    515,
+                    516,
+                    517
+                ],
+                "np.ones": [
+                    673,
+                    515
+                ],
+                "np_value.astype": [
+                    516
+                ],
+                "message": [
+                    521
+                ],
+                "np.dot": [
+                    526
+                ],
+                "axes": [
+                    533,
+                    534,
+                    535,
+                    536,
+                    538,
+                    540,
+                    542,
+                    544,
+                    547,
+                    550,
+                    551,
+                    552,
+                    553,
+                    555,
+                    562,
+                    563,
+                    567,
+                    568,
+                    571,
+                    573,
+                    587,
+                    588,
+                    589
+                ],
+                "d1": [
+                    568,
+                    562,
+                    564
+                ],
+                "d2": [
+                    568,
+                    563,
+                    564
+                ],
+                "result": [
+                    576,
+                    577,
+                    579,
+                    570,
+                    573,
+                    574
+                ],
+                "xi": [
+                    572,
+                    573
+                ],
+                "yi": [
+                    572,
+                    573
+                ],
+                "result.append": [
+                    573
+                ],
+                "np.tensordot": [
+                    573
+                ],
+                "result.ndim": [
+                    576
+                ],
+                "py_slice": [
+                    592,
+                    596
+                ],
+                "slices": [
+                    596,
+                    597
+                ],
+                "size": [
+                    681,
+                    596
+                ],
+                "constraint": [
+                    601
+                ],
+                "noise_shape": [
+                    608,
+                    609,
+                    612
+                ],
+                "noise": [
+                    611,
+                    615
+                ],
+                "np.random.choice": [
+                    611
+                ],
+                "np.random": [
+                    657,
+                    611,
+                    661
+                ],
+                "level": [
+                    614,
+                    615
+                ],
+                "np.maximum": [
+                    645
+                ],
+                "np.minimum": [
+                    649
+                ],
+                "high": [
+                    657
+                ],
+                "low": [
+                    657
+                ],
+                "astype": [
+                    733,
+                    657,
+                    661
+                ],
+                "np.random.random": [
+                    657
+                ],
+                "scale": [
+                    661
+                ],
+                "np.random.randn": [
+                    661
+                ],
+                "mean": [
+                    661
+                ],
+                "np.zeros_like": [
+                    669
+                ],
+                "np.ones_like": [
+                    715,
+                    677
+                ],
+                "np.eye": [
+                    681
+                ],
+                "repeat_elements": [
+                    686,
+                    687,
+                    689,
+                    690,
+                    696,
+                    697,
+                    698,
+                    700,
+                    701,
+                    702
+                ],
+                "height_factor": [
+                    689,
+                    697,
+                    701,
+                    686
+                ],
+                "width_factor": [
+                    698,
+                    690,
+                    702,
+                    687
+                ],
+                "depth_factor": [
+                    696,
+                    700
+                ],
+                "to_categorical": [
+                    707
+                ],
+                "num_classes": [
+                    713,
+                    738,
+                    707,
+                    724
+                ],
+                "num_samples": [
+                    712,
+                    714,
+                    716,
+                    718
+                ],
+                "y_pred.shape": [
+                    712,
+                    713
+                ],
+                "y_pred": [
+                    712,
+                    713,
+                    715,
+                    719
+                ],
+                "log_prob": [
+                    722,
+                    714,
+                    727
+                ],
+                "decoded_dense": [
+                    715,
+                    726,
+                    727
+                ],
+                "decoded_length": [
+                    716,
+                    725,
+                    727
+                ],
+                "np.int": [
+                    716
+                ],
+                "greedy": [
+                    717
+                ],
+                "prob": [
+                    721,
+                    722,
+                    719
+                ],
+                "length": [
+                    720,
+                    721,
+                    722
+                ],
+                "decoded": [
+                    721,
+                    722,
+                    723,
+                    724,
+                    725,
+                    726
+                ],
+                "_remove_repeats": [
+                    723
+                ],
+                "_remove_blanks": [
+                    724
+                ],
+                "is_not_repeat": [
+                    733,
+                    734
+                ],
+                "np.diff": [
+                    733
+                ],
+                "inds": [
+                    738,
+                    733,
+                    734
+                ],
+                "square": [
+                    745
+                ],
+                "np.square": [
+                    745
+                ],
+                "exp": [
+                    747
+                ],
+                "log": [
+                    748
+                ],
+                "np.round": [
+                    749
+                ],
+                "sign": [
+                    750
+                ],
+                "np.sign": [
+                    750
+                ],
+                "expand_dims": [
+                    751
+                ],
+                "squeeze": [
+                    752
+                ],
+                "np.squeeze": [
+                    752
+                ],
+                "cos": [
+                    753
+                ],
+                "np.cos": [
+                    753
+                ],
+                "sin": [
+                    754
+                ],
+                "np.sin": [
+                    754
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_2/tests/keras/backend/backend_test.py",
+                "test_function": "test_in_top_k",
+                "test_function_code": "    @pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')\n    def test_in_top_k(self):\n        batch_size = 20\n        num_classes = 10\n\n        # Random prediction test case\n        predictions = np.random.random((batch_size, num_classes)).astype('float32')\n        targets = np.random.randint(num_classes, size=batch_size, dtype='int32')\n\n        # (k == 0 or k > num_classes) does not raise an error\n        # but just return an unmeaningful tensor.\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n                      for b in WITH_NP]\n            assert_list_pairwise(z_list)\n\n        # Identical prediction test case:\n        # randomly set half of the predictions to an identical value\n        num_identical = num_classes // 2\n        for i in range(batch_size):\n            idx_identical = np.random.choice(num_classes,\n                                             size=num_identical, replace=False)\n            predictions[i, idx_identical] = predictions[i, 0]\n        targets = np.zeros(batch_size, dtype='int32')\n\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n                      for b in WITH_NP]\n            assert_list_pairwise(z_list)",
+                "test_error": "AttributeError: module 'keras.backend.numpy_backend' has no attribute 'in_top_k'",
+                "full_test_error": "self = <backend_test.TestBackend object at 0x1293a4090>\n\n    @pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')\n    def test_in_top_k(self):\n        batch_size = 20\n        num_classes = 10\n    \n        # Random prediction test case\n        predictions = np.random.random((batch_size, num_classes)).astype('float32')\n        targets = np.random.randint(num_classes, size=batch_size, dtype='int32')\n    \n        # (k == 0 or k > num_classes) does not raise an error\n        # but just return an unmeaningful tensor.\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n>                     for b in WITH_NP]\n\ntests/keras/backend/backend_test.py:1173: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x1293a4310>\n\n    z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                b.variable(targets, dtype='int32'), k))\n>             for b in WITH_NP]\nE   AttributeError: module 'keras.backend.numpy_backend' has no attribute 'in_top_k'\n\ntests/keras/backend/backend_test.py:1173: AttributeError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')"
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,2038 @@
+{
+    "luigi:2": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_2/luigi/contrib/beam_dataflow.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "__init__",
+                    "function_code": "def __init__(self):\n    if not isinstance(self.dataflow_params, DataflowParamKeys):\n        raise ValueError(\"dataflow_params must be of type DataflowParamKeys\")\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 219,
+                    "end_line": 221,
+                    "variables": {
+                        "isinstance": [
+                            220
+                        ],
+                        "self.dataflow_params": [
+                            220
+                        ],
+                        "self": [
+                            220
+                        ],
+                        "DataflowParamKeys": [
+                            220
+                        ],
+                        "ValueError": [
+                            221
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self.dataflow_params": [
+                            220
+                        ],
+                        "self": [
+                            220
+                        ],
+                        "DataflowParamKeys": [
+                            220
+                        ]
+                    },
+                    "diff_line_number": 221,
+                    "class_data": {
+                        "signature": "class BeamDataflowJobTask(MixinNaiveBulkComplete, luigi.Task)",
+                        "docstring": "Luigi wrapper for a Dataflow job. Must be overridden for each Beam SDK\nwith that SDK's dataflow_executable().\n\nFor more documentation, see:\n    https://cloud.google.com/dataflow/docs/guides/specifying-exec-params\n\nThe following required Dataflow properties must be set:\n\nproject                 # GCP project ID\ntemp_location           # Cloud storage path for temporary files\n\nThe following optional Dataflow properties can be set:\n\nrunner                  # PipelineRunner implementation for your Beam job.\n                          Default: DirectRunner\nnum_workers             # The number of workers to start the task with\n                          Default: Determined by Dataflow service\nautoscaling_algorithm   # The Autoscaling mode for the Dataflow job\n                          Default: `THROUGHPUT_BASED`\nmax_num_workers         # Used if the autoscaling is enabled\n                          Default: Determined by Dataflow service\nnetwork                 # Network in GCE to be used for launching workers\n                          Default: a network named \"default\"\nsubnetwork              # Subnetwork in GCE to be used for launching workers\n                          Default: Determined by Dataflow service\ndisk_size_gb            # Remote worker disk size. Minimum value is 30GB\n                          Default: set to 0 to use GCP project default\nworker_machine_type     # Machine type to create Dataflow worker VMs\n                          Default: Determined by Dataflow service\njob_name                # Custom job name, must be unique across project's\n                          active jobs\nworker_disk_type        # Specify SSD for local disk or defaults to hard\n                          disk as a full URL of disk type resource\n                          Default: Determined by Dataflow service.\nservice_account         # Service account of Dataflow VMs/workers\n                          Default: active GCE service account\nregion                  # Region to deploy Dataflow job to\n                          Default: us-central1\nzone                    # Availability zone for launching workers instances\n                          Default: an available zone in the specified region\nstaging_location        # Cloud Storage bucket for Dataflow to stage binary\n                          files\n                          Default: the value of temp_location\ngcp_temp_location       # Cloud Storage path for Dataflow to stage temporary\n                          files\n                          Default: the value of temp_location\nlabels                  # Custom GCP labels attached to the Dataflow job\n                          Default: nothing",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self):\n    if not isinstance(self.dataflow_params, DataflowParamKeys):\n        raise ValueError('dataflow_params must be of type DataflowParamKeys')",
+                            "@abstractmethod\ndef dataflow_executable(self):\n    \"\"\"\n    Command representing the Dataflow executable to be run.\n    For example:\n\n    return ['java', 'com.spotify.luigi.MyClass', '-Xmx256m']\n    \"\"\"\n    pass",
+                            "def args(self):\n    \"\"\"\n    Extra String arguments that will be passed to your Dataflow job.\n    For example:\n\n    return ['--setup_file=setup.py']\n    \"\"\"\n    return []",
+                            "def before_run(self):\n    \"\"\"\n    Hook that gets called right before the Dataflow job is launched.\n    Can be used to setup any temporary files/tables, validate input, etc.\n    \"\"\"\n    pass",
+                            "def on_successful_run(self):\n    \"\"\"\n    Callback that gets called right after the Dataflow job has finished\n    successfully but before validate_output is run.\n    \"\"\"\n    pass",
+                            "def validate_output(self):\n    \"\"\"\n    Callback that can be used to validate your output before it is moved to\n    its final location. Returning false here will cause the job to fail, and\n    output to be removed instead of published.\n    \"\"\"\n    return True",
+                            "def file_pattern(self):\n    \"\"\"\n    If one/some of the input target files are not in the pattern of part-*,\n    we can add the key of the required target and the correct file pattern\n    that should be appended in the command line here. If the input target key is not found\n    in this dict, the file pattern will be assumed to be part-* for that target.\n\n    :return A dictionary of overridden file pattern that is not part-* for the inputs\n    \"\"\"\n    return {}",
+                            "def on_successful_output_validation(self):\n    \"\"\"\n    Callback that gets called after the Dataflow job has finished\n    successfully if validate_output returns True.\n    \"\"\"\n    pass",
+                            "def cleanup_on_error(self, error):\n    \"\"\"\n    Callback that gets called after the Dataflow job has finished\n    unsuccessfully, or validate_output returns False.\n    \"\"\"\n    pass",
+                            "def run(self):\n    cmd_line = self._mk_cmd_line()\n    logger.info(' '.join(cmd_line))\n    self.before_run()\n    try:\n        self.cmd_line_runner.run(cmd_line, self)\n    except subprocess.CalledProcessError as e:\n        logger.error(e, exc_info=True)\n        self.cleanup_on_error(e)\n        os._exit(e.returncode)\n    self.on_successful_run()\n    if self.validate_output():\n        self.on_successful_output_validation()\n    else:\n        error = ValueError('Output validation failed')\n        self.cleanup_on_error(error)\n        raise error",
+                            "def _mk_cmd_line(self):\n    cmd_line = self.dataflow_executable()\n    cmd_line.extend(self._get_dataflow_args())\n    cmd_line.extend(self.args())\n    cmd_line.extend(self._format_input_args())\n    cmd_line.extend(self._format_output_args())\n    return cmd_line",
+                            "def _get_runner(self):\n    if not self.runner:\n        logger.warning('Runner not supplied to BeamDataflowJobTask. ' + 'Defaulting to DirectRunner.')\n        return 'DirectRunner'\n    elif self.runner in ['DataflowRunner', 'DirectRunner']:\n        return self.runner\n    else:\n        raise ValueError('Runner %s is unsupported.' % self.runner)",
+                            "def _get_dataflow_args(self):\n\n    def f(key, value):\n        return '--{}={}'.format(key, value)\n    output = []\n    output.append(f(self.dataflow_params.runner, self._get_runner()))\n    if self.project:\n        output.append(f(self.dataflow_params.project, self.project))\n    if self.zone:\n        output.append(f(self.dataflow_params.zone, self.zone))\n    if self.region:\n        output.append(f(self.dataflow_params.region, self.region))\n    if self.staging_location:\n        output.append(f(self.dataflow_params.staging_location, self.staging_location))\n    if self.temp_location:\n        output.append(f(self.dataflow_params.temp_location, self.temp_location))\n    if self.gcp_temp_location:\n        output.append(f(self.dataflow_params.gcp_temp_location, self.gcp_temp_location))\n    if self.num_workers:\n        output.append(f(self.dataflow_params.num_workers, self.num_workers))\n    if self.autoscaling_algorithm:\n        output.append(f(self.dataflow_params.autoscaling_algorithm, self.autoscaling_algorithm))\n    if self.max_num_workers:\n        output.append(f(self.dataflow_params.max_num_workers, self.max_num_workers))\n    if self.disk_size_gb:\n        output.append(f(self.dataflow_params.disk_size_gb, self.disk_size_gb))\n    if self.worker_machine_type:\n        output.append(f(self.dataflow_params.worker_machine_type, self.worker_machine_type))\n    if self.worker_disk_type:\n        output.append(f(self.dataflow_params.worker_disk_type, self.worker_disk_type))\n    if self.network:\n        output.append(f(self.dataflow_params.network, self.network))\n    if self.subnetwork:\n        output.append(f(self.dataflow_params.subnetwork, self.subnetwork))\n    if self.job_name:\n        output.append(f(self.dataflow_params.job_name, self.job_name))\n    if self.service_account:\n        output.append(f(self.dataflow_params.service_account, self.service_account))\n    if self.labels:\n        output.append(f(self.dataflow_params.labels, json.dumps(self.labels)))\n    return output",
+                            "def _format_input_args(self):\n    \"\"\"\n        Parses the result(s) of self.input() into a string-serialized\n        key-value list passed to the Dataflow job. Valid inputs include:\n\n        return FooTarget()\n\n        return {\"input1\": FooTarget(), \"input2\": FooTarget2())\n\n        return (\"input\", FooTarget())\n\n        return [(\"input1\", FooTarget()), (\"input2\": FooTarget2())]\n\n        return [FooTarget(), FooTarget2()]\n\n        Unlabeled input are passed in with under the default key \"input\".\n    \"\"\"\n    job_input = self.input()\n    if isinstance(job_input, luigi.Target):\n        job_input = {'input': job_input}\n    elif isinstance(job_input, tuple):\n        job_input = {job_input[0]: job_input[1]}\n    elif isinstance(job_input, list):\n        if all((isinstance(item, tuple) for item in job_input)):\n            job_input = dict(job_input)\n        else:\n            job_input = {'input': job_input}\n    elif not isinstance(job_input, dict):\n        raise ValueError('Invalid job input requires(). Supported types: [Target, tuple of (name, Target), dict of (name: Target), list of Targets]')\n    if not isinstance(self.file_pattern(), dict):\n        raise ValueError('file_pattern() must return a dict type')\n    input_args = []\n    for name, targets in job_input.items():\n        uris = [self.get_target_path(uri_target) for uri_target in luigi.task.flatten(targets)]\n        if isinstance(targets, dict):\n            '\\n                If targets is a dict that means it had multiple outputs.\\n                Make the input args in that case \"<input key>-<task output key>\"\\n                '\n            names = ['%s-%s' % (name, key) for key in targets.keys()]\n        else:\n            names = [name] * len(uris)\n        input_dict = {}\n        for arg_name, uri in zip(names, uris):\n            pattern = self.file_pattern().get(name, 'part-*')\n            input_value = input_dict.get(arg_name, [])\n            input_value.append(uri.rstrip('/') + '/' + pattern)\n            input_dict[arg_name] = input_value\n        for key, paths in input_dict.items():\n            input_args.append('--%s=%s' % (key, ','.join(paths)))\n    return input_args",
+                            "def _format_output_args(self):\n    \"\"\"\n        Parses the result(s) of self.output() into a string-serialized\n        key-value list passed to the Dataflow job. Valid outputs include:\n\n        return FooTarget()\n\n        return {\"output1\": FooTarget(), \"output2\": FooTarget2()}\n\n        Unlabeled outputs are passed in with under the default key \"output\".\n    \"\"\"\n    job_output = self.output()\n    if isinstance(job_output, luigi.Target):\n        job_output = {'output': job_output}\n    elif not isinstance(job_output, dict):\n        raise ValueError('Task output must be a Target or a dict from String to Target')\n    output_args = []\n    for name, target in job_output.items():\n        uri = self.get_target_path(target)\n        output_args.append('--%s=%s' % (name, uri))\n    return output_args",
+                            "@staticmethod\ndef get_target_path(target):\n    if isinstance(target, luigi.LocalTarget) or isinstance(target, gcs.GCSTarget):\n        return target.path\n    elif isinstance(target, bigquery.BigQueryTarget):\n        '{}:{}.{}'.format(target.project_id, target.dataset_id, target.table_id)\n    else:\n        raise ValueError('Target not supported')",
+                            "def f(key, value):\n    return '--{}={}'.format(key, value)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "project",
+                            "runner",
+                            "temp_location",
+                            "staging_location",
+                            "gcp_temp_location",
+                            "num_workers",
+                            "autoscaling_algorithm",
+                            "max_num_workers",
+                            "network",
+                            "subnetwork",
+                            "disk_size_gb",
+                            "worker_machine_type",
+                            "job_name",
+                            "worker_disk_type",
+                            "service_account",
+                            "zone",
+                            "region",
+                            "labels",
+                            "cmd_line_runner",
+                            "dataflow_params"
+                        ],
+                        "class_decorators": [
+                            "six.add_metaclass(ABCMeta)"
+                        ],
+                        "function_signatures": [
+                            "__init__(self)",
+                            "dataflow_executable(self)",
+                            "args(self)",
+                            "before_run(self)",
+                            "on_successful_run(self)",
+                            "validate_output(self)",
+                            "file_pattern(self)",
+                            "on_successful_output_validation(self)",
+                            "cleanup_on_error(self, error)",
+                            "run(self)",
+                            "_mk_cmd_line(self)",
+                            "_get_runner(self)",
+                            "_get_dataflow_args(self)",
+                            "_format_input_args(self)",
+                            "_format_output_args(self)",
+                            "get_target_path(target)",
+                            "f(key, value)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "get_target_path",
+                    "function_code": "@staticmethod\ndef get_target_path(target):\n    if isinstance(target, luigi.LocalTarget) or isinstance(target, gcs.GCSTarget):\n        return target.path\n    elif isinstance(target, bigquery.BigQueryTarget):\n        \"{}:{}.{}\".format(target.project_id, target.dataset_id, target.table_id)\n    else:\n        raise ValueError(\"Target not supported\")\n",
+                    "decorators": [
+                        "staticmethod"
+                    ],
+                    "docstring": null,
+                    "start_line": 472,
+                    "end_line": 479,
+                    "variables": {
+                        "isinstance": [
+                            474,
+                            476
+                        ],
+                        "target": [
+                            474,
+                            475,
+                            476,
+                            477
+                        ],
+                        "luigi.LocalTarget": [
+                            474
+                        ],
+                        "luigi": [
+                            474
+                        ],
+                        "gcs.GCSTarget": [
+                            474
+                        ],
+                        "gcs": [
+                            474
+                        ],
+                        "target.path": [
+                            475
+                        ],
+                        "bigquery.BigQueryTarget": [
+                            476
+                        ],
+                        "bigquery": [
+                            476
+                        ],
+                        "format": [
+                            477
+                        ],
+                        "target.project_id": [
+                            477
+                        ],
+                        "target.dataset_id": [
+                            477
+                        ],
+                        "target.table_id": [
+                            477
+                        ],
+                        "ValueError": [
+                            479
+                        ],
+                        "staticmethod": [
+                            472
+                        ]
+                    },
+                    "filtered_variables": {
+                        "target": [
+                            474,
+                            475,
+                            476,
+                            477
+                        ],
+                        "luigi.LocalTarget": [
+                            474
+                        ],
+                        "luigi": [
+                            474
+                        ],
+                        "gcs.GCSTarget": [
+                            474
+                        ],
+                        "gcs": [
+                            474
+                        ],
+                        "target.path": [
+                            475
+                        ],
+                        "bigquery.BigQueryTarget": [
+                            476
+                        ],
+                        "bigquery": [
+                            476
+                        ],
+                        "target.project_id": [
+                            477
+                        ],
+                        "target.dataset_id": [
+                            477
+                        ],
+                        "target.table_id": [
+                            477
+                        ]
+                    },
+                    "diff_line_number": 473,
+                    "class_data": {
+                        "signature": "class BeamDataflowJobTask(MixinNaiveBulkComplete, luigi.Task)",
+                        "docstring": "Luigi wrapper for a Dataflow job. Must be overridden for each Beam SDK\nwith that SDK's dataflow_executable().\n\nFor more documentation, see:\n    https://cloud.google.com/dataflow/docs/guides/specifying-exec-params\n\nThe following required Dataflow properties must be set:\n\nproject                 # GCP project ID\ntemp_location           # Cloud storage path for temporary files\n\nThe following optional Dataflow properties can be set:\n\nrunner                  # PipelineRunner implementation for your Beam job.\n                          Default: DirectRunner\nnum_workers             # The number of workers to start the task with\n                          Default: Determined by Dataflow service\nautoscaling_algorithm   # The Autoscaling mode for the Dataflow job\n                          Default: `THROUGHPUT_BASED`\nmax_num_workers         # Used if the autoscaling is enabled\n                          Default: Determined by Dataflow service\nnetwork                 # Network in GCE to be used for launching workers\n                          Default: a network named \"default\"\nsubnetwork              # Subnetwork in GCE to be used for launching workers\n                          Default: Determined by Dataflow service\ndisk_size_gb            # Remote worker disk size. Minimum value is 30GB\n                          Default: set to 0 to use GCP project default\nworker_machine_type     # Machine type to create Dataflow worker VMs\n                          Default: Determined by Dataflow service\njob_name                # Custom job name, must be unique across project's\n                          active jobs\nworker_disk_type        # Specify SSD for local disk or defaults to hard\n                          disk as a full URL of disk type resource\n                          Default: Determined by Dataflow service.\nservice_account         # Service account of Dataflow VMs/workers\n                          Default: active GCE service account\nregion                  # Region to deploy Dataflow job to\n                          Default: us-central1\nzone                    # Availability zone for launching workers instances\n                          Default: an available zone in the specified region\nstaging_location        # Cloud Storage bucket for Dataflow to stage binary\n                          files\n                          Default: the value of temp_location\ngcp_temp_location       # Cloud Storage path for Dataflow to stage temporary\n                          files\n                          Default: the value of temp_location\nlabels                  # Custom GCP labels attached to the Dataflow job\n                          Default: nothing",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self):\n    if not isinstance(self.dataflow_params, DataflowParamKeys):\n        raise ValueError('dataflow_params must be of type DataflowParamKeys')",
+                            "@abstractmethod\ndef dataflow_executable(self):\n    \"\"\"\n    Command representing the Dataflow executable to be run.\n    For example:\n\n    return ['java', 'com.spotify.luigi.MyClass', '-Xmx256m']\n    \"\"\"\n    pass",
+                            "def args(self):\n    \"\"\"\n    Extra String arguments that will be passed to your Dataflow job.\n    For example:\n\n    return ['--setup_file=setup.py']\n    \"\"\"\n    return []",
+                            "def before_run(self):\n    \"\"\"\n    Hook that gets called right before the Dataflow job is launched.\n    Can be used to setup any temporary files/tables, validate input, etc.\n    \"\"\"\n    pass",
+                            "def on_successful_run(self):\n    \"\"\"\n    Callback that gets called right after the Dataflow job has finished\n    successfully but before validate_output is run.\n    \"\"\"\n    pass",
+                            "def validate_output(self):\n    \"\"\"\n    Callback that can be used to validate your output before it is moved to\n    its final location. Returning false here will cause the job to fail, and\n    output to be removed instead of published.\n    \"\"\"\n    return True",
+                            "def file_pattern(self):\n    \"\"\"\n    If one/some of the input target files are not in the pattern of part-*,\n    we can add the key of the required target and the correct file pattern\n    that should be appended in the command line here. If the input target key is not found\n    in this dict, the file pattern will be assumed to be part-* for that target.\n\n    :return A dictionary of overridden file pattern that is not part-* for the inputs\n    \"\"\"\n    return {}",
+                            "def on_successful_output_validation(self):\n    \"\"\"\n    Callback that gets called after the Dataflow job has finished\n    successfully if validate_output returns True.\n    \"\"\"\n    pass",
+                            "def cleanup_on_error(self, error):\n    \"\"\"\n    Callback that gets called after the Dataflow job has finished\n    unsuccessfully, or validate_output returns False.\n    \"\"\"\n    pass",
+                            "def run(self):\n    cmd_line = self._mk_cmd_line()\n    logger.info(' '.join(cmd_line))\n    self.before_run()\n    try:\n        self.cmd_line_runner.run(cmd_line, self)\n    except subprocess.CalledProcessError as e:\n        logger.error(e, exc_info=True)\n        self.cleanup_on_error(e)\n        os._exit(e.returncode)\n    self.on_successful_run()\n    if self.validate_output():\n        self.on_successful_output_validation()\n    else:\n        error = ValueError('Output validation failed')\n        self.cleanup_on_error(error)\n        raise error",
+                            "def _mk_cmd_line(self):\n    cmd_line = self.dataflow_executable()\n    cmd_line.extend(self._get_dataflow_args())\n    cmd_line.extend(self.args())\n    cmd_line.extend(self._format_input_args())\n    cmd_line.extend(self._format_output_args())\n    return cmd_line",
+                            "def _get_runner(self):\n    if not self.runner:\n        logger.warning('Runner not supplied to BeamDataflowJobTask. ' + 'Defaulting to DirectRunner.')\n        return 'DirectRunner'\n    elif self.runner in ['DataflowRunner', 'DirectRunner']:\n        return self.runner\n    else:\n        raise ValueError('Runner %s is unsupported.' % self.runner)",
+                            "def _get_dataflow_args(self):\n\n    def f(key, value):\n        return '--{}={}'.format(key, value)\n    output = []\n    output.append(f(self.dataflow_params.runner, self._get_runner()))\n    if self.project:\n        output.append(f(self.dataflow_params.project, self.project))\n    if self.zone:\n        output.append(f(self.dataflow_params.zone, self.zone))\n    if self.region:\n        output.append(f(self.dataflow_params.region, self.region))\n    if self.staging_location:\n        output.append(f(self.dataflow_params.staging_location, self.staging_location))\n    if self.temp_location:\n        output.append(f(self.dataflow_params.temp_location, self.temp_location))\n    if self.gcp_temp_location:\n        output.append(f(self.dataflow_params.gcp_temp_location, self.gcp_temp_location))\n    if self.num_workers:\n        output.append(f(self.dataflow_params.num_workers, self.num_workers))\n    if self.autoscaling_algorithm:\n        output.append(f(self.dataflow_params.autoscaling_algorithm, self.autoscaling_algorithm))\n    if self.max_num_workers:\n        output.append(f(self.dataflow_params.max_num_workers, self.max_num_workers))\n    if self.disk_size_gb:\n        output.append(f(self.dataflow_params.disk_size_gb, self.disk_size_gb))\n    if self.worker_machine_type:\n        output.append(f(self.dataflow_params.worker_machine_type, self.worker_machine_type))\n    if self.worker_disk_type:\n        output.append(f(self.dataflow_params.worker_disk_type, self.worker_disk_type))\n    if self.network:\n        output.append(f(self.dataflow_params.network, self.network))\n    if self.subnetwork:\n        output.append(f(self.dataflow_params.subnetwork, self.subnetwork))\n    if self.job_name:\n        output.append(f(self.dataflow_params.job_name, self.job_name))\n    if self.service_account:\n        output.append(f(self.dataflow_params.service_account, self.service_account))\n    if self.labels:\n        output.append(f(self.dataflow_params.labels, json.dumps(self.labels)))\n    return output",
+                            "def _format_input_args(self):\n    \"\"\"\n        Parses the result(s) of self.input() into a string-serialized\n        key-value list passed to the Dataflow job. Valid inputs include:\n\n        return FooTarget()\n\n        return {\"input1\": FooTarget(), \"input2\": FooTarget2())\n\n        return (\"input\", FooTarget())\n\n        return [(\"input1\", FooTarget()), (\"input2\": FooTarget2())]\n\n        return [FooTarget(), FooTarget2()]\n\n        Unlabeled input are passed in with under the default key \"input\".\n    \"\"\"\n    job_input = self.input()\n    if isinstance(job_input, luigi.Target):\n        job_input = {'input': job_input}\n    elif isinstance(job_input, tuple):\n        job_input = {job_input[0]: job_input[1]}\n    elif isinstance(job_input, list):\n        if all((isinstance(item, tuple) for item in job_input)):\n            job_input = dict(job_input)\n        else:\n            job_input = {'input': job_input}\n    elif not isinstance(job_input, dict):\n        raise ValueError('Invalid job input requires(). Supported types: [Target, tuple of (name, Target), dict of (name: Target), list of Targets]')\n    if not isinstance(self.file_pattern(), dict):\n        raise ValueError('file_pattern() must return a dict type')\n    input_args = []\n    for name, targets in job_input.items():\n        uris = [self.get_target_path(uri_target) for uri_target in luigi.task.flatten(targets)]\n        if isinstance(targets, dict):\n            '\\n                If targets is a dict that means it had multiple outputs.\\n                Make the input args in that case \"<input key>-<task output key>\"\\n                '\n            names = ['%s-%s' % (name, key) for key in targets.keys()]\n        else:\n            names = [name] * len(uris)\n        input_dict = {}\n        for arg_name, uri in zip(names, uris):\n            pattern = self.file_pattern().get(name, 'part-*')\n            input_value = input_dict.get(arg_name, [])\n            input_value.append(uri.rstrip('/') + '/' + pattern)\n            input_dict[arg_name] = input_value\n        for key, paths in input_dict.items():\n            input_args.append('--%s=%s' % (key, ','.join(paths)))\n    return input_args",
+                            "def _format_output_args(self):\n    \"\"\"\n        Parses the result(s) of self.output() into a string-serialized\n        key-value list passed to the Dataflow job. Valid outputs include:\n\n        return FooTarget()\n\n        return {\"output1\": FooTarget(), \"output2\": FooTarget2()}\n\n        Unlabeled outputs are passed in with under the default key \"output\".\n    \"\"\"\n    job_output = self.output()\n    if isinstance(job_output, luigi.Target):\n        job_output = {'output': job_output}\n    elif not isinstance(job_output, dict):\n        raise ValueError('Task output must be a Target or a dict from String to Target')\n    output_args = []\n    for name, target in job_output.items():\n        uri = self.get_target_path(target)\n        output_args.append('--%s=%s' % (name, uri))\n    return output_args",
+                            "@staticmethod\ndef get_target_path(target):\n    if isinstance(target, luigi.LocalTarget) or isinstance(target, gcs.GCSTarget):\n        return target.path\n    elif isinstance(target, bigquery.BigQueryTarget):\n        '{}:{}.{}'.format(target.project_id, target.dataset_id, target.table_id)\n    else:\n        raise ValueError('Target not supported')",
+                            "def f(key, value):\n    return '--{}={}'.format(key, value)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [
+                            "project",
+                            "runner",
+                            "temp_location",
+                            "staging_location",
+                            "gcp_temp_location",
+                            "num_workers",
+                            "autoscaling_algorithm",
+                            "max_num_workers",
+                            "network",
+                            "subnetwork",
+                            "disk_size_gb",
+                            "worker_machine_type",
+                            "job_name",
+                            "worker_disk_type",
+                            "service_account",
+                            "zone",
+                            "region",
+                            "labels",
+                            "cmd_line_runner",
+                            "dataflow_params"
+                        ],
+                        "class_decorators": [
+                            "six.add_metaclass(ABCMeta)"
+                        ],
+                        "function_signatures": [
+                            "__init__(self)",
+                            "dataflow_executable(self)",
+                            "args(self)",
+                            "before_run(self)",
+                            "on_successful_run(self)",
+                            "validate_output(self)",
+                            "file_pattern(self)",
+                            "on_successful_output_validation(self)",
+                            "cleanup_on_error(self, error)",
+                            "run(self)",
+                            "_mk_cmd_line(self)",
+                            "_get_runner(self)",
+                            "_get_dataflow_args(self)",
+                            "_format_input_args(self)",
+                            "_format_output_args(self)",
+                            "get_target_path(target)",
+                            "f(key, value)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {
+                                "target": {
+                                    "variable_value": "<luigi.contrib.gcs.GCSTarget object at 0x10fcefa00>",
+                                    "variable_type": "GCSTarget",
+                                    "variable_shape": null
+                                },
+                                "luigi.LocalTarget": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "luigi": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "gcs.GCSTarget": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "gcs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "target.path": {
+                                    "variable_value": "'gs://foo/bar.txt'",
+                                    "variable_type": "str",
+                                    "variable_shape": "16"
+                                },
+                                "bigquery.BigQueryTarget": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "bigquery": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "target.table.project_id": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "target.table": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "target.table.dataset_id": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "target.table.table_id": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "@abstractproperty\ndef runner(self):\n    pass",
+                "@abstractproperty\ndef project(self):\n    pass",
+                "@abstractproperty\ndef zone(self):\n    pass",
+                "@abstractproperty\ndef region(self):\n    pass",
+                "@abstractproperty\ndef staging_location(self):\n    pass",
+                "@abstractproperty\ndef temp_location(self):\n    pass",
+                "@abstractproperty\ndef gcp_temp_location(self):\n    pass",
+                "@abstractproperty\ndef num_workers(self):\n    pass",
+                "@abstractproperty\ndef autoscaling_algorithm(self):\n    pass",
+                "@abstractproperty\ndef max_num_workers(self):\n    pass",
+                "@abstractproperty\ndef disk_size_gb(self):\n    pass",
+                "@abstractproperty\ndef worker_machine_type(self):\n    pass",
+                "@abstractproperty\ndef worker_disk_type(self):\n    pass",
+                "@abstractproperty\ndef job_name(self):\n    pass",
+                "@abstractproperty\ndef service_account(self):\n    pass",
+                "@abstractproperty\ndef network(self):\n    pass",
+                "@abstractproperty\ndef subnetwork(self):\n    pass",
+                "@abstractproperty\ndef labels(self):\n    pass",
+                "@staticmethod\ndef run(cmd, task=None):\n    process = subprocess.Popen(\n        cmd,\n        stdout=subprocess.PIPE,\n        stderr=subprocess.STDOUT,\n        close_fds=True\n    )\n    output_lines = []\n    while True:\n        line = process.stdout.readline()\n        if not line:\n            break\n        line = line.decode(\"utf-8\")\n        output_lines += [line]\n        logger.info(line.rstrip(\"\\n\"))\n    process.stdout.close()\n    exit_code = process.wait()\n    if exit_code:\n        output = \"\".join(output_lines)\n        raise subprocess.CalledProcessError(exit_code, cmd, output=output)",
+                "def __init__(self):\n    if not isinstance(self.dataflow_params, DataflowParamKeys):\n        raise ValueError(\"dataflow_params must be of type DataflowParamKeys\")",
+                "@abstractmethod\ndef dataflow_executable(self):\n    \"\"\"\n    Command representing the Dataflow executable to be run.\n    For example:\n\n    return ['java', 'com.spotify.luigi.MyClass', '-Xmx256m']\n    \"\"\"\n    pass",
+                "def args(self):\n    \"\"\"\n    Extra String arguments that will be passed to your Dataflow job.\n    For example:\n\n    return ['--setup_file=setup.py']\n    \"\"\"\n    return []",
+                "def before_run(self):\n    \"\"\"\n    Hook that gets called right before the Dataflow job is launched.\n    Can be used to setup any temporary files/tables, validate input, etc.\n    \"\"\"\n    pass",
+                "def on_successful_run(self):\n    \"\"\"\n    Callback that gets called right after the Dataflow job has finished\n    successfully but before validate_output is run.\n    \"\"\"\n    pass",
+                "def validate_output(self):\n    \"\"\"\n    Callback that can be used to validate your output before it is moved to\n    its final location. Returning false here will cause the job to fail, and\n    output to be removed instead of published.\n    \"\"\"\n    return True",
+                "def file_pattern(self):\n    \"\"\"\n    If one/some of the input target files are not in the pattern of part-*,\n    we can add the key of the required target and the correct file pattern\n    that should be appended in the command line here. If the input target key is not found\n    in this dict, the file pattern will be assumed to be part-* for that target.\n\n    :return A dictionary of overridden file pattern that is not part-* for the inputs\n    \"\"\"\n    return {}",
+                "def on_successful_output_validation(self):\n    \"\"\"\n    Callback that gets called after the Dataflow job has finished\n    successfully if validate_output returns True.\n    \"\"\"\n    pass",
+                "def cleanup_on_error(self, error):\n    \"\"\"\n    Callback that gets called after the Dataflow job has finished\n    unsuccessfully, or validate_output returns False.\n    \"\"\"\n    pass",
+                "def run(self):\n    cmd_line = self._mk_cmd_line()\n    logger.info(' '.join(cmd_line))\n\n    self.before_run()\n\n    try:\n        self.cmd_line_runner.run(cmd_line, self)\n    except subprocess.CalledProcessError as e:\n        logger.error(e, exc_info=True)\n        self.cleanup_on_error(e)\n        os._exit(e.returncode)\n\n    self.on_successful_run()\n\n    if self.validate_output():\n        self.on_successful_output_validation()\n    else:\n        error = ValueError(\"Output validation failed\")\n        self.cleanup_on_error(error)\n        raise error",
+                "def _mk_cmd_line(self):\n    cmd_line = self.dataflow_executable()\n\n    cmd_line.extend(self._get_dataflow_args())\n    cmd_line.extend(self.args())\n    cmd_line.extend(self._format_input_args())\n    cmd_line.extend(self._format_output_args())\n    return cmd_line",
+                "def _get_runner(self):\n    if not self.runner:\n        logger.warning(\"Runner not supplied to BeamDataflowJobTask. \" +\n                       \"Defaulting to DirectRunner.\")\n        return \"DirectRunner\"\n    elif self.runner in [\n        \"DataflowRunner\",\n        \"DirectRunner\"\n    ]:\n        return self.runner\n    else:\n        raise ValueError(\"Runner %s is unsupported.\" % self.runner)",
+                "def _get_dataflow_args(self):\n    def f(key, value):\n        return '--{}={}'.format(key, value)\n\n    output = []\n\n    output.append(f(self.dataflow_params.runner, self._get_runner()))\n\n    if self.project:\n        output.append(f(self.dataflow_params.project, self.project))\n    if self.zone:\n        output.append(f(self.dataflow_params.zone, self.zone))\n    if self.region:\n        output.append(f(self.dataflow_params.region, self.region))\n    if self.staging_location:\n        output.append(f(self.dataflow_params.staging_location, self.staging_location))\n    if self.temp_location:\n        output.append(f(self.dataflow_params.temp_location, self.temp_location))\n    if self.gcp_temp_location:\n        output.append(f(self.dataflow_params.gcp_temp_location, self.gcp_temp_location))\n    if self.num_workers:\n        output.append(f(self.dataflow_params.num_workers, self.num_workers))\n    if self.autoscaling_algorithm:\n        output.append(f(self.dataflow_params.autoscaling_algorithm, self.autoscaling_algorithm))\n    if self.max_num_workers:\n        output.append(f(self.dataflow_params.max_num_workers, self.max_num_workers))\n    if self.disk_size_gb:\n        output.append(f(self.dataflow_params.disk_size_gb, self.disk_size_gb))\n    if self.worker_machine_type:\n        output.append(f(self.dataflow_params.worker_machine_type, self.worker_machine_type))\n    if self.worker_disk_type:\n        output.append(f(self.dataflow_params.worker_disk_type, self.worker_disk_type))\n    if self.network:\n        output.append(f(self.dataflow_params.network, self.network))\n    if self.subnetwork:\n        output.append(f(self.dataflow_params.subnetwork, self.subnetwork))\n    if self.job_name:\n        output.append(f(self.dataflow_params.job_name, self.job_name))\n    if self.service_account:\n        output.append(f(self.dataflow_params.service_account, self.service_account))\n    if self.labels:\n        output.append(f(self.dataflow_params.labels, json.dumps(self.labels)))\n\n    return output",
+                "def _format_input_args(self):\n    \"\"\"\n        Parses the result(s) of self.input() into a string-serialized\n        key-value list passed to the Dataflow job. Valid inputs include:\n\n        return FooTarget()\n\n        return {\"input1\": FooTarget(), \"input2\": FooTarget2())\n\n        return (\"input\", FooTarget())\n\n        return [(\"input1\", FooTarget()), (\"input2\": FooTarget2())]\n\n        return [FooTarget(), FooTarget2()]\n\n        Unlabeled input are passed in with under the default key \"input\".\n    \"\"\"\n    job_input = self.input()\n\n    if isinstance(job_input, luigi.Target):\n        job_input = {\"input\": job_input}\n\n    elif isinstance(job_input, tuple):\n        job_input = {job_input[0]: job_input[1]}\n\n    elif isinstance(job_input, list):\n        if all(isinstance(item, tuple) for item in job_input):\n            job_input = dict(job_input)\n        else:\n            job_input = {\"input\": job_input}\n\n    elif not isinstance(job_input, dict):\n        raise ValueError(\"Invalid job input requires(). Supported types: [\"\n                         \"Target, tuple of (name, Target), \"\n                         \"dict of (name: Target), list of Targets]\")\n\n    if not isinstance(self.file_pattern(), dict):\n        raise ValueError('file_pattern() must return a dict type')\n\n    input_args = []\n\n    for (name, targets) in job_input.items():\n        uris = [\n          self.get_target_path(uri_target) for uri_target in luigi.task.flatten(targets)\n        ]\n        if isinstance(targets, dict):\n            \"\"\"\n            If targets is a dict that means it had multiple outputs.\n            Make the input args in that case \"<input key>-<task output key>\"\n            \"\"\"\n            names = [\"%s-%s\" % (name, key) for key in targets.keys()]\n\n        else:\n            names = [name] * len(uris)\n\n        input_dict = {}\n\n        for (arg_name, uri) in zip(names, uris):\n            pattern = self.file_pattern().get(name, 'part-*')\n            input_value = input_dict.get(arg_name, [])\n            input_value.append(uri.rstrip('/') + '/' + pattern)\n            input_dict[arg_name] = input_value\n\n        for (key, paths) in input_dict.items():\n            input_args.append(\"--%s=%s\" % (key, ','.join(paths)))\n\n    return input_args",
+                "def _format_output_args(self):\n    \"\"\"\n        Parses the result(s) of self.output() into a string-serialized\n        key-value list passed to the Dataflow job. Valid outputs include:\n\n        return FooTarget()\n\n        return {\"output1\": FooTarget(), \"output2\": FooTarget2()}\n\n        Unlabeled outputs are passed in with under the default key \"output\".\n    \"\"\"\n    job_output = self.output()\n    if isinstance(job_output, luigi.Target):\n        job_output = {\"output\": job_output}\n    elif not isinstance(job_output, dict):\n        raise ValueError(\n            \"Task output must be a Target or a dict from String to Target\")\n\n    output_args = []\n\n    for (name, target) in job_output.items():\n        uri = self.get_target_path(target)\n        output_args.append(\"--%s=%s\" % (name, uri))\n\n    return output_args",
+                "@staticmethod\ndef get_target_path(target):\n    if isinstance(target, luigi.LocalTarget) or isinstance(target, gcs.GCSTarget):\n        return target.path\n    elif isinstance(target, bigquery.BigQueryTarget):\n        \"{}:{}.{}\".format(target.project_id, target.dataset_id, target.table_id)\n    else:\n        raise ValueError(\"Target not supported\")",
+                "def f(key, value):\n    return '--{}={}'.format(key, value)"
+            ],
+            "inscope_function_signatures": [
+                "runner(self)",
+                "project(self)",
+                "zone(self)",
+                "region(self)",
+                "staging_location(self)",
+                "temp_location(self)",
+                "gcp_temp_location(self)",
+                "num_workers(self)",
+                "autoscaling_algorithm(self)",
+                "max_num_workers(self)",
+                "disk_size_gb(self)",
+                "worker_machine_type(self)",
+                "worker_disk_type(self)",
+                "job_name(self)",
+                "service_account(self)",
+                "network(self)",
+                "subnetwork(self)",
+                "labels(self)",
+                "run(cmd, task=None)",
+                "__init__(self)",
+                "dataflow_executable(self)",
+                "args(self)",
+                "before_run(self)",
+                "on_successful_run(self)",
+                "validate_output(self)",
+                "file_pattern(self)",
+                "on_successful_output_validation(self)",
+                "cleanup_on_error(self, error)",
+                "run(self)",
+                "_mk_cmd_line(self)",
+                "_get_runner(self)",
+                "_get_dataflow_args(self)",
+                "_format_input_args(self)",
+                "_format_output_args(self)",
+                "get_target_path(target)",
+                "f(key, value)"
+            ],
+            "variables_in_file": {
+                "logger": [
+                    322,
+                    291,
+                    136,
+                    298,
+                    30
+                ],
+                "logging.getLogger": [
+                    30
+                ],
+                "logging": [
+                    30
+                ],
+                "object": [
+                    34,
+                    114
+                ],
+                "abstractproperty": [
+                    89,
+                    65,
+                    97,
+                    69,
+                    101,
+                    41,
+                    73,
+                    105,
+                    45,
+                    77,
+                    109,
+                    49,
+                    81,
+                    93,
+                    53,
+                    85,
+                    57,
+                    61
+                ],
+                "six.add_metaclass": [
+                    144,
+                    33
+                ],
+                "six": [
+                    144,
+                    33
+                ],
+                "abc.ABCMeta": [
+                    33
+                ],
+                "abc": [
+                    33
+                ],
+                "process": [
+                    137,
+                    138,
+                    123,
+                    131
+                ],
+                "subprocess.Popen": [
+                    123
+                ],
+                "subprocess": [
+                    297,
+                    141,
+                    123,
+                    125,
+                    126
+                ],
+                "cmd": [
+                    124,
+                    141
+                ],
+                "subprocess.PIPE": [
+                    125
+                ],
+                "subprocess.STDOUT": [
+                    126
+                ],
+                "output_lines": [
+                    129,
+                    140,
+                    135
+                ],
+                "line": [
+                    131,
+                    132,
+                    134,
+                    135,
+                    136
+                ],
+                "process.stdout.readline": [
+                    131
+                ],
+                "process.stdout": [
+                    137,
+                    131
+                ],
+                "line.decode": [
+                    134
+                ],
+                "logger.info": [
+                    136,
+                    291
+                ],
+                "line.rstrip": [
+                    136
+                ],
+                "process.stdout.close": [
+                    137
+                ],
+                "exit_code": [
+                    138,
+                    139,
+                    141
+                ],
+                "process.wait": [
+                    138
+                ],
+                "output": [
+                    140,
+                    141,
+                    337,
+                    339,
+                    342,
+                    344,
+                    346,
+                    348,
+                    350,
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    372,
+                    374,
+                    376
+                ],
+                "join": [
+                    442,
+                    291,
+                    140
+                ],
+                "subprocess.CalledProcessError": [
+                    297,
+                    141
+                ],
+                "staticmethod": [
+                    472,
+                    121
+                ],
+                "MixinNaiveBulkComplete": [
+                    145
+                ],
+                "luigi.Task": [
+                    145
+                ],
+                "luigi": [
+                    421,
+                    458,
+                    397,
+                    145,
+                    474
+                ],
+                "project": [
+                    197
+                ],
+                "runner": [
+                    198
+                ],
+                "temp_location": [
+                    199
+                ],
+                "staging_location": [
+                    200
+                ],
+                "gcp_temp_location": [
+                    201
+                ],
+                "num_workers": [
+                    202
+                ],
+                "autoscaling_algorithm": [
+                    203
+                ],
+                "max_num_workers": [
+                    204
+                ],
+                "network": [
+                    205
+                ],
+                "subnetwork": [
+                    206
+                ],
+                "disk_size_gb": [
+                    207
+                ],
+                "worker_machine_type": [
+                    208
+                ],
+                "job_name": [
+                    209
+                ],
+                "worker_disk_type": [
+                    210
+                ],
+                "service_account": [
+                    211
+                ],
+                "zone": [
+                    212
+                ],
+                "region": [
+                    213
+                ],
+                "labels": [
+                    214
+                ],
+                "cmd_line_runner": [
+                    216
+                ],
+                "_CmdLineRunner": [
+                    216
+                ],
+                "dataflow_params": [
+                    217
+                ],
+                "isinstance": [
+                    423,
+                    458,
+                    460,
+                    397,
+                    400,
+                    403,
+                    404,
+                    409,
+                    474,
+                    476,
+                    220,
+                    414
+                ],
+                "self.dataflow_params": [
+                    339,
+                    342,
+                    344,
+                    346,
+                    348,
+                    220,
+                    350,
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    372,
+                    374
+                ],
+                "self": [
+                    395,
+                    414,
+                    290,
+                    293,
+                    421,
+                    296,
+                    299,
+                    302,
+                    304,
+                    305,
+                    308,
+                    436,
+                    312,
+                    314,
+                    315,
+                    316,
+                    317,
+                    321,
+                    325,
+                    329,
+                    457,
+                    331,
+                    339,
+                    467,
+                    341,
+                    342,
+                    343,
+                    344,
+                    345,
+                    346,
+                    347,
+                    220,
+                    348,
+                    349,
+                    350,
+                    351,
+                    352,
+                    353,
+                    354,
+                    355,
+                    356,
+                    357,
+                    358,
+                    359,
+                    360,
+                    361,
+                    362,
+                    363,
+                    364,
+                    365,
+                    366,
+                    367,
+                    368,
+                    369,
+                    370,
+                    371,
+                    372,
+                    373,
+                    374
+                ],
+                "DataflowParamKeys": [
+                    220
+                ],
+                "ValueError": [
+                    479,
+                    331,
+                    461,
+                    307,
+                    410,
+                    221,
+                    415
+                ],
+                "abstractmethod": [
+                    223
+                ],
+                "cmd_line": [
+                    290,
+                    291,
+                    296,
+                    312,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318
+                ],
+                "self._mk_cmd_line": [
+                    290
+                ],
+                "self.before_run": [
+                    293
+                ],
+                "self.cmd_line_runner.run": [
+                    296
+                ],
+                "self.cmd_line_runner": [
+                    296
+                ],
+                "logger.error": [
+                    298
+                ],
+                "e": [
+                    298,
+                    299,
+                    300
+                ],
+                "self.cleanup_on_error": [
+                    299,
+                    308
+                ],
+                "os._exit": [
+                    300
+                ],
+                "os": [
+                    300
+                ],
+                "e.returncode": [
+                    300
+                ],
+                "self.on_successful_run": [
+                    302
+                ],
+                "self.validate_output": [
+                    304
+                ],
+                "self.on_successful_output_validation": [
+                    305
+                ],
+                "error": [
+                    307,
+                    308,
+                    309
+                ],
+                "self.dataflow_executable": [
+                    312
+                ],
+                "cmd_line.extend": [
+                    314,
+                    315,
+                    316,
+                    317
+                ],
+                "self._get_dataflow_args": [
+                    314
+                ],
+                "self.args": [
+                    315
+                ],
+                "self._format_input_args": [
+                    316
+                ],
+                "self._format_output_args": [
+                    317
+                ],
+                "self.runner": [
+                    329,
+                    321,
+                    331,
+                    325
+                ],
+                "logger.warning": [
+                    322
+                ],
+                "format": [
+                    477,
+                    335
+                ],
+                "key": [
+                    441,
+                    442,
+                    428,
+                    335
+                ],
+                "value": [
+                    335
+                ],
+                "output.append": [
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    339,
+                    372,
+                    342,
+                    374,
+                    344,
+                    346,
+                    348,
+                    350
+                ],
+                "f": [
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    339,
+                    372,
+                    342,
+                    374,
+                    344,
+                    346,
+                    348,
+                    350
+                ],
+                "self.dataflow_params.runner": [
+                    339
+                ],
+                "self._get_runner": [
+                    339
+                ],
+                "self.project": [
+                    341,
+                    342
+                ],
+                "self.dataflow_params.project": [
+                    342
+                ],
+                "self.zone": [
+                    344,
+                    343
+                ],
+                "self.dataflow_params.zone": [
+                    344
+                ],
+                "self.region": [
+                    345,
+                    346
+                ],
+                "self.dataflow_params.region": [
+                    346
+                ],
+                "self.staging_location": [
+                    347,
+                    348
+                ],
+                "self.dataflow_params.staging_location": [
+                    348
+                ],
+                "self.temp_location": [
+                    349,
+                    350
+                ],
+                "self.dataflow_params.temp_location": [
+                    350
+                ],
+                "self.gcp_temp_location": [
+                    352,
+                    351
+                ],
+                "self.dataflow_params.gcp_temp_location": [
+                    352
+                ],
+                "self.num_workers": [
+                    353,
+                    354
+                ],
+                "self.dataflow_params.num_workers": [
+                    354
+                ],
+                "self.autoscaling_algorithm": [
+                    355,
+                    356
+                ],
+                "self.dataflow_params.autoscaling_algorithm": [
+                    356
+                ],
+                "self.max_num_workers": [
+                    357,
+                    358
+                ],
+                "self.dataflow_params.max_num_workers": [
+                    358
+                ],
+                "self.disk_size_gb": [
+                    360,
+                    359
+                ],
+                "self.dataflow_params.disk_size_gb": [
+                    360
+                ],
+                "self.worker_machine_type": [
+                    361,
+                    362
+                ],
+                "self.dataflow_params.worker_machine_type": [
+                    362
+                ],
+                "self.worker_disk_type": [
+                    363,
+                    364
+                ],
+                "self.dataflow_params.worker_disk_type": [
+                    364
+                ],
+                "self.network": [
+                    365,
+                    366
+                ],
+                "self.dataflow_params.network": [
+                    366
+                ],
+                "self.subnetwork": [
+                    368,
+                    367
+                ],
+                "self.dataflow_params.subnetwork": [
+                    368
+                ],
+                "self.job_name": [
+                    369,
+                    370
+                ],
+                "self.dataflow_params.job_name": [
+                    370
+                ],
+                "self.service_account": [
+                    371,
+                    372
+                ],
+                "self.dataflow_params.service_account": [
+                    372
+                ],
+                "self.labels": [
+                    373,
+                    374
+                ],
+                "self.dataflow_params.labels": [
+                    374
+                ],
+                "json.dumps": [
+                    374
+                ],
+                "json": [
+                    374
+                ],
+                "job_input": [
+                    419,
+                    395,
+                    397,
+                    398,
+                    400,
+                    401,
+                    403,
+                    404,
+                    405,
+                    407,
+                    409
+                ],
+                "self.input": [
+                    395
+                ],
+                "luigi.Target": [
+                    458,
+                    397
+                ],
+                "tuple": [
+                    400,
+                    404
+                ],
+                "list": [
+                    403
+                ],
+                "all": [
+                    404
+                ],
+                "item": [
+                    404
+                ],
+                "dict": [
+                    423,
+                    460,
+                    405,
+                    409,
+                    414
+                ],
+                "self.file_pattern": [
+                    436,
+                    414
+                ],
+                "input_args": [
+                    417,
+                    442,
+                    444
+                ],
+                "name": [
+                    419,
+                    428,
+                    431,
+                    466,
+                    436,
+                    468
+                ],
+                "targets": [
+                    419,
+                    428,
+                    421,
+                    423
+                ],
+                "job_input.items": [
+                    419
+                ],
+                "uris": [
+                    435,
+                    420,
+                    431
+                ],
+                "self.get_target_path": [
+                    467,
+                    421
+                ],
+                "uri_target": [
+                    421
+                ],
+                "luigi.task.flatten": [
+                    421
+                ],
+                "luigi.task": [
+                    421
+                ],
+                "names": [
+                    435,
+                    428,
+                    431
+                ],
+                "targets.keys": [
+                    428
+                ],
+                "len": [
+                    431
+                ],
+                "input_dict": [
+                    433,
+                    441,
+                    437,
+                    439
+                ],
+                "arg_name": [
+                    435,
+                    437,
+                    439
+                ],
+                "uri": [
+                    435,
+                    468,
+                    438,
+                    467
+                ],
+                "zip": [
+                    435
+                ],
+                "pattern": [
+                    436,
+                    438
+                ],
+                "get": [
+                    436
+                ],
+                "input_value": [
+                    437,
+                    438,
+                    439
+                ],
+                "input_dict.get": [
+                    437
+                ],
+                "input_value.append": [
+                    438
+                ],
+                "uri.rstrip": [
+                    438
+                ],
+                "paths": [
+                    441,
+                    442
+                ],
+                "input_dict.items": [
+                    441
+                ],
+                "input_args.append": [
+                    442
+                ],
+                "job_output": [
+                    457,
+                    458,
+                    459,
+                    460,
+                    466
+                ],
+                "self.output": [
+                    457
+                ],
+                "output_args": [
+                    464,
+                    468,
+                    470
+                ],
+                "target": [
+                    466,
+                    467,
+                    474,
+                    475,
+                    476,
+                    477
+                ],
+                "job_output.items": [
+                    466
+                ],
+                "output_args.append": [
+                    468
+                ],
+                "luigi.LocalTarget": [
+                    474
+                ],
+                "gcs.GCSTarget": [
+                    474
+                ],
+                "gcs": [
+                    474
+                ],
+                "target.path": [
+                    475
+                ],
+                "bigquery.BigQueryTarget": [
+                    476
+                ],
+                "bigquery": [
+                    476
+                ],
+                "target.project_id": [
+                    477
+                ],
+                "target.dataset_id": [
+                    477
+                ],
+                "target.table_id": [
+                    477
+                ],
+                "ABCMeta": [
+                    144
+                ]
+            },
+            "filtered_variables_in_file": {
+                "logger": [
+                    322,
+                    291,
+                    136,
+                    298,
+                    30
+                ],
+                "logging.getLogger": [
+                    30
+                ],
+                "logging": [
+                    30
+                ],
+                "abstractproperty": [
+                    89,
+                    65,
+                    97,
+                    69,
+                    101,
+                    41,
+                    73,
+                    105,
+                    45,
+                    77,
+                    109,
+                    49,
+                    81,
+                    93,
+                    53,
+                    85,
+                    57,
+                    61
+                ],
+                "six.add_metaclass": [
+                    144,
+                    33
+                ],
+                "six": [
+                    144,
+                    33
+                ],
+                "abc.ABCMeta": [
+                    33
+                ],
+                "abc": [
+                    33
+                ],
+                "process": [
+                    137,
+                    138,
+                    123,
+                    131
+                ],
+                "subprocess.Popen": [
+                    123
+                ],
+                "subprocess": [
+                    297,
+                    141,
+                    123,
+                    125,
+                    126
+                ],
+                "cmd": [
+                    124,
+                    141
+                ],
+                "subprocess.PIPE": [
+                    125
+                ],
+                "subprocess.STDOUT": [
+                    126
+                ],
+                "output_lines": [
+                    129,
+                    140,
+                    135
+                ],
+                "line": [
+                    131,
+                    132,
+                    134,
+                    135,
+                    136
+                ],
+                "process.stdout.readline": [
+                    131
+                ],
+                "process.stdout": [
+                    137,
+                    131
+                ],
+                "line.decode": [
+                    134
+                ],
+                "logger.info": [
+                    136,
+                    291
+                ],
+                "line.rstrip": [
+                    136
+                ],
+                "process.stdout.close": [
+                    137
+                ],
+                "exit_code": [
+                    138,
+                    139,
+                    141
+                ],
+                "process.wait": [
+                    138
+                ],
+                "output": [
+                    140,
+                    141,
+                    337,
+                    339,
+                    342,
+                    344,
+                    346,
+                    348,
+                    350,
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    372,
+                    374,
+                    376
+                ],
+                "join": [
+                    442,
+                    291,
+                    140
+                ],
+                "subprocess.CalledProcessError": [
+                    297,
+                    141
+                ],
+                "MixinNaiveBulkComplete": [
+                    145
+                ],
+                "luigi.Task": [
+                    145
+                ],
+                "luigi": [
+                    421,
+                    458,
+                    397,
+                    145,
+                    474
+                ],
+                "project": [
+                    197
+                ],
+                "runner": [
+                    198
+                ],
+                "temp_location": [
+                    199
+                ],
+                "staging_location": [
+                    200
+                ],
+                "gcp_temp_location": [
+                    201
+                ],
+                "num_workers": [
+                    202
+                ],
+                "autoscaling_algorithm": [
+                    203
+                ],
+                "max_num_workers": [
+                    204
+                ],
+                "network": [
+                    205
+                ],
+                "subnetwork": [
+                    206
+                ],
+                "disk_size_gb": [
+                    207
+                ],
+                "worker_machine_type": [
+                    208
+                ],
+                "job_name": [
+                    209
+                ],
+                "worker_disk_type": [
+                    210
+                ],
+                "service_account": [
+                    211
+                ],
+                "zone": [
+                    212
+                ],
+                "region": [
+                    213
+                ],
+                "labels": [
+                    214
+                ],
+                "cmd_line_runner": [
+                    216
+                ],
+                "_CmdLineRunner": [
+                    216
+                ],
+                "dataflow_params": [
+                    217
+                ],
+                "self.dataflow_params": [
+                    339,
+                    342,
+                    344,
+                    346,
+                    348,
+                    220,
+                    350,
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    372,
+                    374
+                ],
+                "self": [
+                    395,
+                    414,
+                    290,
+                    293,
+                    421,
+                    296,
+                    299,
+                    302,
+                    304,
+                    305,
+                    308,
+                    436,
+                    312,
+                    314,
+                    315,
+                    316,
+                    317,
+                    321,
+                    325,
+                    329,
+                    457,
+                    331,
+                    339,
+                    467,
+                    341,
+                    342,
+                    343,
+                    344,
+                    345,
+                    346,
+                    347,
+                    220,
+                    348,
+                    349,
+                    350,
+                    351,
+                    352,
+                    353,
+                    354,
+                    355,
+                    356,
+                    357,
+                    358,
+                    359,
+                    360,
+                    361,
+                    362,
+                    363,
+                    364,
+                    365,
+                    366,
+                    367,
+                    368,
+                    369,
+                    370,
+                    371,
+                    372,
+                    373,
+                    374
+                ],
+                "DataflowParamKeys": [
+                    220
+                ],
+                "abstractmethod": [
+                    223
+                ],
+                "cmd_line": [
+                    290,
+                    291,
+                    296,
+                    312,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318
+                ],
+                "self._mk_cmd_line": [
+                    290
+                ],
+                "self.before_run": [
+                    293
+                ],
+                "self.cmd_line_runner.run": [
+                    296
+                ],
+                "self.cmd_line_runner": [
+                    296
+                ],
+                "logger.error": [
+                    298
+                ],
+                "e": [
+                    298,
+                    299,
+                    300
+                ],
+                "self.cleanup_on_error": [
+                    299,
+                    308
+                ],
+                "os._exit": [
+                    300
+                ],
+                "os": [
+                    300
+                ],
+                "e.returncode": [
+                    300
+                ],
+                "self.on_successful_run": [
+                    302
+                ],
+                "self.validate_output": [
+                    304
+                ],
+                "self.on_successful_output_validation": [
+                    305
+                ],
+                "error": [
+                    307,
+                    308,
+                    309
+                ],
+                "self.dataflow_executable": [
+                    312
+                ],
+                "cmd_line.extend": [
+                    314,
+                    315,
+                    316,
+                    317
+                ],
+                "self._get_dataflow_args": [
+                    314
+                ],
+                "self.args": [
+                    315
+                ],
+                "self._format_input_args": [
+                    316
+                ],
+                "self._format_output_args": [
+                    317
+                ],
+                "self.runner": [
+                    329,
+                    321,
+                    331,
+                    325
+                ],
+                "logger.warning": [
+                    322
+                ],
+                "key": [
+                    441,
+                    442,
+                    428,
+                    335
+                ],
+                "value": [
+                    335
+                ],
+                "output.append": [
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    339,
+                    372,
+                    342,
+                    374,
+                    344,
+                    346,
+                    348,
+                    350
+                ],
+                "f": [
+                    352,
+                    354,
+                    356,
+                    358,
+                    360,
+                    362,
+                    364,
+                    366,
+                    368,
+                    370,
+                    339,
+                    372,
+                    342,
+                    374,
+                    344,
+                    346,
+                    348,
+                    350
+                ],
+                "self.dataflow_params.runner": [
+                    339
+                ],
+                "self._get_runner": [
+                    339
+                ],
+                "self.project": [
+                    341,
+                    342
+                ],
+                "self.dataflow_params.project": [
+                    342
+                ],
+                "self.zone": [
+                    344,
+                    343
+                ],
+                "self.dataflow_params.zone": [
+                    344
+                ],
+                "self.region": [
+                    345,
+                    346
+                ],
+                "self.dataflow_params.region": [
+                    346
+                ],
+                "self.staging_location": [
+                    347,
+                    348
+                ],
+                "self.dataflow_params.staging_location": [
+                    348
+                ],
+                "self.temp_location": [
+                    349,
+                    350
+                ],
+                "self.dataflow_params.temp_location": [
+                    350
+                ],
+                "self.gcp_temp_location": [
+                    352,
+                    351
+                ],
+                "self.dataflow_params.gcp_temp_location": [
+                    352
+                ],
+                "self.num_workers": [
+                    353,
+                    354
+                ],
+                "self.dataflow_params.num_workers": [
+                    354
+                ],
+                "self.autoscaling_algorithm": [
+                    355,
+                    356
+                ],
+                "self.dataflow_params.autoscaling_algorithm": [
+                    356
+                ],
+                "self.max_num_workers": [
+                    357,
+                    358
+                ],
+                "self.dataflow_params.max_num_workers": [
+                    358
+                ],
+                "self.disk_size_gb": [
+                    360,
+                    359
+                ],
+                "self.dataflow_params.disk_size_gb": [
+                    360
+                ],
+                "self.worker_machine_type": [
+                    361,
+                    362
+                ],
+                "self.dataflow_params.worker_machine_type": [
+                    362
+                ],
+                "self.worker_disk_type": [
+                    363,
+                    364
+                ],
+                "self.dataflow_params.worker_disk_type": [
+                    364
+                ],
+                "self.network": [
+                    365,
+                    366
+                ],
+                "self.dataflow_params.network": [
+                    366
+                ],
+                "self.subnetwork": [
+                    368,
+                    367
+                ],
+                "self.dataflow_params.subnetwork": [
+                    368
+                ],
+                "self.job_name": [
+                    369,
+                    370
+                ],
+                "self.dataflow_params.job_name": [
+                    370
+                ],
+                "self.service_account": [
+                    371,
+                    372
+                ],
+                "self.dataflow_params.service_account": [
+                    372
+                ],
+                "self.labels": [
+                    373,
+                    374
+                ],
+                "self.dataflow_params.labels": [
+                    374
+                ],
+                "json.dumps": [
+                    374
+                ],
+                "json": [
+                    374
+                ],
+                "job_input": [
+                    419,
+                    395,
+                    397,
+                    398,
+                    400,
+                    401,
+                    403,
+                    404,
+                    405,
+                    407,
+                    409
+                ],
+                "self.input": [
+                    395
+                ],
+                "luigi.Target": [
+                    458,
+                    397
+                ],
+                "item": [
+                    404
+                ],
+                "self.file_pattern": [
+                    436,
+                    414
+                ],
+                "input_args": [
+                    417,
+                    442,
+                    444
+                ],
+                "name": [
+                    419,
+                    428,
+                    431,
+                    466,
+                    436,
+                    468
+                ],
+                "targets": [
+                    419,
+                    428,
+                    421,
+                    423
+                ],
+                "job_input.items": [
+                    419
+                ],
+                "uris": [
+                    435,
+                    420,
+                    431
+                ],
+                "self.get_target_path": [
+                    467,
+                    421
+                ],
+                "uri_target": [
+                    421
+                ],
+                "luigi.task.flatten": [
+                    421
+                ],
+                "luigi.task": [
+                    421
+                ],
+                "names": [
+                    435,
+                    428,
+                    431
+                ],
+                "targets.keys": [
+                    428
+                ],
+                "input_dict": [
+                    433,
+                    441,
+                    437,
+                    439
+                ],
+                "arg_name": [
+                    435,
+                    437,
+                    439
+                ],
+                "uri": [
+                    435,
+                    468,
+                    438,
+                    467
+                ],
+                "pattern": [
+                    436,
+                    438
+                ],
+                "get": [
+                    436
+                ],
+                "input_value": [
+                    437,
+                    438,
+                    439
+                ],
+                "input_dict.get": [
+                    437
+                ],
+                "input_value.append": [
+                    438
+                ],
+                "uri.rstrip": [
+                    438
+                ],
+                "paths": [
+                    441,
+                    442
+                ],
+                "input_dict.items": [
+                    441
+                ],
+                "input_args.append": [
+                    442
+                ],
+                "job_output": [
+                    457,
+                    458,
+                    459,
+                    460,
+                    466
+                ],
+                "self.output": [
+                    457
+                ],
+                "output_args": [
+                    464,
+                    468,
+                    470
+                ],
+                "target": [
+                    466,
+                    467,
+                    474,
+                    475,
+                    476,
+                    477
+                ],
+                "job_output.items": [
+                    466
+                ],
+                "output_args.append": [
+                    468
+                ],
+                "luigi.LocalTarget": [
+                    474
+                ],
+                "gcs.GCSTarget": [
+                    474
+                ],
+                "gcs": [
+                    474
+                ],
+                "target.path": [
+                    475
+                ],
+                "bigquery.BigQueryTarget": [
+                    476
+                ],
+                "bigquery": [
+                    476
+                ],
+                "target.project_id": [
+                    477
+                ],
+                "target.dataset_id": [
+                    477
+                ],
+                "target.table_id": [
+                    477
+                ],
+                "ABCMeta": [
+                    144
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_2/test/contrib/beam_dataflow_test.py",
+                "test_function": "test_get_target_path",
+                "test_function_code": "    def test_get_target_path(self):\n        bq_target = bigquery.BigQueryTarget(\"p\", \"d\", \"t\", client=\"fake_client\")\n        self.assertEqual(\n            SimpleTestTask.get_target_path(bq_target),\n            \"p:d.t\")\n\n        gcs_target = gcs.GCSTarget(\"gs://foo/bar.txt\", client=\"fake_client\")\n        self.assertEqual(\n            SimpleTestTask.get_target_path(gcs_target),\n            \"gs://foo/bar.txt\")\n\n        with self.assertRaises(ValueError):\n            SimpleTestTask.get_target_path(\"not_a_target\")",
+                "test_error": "AttributeError: 'BigQueryTarget' object has no attribute 'project_id'",
+                "full_test_error": "self = <contrib.beam_dataflow_test.BeamDataflowTest testMethod=test_get_target_path>\n\n    def test_get_target_path(self):\n        bq_target = bigquery.BigQueryTarget(\"p\", \"d\", \"t\", client=\"fake_client\")\n        self.assertEqual(\n>           SimpleTestTask.get_target_path(bq_target),\n            \"p:d.t\")\n\ntest/contrib/beam_dataflow_test.py:288: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntarget = <luigi.contrib.bigquery.BigQueryTarget object at 0x109a19520>\n\n    @staticmethod\n    def get_target_path(target):\n        if isinstance(target, luigi.LocalTarget) or isinstance(target, gcs.GCSTarget):\n            return target.path\n        elif isinstance(target, bigquery.BigQueryTarget):\n>           \"{}:{}.{}\".format(target.project_id, target.dataset_id, target.table_id)\nE           AttributeError: 'BigQueryTarget' object has no attribute 'project_id'\n\nluigi/contrib/beam_dataflow.py:477: AttributeError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

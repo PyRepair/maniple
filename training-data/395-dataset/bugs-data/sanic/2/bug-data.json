@@ -1,0 +1,3562 @@
+{
+    "sanic:2": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/sanic_2/sanic/server.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "__await__",
+                    "function_code": "def __await__(self):\n    \"\"\"Starts the asyncio server, returns AsyncServerCoro\"\"\"\n    task = asyncio.ensure_future(self.serve_coro)\n    while not task.done():\n        yield\n    self.server = task.result()\n    return self\n",
+                    "decorators": [],
+                    "docstring": "Starts the asyncio server, returns AsyncServerCoro",
+                    "start_line": 738,
+                    "end_line": 744,
+                    "variables": {
+                        "task": [
+                            740,
+                            741,
+                            743
+                        ],
+                        "asyncio.ensure_future": [
+                            740
+                        ],
+                        "asyncio": [
+                            740
+                        ],
+                        "self.serve_coro": [
+                            740
+                        ],
+                        "self": [
+                            744,
+                            740,
+                            743
+                        ],
+                        "task.done": [
+                            741
+                        ],
+                        "self.server": [
+                            743
+                        ],
+                        "task.result": [
+                            743
+                        ]
+                    },
+                    "filtered_variables": {
+                        "task": [
+                            740,
+                            741,
+                            743
+                        ],
+                        "asyncio.ensure_future": [
+                            740
+                        ],
+                        "asyncio": [
+                            740
+                        ],
+                        "self.serve_coro": [
+                            740
+                        ],
+                        "self": [
+                            744,
+                            740,
+                            743
+                        ],
+                        "task.done": [
+                            741
+                        ],
+                        "self.server": [
+                            743
+                        ],
+                        "task.result": [
+                            743
+                        ]
+                    },
+                    "diff_line_number": 738,
+                    "class_data": {
+                        "signature": "class AsyncioServer()",
+                        "docstring": "Wraps an asyncio server with functionality that might be useful to\na user who needs to manage the server lifecycle manually.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, loop, serve_coro, connections, after_start, before_stop, after_stop):\n    self.loop = loop\n    self.serve_coro = serve_coro\n    self._after_start = after_start\n    self._before_stop = before_stop\n    self._after_stop = after_stop\n    self.server = None\n    self.connections = connections",
+                            "def after_start(self):\n    \"\"\"Trigger \"after_server_start\" events\"\"\"\n    trigger_events(self._after_start, self.loop)",
+                            "def before_stop(self):\n    \"\"\"Trigger \"before_server_stop\" events\"\"\"\n    trigger_events(self._before_stop, self.loop)",
+                            "def after_stop(self):\n    \"\"\"Trigger \"after_server_stop\" events\"\"\"\n    trigger_events(self._after_stop, self.loop)",
+                            "def is_serving(self):\n    if self.server:\n        return self.server.is_serving()\n    return False",
+                            "def wait_closed(self):\n    if self.server:\n        return self.server.wait_closed()",
+                            "def close(self):\n    if self.server:\n        self.server.close()\n        coro = self.wait_closed()\n        task = asyncio.ensure_future(coro, loop=self.loop)\n        return task",
+                            "def __await__(self):\n    \"\"\"Starts the asyncio server, returns AsyncServerCoro\"\"\"\n    task = asyncio.ensure_future(self.serve_coro)\n    while not task.done():\n        yield\n    self.server = task.result()\n    return self"
+                        ],
+                        "constructor_variables": [
+                            "_after_stop",
+                            "loop",
+                            "connections",
+                            "server",
+                            "_after_start",
+                            "serve_coro",
+                            "_before_stop"
+                        ],
+                        "class_level_variables": [
+                            "__slots__"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, loop, serve_coro, connections, after_start, before_stop, after_stop)",
+                            "after_start(self)",
+                            "before_stop(self)",
+                            "after_stop(self)",
+                            "is_serving(self)",
+                            "wait_closed(self)",
+                            "close(self)",
+                            "__await__(self)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def trigger_events(events, loop):\n    \"\"\"Trigger event callbacks (functions or async)\n\n    :param events: one or more sync or async functions to execute\n    :param loop: event loop\n    \"\"\"\n    for event in events:\n        result = event(loop)\n        if isawaitable(result):\n            loop.run_until_complete(result)",
+                "def serve(\n    host,\n    port,\n    app,\n    request_handler,\n    error_handler,\n    before_start=None,\n    after_start=None,\n    before_stop=None,\n    after_stop=None,\n    debug=False,\n    request_timeout=60,\n    response_timeout=60,\n    keep_alive_timeout=5,\n    ssl=None,\n    sock=None,\n    request_max_size=None,\n    request_buffer_queue_size=100,\n    reuse_port=False,\n    loop=None,\n    protocol=HttpProtocol,\n    backlog=100,\n    register_sys_signals=True,\n    run_multiple=False,\n    run_async=False,\n    connections=None,\n    signal=Signal(),\n    request_class=None,\n    access_log=True,\n    keep_alive=True,\n    is_request_stream=False,\n    router=None,\n    websocket_max_size=None,\n    websocket_max_queue=None,\n    websocket_read_limit=2 ** 16,\n    websocket_write_limit=2 ** 16,\n    state=None,\n    graceful_shutdown_timeout=15.0,\n    asyncio_server_kwargs=None,\n):\n    \"\"\"Start asynchronous HTTP Server on an individual process.\n\n    :param host: Address to host on\n    :param port: Port to host on\n    :param request_handler: Sanic request handler with middleware\n    :param error_handler: Sanic error handler with middleware\n    :param before_start: function to be executed before the server starts\n                         listening. Takes arguments `app` instance and `loop`\n    :param after_start: function to be executed after the server starts\n                        listening. Takes  arguments `app` instance and `loop`\n    :param before_stop: function to be executed when a stop signal is\n                        received before it is respected. Takes arguments\n                        `app` instance and `loop`\n    :param after_stop: function to be executed when a stop signal is\n                       received after it is respected. Takes arguments\n                       `app` instance and `loop`\n    :param debug: enables debug output (slows server)\n    :param request_timeout: time in seconds\n    :param response_timeout: time in seconds\n    :param keep_alive_timeout: time in seconds\n    :param ssl: SSLContext\n    :param sock: Socket for the server to accept connections from\n    :param request_max_size: size in bytes, `None` for no limit\n    :param reuse_port: `True` for multiple workers\n    :param loop: asyncio compatible event loop\n    :param protocol: subclass of asyncio protocol class\n    :param run_async: bool: Do not create a new event loop for the server,\n                      and return an AsyncServer object rather than running it\n    :param request_class: Request class to use\n    :param access_log: disable/enable access log\n    :param websocket_max_size: enforces the maximum size for\n                               incoming messages in bytes.\n    :param websocket_max_queue: sets the maximum length of the queue\n                                that holds incoming messages.\n    :param websocket_read_limit: sets the high-water limit of the buffer for\n                                 incoming bytes, the low-water limit is half\n                                 the high-water limit.\n    :param websocket_write_limit: sets the high-water limit of the buffer for\n                                  outgoing bytes, the low-water limit is a\n                                  quarter of the high-water limit.\n    :param is_request_stream: disable/enable Request.stream\n    :param request_buffer_queue_size: streaming request buffer queue size\n    :param router: Router object\n    :param graceful_shutdown_timeout: How long take to Force close non-idle\n                                      connection\n    :param asyncio_server_kwargs: key-value args for asyncio/uvloop\n                                  create_server method\n    :return: Nothing\n    \"\"\"\n    if not run_async:\n        # create new event_loop after fork\n        loop = asyncio.new_event_loop()\n        asyncio.set_event_loop(loop)\n\n    if debug:\n        loop.set_debug(debug)\n\n    app.asgi = False\n\n    connections = connections if connections is not None else set()\n    server = partial(\n        protocol,\n        loop=loop,\n        connections=connections,\n        signal=signal,\n        app=app,\n        request_handler=request_handler,\n        error_handler=error_handler,\n        request_timeout=request_timeout,\n        response_timeout=response_timeout,\n        keep_alive_timeout=keep_alive_timeout,\n        request_max_size=request_max_size,\n        request_buffer_queue_size=request_buffer_queue_size,\n        request_class=request_class,\n        access_log=access_log,\n        keep_alive=keep_alive,\n        is_request_stream=is_request_stream,\n        router=router,\n        websocket_max_size=websocket_max_size,\n        websocket_max_queue=websocket_max_queue,\n        websocket_read_limit=websocket_read_limit,\n        websocket_write_limit=websocket_write_limit,\n        state=state,\n        debug=debug,\n    )\n    asyncio_server_kwargs = (\n        asyncio_server_kwargs if asyncio_server_kwargs else {}\n    )\n    server_coroutine = loop.create_server(\n        server,\n        host,\n        port,\n        ssl=ssl,\n        reuse_port=reuse_port,\n        sock=sock,\n        backlog=backlog,\n        **asyncio_server_kwargs\n    )\n\n    if run_async:\n        return AsyncioServer(\n            loop,\n            server_coroutine,\n            connections,\n            after_start,\n            before_stop,\n            after_stop,\n        )\n\n    trigger_events(before_start, loop)\n\n    try:\n        http_server = loop.run_until_complete(server_coroutine)\n    except BaseException:\n        logger.exception(\"Unable to start server\")\n        return\n\n    trigger_events(after_start, loop)\n\n    # Ignore SIGINT when run_multiple\n    if run_multiple:\n        signal_func(SIGINT, SIG_IGN)\n\n    # Register signals for graceful termination\n    if register_sys_signals:\n        _singals = (SIGTERM,) if run_multiple else (SIGINT, SIGTERM)\n        for _signal in _singals:\n            try:\n                loop.add_signal_handler(_signal, loop.stop)\n            except NotImplementedError:\n                logger.warning(\n                    \"Sanic tried to use loop.add_signal_handler \"\n                    \"but it is not implemented on this platform.\"\n                )\n    pid = os.getpid()\n    try:\n        logger.info(\"Starting worker [%s]\", pid)\n        loop.run_forever()\n    finally:\n        logger.info(\"Stopping worker [%s]\", pid)\n\n        # Run the on_stop function if provided\n        trigger_events(before_stop, loop)\n\n        # Wait for event loop to finish and all connections to drain\n        http_server.close()\n        loop.run_until_complete(http_server.wait_closed())\n\n        # Complete all tasks on the loop\n        signal.stopped = True\n        for connection in connections:\n            connection.close_if_idle()\n\n        # Gracefully shutdown timeout.\n        # We should provide graceful_shutdown_timeout,\n        # instead of letting connection hangs forever.\n        # Let's roughly calcucate time.\n        start_shutdown = 0\n        while connections and (start_shutdown < graceful_shutdown_timeout):\n            loop.run_until_complete(asyncio.sleep(0.1))\n            start_shutdown = start_shutdown + 0.1\n\n        # Force close non-idle connection after waiting for\n        # graceful_shutdown_timeout\n        coros = []\n        for conn in connections:\n            if hasattr(conn, \"websocket\") and conn.websocket:\n                coros.append(conn.websocket.close_connection())\n            else:\n                conn.close()\n\n        if sys.version_info.minor >= 8:\n            _shutdown = asyncio.gather(*coros, loop=loop)\n        else:\n            _shutdown = asyncio.gather(*coros)\n        loop.run_until_complete(_shutdown)\n\n        trigger_events(after_stop, loop)\n\n        loop.close()",
+                "def serve_multiple(server_settings, workers):\n    \"\"\"Start multiple server processes simultaneously.  Stop on interrupt\n    and terminate signals, and drain connections when complete.\n\n    :param server_settings: kw arguments to be passed to the serve function\n    :param workers: number of workers to launch\n    :param stop_event: if provided, is used as a stop signal\n    :return:\n    \"\"\"\n    server_settings[\"reuse_port\"] = True\n    server_settings[\"run_multiple\"] = True\n\n    # Handling when custom socket is not provided.\n    if server_settings.get(\"sock\") is None:\n        sock = socket()\n        sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)\n        sock.bind((server_settings[\"host\"], server_settings[\"port\"]))\n        sock.set_inheritable(True)\n        server_settings[\"sock\"] = sock\n        server_settings[\"host\"] = None\n        server_settings[\"port\"] = None\n\n    processes = []\n\n    def sig_handler(signal, frame):\n        logger.info(\"Received signal %s. Shutting down.\", Signals(signal).name)\n        for process in processes:\n            os.kill(process.pid, SIGTERM)\n\n    signal_func(SIGINT, lambda s, f: sig_handler(s, f))\n    signal_func(SIGTERM, lambda s, f: sig_handler(s, f))\n\n    for _ in range(workers):\n        process = Process(target=serve, kwargs=server_settings)\n        process.daemon = True\n        process.start()\n        processes.append(process)\n\n    for process in processes:\n        process.join()\n\n    # the above processes will block this until they're stopped\n    for process in processes:\n        process.terminate()\n    server_settings.get(\"sock\").close()",
+                "def __init__(\n    self,\n    *,\n    loop,\n    app,\n    request_handler,\n    error_handler,\n    signal=Signal(),\n    connections=None,\n    request_timeout=60,\n    response_timeout=60,\n    keep_alive_timeout=5,\n    request_max_size=None,\n    request_buffer_queue_size=100,\n    request_class=None,\n    access_log=True,\n    keep_alive=True,\n    is_request_stream=False,\n    router=None,\n    state=None,\n    debug=False,\n    **kwargs\n):\n    self.loop = loop\n    self.app = app\n    self.transport = None\n    self.request = None\n    self.parser = None\n    self.url = None\n    self.headers = None\n    self.router = router\n    self.signal = signal\n    self.access_log = access_log\n    self.connections = connections if connections is not None else set()\n    self.request_handler = request_handler\n    self.error_handler = error_handler\n    self.request_timeout = request_timeout\n    self.request_buffer_queue_size = request_buffer_queue_size\n    self.response_timeout = response_timeout\n    self.keep_alive_timeout = keep_alive_timeout\n    self.request_max_size = request_max_size\n    self.request_class = request_class or Request\n    self.is_request_stream = is_request_stream\n    self._is_stream_handler = False\n    if sys.version_info.minor >= 8:\n        self._not_paused = asyncio.Event()\n    else:\n        self._not_paused = asyncio.Event(loop=loop)\n    self._total_request_size = 0\n    self._request_timeout_handler = None\n    self._response_timeout_handler = None\n    self._keep_alive_timeout_handler = None\n    self._last_request_time = None\n    self._last_response_time = None\n    self._request_handler_task = None\n    self._request_stream_task = None\n    self._keep_alive = keep_alive\n    self._header_fragment = b\"\"\n    self.state = state if state else {}\n    if \"requests_count\" not in self.state:\n        self.state[\"requests_count\"] = 0\n    self._debug = debug\n    self._not_paused.set()\n    self._body_chunks = deque()",
+                "@property\ndef keep_alive(self):\n    \"\"\"\n    Check if the connection needs to be kept alive based on the params\n    attached to the `_keep_alive` attribute, :attr:`Signal.stopped`\n    and :func:`HttpProtocol.parser.should_keep_alive`\n\n    :return: ``True`` if connection is to be kept alive ``False`` else\n    \"\"\"\n    return (\n        self._keep_alive\n        and not self.signal.stopped\n        and self.parser.should_keep_alive()\n    )",
+                "def connection_made(self, transport):\n    self.connections.add(self)\n    self._request_timeout_handler = self.loop.call_later(\n        self.request_timeout, self.request_timeout_callback\n    )\n    self.transport = transport\n    self._last_request_time = time()",
+                "def connection_lost(self, exc):\n    self.connections.discard(self)\n    if self._request_handler_task:\n        self._request_handler_task.cancel()\n    if self._request_stream_task:\n        self._request_stream_task.cancel()\n    if self._request_timeout_handler:\n        self._request_timeout_handler.cancel()\n    if self._response_timeout_handler:\n        self._response_timeout_handler.cancel()\n    if self._keep_alive_timeout_handler:\n        self._keep_alive_timeout_handler.cancel()",
+                "def pause_writing(self):\n    self._not_paused.clear()",
+                "def resume_writing(self):\n    self._not_paused.set()",
+                "def request_timeout_callback(self):\n    # See the docstring in the RequestTimeout exception, to see\n    # exactly what this timeout is checking for.\n    # Check if elapsed time since request initiated exceeds our\n    # configured maximum request timeout value\n    time_elapsed = time() - self._last_request_time\n    if time_elapsed < self.request_timeout:\n        time_left = self.request_timeout - time_elapsed\n        self._request_timeout_handler = self.loop.call_later(\n            time_left, self.request_timeout_callback\n        )\n    else:\n        if self._request_stream_task:\n            self._request_stream_task.cancel()\n        if self._request_handler_task:\n            self._request_handler_task.cancel()\n        self.write_error(RequestTimeout(\"Request Timeout\"))",
+                "def response_timeout_callback(self):\n    # Check if elapsed time since response was initiated exceeds our\n    # configured maximum request timeout value\n    time_elapsed = time() - self._last_request_time\n    if time_elapsed < self.response_timeout:\n        time_left = self.response_timeout - time_elapsed\n        self._response_timeout_handler = self.loop.call_later(\n            time_left, self.response_timeout_callback\n        )\n    else:\n        if self._request_stream_task:\n            self._request_stream_task.cancel()\n        if self._request_handler_task:\n            self._request_handler_task.cancel()\n        self.write_error(ServiceUnavailable(\"Response Timeout\"))",
+                "def keep_alive_timeout_callback(self):\n    \"\"\"\n    Check if elapsed time since last response exceeds our configured\n    maximum keep alive timeout value and if so, close the transport\n    pipe and let the response writer handle the error.\n\n    :return: None\n    \"\"\"\n    time_elapsed = time() - self._last_response_time\n    if time_elapsed < self.keep_alive_timeout:\n        time_left = self.keep_alive_timeout - time_elapsed\n        self._keep_alive_timeout_handler = self.loop.call_later(\n            time_left, self.keep_alive_timeout_callback\n        )\n    else:\n        logger.debug(\"KeepAlive Timeout. Closing connection.\")\n        self.transport.close()\n        self.transport = None",
+                "def data_received(self, data):\n    # Check for the request itself getting too large and exceeding\n    # memory limits\n    self._total_request_size += len(data)\n    if self._total_request_size > self.request_max_size:\n        self.write_error(PayloadTooLarge(\"Payload Too Large\"))\n\n    # Create parser if this is the first time we're receiving data\n    if self.parser is None:\n        assert self.request is None\n        self.headers = []\n        self.parser = HttpRequestParser(self)\n\n    # requests count\n    self.state[\"requests_count\"] = self.state[\"requests_count\"] + 1\n\n    # Parse request chunk or close connection\n    try:\n        self.parser.feed_data(data)\n    except HttpParserError:\n        message = \"Bad Request\"\n        if self._debug:\n            message += \"\\n\" + traceback.format_exc()\n        self.write_error(InvalidUsage(message))",
+                "def on_url(self, url):\n    if not self.url:\n        self.url = url\n    else:\n        self.url += url",
+                "def on_header(self, name, value):\n    self._header_fragment += name\n\n    if value is not None:\n        if (\n            self._header_fragment == b\"Content-Length\"\n            and int(value) > self.request_max_size\n        ):\n            self.write_error(PayloadTooLarge(\"Payload Too Large\"))\n        try:\n            value = value.decode()\n        except UnicodeDecodeError:\n            value = value.decode(\"latin_1\")\n        self.headers.append(\n            (self._header_fragment.decode().casefold(), value)\n        )\n\n        self._header_fragment = b\"\"",
+                "def on_headers_complete(self):\n    self.request = self.request_class(\n        url_bytes=self.url,\n        headers=Header(self.headers),\n        version=self.parser.get_http_version(),\n        method=self.parser.get_method().decode(),\n        transport=self.transport,\n        app=self.app,\n    )\n    # Remove any existing KeepAlive handler here,\n    # It will be recreated if required on the new request.\n    if self._keep_alive_timeout_handler:\n        self._keep_alive_timeout_handler.cancel()\n        self._keep_alive_timeout_handler = None\n\n    if self.request.headers.get(EXPECT_HEADER):\n        self.expect_handler()\n\n    if self.is_request_stream:\n        self._is_stream_handler = self.router.is_stream_handler(\n            self.request\n        )\n        if self._is_stream_handler:\n            self.request.stream = StreamBuffer(\n                self.request_buffer_queue_size\n            )\n            self.execute_request_handler()",
+                "def expect_handler(self):\n    \"\"\"\n    Handler for Expect Header.\n    \"\"\"\n    expect = self.request.headers.get(EXPECT_HEADER)\n    if self.request.version == \"1.1\":\n        if expect.lower() == \"100-continue\":\n            self.transport.write(b\"HTTP/1.1 100 Continue\\r\\n\\r\\n\")\n        else:\n            self.write_error(\n                HeaderExpectationFailed(\n                    \"Unknown Expect: {expect}\".format(expect=expect)\n                )\n            )",
+                "def on_body(self, body):\n    if self.is_request_stream and self._is_stream_handler:\n        # body chunks can be put into asyncio.Queue out of order if\n        # multiple tasks put concurrently and the queue is full in python\n        # 3.7. so we should not create more than one task putting into the\n        # queue simultaneously.\n        self._body_chunks.append(body)\n        if (\n            not self._request_stream_task\n            or self._request_stream_task.done()\n        ):\n            self._request_stream_task = self.loop.create_task(\n                self.stream_append()\n            )\n    else:\n        self.request.body_push(body)",
+                "async def body_append(self, body):\n    if (\n        self.request is None\n        or self._request_stream_task is None\n        or self._request_stream_task.cancelled()\n    ):\n        return\n\n    if self.request.stream.is_full():\n        self.transport.pause_reading()\n        await self.request.stream.put(body)\n        self.transport.resume_reading()\n    else:\n        await self.request.stream.put(body)",
+                "async def stream_append(self):\n    while self._body_chunks:\n        body = self._body_chunks.popleft()\n        if self.request.stream.is_full():\n            self.transport.pause_reading()\n            await self.request.stream.put(body)\n            self.transport.resume_reading()\n        else:\n            await self.request.stream.put(body)",
+                "def on_message_complete(self):\n    # Entire request (headers and whole body) is received.\n    # We can cancel and remove the request timeout handler now.\n    if self._request_timeout_handler:\n        self._request_timeout_handler.cancel()\n        self._request_timeout_handler = None\n    if self.is_request_stream and self._is_stream_handler:\n        self._body_chunks.append(None)\n        if (\n            not self._request_stream_task\n            or self._request_stream_task.done()\n        ):\n            self._request_stream_task = self.loop.create_task(\n                self.stream_append()\n            )\n        return\n    self.request.body_finish()\n    self.execute_request_handler()",
+                "def execute_request_handler(self):\n    \"\"\"\n    Invoke the request handler defined by the\n    :func:`sanic.app.Sanic.handle_request` method\n\n    :return: None\n    \"\"\"\n    self._response_timeout_handler = self.loop.call_later(\n        self.response_timeout, self.response_timeout_callback\n    )\n    self._last_request_time = time()\n    self._request_handler_task = self.loop.create_task(\n        self.request_handler(\n            self.request, self.write_response, self.stream_response\n        )\n    )",
+                "def log_response(self, response):\n    \"\"\"\n    Helper method provided to enable the logging of responses in case if\n    the :attr:`HttpProtocol.access_log` is enabled.\n\n    :param response: Response generated for the current request\n\n    :type response: :class:`sanic.response.HTTPResponse` or\n        :class:`sanic.response.StreamingHTTPResponse`\n\n    :return: None\n    \"\"\"\n    if self.access_log:\n        extra = {\"status\": getattr(response, \"status\", 0)}\n\n        if isinstance(response, HTTPResponse):\n            extra[\"byte\"] = len(response.body)\n        else:\n            extra[\"byte\"] = -1\n\n        extra[\"host\"] = \"UNKNOWN\"\n        if self.request is not None:\n            if self.request.ip:\n                extra[\"host\"] = \"{0}:{1}\".format(\n                    self.request.ip, self.request.port\n                )\n\n            extra[\"request\"] = \"{0} {1}\".format(\n                self.request.method, self.request.url\n            )\n        else:\n            extra[\"request\"] = \"nil\"\n\n        access_logger.info(\"\", extra=extra)",
+                "def write_response(self, response):\n    \"\"\"\n    Writes response content synchronously to the transport.\n    \"\"\"\n    if self._response_timeout_handler:\n        self._response_timeout_handler.cancel()\n        self._response_timeout_handler = None\n    try:\n        keep_alive = self.keep_alive\n        self.transport.write(\n            response.output(\n                self.request.version, keep_alive, self.keep_alive_timeout\n            )\n        )\n        self.log_response(response)\n    except AttributeError:\n        logger.error(\n            \"Invalid response object for url %s, \"\n            \"Expected Type: HTTPResponse, Actual Type: %s\",\n            self.url,\n            type(response),\n        )\n        self.write_error(ServerError(\"Invalid response type\"))\n    except RuntimeError:\n        if self._debug:\n            logger.error(\n                \"Connection lost before response written @ %s\",\n                self.request.ip,\n            )\n        keep_alive = False\n    except Exception as e:\n        self.bail_out(\n            \"Writing response failed, connection closed {}\".format(repr(e))\n        )\n    finally:\n        if not keep_alive:\n            self.transport.close()\n            self.transport = None\n        else:\n            self._keep_alive_timeout_handler = self.loop.call_later(\n                self.keep_alive_timeout, self.keep_alive_timeout_callback\n            )\n            self._last_response_time = time()\n            self.cleanup()",
+                "async def drain(self):\n    await self._not_paused.wait()",
+                "async def push_data(self, data):\n    self.transport.write(data)",
+                "async def stream_response(self, response):\n    \"\"\"\n    Streams a response to the client asynchronously. Attaches\n    the transport to the response so the response consumer can\n    write to the response as needed.\n    \"\"\"\n    if self._response_timeout_handler:\n        self._response_timeout_handler.cancel()\n        self._response_timeout_handler = None\n\n    try:\n        keep_alive = self.keep_alive\n        response.protocol = self\n        await response.stream(\n            self.request.version, keep_alive, self.keep_alive_timeout\n        )\n        self.log_response(response)\n    except AttributeError:\n        logger.error(\n            \"Invalid response object for url %s, \"\n            \"Expected Type: HTTPResponse, Actual Type: %s\",\n            self.url,\n            type(response),\n        )\n        self.write_error(ServerError(\"Invalid response type\"))\n    except RuntimeError:\n        if self._debug:\n            logger.error(\n                \"Connection lost before response written @ %s\",\n                self.request.ip,\n            )\n        keep_alive = False\n    except Exception as e:\n        self.bail_out(\n            \"Writing response failed, connection closed {}\".format(repr(e))\n        )\n    finally:\n        if not keep_alive:\n            self.transport.close()\n            self.transport = None\n        else:\n            self._keep_alive_timeout_handler = self.loop.call_later(\n                self.keep_alive_timeout, self.keep_alive_timeout_callback\n            )\n            self._last_response_time = time()\n            self.cleanup()",
+                "def write_error(self, exception):\n    # An error _is_ a response.\n    # Don't throw a response timeout, when a response _is_ given.\n    if self._response_timeout_handler:\n        self._response_timeout_handler.cancel()\n        self._response_timeout_handler = None\n    response = None\n    try:\n        response = self.error_handler.response(self.request, exception)\n        version = self.request.version if self.request else \"1.1\"\n        self.transport.write(response.output(version))\n    except RuntimeError:\n        if self._debug:\n            logger.error(\n                \"Connection lost before error written @ %s\",\n                self.request.ip if self.request else \"Unknown\",\n            )\n    except Exception as e:\n        self.bail_out(\n            \"Writing error failed, connection closed {}\".format(repr(e)),\n            from_error=True,\n        )\n    finally:\n        if self.parser and (\n            self.keep_alive or getattr(response, \"status\", 0) == 408\n        ):\n            self.log_response(response)\n        try:\n            self.transport.close()\n        except AttributeError:\n            logger.debug(\"Connection lost before server could close it.\")",
+                "def bail_out(self, message, from_error=False):\n    \"\"\"\n    In case if the transport pipes are closed and the sanic app encounters\n    an error while writing data to the transport pipe, we log the error\n    with proper details.\n\n    :param message: Error message to display\n    :param from_error: If the bail out was invoked while handling an\n        exception scenario.\n\n    :type message: str\n    :type from_error: bool\n\n    :return: None\n    \"\"\"\n    if from_error or self.transport is None or self.transport.is_closing():\n        logger.error(\n            \"Transport closed @ %s and exception \"\n            \"experienced during error handling\",\n            (\n                self.transport.get_extra_info(\"peername\")\n                if self.transport is not None\n                else \"N/A\"\n            ),\n        )\n        logger.debug(\"Exception:\", exc_info=True)\n    else:\n        self.write_error(ServerError(message))\n        logger.error(message)",
+                "def cleanup(self):\n    \"\"\"This is called when KeepAlive feature is used,\n    it resets the connection in order for it to be able\n    to handle receiving another request on the same connection.\"\"\"\n    self.parser = None\n    self.request = None\n    self.url = None\n    self.headers = None\n    self._request_handler_task = None\n    self._request_stream_task = None\n    self._total_request_size = 0\n    self._is_stream_handler = False",
+                "def close_if_idle(self):\n    \"\"\"Close the connection if a request is not being sent or received\n\n    :return: boolean - True if closed, false if staying open\n    \"\"\"\n    if not self.parser:\n        self.transport.close()\n        return True\n    return False",
+                "def close(self):\n    \"\"\"\n    Force close the connection.\n    \"\"\"\n    if self.transport is not None:\n        self.transport.close()\n        self.transport = None",
+                "def __init__(\n    self,\n    loop,\n    serve_coro,\n    connections,\n    after_start,\n    before_stop,\n    after_stop,\n):\n    # Note, Sanic already called \"before_server_start\" events\n    # before this helper was even created. So we don't need it here.\n    self.loop = loop\n    self.serve_coro = serve_coro\n    self._after_start = after_start\n    self._before_stop = before_stop\n    self._after_stop = after_stop\n    self.server = None\n    self.connections = connections",
+                "def after_start(self):\n    \"\"\"Trigger \"after_server_start\" events\"\"\"\n    trigger_events(self._after_start, self.loop)",
+                "def before_stop(self):\n    \"\"\"Trigger \"before_server_stop\" events\"\"\"\n    trigger_events(self._before_stop, self.loop)",
+                "def after_stop(self):\n    \"\"\"Trigger \"after_server_stop\" events\"\"\"\n    trigger_events(self._after_stop, self.loop)",
+                "def is_serving(self):\n    if self.server:\n        return self.server.is_serving()\n    return False",
+                "def wait_closed(self):\n    if self.server:\n        return self.server.wait_closed()",
+                "def close(self):\n    if self.server:\n        self.server.close()\n        coro = self.wait_closed()\n        task = asyncio.ensure_future(coro, loop=self.loop)\n        return task",
+                "def __await__(self):\n    \"\"\"Starts the asyncio server, returns AsyncServerCoro\"\"\"\n    task = asyncio.ensure_future(self.serve_coro)\n    while not task.done():\n        yield\n    self.server = task.result()\n    return self",
+                "def sig_handler(signal, frame):\n    logger.info(\"Received signal %s. Shutting down.\", Signals(signal).name)\n    for process in processes:\n        os.kill(process.pid, SIGTERM)"
+            ],
+            "inscope_function_signatures": [
+                "trigger_events(events, loop)",
+                "serve(host, port, app, request_handler, error_handler, before_start=None, after_start=None, before_stop=None, after_stop=None, debug=False, request_timeout=60, response_timeout=60, keep_alive_timeout=5, ssl=None, sock=None, request_max_size=None, request_buffer_queue_size=100, reuse_port=False, loop=None, protocol=HttpProtocol, backlog=100, register_sys_signals=True, run_multiple=False, run_async=False, connections=None, signal=Signal(), request_class=None, access_log=True, keep_alive=True, is_request_stream=False, router=None, websocket_max_size=None, websocket_max_queue=None, websocket_read_limit=2 ** 16, websocket_write_limit=2 ** 16, state=None, graceful_shutdown_timeout=15.0, asyncio_server_kwargs=None)",
+                "serve_multiple(server_settings, workers)",
+                "__init__(self, **kwargs)",
+                "keep_alive(self)",
+                "connection_made(self, transport)",
+                "connection_lost(self, exc)",
+                "pause_writing(self)",
+                "resume_writing(self)",
+                "request_timeout_callback(self)",
+                "response_timeout_callback(self)",
+                "keep_alive_timeout_callback(self)",
+                "data_received(self, data)",
+                "on_url(self, url)",
+                "on_header(self, name, value)",
+                "on_headers_complete(self)",
+                "expect_handler(self)",
+                "on_body(self, body)",
+                "body_append(self, body)",
+                "stream_append(self)",
+                "on_message_complete(self)",
+                "execute_request_handler(self)",
+                "log_response(self, response)",
+                "write_response(self, response)",
+                "drain(self)",
+                "push_data(self, data)",
+                "stream_response(self, response)",
+                "write_error(self, exception)",
+                "bail_out(self, message, from_error=False)",
+                "cleanup(self)",
+                "close_if_idle(self)",
+                "close(self)",
+                "__init__(self, loop, serve_coro, connections, after_start, before_stop, after_stop)",
+                "after_start(self)",
+                "before_stop(self)",
+                "after_stop(self)",
+                "is_serving(self)",
+                "wait_closed(self)",
+                "close(self)",
+                "__await__(self)",
+                "sig_handler(signal, frame)"
+            ],
+            "variables_in_file": {
+                "isinstance": [
+                    35,
+                    451
+                ],
+                "asyncio.get_event_loop_policy": [
+                    35
+                ],
+                "asyncio": [
+                    961,
+                    35,
+                    36,
+                    740,
+                    838,
+                    839,
+                    139,
+                    45,
+                    141,
+                    946,
+                    959,
+                    735
+                ],
+                "uvloop.EventLoopPolicy": [
+                    35,
+                    36
+                ],
+                "uvloop": [
+                    35,
+                    36
+                ],
+                "asyncio.set_event_loop_policy": [
+                    36
+                ],
+                "ImportError": [
+                    37
+                ],
+                "stopped": [
+                    42
+                ],
+                "asyncio.Protocol": [
+                    45
+                ],
+                "__slots__": [
+                    681,
+                    50
+                ],
+                "Signal": [
+                    773,
+                    101
+                ],
+                "self.loop": [
+                    229,
+                    423,
+                    712,
+                    427,
+                    702,
+                    716,
+                    366,
+                    720,
+                    563,
+                    180,
+                    213,
+                    117,
+                    409,
+                    250,
+                    510,
+                    735
+                ],
+                "self": [
+                    513,
+                    514,
+                    517,
+                    520,
+                    528,
+                    529,
+                    530,
+                    533,
+                    534,
+                    536,
+                    538,
+                    543,
+                    546,
+                    548,
+                    551,
+                    555,
+                    560,
+                    561,
+                    563,
+                    564,
+                    566,
+                    567,
+                    572,
+                    573,
+                    574,
+                    577,
+                    578,
+                    579,
+                    581,
+                    584,
+                    587,
+                    592,
+                    593,
+                    595,
+                    597,
+                    616,
+                    635,
+                    621,
+                    622,
+                    628,
+                    117,
+                    118,
+                    119,
+                    120,
+                    121,
+                    122,
+                    123,
+                    124,
+                    125,
+                    126,
+                    127,
+                    128,
+                    129,
+                    130,
+                    131,
+                    132,
+                    133,
+                    134,
+                    135,
+                    136,
+                    137,
+                    636,
+                    139,
+                    637,
+                    141,
+                    142,
+                    143,
+                    144,
+                    145,
+                    146,
+                    147,
+                    148,
+                    149,
+                    150,
+                    151,
+                    152,
+                    153,
+                    154,
+                    155,
+                    156,
+                    157,
+                    640,
+                    641,
+                    642,
+                    169,
+                    170,
+                    171,
+                    179,
+                    180,
+                    181,
+                    638,
+                    183,
+                    184,
+                    187,
+                    188,
+                    189,
+                    190,
+                    191,
+                    192,
+                    193,
+                    194,
+                    195,
+                    196,
+                    197,
+                    649,
+                    650,
+                    200,
+                    704,
+                    705,
+                    203,
+                    639,
+                    708,
+                    712,
+                    716,
+                    720,
+                    210,
+                    211,
+                    212,
+                    213,
+                    214,
+                    723,
+                    724,
+                    217,
+                    218,
+                    219,
+                    220,
+                    221,
+                    728,
+                    729,
+                    732,
+                    733,
+                    226,
+                    227,
+                    228,
+                    229,
+                    230,
+                    734,
+                    735,
+                    233,
+                    234,
+                    235,
+                    236,
+                    237,
+                    743,
+                    658,
+                    744,
+                    659,
+                    247,
+                    248,
+                    249,
+                    250,
+                    251,
+                    660,
+                    255,
+                    256,
+                    265,
+                    266,
+                    267,
+                    270,
+                    271,
+                    272,
+                    273,
+                    276,
+                    280,
+                    283,
+                    285,
+                    288,
+                    289,
+                    291,
+                    294,
+                    298,
+                    299,
+                    301,
+                    306,
+                    307,
+                    310,
+                    313,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    319,
+                    323,
+                    324,
+                    325,
+                    327,
+                    328,
+                    330,
+                    331,
+                    332,
+                    334,
+                    335,
+                    336,
+                    338,
+                    344,
+                    345,
+                    347,
+                    349,
+                    356,
+                    361,
+                    363,
+                    364,
+                    366,
+                    367,
+                    370,
+                    374,
+                    375,
+                    376,
+                    380,
+                    381,
+                    382,
+                    383,
+                    385,
+                    388,
+                    389,
+                    390,
+                    391,
+                    392,
+                    393,
+                    395,
+                    400,
+                    401,
+                    402,
+                    403,
+                    404,
+                    406,
+                    407,
+                    409,
+                    410,
+                    413,
+                    414,
+                    423,
+                    424,
+                    426,
+                    427,
+                    428,
+                    429,
+                    740,
+                    448,
+                    457,
+                    458,
+                    460,
+                    702,
+                    464,
+                    703,
+                    475,
+                    476,
+                    477,
+                    479,
+                    480,
+                    706,
+                    482,
+                    485,
+                    707,
+                    490,
+                    493,
+                    495,
+                    498,
+                    502,
+                    507,
+                    508,
+                    510,
+                    511
+                ],
+                "loop": [
+                    896,
+                    899,
+                    904,
+                    141,
+                    915,
+                    924,
+                    670,
+                    672,
+                    929,
+                    933,
+                    946,
+                    702,
+                    959,
+                    962,
+                    964,
+                    838,
+                    839,
+                    966,
+                    842,
+                    849,
+                    875,
+                    117,
+                    888
+                ],
+                "self.app": [
+                    118,
+                    319
+                ],
+                "app": [
+                    844,
+                    118,
+                    852
+                ],
+                "self.transport": [
+                    256,
+                    255,
+                    391,
+                    520,
+                    393,
+                    650,
+                    658,
+                    659,
+                    660,
+                    560,
+                    561,
+                    183,
+                    318,
+                    579,
+                    597,
+                    347,
+                    480,
+                    616,
+                    621,
+                    622,
+                    119,
+                    507,
+                    508,
+                    381,
+                    383
+                ],
+                "self.request": [
+                    636,
+                    385,
+                    390,
+                    392,
+                    395,
+                    271,
+                    536,
+                    413,
+                    551,
+                    429,
+                    313,
+                    577,
+                    578,
+                    327,
+                    584,
+                    457,
+                    458,
+                    332,
+                    460,
+                    335,
+                    464,
+                    344,
+                    345,
+                    482,
+                    370,
+                    498,
+                    374,
+                    120,
+                    380,
+                    382
+                ],
+                "self.parser": [
+                    649,
+                    171,
+                    270,
+                    592,
+                    273,
+                    280,
+                    121,
+                    635,
+                    316,
+                    317
+                ],
+                "self.url": [
+                    288,
+                    289,
+                    291,
+                    490,
+                    314,
+                    122,
+                    637,
+                    543
+                ],
+                "self.headers": [
+                    123,
+                    272,
+                    306,
+                    315,
+                    638
+                ],
+                "self.router": [
+                    331,
+                    124
+                ],
+                "router": [
+                    864,
+                    124
+                ],
+                "self.signal": [
+                    170,
+                    125
+                ],
+                "signal": [
+                    936,
+                    994,
+                    851,
+                    125
+                ],
+                "self.access_log": [
+                    448,
+                    126
+                ],
+                "access_log": [
+                    861,
+                    126
+                ],
+                "self.connections": [
+                    179,
+                    708,
+                    187,
+                    127
+                ],
+                "connections": [
+                    708,
+                    937,
+                    846,
+                    945,
+                    850,
+                    952,
+                    890,
+                    127
+                ],
+                "set": [
+                    846,
+                    127
+                ],
+                "self.request_handler": [
+                    128,
+                    428
+                ],
+                "request_handler": [
+                    128,
+                    853
+                ],
+                "self.error_handler": [
+                    577,
+                    129
+                ],
+                "error_handler": [
+                    129,
+                    854
+                ],
+                "self.request_timeout": [
+                    130,
+                    211,
+                    212,
+                    181
+                ],
+                "request_timeout": [
+                    130,
+                    855
+                ],
+                "self.request_buffer_queue_size": [
+                    336,
+                    131
+                ],
+                "request_buffer_queue_size": [
+                    859,
+                    131
+                ],
+                "self.response_timeout": [
+                    424,
+                    227,
+                    132,
+                    228
+                ],
+                "response_timeout": [
+                    856,
+                    132
+                ],
+                "self.keep_alive_timeout": [
+                    482,
+                    133,
+                    536,
+                    564,
+                    248,
+                    249,
+                    511
+                ],
+                "keep_alive_timeout": [
+                    857,
+                    133
+                ],
+                "self.request_max_size": [
+                    266,
+                    299,
+                    134
+                ],
+                "request_max_size": [
+                    858,
+                    134
+                ],
+                "self.request_class": [
+                    313,
+                    135
+                ],
+                "request_class": [
+                    860,
+                    135
+                ],
+                "Request": [
+                    135
+                ],
+                "self.is_request_stream": [
+                    136,
+                    330,
+                    403,
+                    356
+                ],
+                "is_request_stream": [
+                    136,
+                    863
+                ],
+                "self._is_stream_handler": [
+                    642,
+                    356,
+                    137,
+                    331,
+                    334,
+                    403
+                ],
+                "sys.version_info.minor": [
+                    138,
+                    958
+                ],
+                "sys.version_info": [
+                    138,
+                    958
+                ],
+                "sys": [
+                    138,
+                    958
+                ],
+                "self._not_paused": [
+                    517,
+                    200,
+                    139,
+                    203,
+                    141,
+                    156
+                ],
+                "asyncio.Event": [
+                    139,
+                    141
+                ],
+                "self._total_request_size": [
+                    265,
+                    266,
+                    641,
+                    142
+                ],
+                "self._request_timeout_handler": [
+                    192,
+                    193,
+                    143,
+                    400,
+                    401,
+                    402,
+                    180,
+                    213
+                ],
+                "self._response_timeout_handler": [
+                    194,
+                    195,
+                    573,
+                    229,
+                    423,
+                    574,
+                    144,
+                    528,
+                    529,
+                    530,
+                    475,
+                    476,
+                    477,
+                    572
+                ],
+                "self._keep_alive_timeout_handler": [
+                    323,
+                    196,
+                    197,
+                    324,
+                    325,
+                    145,
+                    563,
+                    250,
+                    510
+                ],
+                "self._last_request_time": [
+                    226,
+                    426,
+                    210,
+                    146,
+                    184
+                ],
+                "self._last_response_time": [
+                    513,
+                    147,
+                    566,
+                    247
+                ],
+                "self._request_handler_task": [
+                    235,
+                    236,
+                    427,
+                    188,
+                    148,
+                    219,
+                    220,
+                    189,
+                    639
+                ],
+                "self._request_stream_task": [
+                    407,
+                    640,
+                    233,
+                    234,
+                    363,
+                    364,
+                    409,
+                    366,
+                    149,
+                    406,
+                    375,
+                    376,
+                    217,
+                    218,
+                    190,
+                    191
+                ],
+                "self._keep_alive": [
+                    169,
+                    150
+                ],
+                "keep_alive": [
+                    482,
+                    553,
+                    559,
+                    500,
+                    533,
+                    150,
+                    536,
+                    506,
+                    862,
+                    479
+                ],
+                "self._header_fragment": [
+                    294,
+                    298,
+                    307,
+                    310,
+                    151
+                ],
+                "self.state": [
+                    152,
+                    153,
+                    154,
+                    276
+                ],
+                "state": [
+                    152,
+                    869
+                ],
+                "self._debug": [
+                    548,
+                    581,
+                    155,
+                    495,
+                    283
+                ],
+                "debug": [
+                    841,
+                    842,
+                    155,
+                    870
+                ],
+                "self._not_paused.set": [
+                    203,
+                    156
+                ],
+                "self._body_chunks": [
+                    388,
+                    389,
+                    361,
+                    404,
+                    157
+                ],
+                "deque": [
+                    157
+                ],
+                "self.signal.stopped": [
+                    170
+                ],
+                "self.parser.should_keep_alive": [
+                    171
+                ],
+                "property": [
+                    159
+                ],
+                "self.connections.add": [
+                    179
+                ],
+                "self.loop.call_later": [
+                    229,
+                    423,
+                    563,
+                    180,
+                    213,
+                    250,
+                    510
+                ],
+                "self.request_timeout_callback": [
+                    181,
+                    214
+                ],
+                "transport": [
+                    183
+                ],
+                "time": [
+                    513,
+                    226,
+                    426,
+                    210,
+                    566,
+                    247,
+                    184
+                ],
+                "self.connections.discard": [
+                    187
+                ],
+                "self._request_handler_task.cancel": [
+                    236,
+                    220,
+                    189
+                ],
+                "self._request_stream_task.cancel": [
+                    218,
+                    234,
+                    191
+                ],
+                "self._request_timeout_handler.cancel": [
+                    193,
+                    401
+                ],
+                "self._response_timeout_handler.cancel": [
+                    529,
+                    195,
+                    476,
+                    573
+                ],
+                "self._keep_alive_timeout_handler.cancel": [
+                    324,
+                    197
+                ],
+                "self._not_paused.clear": [
+                    200
+                ],
+                "time_elapsed": [
+                    226,
+                    227,
+                    228,
+                    210,
+                    211,
+                    212,
+                    247,
+                    248,
+                    249
+                ],
+                "time_left": [
+                    228,
+                    230,
+                    212,
+                    214,
+                    249,
+                    251
+                ],
+                "self.write_error": [
+                    546,
+                    267,
+                    301,
+                    237,
+                    493,
+                    628,
+                    221,
+                    349,
+                    285
+                ],
+                "RequestTimeout": [
+                    221
+                ],
+                "self.response_timeout_callback": [
+                    424,
+                    230
+                ],
+                "ServiceUnavailable": [
+                    237
+                ],
+                "self.keep_alive_timeout_callback": [
+                    251,
+                    564,
+                    511
+                ],
+                "logger.debug": [
+                    626,
+                    254,
+                    599
+                ],
+                "logger": [
+                    994,
+                    549,
+                    582,
+                    487,
+                    901,
+                    617,
+                    496,
+                    626,
+                    926,
+                    629,
+                    917,
+                    599,
+                    923,
+                    540,
+                    254
+                ],
+                "self.transport.close": [
+                    650,
+                    560,
+                    659,
+                    597,
+                    507,
+                    255
+                ],
+                "len": [
+                    265,
+                    452
+                ],
+                "data": [
+                    280,
+                    265,
+                    520
+                ],
+                "PayloadTooLarge": [
+                    267,
+                    301
+                ],
+                "HttpRequestParser": [
+                    273
+                ],
+                "self.parser.feed_data": [
+                    280
+                ],
+                "HttpParserError": [
+                    281
+                ],
+                "message": [
+                    628,
+                    629,
+                    282,
+                    284,
+                    285
+                ],
+                "traceback.format_exc": [
+                    284
+                ],
+                "traceback": [
+                    284
+                ],
+                "InvalidUsage": [
+                    285
+                ],
+                "url": [
+                    289,
+                    291
+                ],
+                "name": [
+                    994,
+                    294
+                ],
+                "value": [
+                    296,
+                    299,
+                    303,
+                    305,
+                    307
+                ],
+                "int": [
+                    299
+                ],
+                "value.decode": [
+                    305,
+                    303
+                ],
+                "UnicodeDecodeError": [
+                    304
+                ],
+                "self.headers.append": [
+                    306
+                ],
+                "casefold": [
+                    307
+                ],
+                "self._header_fragment.decode": [
+                    307
+                ],
+                "Header": [
+                    315
+                ],
+                "self.parser.get_http_version": [
+                    316
+                ],
+                "decode": [
+                    317
+                ],
+                "self.parser.get_method": [
+                    317
+                ],
+                "self.request.headers.get": [
+                    344,
+                    327
+                ],
+                "self.request.headers": [
+                    344,
+                    327
+                ],
+                "EXPECT_HEADER": [
+                    344,
+                    327
+                ],
+                "self.expect_handler": [
+                    328
+                ],
+                "self.router.is_stream_handler": [
+                    331
+                ],
+                "self.request.stream": [
+                    385,
+                    390,
+                    392,
+                    395,
+                    335,
+                    380,
+                    382
+                ],
+                "StreamBuffer": [
+                    335
+                ],
+                "self.execute_request_handler": [
+                    338,
+                    414
+                ],
+                "expect": [
+                    344,
+                    346,
+                    351
+                ],
+                "self.request.version": [
+                    536,
+                    345,
+                    482,
+                    578
+                ],
+                "expect.lower": [
+                    346
+                ],
+                "self.transport.write": [
+                    480,
+                    520,
+                    579,
+                    347
+                ],
+                "HeaderExpectationFailed": [
+                    350
+                ],
+                "format": [
+                    459,
+                    556,
+                    588,
+                    463,
+                    503,
+                    351
+                ],
+                "self._body_chunks.append": [
+                    361,
+                    404
+                ],
+                "body": [
+                    385,
+                    389,
+                    392,
+                    361,
+                    395,
+                    370,
+                    382
+                ],
+                "self._request_stream_task.done": [
+                    364,
+                    407
+                ],
+                "self.loop.create_task": [
+                    409,
+                    427,
+                    366
+                ],
+                "self.stream_append": [
+                    410,
+                    367
+                ],
+                "self.request.body_push": [
+                    370
+                ],
+                "self._request_stream_task.cancelled": [
+                    376
+                ],
+                "self.request.stream.is_full": [
+                    380,
+                    390
+                ],
+                "self.transport.pause_reading": [
+                    381,
+                    391
+                ],
+                "self.request.stream.put": [
+                    392,
+                    385,
+                    395,
+                    382
+                ],
+                "self.transport.resume_reading": [
+                    393,
+                    383
+                ],
+                "self._body_chunks.popleft": [
+                    389
+                ],
+                "self.request.body_finish": [
+                    413
+                ],
+                "self.write_response": [
+                    429
+                ],
+                "self.stream_response": [
+                    429
+                ],
+                "extra": [
+                    449,
+                    452,
+                    454,
+                    456,
+                    459,
+                    463,
+                    467,
+                    469
+                ],
+                "getattr": [
+                    593,
+                    449
+                ],
+                "response": [
+                    544,
+                    449,
+                    481,
+                    451,
+                    452,
+                    485,
+                    577,
+                    579,
+                    491,
+                    593,
+                    595,
+                    534,
+                    535,
+                    538,
+                    575
+                ],
+                "HTTPResponse": [
+                    451
+                ],
+                "response.body": [
+                    452
+                ],
+                "self.request.ip": [
+                    551,
+                    584,
+                    458,
+                    460,
+                    498
+                ],
+                "self.request.port": [
+                    460
+                ],
+                "self.request.method": [
+                    464
+                ],
+                "self.request.url": [
+                    464
+                ],
+                "access_logger.info": [
+                    469
+                ],
+                "access_logger": [
+                    469
+                ],
+                "self.keep_alive": [
+                    593,
+                    533,
+                    479
+                ],
+                "response.output": [
+                    481,
+                    579
+                ],
+                "self.log_response": [
+                    538,
+                    595,
+                    485
+                ],
+                "AttributeError": [
+                    598,
+                    539,
+                    486
+                ],
+                "logger.error": [
+                    549,
+                    582,
+                    487,
+                    617,
+                    496,
+                    629,
+                    540
+                ],
+                "type": [
+                    544,
+                    491
+                ],
+                "ServerError": [
+                    546,
+                    628,
+                    493
+                ],
+                "RuntimeError": [
+                    547,
+                    580,
+                    494
+                ],
+                "Exception": [
+                    554,
+                    586,
+                    501
+                ],
+                "self.bail_out": [
+                    587,
+                    555,
+                    502
+                ],
+                "repr": [
+                    556,
+                    588,
+                    503
+                ],
+                "e": [
+                    556,
+                    588,
+                    503
+                ],
+                "self.cleanup": [
+                    514,
+                    567
+                ],
+                "self._not_paused.wait": [
+                    517
+                ],
+                "response.protocol": [
+                    534
+                ],
+                "response.stream": [
+                    535
+                ],
+                "self.error_handler.response": [
+                    577
+                ],
+                "exception": [
+                    577
+                ],
+                "version": [
+                    578,
+                    579
+                ],
+                "from_error": [
+                    616
+                ],
+                "self.transport.is_closing": [
+                    616
+                ],
+                "self.transport.get_extra_info": [
+                    621
+                ],
+                "event": [
+                    669,
+                    670
+                ],
+                "events": [
+                    669
+                ],
+                "result": [
+                    672,
+                    670,
+                    671
+                ],
+                "isawaitable": [
+                    671
+                ],
+                "loop.run_until_complete": [
+                    672,
+                    962,
+                    899,
+                    933,
+                    946
+                ],
+                "self.serve_coro": [
+                    740,
+                    703
+                ],
+                "serve_coro": [
+                    703
+                ],
+                "self._after_start": [
+                    704,
+                    712
+                ],
+                "after_start": [
+                    704,
+                    891,
+                    904
+                ],
+                "self._before_stop": [
+                    705,
+                    716
+                ],
+                "before_stop": [
+                    705,
+                    929,
+                    892
+                ],
+                "self._after_stop": [
+                    720,
+                    706
+                ],
+                "after_stop": [
+                    706,
+                    964,
+                    893
+                ],
+                "self.server": [
+                    707,
+                    743,
+                    723,
+                    724,
+                    728,
+                    729,
+                    732,
+                    733
+                ],
+                "trigger_events": [
+                    896,
+                    929,
+                    964,
+                    712,
+                    904,
+                    716,
+                    720
+                ],
+                "self.server.is_serving": [
+                    724
+                ],
+                "self.server.wait_closed": [
+                    729
+                ],
+                "self.server.close": [
+                    733
+                ],
+                "coro": [
+                    734,
+                    735
+                ],
+                "self.wait_closed": [
+                    734
+                ],
+                "task": [
+                    736,
+                    740,
+                    741,
+                    743,
+                    735
+                ],
+                "asyncio.ensure_future": [
+                    740,
+                    735
+                ],
+                "task.done": [
+                    741
+                ],
+                "task.result": [
+                    743
+                ],
+                "HttpProtocol": [
+                    767
+                ],
+                "run_async": [
+                    836,
+                    886
+                ],
+                "asyncio.new_event_loop": [
+                    838
+                ],
+                "asyncio.set_event_loop": [
+                    839
+                ],
+                "loop.set_debug": [
+                    842
+                ],
+                "app.asgi": [
+                    844
+                ],
+                "server": [
+                    876,
+                    847
+                ],
+                "partial": [
+                    847
+                ],
+                "protocol": [
+                    848
+                ],
+                "websocket_max_size": [
+                    865
+                ],
+                "websocket_max_queue": [
+                    866
+                ],
+                "websocket_read_limit": [
+                    867
+                ],
+                "websocket_write_limit": [
+                    868
+                ],
+                "asyncio_server_kwargs": [
+                    872,
+                    873,
+                    883
+                ],
+                "server_coroutine": [
+                    889,
+                    875,
+                    899
+                ],
+                "loop.create_server": [
+                    875
+                ],
+                "host": [
+                    877
+                ],
+                "port": [
+                    878
+                ],
+                "ssl": [
+                    879
+                ],
+                "reuse_port": [
+                    880
+                ],
+                "sock": [
+                    881,
+                    983,
+                    984,
+                    985,
+                    986,
+                    987
+                ],
+                "backlog": [
+                    882
+                ],
+                "AsyncioServer": [
+                    887
+                ],
+                "before_start": [
+                    896
+                ],
+                "http_server": [
+                    899,
+                    932,
+                    933
+                ],
+                "BaseException": [
+                    900
+                ],
+                "logger.exception": [
+                    901
+                ],
+                "run_multiple": [
+                    912,
+                    907
+                ],
+                "signal_func": [
+                    908,
+                    998,
+                    999
+                ],
+                "SIGINT": [
+                    912,
+                    908,
+                    998
+                ],
+                "SIG_IGN": [
+                    908
+                ],
+                "register_sys_signals": [
+                    911
+                ],
+                "_singals": [
+                    912,
+                    913
+                ],
+                "SIGTERM": [
+                    912,
+                    996,
+                    999
+                ],
+                "_signal": [
+                    913,
+                    915
+                ],
+                "loop.add_signal_handler": [
+                    915
+                ],
+                "loop.stop": [
+                    915
+                ],
+                "NotImplementedError": [
+                    916
+                ],
+                "logger.warning": [
+                    917
+                ],
+                "pid": [
+                    921,
+                    923,
+                    926
+                ],
+                "os.getpid": [
+                    921
+                ],
+                "os": [
+                    921,
+                    996
+                ],
+                "logger.info": [
+                    994,
+                    923,
+                    926
+                ],
+                "loop.run_forever": [
+                    924
+                ],
+                "http_server.close": [
+                    932
+                ],
+                "http_server.wait_closed": [
+                    933
+                ],
+                "signal.stopped": [
+                    936
+                ],
+                "connection": [
+                    937,
+                    938
+                ],
+                "connection.close_if_idle": [
+                    938
+                ],
+                "start_shutdown": [
+                    944,
+                    945,
+                    947
+                ],
+                "graceful_shutdown_timeout": [
+                    945
+                ],
+                "asyncio.sleep": [
+                    946
+                ],
+                "coros": [
+                    959,
+                    954,
+                    961,
+                    951
+                ],
+                "conn": [
+                    952,
+                    953,
+                    954,
+                    956
+                ],
+                "hasattr": [
+                    953
+                ],
+                "conn.websocket": [
+                    953,
+                    954
+                ],
+                "coros.append": [
+                    954
+                ],
+                "conn.websocket.close_connection": [
+                    954
+                ],
+                "conn.close": [
+                    956
+                ],
+                "_shutdown": [
+                    961,
+                    962,
+                    959
+                ],
+                "asyncio.gather": [
+                    961,
+                    959
+                ],
+                "loop.close": [
+                    966
+                ],
+                "server_settings": [
+                    1002,
+                    978,
+                    979,
+                    1013,
+                    982,
+                    985,
+                    987,
+                    988,
+                    989
+                ],
+                "server_settings.get": [
+                    1013,
+                    982
+                ],
+                "socket": [
+                    983
+                ],
+                "sock.setsockopt": [
+                    984
+                ],
+                "SOL_SOCKET": [
+                    984
+                ],
+                "SO_REUSEADDR": [
+                    984
+                ],
+                "sock.bind": [
+                    985
+                ],
+                "sock.set_inheritable": [
+                    986
+                ],
+                "processes": [
+                    995,
+                    1005,
+                    1007,
+                    1011,
+                    991
+                ],
+                "Signals": [
+                    994
+                ],
+                "process": [
+                    995,
+                    996,
+                    1002,
+                    1003,
+                    1004,
+                    1005,
+                    1007,
+                    1008,
+                    1011,
+                    1012
+                ],
+                "os.kill": [
+                    996
+                ],
+                "process.pid": [
+                    996
+                ],
+                "sig_handler": [
+                    998,
+                    999
+                ],
+                "s": [
+                    998,
+                    999
+                ],
+                "f": [
+                    998,
+                    999
+                ],
+                "_": [
+                    1001
+                ],
+                "range": [
+                    1001
+                ],
+                "workers": [
+                    1001
+                ],
+                "Process": [
+                    1002
+                ],
+                "serve": [
+                    1002
+                ],
+                "process.daemon": [
+                    1003
+                ],
+                "process.start": [
+                    1004
+                ],
+                "processes.append": [
+                    1005
+                ],
+                "process.join": [
+                    1008
+                ],
+                "process.terminate": [
+                    1012
+                ],
+                "close": [
+                    1013
+                ]
+            },
+            "filtered_variables_in_file": {
+                "asyncio.get_event_loop_policy": [
+                    35
+                ],
+                "asyncio": [
+                    961,
+                    35,
+                    36,
+                    740,
+                    838,
+                    839,
+                    139,
+                    45,
+                    141,
+                    946,
+                    959,
+                    735
+                ],
+                "uvloop.EventLoopPolicy": [
+                    35,
+                    36
+                ],
+                "uvloop": [
+                    35,
+                    36
+                ],
+                "asyncio.set_event_loop_policy": [
+                    36
+                ],
+                "stopped": [
+                    42
+                ],
+                "asyncio.Protocol": [
+                    45
+                ],
+                "__slots__": [
+                    681,
+                    50
+                ],
+                "Signal": [
+                    773,
+                    101
+                ],
+                "self.loop": [
+                    229,
+                    423,
+                    712,
+                    427,
+                    702,
+                    716,
+                    366,
+                    720,
+                    563,
+                    180,
+                    213,
+                    117,
+                    409,
+                    250,
+                    510,
+                    735
+                ],
+                "self": [
+                    513,
+                    514,
+                    517,
+                    520,
+                    528,
+                    529,
+                    530,
+                    533,
+                    534,
+                    536,
+                    538,
+                    543,
+                    546,
+                    548,
+                    551,
+                    555,
+                    560,
+                    561,
+                    563,
+                    564,
+                    566,
+                    567,
+                    572,
+                    573,
+                    574,
+                    577,
+                    578,
+                    579,
+                    581,
+                    584,
+                    587,
+                    592,
+                    593,
+                    595,
+                    597,
+                    616,
+                    635,
+                    621,
+                    622,
+                    628,
+                    117,
+                    118,
+                    119,
+                    120,
+                    121,
+                    122,
+                    123,
+                    124,
+                    125,
+                    126,
+                    127,
+                    128,
+                    129,
+                    130,
+                    131,
+                    132,
+                    133,
+                    134,
+                    135,
+                    136,
+                    137,
+                    636,
+                    139,
+                    637,
+                    141,
+                    142,
+                    143,
+                    144,
+                    145,
+                    146,
+                    147,
+                    148,
+                    149,
+                    150,
+                    151,
+                    152,
+                    153,
+                    154,
+                    155,
+                    156,
+                    157,
+                    640,
+                    641,
+                    642,
+                    169,
+                    170,
+                    171,
+                    179,
+                    180,
+                    181,
+                    638,
+                    183,
+                    184,
+                    187,
+                    188,
+                    189,
+                    190,
+                    191,
+                    192,
+                    193,
+                    194,
+                    195,
+                    196,
+                    197,
+                    649,
+                    650,
+                    200,
+                    704,
+                    705,
+                    203,
+                    639,
+                    708,
+                    712,
+                    716,
+                    720,
+                    210,
+                    211,
+                    212,
+                    213,
+                    214,
+                    723,
+                    724,
+                    217,
+                    218,
+                    219,
+                    220,
+                    221,
+                    728,
+                    729,
+                    732,
+                    733,
+                    226,
+                    227,
+                    228,
+                    229,
+                    230,
+                    734,
+                    735,
+                    233,
+                    234,
+                    235,
+                    236,
+                    237,
+                    743,
+                    658,
+                    744,
+                    659,
+                    247,
+                    248,
+                    249,
+                    250,
+                    251,
+                    660,
+                    255,
+                    256,
+                    265,
+                    266,
+                    267,
+                    270,
+                    271,
+                    272,
+                    273,
+                    276,
+                    280,
+                    283,
+                    285,
+                    288,
+                    289,
+                    291,
+                    294,
+                    298,
+                    299,
+                    301,
+                    306,
+                    307,
+                    310,
+                    313,
+                    314,
+                    315,
+                    316,
+                    317,
+                    318,
+                    319,
+                    323,
+                    324,
+                    325,
+                    327,
+                    328,
+                    330,
+                    331,
+                    332,
+                    334,
+                    335,
+                    336,
+                    338,
+                    344,
+                    345,
+                    347,
+                    349,
+                    356,
+                    361,
+                    363,
+                    364,
+                    366,
+                    367,
+                    370,
+                    374,
+                    375,
+                    376,
+                    380,
+                    381,
+                    382,
+                    383,
+                    385,
+                    388,
+                    389,
+                    390,
+                    391,
+                    392,
+                    393,
+                    395,
+                    400,
+                    401,
+                    402,
+                    403,
+                    404,
+                    406,
+                    407,
+                    409,
+                    410,
+                    413,
+                    414,
+                    423,
+                    424,
+                    426,
+                    427,
+                    428,
+                    429,
+                    740,
+                    448,
+                    457,
+                    458,
+                    460,
+                    702,
+                    464,
+                    703,
+                    475,
+                    476,
+                    477,
+                    479,
+                    480,
+                    706,
+                    482,
+                    485,
+                    707,
+                    490,
+                    493,
+                    495,
+                    498,
+                    502,
+                    507,
+                    508,
+                    510,
+                    511
+                ],
+                "loop": [
+                    896,
+                    899,
+                    904,
+                    141,
+                    915,
+                    924,
+                    670,
+                    672,
+                    929,
+                    933,
+                    946,
+                    702,
+                    959,
+                    962,
+                    964,
+                    838,
+                    839,
+                    966,
+                    842,
+                    849,
+                    875,
+                    117,
+                    888
+                ],
+                "self.app": [
+                    118,
+                    319
+                ],
+                "app": [
+                    844,
+                    118,
+                    852
+                ],
+                "self.transport": [
+                    256,
+                    255,
+                    391,
+                    520,
+                    393,
+                    650,
+                    658,
+                    659,
+                    660,
+                    560,
+                    561,
+                    183,
+                    318,
+                    579,
+                    597,
+                    347,
+                    480,
+                    616,
+                    621,
+                    622,
+                    119,
+                    507,
+                    508,
+                    381,
+                    383
+                ],
+                "self.request": [
+                    636,
+                    385,
+                    390,
+                    392,
+                    395,
+                    271,
+                    536,
+                    413,
+                    551,
+                    429,
+                    313,
+                    577,
+                    578,
+                    327,
+                    584,
+                    457,
+                    458,
+                    332,
+                    460,
+                    335,
+                    464,
+                    344,
+                    345,
+                    482,
+                    370,
+                    498,
+                    374,
+                    120,
+                    380,
+                    382
+                ],
+                "self.parser": [
+                    649,
+                    171,
+                    270,
+                    592,
+                    273,
+                    280,
+                    121,
+                    635,
+                    316,
+                    317
+                ],
+                "self.url": [
+                    288,
+                    289,
+                    291,
+                    490,
+                    314,
+                    122,
+                    637,
+                    543
+                ],
+                "self.headers": [
+                    123,
+                    272,
+                    306,
+                    315,
+                    638
+                ],
+                "self.router": [
+                    331,
+                    124
+                ],
+                "router": [
+                    864,
+                    124
+                ],
+                "self.signal": [
+                    170,
+                    125
+                ],
+                "signal": [
+                    936,
+                    994,
+                    851,
+                    125
+                ],
+                "self.access_log": [
+                    448,
+                    126
+                ],
+                "access_log": [
+                    861,
+                    126
+                ],
+                "self.connections": [
+                    179,
+                    708,
+                    187,
+                    127
+                ],
+                "connections": [
+                    708,
+                    937,
+                    846,
+                    945,
+                    850,
+                    952,
+                    890,
+                    127
+                ],
+                "self.request_handler": [
+                    128,
+                    428
+                ],
+                "request_handler": [
+                    128,
+                    853
+                ],
+                "self.error_handler": [
+                    577,
+                    129
+                ],
+                "error_handler": [
+                    129,
+                    854
+                ],
+                "self.request_timeout": [
+                    130,
+                    211,
+                    212,
+                    181
+                ],
+                "request_timeout": [
+                    130,
+                    855
+                ],
+                "self.request_buffer_queue_size": [
+                    336,
+                    131
+                ],
+                "request_buffer_queue_size": [
+                    859,
+                    131
+                ],
+                "self.response_timeout": [
+                    424,
+                    227,
+                    132,
+                    228
+                ],
+                "response_timeout": [
+                    856,
+                    132
+                ],
+                "self.keep_alive_timeout": [
+                    482,
+                    133,
+                    536,
+                    564,
+                    248,
+                    249,
+                    511
+                ],
+                "keep_alive_timeout": [
+                    857,
+                    133
+                ],
+                "self.request_max_size": [
+                    266,
+                    299,
+                    134
+                ],
+                "request_max_size": [
+                    858,
+                    134
+                ],
+                "self.request_class": [
+                    313,
+                    135
+                ],
+                "request_class": [
+                    860,
+                    135
+                ],
+                "Request": [
+                    135
+                ],
+                "self.is_request_stream": [
+                    136,
+                    330,
+                    403,
+                    356
+                ],
+                "is_request_stream": [
+                    136,
+                    863
+                ],
+                "self._is_stream_handler": [
+                    642,
+                    356,
+                    137,
+                    331,
+                    334,
+                    403
+                ],
+                "sys.version_info.minor": [
+                    138,
+                    958
+                ],
+                "sys.version_info": [
+                    138,
+                    958
+                ],
+                "sys": [
+                    138,
+                    958
+                ],
+                "self._not_paused": [
+                    517,
+                    200,
+                    139,
+                    203,
+                    141,
+                    156
+                ],
+                "asyncio.Event": [
+                    139,
+                    141
+                ],
+                "self._total_request_size": [
+                    265,
+                    266,
+                    641,
+                    142
+                ],
+                "self._request_timeout_handler": [
+                    192,
+                    193,
+                    143,
+                    400,
+                    401,
+                    402,
+                    180,
+                    213
+                ],
+                "self._response_timeout_handler": [
+                    194,
+                    195,
+                    573,
+                    229,
+                    423,
+                    574,
+                    144,
+                    528,
+                    529,
+                    530,
+                    475,
+                    476,
+                    477,
+                    572
+                ],
+                "self._keep_alive_timeout_handler": [
+                    323,
+                    196,
+                    197,
+                    324,
+                    325,
+                    145,
+                    563,
+                    250,
+                    510
+                ],
+                "self._last_request_time": [
+                    226,
+                    426,
+                    210,
+                    146,
+                    184
+                ],
+                "self._last_response_time": [
+                    513,
+                    147,
+                    566,
+                    247
+                ],
+                "self._request_handler_task": [
+                    235,
+                    236,
+                    427,
+                    188,
+                    148,
+                    219,
+                    220,
+                    189,
+                    639
+                ],
+                "self._request_stream_task": [
+                    407,
+                    640,
+                    233,
+                    234,
+                    363,
+                    364,
+                    409,
+                    366,
+                    149,
+                    406,
+                    375,
+                    376,
+                    217,
+                    218,
+                    190,
+                    191
+                ],
+                "self._keep_alive": [
+                    169,
+                    150
+                ],
+                "keep_alive": [
+                    482,
+                    553,
+                    559,
+                    500,
+                    533,
+                    150,
+                    536,
+                    506,
+                    862,
+                    479
+                ],
+                "self._header_fragment": [
+                    294,
+                    298,
+                    307,
+                    310,
+                    151
+                ],
+                "self.state": [
+                    152,
+                    153,
+                    154,
+                    276
+                ],
+                "state": [
+                    152,
+                    869
+                ],
+                "self._debug": [
+                    548,
+                    581,
+                    155,
+                    495,
+                    283
+                ],
+                "debug": [
+                    841,
+                    842,
+                    155,
+                    870
+                ],
+                "self._not_paused.set": [
+                    203,
+                    156
+                ],
+                "self._body_chunks": [
+                    388,
+                    389,
+                    361,
+                    404,
+                    157
+                ],
+                "deque": [
+                    157
+                ],
+                "self.signal.stopped": [
+                    170
+                ],
+                "self.parser.should_keep_alive": [
+                    171
+                ],
+                "self.connections.add": [
+                    179
+                ],
+                "self.loop.call_later": [
+                    229,
+                    423,
+                    563,
+                    180,
+                    213,
+                    250,
+                    510
+                ],
+                "self.request_timeout_callback": [
+                    181,
+                    214
+                ],
+                "transport": [
+                    183
+                ],
+                "time": [
+                    513,
+                    226,
+                    426,
+                    210,
+                    566,
+                    247,
+                    184
+                ],
+                "self.connections.discard": [
+                    187
+                ],
+                "self._request_handler_task.cancel": [
+                    236,
+                    220,
+                    189
+                ],
+                "self._request_stream_task.cancel": [
+                    218,
+                    234,
+                    191
+                ],
+                "self._request_timeout_handler.cancel": [
+                    193,
+                    401
+                ],
+                "self._response_timeout_handler.cancel": [
+                    529,
+                    195,
+                    476,
+                    573
+                ],
+                "self._keep_alive_timeout_handler.cancel": [
+                    324,
+                    197
+                ],
+                "self._not_paused.clear": [
+                    200
+                ],
+                "time_elapsed": [
+                    226,
+                    227,
+                    228,
+                    210,
+                    211,
+                    212,
+                    247,
+                    248,
+                    249
+                ],
+                "time_left": [
+                    228,
+                    230,
+                    212,
+                    214,
+                    249,
+                    251
+                ],
+                "self.write_error": [
+                    546,
+                    267,
+                    301,
+                    237,
+                    493,
+                    628,
+                    221,
+                    349,
+                    285
+                ],
+                "RequestTimeout": [
+                    221
+                ],
+                "self.response_timeout_callback": [
+                    424,
+                    230
+                ],
+                "ServiceUnavailable": [
+                    237
+                ],
+                "self.keep_alive_timeout_callback": [
+                    251,
+                    564,
+                    511
+                ],
+                "logger.debug": [
+                    626,
+                    254,
+                    599
+                ],
+                "logger": [
+                    994,
+                    549,
+                    582,
+                    487,
+                    901,
+                    617,
+                    496,
+                    626,
+                    926,
+                    629,
+                    917,
+                    599,
+                    923,
+                    540,
+                    254
+                ],
+                "self.transport.close": [
+                    650,
+                    560,
+                    659,
+                    597,
+                    507,
+                    255
+                ],
+                "data": [
+                    280,
+                    265,
+                    520
+                ],
+                "PayloadTooLarge": [
+                    267,
+                    301
+                ],
+                "HttpRequestParser": [
+                    273
+                ],
+                "self.parser.feed_data": [
+                    280
+                ],
+                "HttpParserError": [
+                    281
+                ],
+                "message": [
+                    628,
+                    629,
+                    282,
+                    284,
+                    285
+                ],
+                "traceback.format_exc": [
+                    284
+                ],
+                "traceback": [
+                    284
+                ],
+                "InvalidUsage": [
+                    285
+                ],
+                "url": [
+                    289,
+                    291
+                ],
+                "name": [
+                    994,
+                    294
+                ],
+                "value": [
+                    296,
+                    299,
+                    303,
+                    305,
+                    307
+                ],
+                "value.decode": [
+                    305,
+                    303
+                ],
+                "self.headers.append": [
+                    306
+                ],
+                "casefold": [
+                    307
+                ],
+                "self._header_fragment.decode": [
+                    307
+                ],
+                "Header": [
+                    315
+                ],
+                "self.parser.get_http_version": [
+                    316
+                ],
+                "decode": [
+                    317
+                ],
+                "self.parser.get_method": [
+                    317
+                ],
+                "self.request.headers.get": [
+                    344,
+                    327
+                ],
+                "self.request.headers": [
+                    344,
+                    327
+                ],
+                "EXPECT_HEADER": [
+                    344,
+                    327
+                ],
+                "self.expect_handler": [
+                    328
+                ],
+                "self.router.is_stream_handler": [
+                    331
+                ],
+                "self.request.stream": [
+                    385,
+                    390,
+                    392,
+                    395,
+                    335,
+                    380,
+                    382
+                ],
+                "StreamBuffer": [
+                    335
+                ],
+                "self.execute_request_handler": [
+                    338,
+                    414
+                ],
+                "expect": [
+                    344,
+                    346,
+                    351
+                ],
+                "self.request.version": [
+                    536,
+                    345,
+                    482,
+                    578
+                ],
+                "expect.lower": [
+                    346
+                ],
+                "self.transport.write": [
+                    480,
+                    520,
+                    579,
+                    347
+                ],
+                "HeaderExpectationFailed": [
+                    350
+                ],
+                "self._body_chunks.append": [
+                    361,
+                    404
+                ],
+                "body": [
+                    385,
+                    389,
+                    392,
+                    361,
+                    395,
+                    370,
+                    382
+                ],
+                "self._request_stream_task.done": [
+                    364,
+                    407
+                ],
+                "self.loop.create_task": [
+                    409,
+                    427,
+                    366
+                ],
+                "self.stream_append": [
+                    410,
+                    367
+                ],
+                "self.request.body_push": [
+                    370
+                ],
+                "self._request_stream_task.cancelled": [
+                    376
+                ],
+                "self.request.stream.is_full": [
+                    380,
+                    390
+                ],
+                "self.transport.pause_reading": [
+                    381,
+                    391
+                ],
+                "self.request.stream.put": [
+                    392,
+                    385,
+                    395,
+                    382
+                ],
+                "self.transport.resume_reading": [
+                    393,
+                    383
+                ],
+                "self._body_chunks.popleft": [
+                    389
+                ],
+                "self.request.body_finish": [
+                    413
+                ],
+                "self.write_response": [
+                    429
+                ],
+                "self.stream_response": [
+                    429
+                ],
+                "extra": [
+                    449,
+                    452,
+                    454,
+                    456,
+                    459,
+                    463,
+                    467,
+                    469
+                ],
+                "response": [
+                    544,
+                    449,
+                    481,
+                    451,
+                    452,
+                    485,
+                    577,
+                    579,
+                    491,
+                    593,
+                    595,
+                    534,
+                    535,
+                    538,
+                    575
+                ],
+                "HTTPResponse": [
+                    451
+                ],
+                "response.body": [
+                    452
+                ],
+                "self.request.ip": [
+                    551,
+                    584,
+                    458,
+                    460,
+                    498
+                ],
+                "self.request.port": [
+                    460
+                ],
+                "self.request.method": [
+                    464
+                ],
+                "self.request.url": [
+                    464
+                ],
+                "access_logger.info": [
+                    469
+                ],
+                "access_logger": [
+                    469
+                ],
+                "self.keep_alive": [
+                    593,
+                    533,
+                    479
+                ],
+                "response.output": [
+                    481,
+                    579
+                ],
+                "self.log_response": [
+                    538,
+                    595,
+                    485
+                ],
+                "logger.error": [
+                    549,
+                    582,
+                    487,
+                    617,
+                    496,
+                    629,
+                    540
+                ],
+                "ServerError": [
+                    546,
+                    628,
+                    493
+                ],
+                "self.bail_out": [
+                    587,
+                    555,
+                    502
+                ],
+                "e": [
+                    556,
+                    588,
+                    503
+                ],
+                "self.cleanup": [
+                    514,
+                    567
+                ],
+                "self._not_paused.wait": [
+                    517
+                ],
+                "response.protocol": [
+                    534
+                ],
+                "response.stream": [
+                    535
+                ],
+                "self.error_handler.response": [
+                    577
+                ],
+                "exception": [
+                    577
+                ],
+                "version": [
+                    578,
+                    579
+                ],
+                "from_error": [
+                    616
+                ],
+                "self.transport.is_closing": [
+                    616
+                ],
+                "self.transport.get_extra_info": [
+                    621
+                ],
+                "event": [
+                    669,
+                    670
+                ],
+                "events": [
+                    669
+                ],
+                "result": [
+                    672,
+                    670,
+                    671
+                ],
+                "isawaitable": [
+                    671
+                ],
+                "loop.run_until_complete": [
+                    672,
+                    962,
+                    899,
+                    933,
+                    946
+                ],
+                "self.serve_coro": [
+                    740,
+                    703
+                ],
+                "serve_coro": [
+                    703
+                ],
+                "self._after_start": [
+                    704,
+                    712
+                ],
+                "after_start": [
+                    704,
+                    891,
+                    904
+                ],
+                "self._before_stop": [
+                    705,
+                    716
+                ],
+                "before_stop": [
+                    705,
+                    929,
+                    892
+                ],
+                "self._after_stop": [
+                    720,
+                    706
+                ],
+                "after_stop": [
+                    706,
+                    964,
+                    893
+                ],
+                "self.server": [
+                    707,
+                    743,
+                    723,
+                    724,
+                    728,
+                    729,
+                    732,
+                    733
+                ],
+                "trigger_events": [
+                    896,
+                    929,
+                    964,
+                    712,
+                    904,
+                    716,
+                    720
+                ],
+                "self.server.is_serving": [
+                    724
+                ],
+                "self.server.wait_closed": [
+                    729
+                ],
+                "self.server.close": [
+                    733
+                ],
+                "coro": [
+                    734,
+                    735
+                ],
+                "self.wait_closed": [
+                    734
+                ],
+                "task": [
+                    736,
+                    740,
+                    741,
+                    743,
+                    735
+                ],
+                "asyncio.ensure_future": [
+                    740,
+                    735
+                ],
+                "task.done": [
+                    741
+                ],
+                "task.result": [
+                    743
+                ],
+                "HttpProtocol": [
+                    767
+                ],
+                "run_async": [
+                    836,
+                    886
+                ],
+                "asyncio.new_event_loop": [
+                    838
+                ],
+                "asyncio.set_event_loop": [
+                    839
+                ],
+                "loop.set_debug": [
+                    842
+                ],
+                "app.asgi": [
+                    844
+                ],
+                "server": [
+                    876,
+                    847
+                ],
+                "partial": [
+                    847
+                ],
+                "protocol": [
+                    848
+                ],
+                "websocket_max_size": [
+                    865
+                ],
+                "websocket_max_queue": [
+                    866
+                ],
+                "websocket_read_limit": [
+                    867
+                ],
+                "websocket_write_limit": [
+                    868
+                ],
+                "asyncio_server_kwargs": [
+                    872,
+                    873,
+                    883
+                ],
+                "server_coroutine": [
+                    889,
+                    875,
+                    899
+                ],
+                "loop.create_server": [
+                    875
+                ],
+                "host": [
+                    877
+                ],
+                "port": [
+                    878
+                ],
+                "ssl": [
+                    879
+                ],
+                "reuse_port": [
+                    880
+                ],
+                "sock": [
+                    881,
+                    983,
+                    984,
+                    985,
+                    986,
+                    987
+                ],
+                "backlog": [
+                    882
+                ],
+                "AsyncioServer": [
+                    887
+                ],
+                "before_start": [
+                    896
+                ],
+                "http_server": [
+                    899,
+                    932,
+                    933
+                ],
+                "logger.exception": [
+                    901
+                ],
+                "run_multiple": [
+                    912,
+                    907
+                ],
+                "signal_func": [
+                    908,
+                    998,
+                    999
+                ],
+                "SIGINT": [
+                    912,
+                    908,
+                    998
+                ],
+                "SIG_IGN": [
+                    908
+                ],
+                "register_sys_signals": [
+                    911
+                ],
+                "_singals": [
+                    912,
+                    913
+                ],
+                "SIGTERM": [
+                    912,
+                    996,
+                    999
+                ],
+                "_signal": [
+                    913,
+                    915
+                ],
+                "loop.add_signal_handler": [
+                    915
+                ],
+                "loop.stop": [
+                    915
+                ],
+                "logger.warning": [
+                    917
+                ],
+                "pid": [
+                    921,
+                    923,
+                    926
+                ],
+                "os.getpid": [
+                    921
+                ],
+                "os": [
+                    921,
+                    996
+                ],
+                "logger.info": [
+                    994,
+                    923,
+                    926
+                ],
+                "loop.run_forever": [
+                    924
+                ],
+                "http_server.close": [
+                    932
+                ],
+                "http_server.wait_closed": [
+                    933
+                ],
+                "signal.stopped": [
+                    936
+                ],
+                "connection": [
+                    937,
+                    938
+                ],
+                "connection.close_if_idle": [
+                    938
+                ],
+                "start_shutdown": [
+                    944,
+                    945,
+                    947
+                ],
+                "graceful_shutdown_timeout": [
+                    945
+                ],
+                "asyncio.sleep": [
+                    946
+                ],
+                "coros": [
+                    959,
+                    954,
+                    961,
+                    951
+                ],
+                "conn": [
+                    952,
+                    953,
+                    954,
+                    956
+                ],
+                "conn.websocket": [
+                    953,
+                    954
+                ],
+                "coros.append": [
+                    954
+                ],
+                "conn.websocket.close_connection": [
+                    954
+                ],
+                "conn.close": [
+                    956
+                ],
+                "_shutdown": [
+                    961,
+                    962,
+                    959
+                ],
+                "asyncio.gather": [
+                    961,
+                    959
+                ],
+                "loop.close": [
+                    966
+                ],
+                "server_settings": [
+                    1002,
+                    978,
+                    979,
+                    1013,
+                    982,
+                    985,
+                    987,
+                    988,
+                    989
+                ],
+                "server_settings.get": [
+                    1013,
+                    982
+                ],
+                "socket": [
+                    983
+                ],
+                "sock.setsockopt": [
+                    984
+                ],
+                "SOL_SOCKET": [
+                    984
+                ],
+                "SO_REUSEADDR": [
+                    984
+                ],
+                "sock.bind": [
+                    985
+                ],
+                "sock.set_inheritable": [
+                    986
+                ],
+                "processes": [
+                    995,
+                    1005,
+                    1007,
+                    1011,
+                    991
+                ],
+                "Signals": [
+                    994
+                ],
+                "process": [
+                    995,
+                    996,
+                    1002,
+                    1003,
+                    1004,
+                    1005,
+                    1007,
+                    1008,
+                    1011,
+                    1012
+                ],
+                "os.kill": [
+                    996
+                ],
+                "process.pid": [
+                    996
+                ],
+                "sig_handler": [
+                    998,
+                    999
+                ],
+                "s": [
+                    998,
+                    999
+                ],
+                "f": [
+                    998,
+                    999
+                ],
+                "_": [
+                    1001
+                ],
+                "workers": [
+                    1001
+                ],
+                "Process": [
+                    1002
+                ],
+                "serve": [
+                    1002
+                ],
+                "process.daemon": [
+                    1003
+                ],
+                "process.start": [
+                    1004
+                ],
+                "processes.append": [
+                    1005
+                ],
+                "process.join": [
+                    1008
+                ],
+                "process.terminate": [
+                    1012
+                ],
+                "close": [
+                    1013
+                ]
+            }
+        },
+        "test_data": []
+    }
+}

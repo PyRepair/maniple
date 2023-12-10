@@ -1,0 +1,3055 @@
+{
+    "ansible:14": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/ansible_14/lib/ansible/galaxy/api.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "fetch_role_related",
+                    "function_code": "@g_connect(['v1'])\ndef fetch_role_related(self, related, role_id):\n    \"\"\"\n    Fetch the list of related items for the given role.\n    The url comes from the 'related' field of the role.\n    \"\"\"\n\n    results = []\n    try:\n        url = _urljoin(self.api_server, self.available_api_versions['v1'], \"roles\", role_id, related,\n                       \"?page_size=50\")\n        data = self._call_galaxy(url)\n        results = data['results']\n        done = (data.get('next_link', None) is None)\n        while not done:\n            url = _urljoin(self.api_server, data['next_link'])\n            data = self._call_galaxy(url)\n            results += data['results']\n            done = (data.get('next_link', None) is None)\n    except Exception as e:\n        display.vvvv(\"Unable to retrive role (id=%s) data (%s), but this is not fatal so we continue: %s\"\n                     % (role_id, related, to_text(e)))\n    return results\n",
+                    "decorators": [
+                        "g_connect(['v1'])"
+                    ],
+                    "docstring": "Fetch the list of related items for the given role.\nThe url comes from the 'related' field of the role.",
+                    "start_line": 278,
+                    "end_line": 300,
+                    "variables": {
+                        "results": [
+                            290,
+                            300,
+                            285,
+                            295
+                        ],
+                        "url": [
+                            289,
+                            293,
+                            294,
+                            287
+                        ],
+                        "_urljoin": [
+                            293,
+                            287
+                        ],
+                        "self.api_server": [
+                            293,
+                            287
+                        ],
+                        "self": [
+                            289,
+                            293,
+                            294,
+                            287
+                        ],
+                        "self.available_api_versions": [
+                            287
+                        ],
+                        "role_id": [
+                            299,
+                            287
+                        ],
+                        "related": [
+                            299,
+                            287
+                        ],
+                        "data": [
+                            289,
+                            290,
+                            291,
+                            293,
+                            294,
+                            295,
+                            296
+                        ],
+                        "self._call_galaxy": [
+                            289,
+                            294
+                        ],
+                        "done": [
+                            296,
+                            291,
+                            292
+                        ],
+                        "data.get": [
+                            296,
+                            291
+                        ],
+                        "Exception": [
+                            297
+                        ],
+                        "display.vvvv": [
+                            298
+                        ],
+                        "display": [
+                            298
+                        ],
+                        "to_text": [
+                            299
+                        ],
+                        "e": [
+                            299
+                        ],
+                        "g_connect": [
+                            278
+                        ]
+                    },
+                    "filtered_variables": {
+                        "results": [
+                            290,
+                            300,
+                            285,
+                            295
+                        ],
+                        "url": [
+                            289,
+                            293,
+                            294,
+                            287
+                        ],
+                        "_urljoin": [
+                            293,
+                            287
+                        ],
+                        "self.api_server": [
+                            293,
+                            287
+                        ],
+                        "self": [
+                            289,
+                            293,
+                            294,
+                            287
+                        ],
+                        "self.available_api_versions": [
+                            287
+                        ],
+                        "role_id": [
+                            299,
+                            287
+                        ],
+                        "related": [
+                            299,
+                            287
+                        ],
+                        "data": [
+                            289,
+                            290,
+                            291,
+                            293,
+                            294,
+                            295,
+                            296
+                        ],
+                        "self._call_galaxy": [
+                            289,
+                            294
+                        ],
+                        "done": [
+                            296,
+                            291,
+                            292
+                        ],
+                        "data.get": [
+                            296,
+                            291
+                        ],
+                        "display.vvvv": [
+                            298
+                        ],
+                        "display": [
+                            298
+                        ],
+                        "to_text": [
+                            299
+                        ],
+                        "e": [
+                            299
+                        ],
+                        "g_connect": [
+                            278
+                        ]
+                    },
+                    "diff_line_number": 291,
+                    "class_data": {
+                        "signature": "class GalaxyAPI()",
+                        "docstring": "This class is meant to be used as a API client for an Ansible Galaxy server ",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, galaxy, name, url, username=None, password=None, token=None):\n    self.galaxy = galaxy\n    self.name = name\n    self.username = username\n    self.password = password\n    self.token = token\n    self.api_server = url\n    self.validate_certs = not context.CLIARGS['ignore_certs']\n    self._available_api_versions = {}\n    display.debug('Validate TLS certificates for %s: %s' % (self.api_server, self.validate_certs))",
+                            "@property\n@g_connect(['v1', 'v2', 'v3'])\ndef available_api_versions(self):\n    return self._available_api_versions",
+                            "def _call_galaxy(self, url, args=None, headers=None, method=None, auth_required=False, error_context_msg=None):\n    headers = headers or {}\n    self._add_auth_token(headers, url, required=auth_required)\n    try:\n        display.vvvv('Calling Galaxy at %s' % url)\n        resp = open_url(to_native(url), data=args, validate_certs=self.validate_certs, headers=headers, method=method, timeout=20)\n    except HTTPError as e:\n        raise GalaxyError(e, error_context_msg)\n    except Exception as e:\n        raise AnsibleError(\"Unknown error when attempting to call Galaxy at '%s': %s\" % (url, to_native(e)))\n    resp_data = to_text(resp.read(), errors='surrogate_or_strict')\n    try:\n        data = json.loads(resp_data)\n    except ValueError:\n        raise AnsibleError(\"Failed to parse Galaxy response from '%s' as JSON:\\n%s\" % (resp.url, to_native(resp_data)))\n    return data",
+                            "def _add_auth_token(self, headers, url, token_type=None, required=False):\n    if 'Authorization' in headers:\n        return\n    if not self.token and required:\n        raise AnsibleError(\"No access token or username set. A token can be set with --api-key, with 'ansible-galaxy login', or set in ansible.cfg.\")\n    if self.token:\n        headers.update(self.token.headers())",
+                            "@g_connect(['v1'])\ndef authenticate(self, github_token):\n    \"\"\"\n    Retrieve an authentication token\n    \"\"\"\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'tokens') + '/'\n    args = urlencode({'github_token': github_token})\n    resp = open_url(url, data=args, validate_certs=self.validate_certs, method='POST')\n    data = json.loads(to_text(resp.read(), errors='surrogate_or_strict'))\n    return data",
+                            "@g_connect(['v1'])\ndef create_import_task(self, github_user, github_repo, reference=None, role_name=None):\n    \"\"\"\n    Post an import request\n    \"\"\"\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'imports') + '/'\n    args = {'github_user': github_user, 'github_repo': github_repo, 'github_reference': reference if reference else ''}\n    if role_name:\n        args['alternate_role_name'] = role_name\n    elif github_repo.startswith('ansible-role'):\n        args['alternate_role_name'] = github_repo[len('ansible-role') + 1:]\n    data = self._call_galaxy(url, args=urlencode(args), method='POST')\n    if data.get('results', None):\n        return data['results']\n    return data",
+                            "@g_connect(['v1'])\ndef get_import_task(self, task_id=None, github_user=None, github_repo=None):\n    \"\"\"\n    Check the status of an import task.\n    \"\"\"\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'imports')\n    if task_id is not None:\n        url = '%s?id=%d' % (url, task_id)\n    elif github_user is not None and github_repo is not None:\n        url = '%s?github_user=%s&github_repo=%s' % (url, github_user, github_repo)\n    else:\n        raise AnsibleError('Expected task_id or github_user and github_repo')\n    data = self._call_galaxy(url)\n    return data['results']",
+                            "@g_connect(['v1'])\ndef lookup_role_by_name(self, role_name, notify=True):\n    \"\"\"\n    Find a role by name.\n    \"\"\"\n    role_name = to_text(urlquote(to_bytes(role_name)))\n    try:\n        parts = role_name.split('.')\n        user_name = '.'.join(parts[0:-1])\n        role_name = parts[-1]\n        if notify:\n            display.display(\"- downloading role '%s', owned by %s\" % (role_name, user_name))\n    except Exception:\n        raise AnsibleError('Invalid role name (%s). Specify role as format: username.rolename' % role_name)\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'roles', '?owner__username=%s&name=%s' % (user_name, role_name))\n    data = self._call_galaxy(url)\n    if len(data['results']) != 0:\n        return data['results'][0]\n    return None",
+                            "@g_connect(['v1'])\ndef fetch_role_related(self, related, role_id):\n    \"\"\"\n    Fetch the list of related items for the given role.\n    The url comes from the 'related' field of the role.\n    \"\"\"\n    results = []\n    try:\n        url = _urljoin(self.api_server, self.available_api_versions['v1'], 'roles', role_id, related, '?page_size=50')\n        data = self._call_galaxy(url)\n        results = data['results']\n        done = data.get('next_link', None) is None\n        while not done:\n            url = _urljoin(self.api_server, data['next_link'])\n            data = self._call_galaxy(url)\n            results += data['results']\n            done = data.get('next_link', None) is None\n    except Exception as e:\n        display.vvvv('Unable to retrive role (id=%s) data (%s), but this is not fatal so we continue: %s' % (role_id, related, to_text(e)))\n    return results",
+                            "@g_connect(['v1'])\ndef get_list(self, what):\n    \"\"\"\n    Fetch the list of items specified.\n    \"\"\"\n    try:\n        url = _urljoin(self.api_server, self.available_api_versions['v1'], what, '?page_size')\n        data = self._call_galaxy(url)\n        if 'results' in data:\n            results = data['results']\n        else:\n            results = data\n        done = True\n        if 'next' in data:\n            done = data.get('next_link', None) is None\n        while not done:\n            url = _urljoin(self.api_server, data['next_link'])\n            data = self._call_galaxy(url)\n            results += data['results']\n            done = data.get('next_link', None) is None\n        return results\n    except Exception as error:\n        raise AnsibleError('Failed to download the %s list: %s' % (what, to_native(error)))",
+                            "@g_connect(['v1'])\ndef search_roles(self, search, **kwargs):\n    search_url = _urljoin(self.api_server, self.available_api_versions['v1'], 'search', 'roles', '?')\n    if search:\n        search_url += '&autocomplete=' + to_text(urlquote(to_bytes(search)))\n    tags = kwargs.get('tags', None)\n    platforms = kwargs.get('platforms', None)\n    page_size = kwargs.get('page_size', None)\n    author = kwargs.get('author', None)\n    if tags and isinstance(tags, string_types):\n        tags = tags.split(',')\n        search_url += '&tags_autocomplete=' + '+'.join(tags)\n    if platforms and isinstance(platforms, string_types):\n        platforms = platforms.split(',')\n        search_url += '&platforms_autocomplete=' + '+'.join(platforms)\n    if page_size:\n        search_url += '&page_size=%s' % page_size\n    if author:\n        search_url += '&username_autocomplete=%s' % author\n    data = self._call_galaxy(search_url)\n    return data",
+                            "@g_connect(['v1'])\ndef add_secret(self, source, github_user, github_repo, secret):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'notification_secrets') + '/'\n    args = urlencode({'source': source, 'github_user': github_user, 'github_repo': github_repo, 'secret': secret})\n    data = self._call_galaxy(url, args=args, method='POST')\n    return data",
+                            "@g_connect(['v1'])\ndef list_secrets(self):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'notification_secrets')\n    data = self._call_galaxy(url, auth_required=True)\n    return data",
+                            "@g_connect(['v1'])\ndef remove_secret(self, secret_id):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'notification_secrets', secret_id) + '/'\n    data = self._call_galaxy(url, auth_required=True, method='DELETE')\n    return data",
+                            "@g_connect(['v1'])\ndef delete_role(self, github_user, github_repo):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], 'removerole', '?github_user=%s&github_repo=%s' % (github_user, github_repo))\n    data = self._call_galaxy(url, auth_required=True, method='DELETE')\n    return data",
+                            "@g_connect(['v2', 'v3'])\ndef publish_collection(self, collection_path):\n    \"\"\"\n    Publishes a collection to a Galaxy server and returns the import task URI.\n\n    :param collection_path: The path to the collection tarball to publish.\n    :return: The import task URI that contains the import results.\n    \"\"\"\n    display.display(\"Publishing collection artifact '%s' to %s %s\" % (collection_path, self.name, self.api_server))\n    b_collection_path = to_bytes(collection_path, errors='surrogate_or_strict')\n    if not os.path.exists(b_collection_path):\n        raise AnsibleError(\"The collection path specified '%s' does not exist.\" % to_native(collection_path))\n    elif not tarfile.is_tarfile(b_collection_path):\n        raise AnsibleError(\"The collection path specified '%s' is not a tarball, use 'ansible-galaxy collection build' to create a proper release artifact.\" % to_native(collection_path))\n    with open(b_collection_path, 'rb') as collection_tar:\n        data = collection_tar.read()\n    boundary = '--------------------------%s' % uuid.uuid4().hex\n    b_file_name = os.path.basename(b_collection_path)\n    part_boundary = b'--' + to_bytes(boundary, errors='surrogate_or_strict')\n    form = [part_boundary, b'Content-Disposition: form-data; name=\"sha256\"', to_bytes(secure_hash_s(data), errors='surrogate_or_strict'), part_boundary, b'Content-Disposition: file; name=\"file\"; filename=\"%s\"' % b_file_name, b'Content-Type: application/octet-stream', b'', data, b'%s--' % part_boundary]\n    data = b'\\r\\n'.join(form)\n    headers = {'Content-type': 'multipart/form-data; boundary=%s' % boundary, 'Content-length': len(data)}\n    if 'v3' in self.available_api_versions:\n        n_url = _urljoin(self.api_server, self.available_api_versions['v3'], 'artifacts', 'collections') + '/'\n    else:\n        n_url = _urljoin(self.api_server, self.available_api_versions['v2'], 'collections') + '/'\n    resp = self._call_galaxy(n_url, args=data, headers=headers, method='POST', auth_required=True, error_context_msg='Error when publishing collection to %s (%s)' % (self.name, self.api_server))\n    return resp['task']",
+                            "@g_connect(['v2', 'v3'])\ndef wait_import_task(self, task_id, timeout=0):\n    \"\"\"\n    Waits until the import process on the Galaxy server has completed or the timeout is reached.\n\n    :param task_id: The id of the import task to wait for. This can be parsed out of the return\n        value for GalaxyAPI.publish_collection.\n    :param timeout: The timeout in seconds, 0 is no timeout.\n    \"\"\"\n    state = 'waiting'\n    data = None\n    if 'v3' in self.available_api_versions:\n        full_url = _urljoin(self.api_server, self.available_api_versions['v3'], 'imports/collections', task_id, '/')\n    else:\n        full_url = _urljoin(self.api_server, self.available_api_versions['v2'], 'collection-imports', task_id)\n    display.display('Waiting until Galaxy import task %s has completed' % full_url)\n    start = time.time()\n    wait = 2\n    while timeout == 0 or time.time() - start < timeout:\n        data = self._call_galaxy(full_url, method='GET', auth_required=True, error_context_msg='Error when getting import task results at %s' % full_url)\n        state = data.get('state', 'waiting')\n        if data.get('finished_at', None):\n            break\n        display.vvv('Galaxy import process has a status of %s, wait %d seconds before trying again' % (state, wait))\n        time.sleep(wait)\n        wait = min(30, wait * 1.5)\n    if state == 'waiting':\n        raise AnsibleError(\"Timeout while waiting for the Galaxy import process to finish, check progress at '%s'\" % to_native(full_url))\n    for message in data.get('messages', []):\n        level = message['level']\n        if level == 'error':\n            display.error('Galaxy import error message: %s' % message['message'])\n        elif level == 'warning':\n            display.warning('Galaxy import warning message: %s' % message['message'])\n        else:\n            display.vvv('Galaxy import message: %s - %s' % (level, message['message']))\n    if state == 'failed':\n        code = to_native(data['error'].get('code', 'UNKNOWN'))\n        description = to_native(data['error'].get('description', 'Unknown error, see %s for more details' % full_url))\n        raise AnsibleError('Galaxy import process failed: %s (Code: %s)' % (description, code))",
+                            "@g_connect(['v2', 'v3'])\ndef get_collection_version_metadata(self, namespace, name, version):\n    \"\"\"\n    Gets the collection information from the Galaxy server about a specific Collection version.\n\n    :param namespace: The collection namespace.\n    :param name: The collection name.\n    :param version: Optional version of the collection to get the information for.\n    :return: CollectionVersionMetadata about the collection at the version requested.\n    \"\"\"\n    api_path = self.available_api_versions.get('v3', self.available_api_versions.get('v2'))\n    url_paths = [self.api_server, api_path, 'collections', namespace, name, 'versions', version]\n    n_collection_url = _urljoin(*url_paths)\n    error_context_msg = 'Error when getting collection version metadata for %s.%s:%s from %s (%s)' % (namespace, name, version, self.name, self.api_server)\n    data = self._call_galaxy(n_collection_url, error_context_msg=error_context_msg)\n    return CollectionVersionMetadata(data['namespace']['name'], data['collection']['name'], data['version'], data['download_url'], data['artifact']['sha256'], data['metadata']['dependencies'])",
+                            "@g_connect(['v2', 'v3'])\ndef get_collection_versions(self, namespace, name):\n    \"\"\"\n    Gets a list of available versions for a collection on a Galaxy server.\n\n    :param namespace: The collection namespace.\n    :param name: The collection name.\n    :return: A list of versions that are available.\n    \"\"\"\n    if 'v3' in self.available_api_versions:\n        api_path = self.available_api_versions['v3']\n        results_key = 'data'\n        pagination_path = ['links', 'next']\n    else:\n        api_path = self.available_api_versions['v2']\n        results_key = 'results'\n        pagination_path = ['next']\n    n_url = _urljoin(self.api_server, api_path, 'collections', namespace, name, 'versions')\n    error_context_msg = 'Error when getting available collection versions for %s.%s from %s (%s)' % (namespace, name, self.name, self.api_server)\n    data = self._call_galaxy(n_url, error_context_msg=error_context_msg)\n    versions = []\n    while True:\n        versions += [v['version'] for v in data[results_key]]\n        next_link = data\n        for path in pagination_path:\n            next_link = next_link.get(path, {})\n        if not next_link:\n            break\n        data = self._call_galaxy(to_native(next_link, errors='surrogate_or_strict'), error_context_msg=error_context_msg)\n    return versions"
+                        ],
+                        "constructor_variables": [
+                            "token",
+                            "galaxy",
+                            "name",
+                            "username",
+                            "password",
+                            "_available_api_versions",
+                            "api_server",
+                            "validate_certs"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, galaxy, name, url, username=None, password=None, token=None)",
+                            "available_api_versions(self)",
+                            "_call_galaxy(self, url, args=None, headers=None, method=None, auth_required=False, error_context_msg=None)",
+                            "_add_auth_token(self, headers, url, token_type=None, required=False)",
+                            "authenticate(self, github_token)",
+                            "create_import_task(self, github_user, github_repo, reference=None, role_name=None)",
+                            "get_import_task(self, task_id=None, github_user=None, github_repo=None)",
+                            "lookup_role_by_name(self, role_name, notify=True)",
+                            "fetch_role_related(self, related, role_id)",
+                            "get_list(self, what)",
+                            "search_roles(self, search, **kwargs)",
+                            "add_secret(self, source, github_user, github_repo, secret)",
+                            "list_secrets(self)",
+                            "remove_secret(self, secret_id)",
+                            "delete_role(self, github_user, github_repo)",
+                            "publish_collection(self, collection_path)",
+                            "wait_import_task(self, task_id, timeout=0)",
+                            "get_collection_version_metadata(self, namespace, name, version)",
+                            "get_collection_versions(self, namespace, name)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {
+                                "results": {
+                                    "variable_value": "[{'name': '3.5.1'}, {'name': '3.5.2'}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "url": {
+                                    "variable_value": "'https://galaxy.com/api/v1/roles/432/versions/?page_size=50'",
+                                    "variable_type": "str",
+                                    "variable_shape": "58"
+                                },
+                                "_urljoin": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.api_server": {
+                                    "variable_value": "'https://galaxy.com/api/'",
+                                    "variable_type": "str",
+                                    "variable_shape": "23"
+                                },
+                                "self": {
+                                    "variable_value": "<ansible.galaxy.api.GalaxyAPI object at 0x107db9c10>",
+                                    "variable_type": "GalaxyAPI",
+                                    "variable_shape": null
+                                },
+                                "self.available_api_versions": {
+                                    "variable_value": "{'v1': 'v1'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "role_id": {
+                                    "variable_value": "432",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "related": {
+                                    "variable_value": "'versions'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "data": {
+                                    "variable_value": "{'count': 2, 'results': [{'name': '3.5.1'}, {'name': '3.5.2'}], 'next_link': None, 'next': None, 'previous_link': None, 'previous': None}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "6"
+                                },
+                                "self._call_galaxy": {
+                                    "variable_value": "<bound method GalaxyAPI._call_galaxy of <ansible.galaxy.api.GalaxyAPI object at 0x107db9c10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "done": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "data.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x107d59f00>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "display.vvvv": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "display": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_text": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g_connect": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {},
+                            {
+                                "results": {
+                                    "variable_value": "[{'name': '3.5.1'}, {'name': '3.5.2'}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "url": {
+                                    "variable_value": "'https://galaxy.com/api/api/v1/roles/432/versions/?page=2&page_size=50'",
+                                    "variable_type": "str",
+                                    "variable_shape": "69"
+                                },
+                                "_urljoin": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.api_server": {
+                                    "variable_value": "'https://galaxy.com/api/'",
+                                    "variable_type": "str",
+                                    "variable_shape": "23"
+                                },
+                                "self": {
+                                    "variable_value": "<ansible.galaxy.api.GalaxyAPI object at 0x107dbe710>",
+                                    "variable_type": "GalaxyAPI",
+                                    "variable_shape": null
+                                },
+                                "self.available_api_versions": {
+                                    "variable_value": "{'v1': 'v1'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "role_id": {
+                                    "variable_value": "432",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "related": {
+                                    "variable_value": "'versions'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "data": {
+                                    "variable_value": "{'count': 2, 'results': [{'name': '3.5.2'}], 'next_link': None, 'next': None, 'previous_link': '/api/v1/roles/432/versions/?&page_size=50', 'previous': '/roles/432/versions/?page_size=50'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "6"
+                                },
+                                "self._call_galaxy": {
+                                    "variable_value": "<bound method GalaxyAPI._call_galaxy of <ansible.galaxy.api.GalaxyAPI object at 0x107dbe710>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "done": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "data.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x107d590f0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "display.vvvv": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "display": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_text": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g_connect": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {
+                                "results": {
+                                    "variable_value": "[{'name': '3.5.1'}, {'name': '3.5.2'}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "url": {
+                                    "variable_value": "'https://galaxy.com/api/v1/roles/432/versions/?page_size=50'",
+                                    "variable_type": "str",
+                                    "variable_shape": "58"
+                                },
+                                "_urljoin": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.api_server": {
+                                    "variable_value": "'https://galaxy.com/api/'",
+                                    "variable_type": "str",
+                                    "variable_shape": "23"
+                                },
+                                "self": {
+                                    "variable_value": "<ansible.galaxy.api.GalaxyAPI object at 0x109d1c0d0>",
+                                    "variable_type": "GalaxyAPI",
+                                    "variable_shape": null
+                                },
+                                "self.available_api_versions": {
+                                    "variable_value": "{'v1': 'v1'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "role_id": {
+                                    "variable_value": "432",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "related": {
+                                    "variable_value": "'versions'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "data": {
+                                    "variable_value": "{'count': 2, 'results': [{'name': '3.5.1'}, {'name': '3.5.2'}], 'next_link': None, 'next': None, 'previous_link': None, 'previous': None}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "6"
+                                },
+                                "self._call_galaxy": {
+                                    "variable_value": "<bound method GalaxyAPI._call_galaxy of <ansible.galaxy.api.GalaxyAPI object at 0x109d1c0d0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "done": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "data.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x109d3daf0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "url_info": {
+                                    "variable_value": "ParseResult(scheme='https', netloc='galaxy.com', path='/api/', params='', query='', fragment='')",
+                                    "variable_type": "ParseResult",
+                                    "variable_shape": "6"
+                                },
+                                "urlparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "base_url": {
+                                    "variable_value": "'https://galaxy.com/'",
+                                    "variable_type": "str",
+                                    "variable_shape": "19"
+                                },
+                                "url_info.scheme": {
+                                    "variable_value": "'https'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "url_info.netloc": {
+                                    "variable_value": "'galaxy.com'",
+                                    "variable_type": "str",
+                                    "variable_shape": "10"
+                                },
+                                "display.warning": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "display": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_text": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g_connect": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {},
+                            {
+                                "results": {
+                                    "variable_value": "[{'name': '3.5.1'}, {'name': '3.5.2'}]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "url": {
+                                    "variable_value": "'https://galaxy.com/api/v1/roles/432/versions/?page=2&page_size=50'",
+                                    "variable_type": "str",
+                                    "variable_shape": "65"
+                                },
+                                "_urljoin": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.api_server": {
+                                    "variable_value": "'https://galaxy.com/api/'",
+                                    "variable_type": "str",
+                                    "variable_shape": "23"
+                                },
+                                "self": {
+                                    "variable_value": "<ansible.galaxy.api.GalaxyAPI object at 0x109c6eed0>",
+                                    "variable_type": "GalaxyAPI",
+                                    "variable_shape": null
+                                },
+                                "self.available_api_versions": {
+                                    "variable_value": "{'v1': 'v1'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "role_id": {
+                                    "variable_value": "432",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "related": {
+                                    "variable_value": "'versions'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "data": {
+                                    "variable_value": "{'count': 2, 'results': [{'name': '3.5.2'}], 'next_link': None, 'next': None, 'previous_link': '/api/v1/roles/432/versions/?&page_size=50', 'previous': '/roles/432/versions/?page_size=50'}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "6"
+                                },
+                                "self._call_galaxy": {
+                                    "variable_value": "<bound method GalaxyAPI._call_galaxy of <ansible.galaxy.api.GalaxyAPI object at 0x109c6eed0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "done": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "data.get": {
+                                    "variable_value": "<built-in method get of dict object at 0x109d3d230>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "url_info": {
+                                    "variable_value": "ParseResult(scheme='https', netloc='galaxy.com', path='/api/', params='', query='', fragment='')",
+                                    "variable_type": "ParseResult",
+                                    "variable_shape": "6"
+                                },
+                                "urlparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "base_url": {
+                                    "variable_value": "'https://galaxy.com/'",
+                                    "variable_type": "str",
+                                    "variable_shape": "19"
+                                },
+                                "url_info.scheme": {
+                                    "variable_value": "'https'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "url_info.netloc": {
+                                    "variable_value": "'galaxy.com'",
+                                    "variable_type": "str",
+                                    "variable_shape": "10"
+                                },
+                                "display.warning": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "display": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "to_text": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g_connect": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "display = Display()",
+                    "start_line": 23,
+                    "end_line": 24
+                }
+            ],
+            "inscope_functions": [
+                "def g_connect(versions):\n    \"\"\"\n    Wrapper to lazily initialize connection info to Galaxy and verify the API versions required are available on the\n    endpoint.\n\n    :param versions: A list of API versions that the function supports.\n    \"\"\"\n    def decorator(method):\n        def wrapped(self, *args, **kwargs):\n            if not self._available_api_versions:\n                display.vvvv(\"Initial connection to galaxy_server: %s\" % self.api_server)\n\n                # Determine the type of Galaxy server we are talking to. First try it unauthenticated then with Bearer\n                # auth for Automation Hub.\n                n_url = self.api_server\n                error_context_msg = 'Error when finding available api versions from %s (%s)' % (self.name, n_url)\n\n                if self.api_server == 'https://galaxy.ansible.com' or self.api_server == 'https://galaxy.ansible.com/':\n                    n_url = 'https://galaxy.ansible.com/api/'\n\n                try:\n                    data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg)\n                except (AnsibleError, GalaxyError, ValueError, KeyError):\n                    # Either the URL doesnt exist, or other error. Or the URL exists, but isn't a galaxy API\n                    # root (not JSON, no 'available_versions') so try appending '/api/'\n                    n_url = _urljoin(n_url, '/api/')\n\n                    # let exceptions here bubble up\n                    data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg)\n                    if 'available_versions' not in data:\n                        raise AnsibleError(\"Tried to find galaxy API root at %s but no 'available_versions' are available on %s\"\n                                           % (n_url, self.api_server))\n\n                # Update api_server to point to the \"real\" API root, which in this case\n                # was the configured url + '/api/' appended.\n                self.api_server = n_url\n\n                # Default to only supporting v1, if only v1 is returned we also assume that v2 is available even though\n                # it isn't returned in the available_versions dict.\n                available_versions = data.get('available_versions', {u'v1': u'v1/'})\n                if list(available_versions.keys()) == [u'v1']:\n                    available_versions[u'v2'] = u'v2/'\n\n                self._available_api_versions = available_versions\n                display.vvvv(\"Found API version '%s' with Galaxy server %s (%s)\"\n                             % (', '.join(available_versions.keys()), self.name, self.api_server))\n\n            # Verify that the API versions the function works with are available on the server specified.\n            available_versions = set(self._available_api_versions.keys())\n            common_versions = set(versions).intersection(available_versions)\n            if not common_versions:\n                raise AnsibleError(\"Galaxy action %s requires API versions '%s' but only '%s' are available on %s %s\"\n                                   % (method.__name__, \", \".join(versions), \", \".join(available_versions),\n                                      self.name, self.api_server))\n\n            return method(self, *args, **kwargs)\n        return wrapped\n    return decorator",
+                "def _urljoin(*args):\n    return '/'.join(to_native(a, errors='surrogate_or_strict').strip('/') for a in args + ('',) if a)",
+                "def decorator(method):\n    def wrapped(self, *args, **kwargs):\n        if not self._available_api_versions:\n            display.vvvv(\"Initial connection to galaxy_server: %s\" % self.api_server)\n\n            # Determine the type of Galaxy server we are talking to. First try it unauthenticated then with Bearer\n            # auth for Automation Hub.\n            n_url = self.api_server\n            error_context_msg = 'Error when finding available api versions from %s (%s)' % (self.name, n_url)\n\n            if self.api_server == 'https://galaxy.ansible.com' or self.api_server == 'https://galaxy.ansible.com/':\n                n_url = 'https://galaxy.ansible.com/api/'\n\n            try:\n                data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg)\n            except (AnsibleError, GalaxyError, ValueError, KeyError):\n                # Either the URL doesnt exist, or other error. Or the URL exists, but isn't a galaxy API\n                # root (not JSON, no 'available_versions') so try appending '/api/'\n                n_url = _urljoin(n_url, '/api/')\n\n                # let exceptions here bubble up\n                data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg)\n                if 'available_versions' not in data:\n                    raise AnsibleError(\"Tried to find galaxy API root at %s but no 'available_versions' are available on %s\"\n                                       % (n_url, self.api_server))\n\n            # Update api_server to point to the \"real\" API root, which in this case\n            # was the configured url + '/api/' appended.\n            self.api_server = n_url\n\n            # Default to only supporting v1, if only v1 is returned we also assume that v2 is available even though\n            # it isn't returned in the available_versions dict.\n            available_versions = data.get('available_versions', {u'v1': u'v1/'})\n            if list(available_versions.keys()) == [u'v1']:\n                available_versions[u'v2'] = u'v2/'\n\n            self._available_api_versions = available_versions\n            display.vvvv(\"Found API version '%s' with Galaxy server %s (%s)\"\n                         % (', '.join(available_versions.keys()), self.name, self.api_server))\n\n        # Verify that the API versions the function works with are available on the server specified.\n        available_versions = set(self._available_api_versions.keys())\n        common_versions = set(versions).intersection(available_versions)\n        if not common_versions:\n            raise AnsibleError(\"Galaxy action %s requires API versions '%s' but only '%s' are available on %s %s\"\n                               % (method.__name__, \", \".join(versions), \", \".join(available_versions),\n                                  self.name, self.api_server))\n\n        return method(self, *args, **kwargs)\n    return wrapped",
+                "def __init__(self, http_error, message):\n    super(GalaxyError, self).__init__(message)\n    self.http_code = http_error.code\n    self.url = http_error.geturl()\n\n    try:\n        http_msg = to_text(http_error.read())\n        err_info = json.loads(http_msg)\n    except (AttributeError, ValueError):\n        err_info = {}\n\n    url_split = self.url.split('/')\n    if 'v2' in url_split:\n        galaxy_msg = err_info.get('message', 'Unknown error returned by Galaxy server.')\n        code = err_info.get('code', 'Unknown')\n        full_error_msg = u\"%s (HTTP Code: %d, Message: %s Code: %s)\" % (message, self.http_code, galaxy_msg, code)\n    elif 'v3' in url_split:\n        errors = err_info.get('errors', [])\n        if not errors:\n            errors = [{}]  # Defaults are set below, we just need to make sure 1 error is present.\n\n        message_lines = []\n        for error in errors:\n            error_msg = error.get('detail') or error.get('title') or 'Unknown error returned by Galaxy server.'\n            error_code = error.get('code') or 'Unknown'\n            message_line = u\"(HTTP Code: %d, Message: %s Code: %s)\" % (self.http_code, error_msg, error_code)\n            message_lines.append(message_line)\n\n        full_error_msg = \"%s %s\" % (message, ', '.join(message_lines))\n    else:\n        # v1 and unknown API endpoints\n        galaxy_msg = err_info.get('default', 'Unknown error returned by Galaxy server.')\n        full_error_msg = u\"%s (HTTP Code: %d, Message: %s)\" % (message, self.http_code, galaxy_msg)\n\n    self.message = to_native(full_error_msg)",
+                "def __init__(self, namespace, name, version, download_url, artifact_sha256, dependencies):\n    \"\"\"\n    Contains common information about a collection on a Galaxy server to smooth through API differences for\n    Collection and define a standard meta info for a collection.\n\n    :param namespace: The namespace name.\n    :param name: The collection name.\n    :param version: The version that the metadata refers to.\n    :param download_url: The URL to download the collection.\n    :param artifact_sha256: The SHA256 of the collection artifact for later verification.\n    :param dependencies: A dict of dependencies of the collection.\n    \"\"\"\n    self.namespace = namespace\n    self.name = name\n    self.version = version\n    self.download_url = download_url\n    self.artifact_sha256 = artifact_sha256\n    self.dependencies = dependencies",
+                "def __init__(self, galaxy, name, url, username=None, password=None, token=None):\n    self.galaxy = galaxy\n    self.name = name\n    self.username = username\n    self.password = password\n    self.token = token\n    self.api_server = url\n    self.validate_certs = not context.CLIARGS['ignore_certs']\n    self._available_api_versions = {}\n\n    display.debug('Validate TLS certificates for %s: %s' % (self.api_server, self.validate_certs))",
+                "@property\n@g_connect(['v1', 'v2', 'v3'])\ndef available_api_versions(self):\n    # Calling g_connect will populate self._available_api_versions\n    return self._available_api_versions",
+                "def _call_galaxy(self, url, args=None, headers=None, method=None, auth_required=False, error_context_msg=None):\n    headers = headers or {}\n    self._add_auth_token(headers, url, required=auth_required)\n\n    try:\n        display.vvvv(\"Calling Galaxy at %s\" % url)\n        resp = open_url(to_native(url), data=args, validate_certs=self.validate_certs, headers=headers,\n                        method=method, timeout=20)\n    except HTTPError as e:\n        raise GalaxyError(e, error_context_msg)\n    except Exception as e:\n        raise AnsibleError(\"Unknown error when attempting to call Galaxy at '%s': %s\" % (url, to_native(e)))\n\n    resp_data = to_text(resp.read(), errors='surrogate_or_strict')\n    try:\n        data = json.loads(resp_data)\n    except ValueError:\n        raise AnsibleError(\"Failed to parse Galaxy response from '%s' as JSON:\\n%s\"\n                           % (resp.url, to_native(resp_data)))\n\n    return data",
+                "def _add_auth_token(self, headers, url, token_type=None, required=False):\n    # Don't add the auth token if one is already present\n    if 'Authorization' in headers:\n        return\n\n    if not self.token and required:\n        raise AnsibleError(\"No access token or username set. A token can be set with --api-key, with \"\n                           \"'ansible-galaxy login', or set in ansible.cfg.\")\n\n    if self.token:\n        headers.update(self.token.headers())",
+                "@g_connect(['v1'])\ndef authenticate(self, github_token):\n    \"\"\"\n    Retrieve an authentication token\n    \"\"\"\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"tokens\") + '/'\n    args = urlencode({\"github_token\": github_token})\n    resp = open_url(url, data=args, validate_certs=self.validate_certs, method=\"POST\")\n    data = json.loads(to_text(resp.read(), errors='surrogate_or_strict'))\n    return data",
+                "@g_connect(['v1'])\ndef create_import_task(self, github_user, github_repo, reference=None, role_name=None):\n    \"\"\"\n    Post an import request\n    \"\"\"\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"imports\") + '/'\n    args = {\n        \"github_user\": github_user,\n        \"github_repo\": github_repo,\n        \"github_reference\": reference if reference else \"\"\n    }\n    if role_name:\n        args['alternate_role_name'] = role_name\n    elif github_repo.startswith('ansible-role'):\n        args['alternate_role_name'] = github_repo[len('ansible-role') + 1:]\n    data = self._call_galaxy(url, args=urlencode(args), method=\"POST\")\n    if data.get('results', None):\n        return data['results']\n    return data",
+                "@g_connect(['v1'])\ndef get_import_task(self, task_id=None, github_user=None, github_repo=None):\n    \"\"\"\n    Check the status of an import task.\n    \"\"\"\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"imports\")\n    if task_id is not None:\n        url = \"%s?id=%d\" % (url, task_id)\n    elif github_user is not None and github_repo is not None:\n        url = \"%s?github_user=%s&github_repo=%s\" % (url, github_user, github_repo)\n    else:\n        raise AnsibleError(\"Expected task_id or github_user and github_repo\")\n\n    data = self._call_galaxy(url)\n    return data['results']",
+                "@g_connect(['v1'])\ndef lookup_role_by_name(self, role_name, notify=True):\n    \"\"\"\n    Find a role by name.\n    \"\"\"\n    role_name = to_text(urlquote(to_bytes(role_name)))\n\n    try:\n        parts = role_name.split(\".\")\n        user_name = \".\".join(parts[0:-1])\n        role_name = parts[-1]\n        if notify:\n            display.display(\"- downloading role '%s', owned by %s\" % (role_name, user_name))\n    except Exception:\n        raise AnsibleError(\"Invalid role name (%s). Specify role as format: username.rolename\" % role_name)\n\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"roles\",\n                   \"?owner__username=%s&name=%s\" % (user_name, role_name))\n    data = self._call_galaxy(url)\n    if len(data[\"results\"]) != 0:\n        return data[\"results\"][0]\n    return None",
+                "@g_connect(['v1'])\ndef fetch_role_related(self, related, role_id):\n    \"\"\"\n    Fetch the list of related items for the given role.\n    The url comes from the 'related' field of the role.\n    \"\"\"\n\n    results = []\n    try:\n        url = _urljoin(self.api_server, self.available_api_versions['v1'], \"roles\", role_id, related,\n                       \"?page_size=50\")\n        data = self._call_galaxy(url)\n        results = data['results']\n        done = (data.get('next_link', None) is None)\n        while not done:\n            url = _urljoin(self.api_server, data['next_link'])\n            data = self._call_galaxy(url)\n            results += data['results']\n            done = (data.get('next_link', None) is None)\n    except Exception as e:\n        display.vvvv(\"Unable to retrive role (id=%s) data (%s), but this is not fatal so we continue: %s\"\n                     % (role_id, related, to_text(e)))\n    return results",
+                "@g_connect(['v1'])\ndef get_list(self, what):\n    \"\"\"\n    Fetch the list of items specified.\n    \"\"\"\n    try:\n        url = _urljoin(self.api_server, self.available_api_versions['v1'], what, \"?page_size\")\n        data = self._call_galaxy(url)\n        if \"results\" in data:\n            results = data['results']\n        else:\n            results = data\n        done = True\n        if \"next\" in data:\n            done = (data.get('next_link', None) is None)\n        while not done:\n            url = _urljoin(self.api_server, data['next_link'])\n            data = self._call_galaxy(url)\n            results += data['results']\n            done = (data.get('next_link', None) is None)\n        return results\n    except Exception as error:\n        raise AnsibleError(\"Failed to download the %s list: %s\" % (what, to_native(error)))",
+                "@g_connect(['v1'])\ndef search_roles(self, search, **kwargs):\n\n    search_url = _urljoin(self.api_server, self.available_api_versions['v1'], \"search\", \"roles\", \"?\")\n\n    if search:\n        search_url += '&autocomplete=' + to_text(urlquote(to_bytes(search)))\n\n    tags = kwargs.get('tags', None)\n    platforms = kwargs.get('platforms', None)\n    page_size = kwargs.get('page_size', None)\n    author = kwargs.get('author', None)\n\n    if tags and isinstance(tags, string_types):\n        tags = tags.split(',')\n        search_url += '&tags_autocomplete=' + '+'.join(tags)\n\n    if platforms and isinstance(platforms, string_types):\n        platforms = platforms.split(',')\n        search_url += '&platforms_autocomplete=' + '+'.join(platforms)\n\n    if page_size:\n        search_url += '&page_size=%s' % page_size\n\n    if author:\n        search_url += '&username_autocomplete=%s' % author\n\n    data = self._call_galaxy(search_url)\n    return data",
+                "@g_connect(['v1'])\ndef add_secret(self, source, github_user, github_repo, secret):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"notification_secrets\") + '/'\n    args = urlencode({\n        \"source\": source,\n        \"github_user\": github_user,\n        \"github_repo\": github_repo,\n        \"secret\": secret\n    })\n    data = self._call_galaxy(url, args=args, method=\"POST\")\n    return data",
+                "@g_connect(['v1'])\ndef list_secrets(self):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"notification_secrets\")\n    data = self._call_galaxy(url, auth_required=True)\n    return data",
+                "@g_connect(['v1'])\ndef remove_secret(self, secret_id):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"notification_secrets\", secret_id) + '/'\n    data = self._call_galaxy(url, auth_required=True, method='DELETE')\n    return data",
+                "@g_connect(['v1'])\ndef delete_role(self, github_user, github_repo):\n    url = _urljoin(self.api_server, self.available_api_versions['v1'], \"removerole\",\n                   \"?github_user=%s&github_repo=%s\" % (github_user, github_repo))\n    data = self._call_galaxy(url, auth_required=True, method='DELETE')\n    return data",
+                "@g_connect(['v2', 'v3'])\ndef publish_collection(self, collection_path):\n    \"\"\"\n    Publishes a collection to a Galaxy server and returns the import task URI.\n\n    :param collection_path: The path to the collection tarball to publish.\n    :return: The import task URI that contains the import results.\n    \"\"\"\n    display.display(\"Publishing collection artifact '%s' to %s %s\" % (collection_path, self.name, self.api_server))\n\n    b_collection_path = to_bytes(collection_path, errors='surrogate_or_strict')\n    if not os.path.exists(b_collection_path):\n        raise AnsibleError(\"The collection path specified '%s' does not exist.\" % to_native(collection_path))\n    elif not tarfile.is_tarfile(b_collection_path):\n        raise AnsibleError(\"The collection path specified '%s' is not a tarball, use 'ansible-galaxy collection \"\n                           \"build' to create a proper release artifact.\" % to_native(collection_path))\n\n    with open(b_collection_path, 'rb') as collection_tar:\n        data = collection_tar.read()\n\n    boundary = '--------------------------%s' % uuid.uuid4().hex\n    b_file_name = os.path.basename(b_collection_path)\n    part_boundary = b\"--\" + to_bytes(boundary, errors='surrogate_or_strict')\n\n    form = [\n        part_boundary,\n        b\"Content-Disposition: form-data; name=\\\"sha256\\\"\",\n        to_bytes(secure_hash_s(data), errors='surrogate_or_strict'),\n        part_boundary,\n        b\"Content-Disposition: file; name=\\\"file\\\"; filename=\\\"%s\\\"\" % b_file_name,\n        b\"Content-Type: application/octet-stream\",\n        b\"\",\n        data,\n        b\"%s--\" % part_boundary,\n    ]\n    data = b\"\\r\\n\".join(form)\n\n    headers = {\n        'Content-type': 'multipart/form-data; boundary=%s' % boundary,\n        'Content-length': len(data),\n    }\n\n    if 'v3' in self.available_api_versions:\n        n_url = _urljoin(self.api_server, self.available_api_versions['v3'], 'artifacts', 'collections') + '/'\n    else:\n        n_url = _urljoin(self.api_server, self.available_api_versions['v2'], 'collections') + '/'\n\n    resp = self._call_galaxy(n_url, args=data, headers=headers, method='POST', auth_required=True,\n                             error_context_msg='Error when publishing collection to %s (%s)'\n                                               % (self.name, self.api_server))\n    return resp['task']",
+                "@g_connect(['v2', 'v3'])\ndef wait_import_task(self, task_id, timeout=0):\n    \"\"\"\n    Waits until the import process on the Galaxy server has completed or the timeout is reached.\n\n    :param task_id: The id of the import task to wait for. This can be parsed out of the return\n        value for GalaxyAPI.publish_collection.\n    :param timeout: The timeout in seconds, 0 is no timeout.\n    \"\"\"\n    # TODO: actually verify that v3 returns the same structure as v2, right now this is just an assumption.\n    state = 'waiting'\n    data = None\n\n    # Construct the appropriate URL per version\n    if 'v3' in self.available_api_versions:\n        full_url = _urljoin(self.api_server, self.available_api_versions['v3'],\n                            'imports/collections', task_id, '/')\n    else:\n        # TODO: Should we have a trailing slash here?  I'm working with what the unittests ask\n        # for but a trailing slash may be more correct\n        full_url = _urljoin(self.api_server, self.available_api_versions['v2'],\n                            'collection-imports', task_id)\n\n    display.display(\"Waiting until Galaxy import task %s has completed\" % full_url)\n    start = time.time()\n    wait = 2\n\n    while timeout == 0 or (time.time() - start) < timeout:\n        data = self._call_galaxy(full_url, method='GET', auth_required=True,\n                                 error_context_msg='Error when getting import task results at %s' % full_url)\n\n        state = data.get('state', 'waiting')\n\n        if data.get('finished_at', None):\n            break\n\n        display.vvv('Galaxy import process has a status of %s, wait %d seconds before trying again'\n                    % (state, wait))\n        time.sleep(wait)\n\n        # poor man's exponential backoff algo so we don't flood the Galaxy API, cap at 30 seconds.\n        wait = min(30, wait * 1.5)\n    if state == 'waiting':\n        raise AnsibleError(\"Timeout while waiting for the Galaxy import process to finish, check progress at '%s'\"\n                           % to_native(full_url))\n\n    for message in data.get('messages', []):\n        level = message['level']\n        if level == 'error':\n            display.error(\"Galaxy import error message: %s\" % message['message'])\n        elif level == 'warning':\n            display.warning(\"Galaxy import warning message: %s\" % message['message'])\n        else:\n            display.vvv(\"Galaxy import message: %s - %s\" % (level, message['message']))\n\n    if state == 'failed':\n        code = to_native(data['error'].get('code', 'UNKNOWN'))\n        description = to_native(\n            data['error'].get('description', \"Unknown error, see %s for more details\" % full_url))\n        raise AnsibleError(\"Galaxy import process failed: %s (Code: %s)\" % (description, code))",
+                "@g_connect(['v2', 'v3'])\ndef get_collection_version_metadata(self, namespace, name, version):\n    \"\"\"\n    Gets the collection information from the Galaxy server about a specific Collection version.\n\n    :param namespace: The collection namespace.\n    :param name: The collection name.\n    :param version: Optional version of the collection to get the information for.\n    :return: CollectionVersionMetadata about the collection at the version requested.\n    \"\"\"\n    api_path = self.available_api_versions.get('v3', self.available_api_versions.get('v2'))\n    url_paths = [self.api_server, api_path, 'collections', namespace, name, 'versions', version]\n\n    n_collection_url = _urljoin(*url_paths)\n    error_context_msg = 'Error when getting collection version metadata for %s.%s:%s from %s (%s)' \\\n                        % (namespace, name, version, self.name, self.api_server)\n    data = self._call_galaxy(n_collection_url, error_context_msg=error_context_msg)\n\n    return CollectionVersionMetadata(data['namespace']['name'], data['collection']['name'], data['version'],\n                                     data['download_url'], data['artifact']['sha256'],\n                                     data['metadata']['dependencies'])",
+                "@g_connect(['v2', 'v3'])\ndef get_collection_versions(self, namespace, name):\n    \"\"\"\n    Gets a list of available versions for a collection on a Galaxy server.\n\n    :param namespace: The collection namespace.\n    :param name: The collection name.\n    :return: A list of versions that are available.\n    \"\"\"\n    if 'v3' in self.available_api_versions:\n        api_path = self.available_api_versions['v3']\n        results_key = 'data'\n        pagination_path = ['links', 'next']\n    else:\n        api_path = self.available_api_versions['v2']\n        results_key = 'results'\n        pagination_path = ['next']\n\n    n_url = _urljoin(self.api_server, api_path, 'collections', namespace, name, 'versions')\n\n    error_context_msg = 'Error when getting available collection versions for %s.%s from %s (%s)' \\\n                        % (namespace, name, self.name, self.api_server)\n    data = self._call_galaxy(n_url, error_context_msg=error_context_msg)\n\n    versions = []\n    while True:\n        versions += [v['version'] for v in data[results_key]]\n\n        next_link = data\n        for path in pagination_path:\n            next_link = next_link.get(path, {})\n\n        if not next_link:\n            break\n\n        data = self._call_galaxy(to_native(next_link, errors='surrogate_or_strict'),\n                                 error_context_msg=error_context_msg)\n\n    return versions",
+                "def wrapped(self, *args, **kwargs):\n    if not self._available_api_versions:\n        display.vvvv(\"Initial connection to galaxy_server: %s\" % self.api_server)\n\n        # Determine the type of Galaxy server we are talking to. First try it unauthenticated then with Bearer\n        # auth for Automation Hub.\n        n_url = self.api_server\n        error_context_msg = 'Error when finding available api versions from %s (%s)' % (self.name, n_url)\n\n        if self.api_server == 'https://galaxy.ansible.com' or self.api_server == 'https://galaxy.ansible.com/':\n            n_url = 'https://galaxy.ansible.com/api/'\n\n        try:\n            data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg)\n        except (AnsibleError, GalaxyError, ValueError, KeyError):\n            # Either the URL doesnt exist, or other error. Or the URL exists, but isn't a galaxy API\n            # root (not JSON, no 'available_versions') so try appending '/api/'\n            n_url = _urljoin(n_url, '/api/')\n\n            # let exceptions here bubble up\n            data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg)\n            if 'available_versions' not in data:\n                raise AnsibleError(\"Tried to find galaxy API root at %s but no 'available_versions' are available on %s\"\n                                   % (n_url, self.api_server))\n\n        # Update api_server to point to the \"real\" API root, which in this case\n        # was the configured url + '/api/' appended.\n        self.api_server = n_url\n\n        # Default to only supporting v1, if only v1 is returned we also assume that v2 is available even though\n        # it isn't returned in the available_versions dict.\n        available_versions = data.get('available_versions', {u'v1': u'v1/'})\n        if list(available_versions.keys()) == [u'v1']:\n            available_versions[u'v2'] = u'v2/'\n\n        self._available_api_versions = available_versions\n        display.vvvv(\"Found API version '%s' with Galaxy server %s (%s)\"\n                     % (', '.join(available_versions.keys()), self.name, self.api_server))\n\n    # Verify that the API versions the function works with are available on the server specified.\n    available_versions = set(self._available_api_versions.keys())\n    common_versions = set(versions).intersection(available_versions)\n    if not common_versions:\n        raise AnsibleError(\"Galaxy action %s requires API versions '%s' but only '%s' are available on %s %s\"\n                           % (method.__name__, \", \".join(versions), \", \".join(available_versions),\n                              self.name, self.api_server))\n\n    return method(self, *args, **kwargs)"
+            ],
+            "inscope_function_signatures": [
+                "g_connect(versions)",
+                "_urljoin(*args)",
+                "decorator(method)",
+                "__init__(self, http_error, message)",
+                "__init__(self, namespace, name, version, download_url, artifact_sha256, dependencies)",
+                "__init__(self, galaxy, name, url, username=None, password=None, token=None)",
+                "available_api_versions(self)",
+                "_call_galaxy(self, url, args=None, headers=None, method=None, auth_required=False, error_context_msg=None)",
+                "_add_auth_token(self, headers, url, token_type=None, required=False)",
+                "authenticate(self, github_token)",
+                "create_import_task(self, github_user, github_repo, reference=None, role_name=None)",
+                "get_import_task(self, task_id=None, github_user=None, github_repo=None)",
+                "lookup_role_by_name(self, role_name, notify=True)",
+                "fetch_role_related(self, related, role_id)",
+                "get_list(self, what)",
+                "search_roles(self, search, **kwargs)",
+                "add_secret(self, source, github_user, github_repo, secret)",
+                "list_secrets(self)",
+                "remove_secret(self, secret_id)",
+                "delete_role(self, github_user, github_repo)",
+                "publish_collection(self, collection_path)",
+                "wait_import_task(self, task_id, timeout=0)",
+                "get_collection_version_metadata(self, namespace, name, version)",
+                "get_collection_versions(self, namespace, name)",
+                "wrapped(self, *args, **kwargs)"
+            ],
+            "variables_in_file": {
+                "__metaclass__": [
+                    6
+                ],
+                "type": [
+                    6
+                ],
+                "display": [
+                    37,
+                    166,
+                    71,
+                    298,
+                    267,
+                    490,
+                    397,
+                    492,
+                    494,
+                    464,
+                    179,
+                    24,
+                    477
+                ],
+                "Display": [
+                    24
+                ],
+                "self._available_api_versions": [
+                    164,
+                    36,
+                    70,
+                    75,
+                    172
+                ],
+                "self": [
+                    512,
+                    513,
+                    517,
+                    518,
+                    533,
+                    534,
+                    538,
+                    542,
+                    545,
+                    546,
+                    36,
+                    37,
+                    41,
+                    42,
+                    44,
+                    559,
+                    48,
+                    55,
+                    58,
+                    62,
+                    70,
+                    72,
+                    75,
+                    80,
+                    82,
+                    95,
+                    96,
+                    97,
+                    105,
+                    109,
+                    119,
+                    126,
+                    128,
+                    145,
+                    146,
+                    147,
+                    148,
+                    149,
+                    150,
+                    157,
+                    158,
+                    159,
+                    160,
+                    161,
+                    162,
+                    163,
+                    164,
+                    166,
+                    172,
+                    176,
+                    180,
+                    201,
+                    205,
+                    206,
+                    213,
+                    215,
+                    224,
+                    234,
+                    244,
+                    252,
+                    271,
+                    273,
+                    287,
+                    289,
+                    293,
+                    294,
+                    308,
+                    309,
+                    318,
+                    319,
+                    329,
+                    353,
+                    358,
+                    365,
+                    370,
+                    371,
+                    376,
+                    377,
+                    382,
+                    384,
+                    397,
+                    431,
+                    432,
+                    434,
+                    436,
+                    438,
+                    455,
+                    456,
+                    461,
+                    469
+                ],
+                "display.vvvv": [
+                    298,
+                    179,
+                    37,
+                    71
+                ],
+                "self.api_server": [
+                    513,
+                    517,
+                    397,
+                    271,
+                    542,
+                    287,
+                    545,
+                    162,
+                    37,
+                    166,
+                    293,
+                    41,
+                    44,
+                    432,
+                    434,
+                    308,
+                    438,
+                    58,
+                    318,
+                    62,
+                    72,
+                    329,
+                    456,
+                    461,
+                    80,
+                    213,
+                    224,
+                    358,
+                    370,
+                    244,
+                    376,
+                    382
+                ],
+                "n_url": [
+                    546,
+                    542,
+                    41,
+                    42,
+                    45,
+                    48,
+                    432,
+                    434,
+                    52,
+                    436,
+                    55,
+                    58,
+                    62
+                ],
+                "error_context_msg": [
+                    544,
+                    546,
+                    516,
+                    518,
+                    42,
+                    48,
+                    560,
+                    55,
+                    183
+                ],
+                "self.name": [
+                    545,
+                    517,
+                    72,
+                    42,
+                    397,
+                    80,
+                    146,
+                    438,
+                    158
+                ],
+                "data": [
+                    384,
+                    385,
+                    518,
+                    520,
+                    521,
+                    522,
+                    273,
+                    274,
+                    275,
+                    407,
+                    416,
+                    289,
+                    290,
+                    291,
+                    546,
+                    293,
+                    294,
+                    295,
+                    296,
+                    421,
+                    424,
+                    550,
+                    428,
+                    552,
+                    559,
+                    48,
+                    436,
+                    309,
+                    310,
+                    55,
+                    56,
+                    311,
+                    313,
+                    315,
+                    316,
+                    189,
+                    318,
+                    319,
+                    320,
+                    321,
+                    66,
+                    194,
+                    452,
+                    469,
+                    216,
+                    217,
+                    472,
+                    474,
+                    353,
+                    354,
+                    487,
+                    234,
+                    235,
+                    236,
+                    237,
+                    365,
+                    366,
+                    497,
+                    371,
+                    372,
+                    499,
+                    377,
+                    378,
+                    252,
+                    253
+                ],
+                "self._call_galaxy": [
+                    384,
+                    518,
+                    273,
+                    289,
+                    546,
+                    294,
+                    559,
+                    48,
+                    436,
+                    309,
+                    55,
+                    319,
+                    469,
+                    353,
+                    234,
+                    365,
+                    371,
+                    377,
+                    252
+                ],
+                "AnsibleError": [
+                    191,
+                    324,
+                    484,
+                    202,
+                    269,
+                    78,
+                    49,
+                    401,
+                    403,
+                    500,
+                    185,
+                    250,
+                    91,
+                    57
+                ],
+                "GalaxyError": [
+                    49,
+                    183,
+                    95
+                ],
+                "ValueError": [
+                    49,
+                    190,
+                    102
+                ],
+                "KeyError": [
+                    49
+                ],
+                "_urljoin": [
+                    515,
+                    271,
+                    542,
+                    287,
+                    293,
+                    432,
+                    434,
+                    52,
+                    308,
+                    318,
+                    456,
+                    329,
+                    461,
+                    213,
+                    224,
+                    358,
+                    370,
+                    244,
+                    376,
+                    382
+                ],
+                "available_versions": [
+                    66,
+                    67,
+                    68,
+                    70,
+                    72,
+                    75,
+                    76,
+                    79
+                ],
+                "data.get": [
+                    321,
+                    66,
+                    291,
+                    487,
+                    296,
+                    235,
+                    472,
+                    474,
+                    316
+                ],
+                "list": [
+                    67
+                ],
+                "available_versions.keys": [
+                    72,
+                    67
+                ],
+                "join": [
+                    72,
+                    264,
+                    424,
+                    79,
+                    341,
+                    88,
+                    345,
+                    122
+                ],
+                "set": [
+                    75,
+                    76
+                ],
+                "self._available_api_versions.keys": [
+                    75
+                ],
+                "common_versions": [
+                    76,
+                    77
+                ],
+                "intersection": [
+                    76
+                ],
+                "versions": [
+                    548,
+                    550,
+                    76,
+                    79,
+                    562
+                ],
+                "method.__name__": [
+                    79
+                ],
+                "method": [
+                    82,
+                    181,
+                    79
+                ],
+                "args": [
+                    225,
+                    231,
+                    359,
+                    233,
+                    234,
+                    365,
+                    82,
+                    180,
+                    214,
+                    215,
+                    88
+                ],
+                "kwargs": [
+                    334,
+                    335,
+                    336,
+                    337,
+                    82
+                ],
+                "wrapped": [
+                    83
+                ],
+                "decorator": [
+                    84
+                ],
+                "strip": [
+                    88
+                ],
+                "to_native": [
+                    128,
+                    192,
+                    324,
+                    485,
+                    559,
+                    401,
+                    497,
+                    498,
+                    180,
+                    404,
+                    88,
+                    185
+                ],
+                "a": [
+                    88
+                ],
+                "__init__": [
+                    95
+                ],
+                "super": [
+                    95
+                ],
+                "message": [
+                    487,
+                    488,
+                    490,
+                    492,
+                    109,
+                    494,
+                    122,
+                    126,
+                    95
+                ],
+                "self.http_code": [
+                    96,
+                    109,
+                    126,
+                    119
+                ],
+                "http_error.code": [
+                    96
+                ],
+                "http_error": [
+                    96,
+                    97,
+                    100
+                ],
+                "self.url": [
+                    97,
+                    105
+                ],
+                "http_error.geturl": [
+                    97
+                ],
+                "http_msg": [
+                    100,
+                    101
+                ],
+                "to_text": [
+                    100,
+                    260,
+                    299,
+                    332,
+                    216,
+                    187
+                ],
+                "http_error.read": [
+                    100
+                ],
+                "err_info": [
+                    101,
+                    103,
+                    107,
+                    108,
+                    111,
+                    125
+                ],
+                "json.loads": [
+                    216,
+                    101,
+                    189
+                ],
+                "json": [
+                    216,
+                    101,
+                    189
+                ],
+                "AttributeError": [
+                    102
+                ],
+                "url_split": [
+                    105,
+                    106,
+                    110
+                ],
+                "self.url.split": [
+                    105
+                ],
+                "galaxy_msg": [
+                    125,
+                    107,
+                    109,
+                    126
+                ],
+                "err_info.get": [
+                    107,
+                    108,
+                    125,
+                    111
+                ],
+                "code": [
+                    497,
+                    500,
+                    108,
+                    109
+                ],
+                "full_error_msg": [
+                    128,
+                    122,
+                    109,
+                    126
+                ],
+                "errors": [
+                    112,
+                    113,
+                    116,
+                    111
+                ],
+                "message_lines": [
+                    120,
+                    122,
+                    115
+                ],
+                "error": [
+                    116,
+                    117,
+                    118,
+                    324
+                ],
+                "error_msg": [
+                    117,
+                    119
+                ],
+                "error.get": [
+                    117,
+                    118
+                ],
+                "error_code": [
+                    118,
+                    119
+                ],
+                "message_line": [
+                    120,
+                    119
+                ],
+                "message_lines.append": [
+                    120
+                ],
+                "self.message": [
+                    128
+                ],
+                "self.namespace": [
+                    145
+                ],
+                "namespace": [
+                    545,
+                    513,
+                    517,
+                    145,
+                    542
+                ],
+                "name": [
+                    513,
+                    545,
+                    517,
+                    542,
+                    146,
+                    158
+                ],
+                "self.version": [
+                    147
+                ],
+                "version": [
+                    513,
+                    147,
+                    517
+                ],
+                "self.download_url": [
+                    148
+                ],
+                "download_url": [
+                    148
+                ],
+                "self.artifact_sha256": [
+                    149
+                ],
+                "artifact_sha256": [
+                    149
+                ],
+                "self.dependencies": [
+                    150
+                ],
+                "dependencies": [
+                    150
+                ],
+                "self.galaxy": [
+                    157
+                ],
+                "galaxy": [
+                    157
+                ],
+                "self.username": [
+                    159
+                ],
+                "username": [
+                    159
+                ],
+                "self.password": [
+                    160
+                ],
+                "password": [
+                    160
+                ],
+                "self.token": [
+                    161,
+                    201,
+                    205,
+                    206
+                ],
+                "token": [
+                    161
+                ],
+                "url": [
+                    384,
+                    271,
+                    273,
+                    287,
+                    289,
+                    162,
+                    293,
+                    294,
+                    176,
+                    179,
+                    180,
+                    308,
+                    309,
+                    185,
+                    318,
+                    319,
+                    213,
+                    215,
+                    224,
+                    376,
+                    358,
+                    234,
+                    365,
+                    370,
+                    371,
+                    244,
+                    246,
+                    248,
+                    377,
+                    252,
+                    382
+                ],
+                "self.validate_certs": [
+                    163,
+                    180,
+                    166,
+                    215
+                ],
+                "context.CLIARGS": [
+                    163
+                ],
+                "context": [
+                    163
+                ],
+                "display.debug": [
+                    166
+                ],
+                "property": [
+                    168
+                ],
+                "g_connect": [
+                    356,
+                    389,
+                    326,
+                    169,
+                    524,
+                    302,
+                    239,
+                    208,
+                    368,
+                    278,
+                    374,
+                    502,
+                    441,
+                    219,
+                    380,
+                    255
+                ],
+                "headers": [
+                    198,
+                    426,
+                    206,
+                    175,
+                    176,
+                    180,
+                    436
+                ],
+                "self._add_auth_token": [
+                    176
+                ],
+                "auth_required": [
+                    176
+                ],
+                "resp": [
+                    192,
+                    439,
+                    180,
+                    436,
+                    215,
+                    216,
+                    187
+                ],
+                "open_url": [
+                    180,
+                    215
+                ],
+                "HTTPError": [
+                    182
+                ],
+                "e": [
+                    185,
+                    299,
+                    183
+                ],
+                "Exception": [
+                    184,
+                    297,
+                    323,
+                    268
+                ],
+                "resp_data": [
+                    192,
+                    187,
+                    189
+                ],
+                "resp.read": [
+                    216,
+                    187
+                ],
+                "resp.url": [
+                    192
+                ],
+                "required": [
+                    201
+                ],
+                "headers.update": [
+                    206
+                ],
+                "self.token.headers": [
+                    206
+                ],
+                "self.available_api_versions": [
+                    512,
+                    271,
+                    533,
+                    534,
+                    538,
+                    287,
+                    431,
+                    432,
+                    434,
+                    308,
+                    455,
+                    456,
+                    329,
+                    461,
+                    213,
+                    224,
+                    358,
+                    370,
+                    244,
+                    376,
+                    382
+                ],
+                "urlencode": [
+                    234,
+                    214,
+                    359
+                ],
+                "github_token": [
+                    214
+                ],
+                "github_user": [
+                    226,
+                    361,
+                    247,
+                    248,
+                    383
+                ],
+                "github_repo": [
+                    227,
+                    232,
+                    233,
+                    362,
+                    247,
+                    248,
+                    383
+                ],
+                "reference": [
+                    228
+                ],
+                "role_name": [
+                    260,
+                    230,
+                    263,
+                    231,
+                    265,
+                    267,
+                    269,
+                    272
+                ],
+                "github_repo.startswith": [
+                    232
+                ],
+                "len": [
+                    233,
+                    274,
+                    428
+                ],
+                "task_id": [
+                    457,
+                    462,
+                    245,
+                    246
+                ],
+                "urlquote": [
+                    260,
+                    332
+                ],
+                "to_bytes": [
+                    416,
+                    260,
+                    332,
+                    399,
+                    411
+                ],
+                "parts": [
+                    264,
+                    265,
+                    263
+                ],
+                "role_name.split": [
+                    263
+                ],
+                "user_name": [
+                    264,
+                    272,
+                    267
+                ],
+                "notify": [
+                    266
+                ],
+                "display.display": [
+                    464,
+                    267,
+                    397
+                ],
+                "results": [
+                    320,
+                    290,
+                    322,
+                    295,
+                    300,
+                    311,
+                    313,
+                    285
+                ],
+                "role_id": [
+                    299,
+                    287
+                ],
+                "related": [
+                    299,
+                    287
+                ],
+                "done": [
+                    321,
+                    291,
+                    292,
+                    296,
+                    314,
+                    316,
+                    317
+                ],
+                "what": [
+                    308,
+                    324
+                ],
+                "search_url": [
+                    353,
+                    329,
+                    332,
+                    341,
+                    345,
+                    348,
+                    351
+                ],
+                "search": [
+                    331,
+                    332
+                ],
+                "tags": [
+                    339,
+                    340,
+                    341,
+                    334
+                ],
+                "kwargs.get": [
+                    336,
+                    337,
+                    334,
+                    335
+                ],
+                "platforms": [
+                    344,
+                    345,
+                    343,
+                    335
+                ],
+                "page_size": [
+                    336,
+                    347,
+                    348
+                ],
+                "author": [
+                    337,
+                    350,
+                    351
+                ],
+                "isinstance": [
+                    339,
+                    343
+                ],
+                "string_types": [
+                    339,
+                    343
+                ],
+                "tags.split": [
+                    340
+                ],
+                "platforms.split": [
+                    344
+                ],
+                "source": [
+                    360
+                ],
+                "secret": [
+                    363
+                ],
+                "secret_id": [
+                    376
+                ],
+                "collection_path": [
+                    401,
+                    404,
+                    397,
+                    399
+                ],
+                "b_collection_path": [
+                    399,
+                    400,
+                    402,
+                    406,
+                    410
+                ],
+                "os.path.exists": [
+                    400
+                ],
+                "os.path": [
+                    400,
+                    410
+                ],
+                "os": [
+                    400,
+                    410
+                ],
+                "tarfile.is_tarfile": [
+                    402
+                ],
+                "tarfile": [
+                    402
+                ],
+                "open": [
+                    406
+                ],
+                "collection_tar": [
+                    406,
+                    407
+                ],
+                "collection_tar.read": [
+                    407
+                ],
+                "boundary": [
+                    409,
+                    411,
+                    427
+                ],
+                "hex": [
+                    409
+                ],
+                "uuid.uuid4": [
+                    409
+                ],
+                "uuid": [
+                    409
+                ],
+                "b_file_name": [
+                    418,
+                    410
+                ],
+                "os.path.basename": [
+                    410
+                ],
+                "part_boundary": [
+                    417,
+                    411,
+                    422,
+                    414
+                ],
+                "form": [
+                    424,
+                    413
+                ],
+                "secure_hash_s": [
+                    416
+                ],
+                "state": [
+                    451,
+                    483,
+                    496,
+                    472,
+                    478
+                ],
+                "full_url": [
+                    485,
+                    456,
+                    461,
+                    464,
+                    499,
+                    469,
+                    470
+                ],
+                "start": [
+                    465,
+                    468
+                ],
+                "time.time": [
+                    465,
+                    468
+                ],
+                "time": [
+                    465,
+                    468,
+                    479
+                ],
+                "wait": [
+                    466,
+                    482,
+                    478,
+                    479
+                ],
+                "timeout": [
+                    468
+                ],
+                "display.vvv": [
+                    477,
+                    494
+                ],
+                "time.sleep": [
+                    479
+                ],
+                "min": [
+                    482
+                ],
+                "level": [
+                    488,
+                    489,
+                    491,
+                    494
+                ],
+                "display.error": [
+                    490
+                ],
+                "display.warning": [
+                    492
+                ],
+                "get": [
+                    497,
+                    499
+                ],
+                "description": [
+                    498,
+                    500
+                ],
+                "api_path": [
+                    512,
+                    513,
+                    534,
+                    538,
+                    542
+                ],
+                "self.available_api_versions.get": [
+                    512
+                ],
+                "url_paths": [
+                    513,
+                    515
+                ],
+                "n_collection_url": [
+                    515,
+                    518
+                ],
+                "CollectionVersionMetadata": [
+                    520
+                ],
+                "results_key": [
+                    539,
+                    550,
+                    535
+                ],
+                "pagination_path": [
+                    536,
+                    553,
+                    540
+                ],
+                "v": [
+                    550
+                ],
+                "next_link": [
+                    552,
+                    554,
+                    556,
+                    559
+                ],
+                "path": [
+                    553,
+                    554
+                ],
+                "next_link.get": [
+                    554
+                ]
+            },
+            "filtered_variables_in_file": {
+                "__metaclass__": [
+                    6
+                ],
+                "display": [
+                    37,
+                    166,
+                    71,
+                    298,
+                    267,
+                    490,
+                    397,
+                    492,
+                    494,
+                    464,
+                    179,
+                    24,
+                    477
+                ],
+                "Display": [
+                    24
+                ],
+                "self._available_api_versions": [
+                    164,
+                    36,
+                    70,
+                    75,
+                    172
+                ],
+                "self": [
+                    512,
+                    513,
+                    517,
+                    518,
+                    533,
+                    534,
+                    538,
+                    542,
+                    545,
+                    546,
+                    36,
+                    37,
+                    41,
+                    42,
+                    44,
+                    559,
+                    48,
+                    55,
+                    58,
+                    62,
+                    70,
+                    72,
+                    75,
+                    80,
+                    82,
+                    95,
+                    96,
+                    97,
+                    105,
+                    109,
+                    119,
+                    126,
+                    128,
+                    145,
+                    146,
+                    147,
+                    148,
+                    149,
+                    150,
+                    157,
+                    158,
+                    159,
+                    160,
+                    161,
+                    162,
+                    163,
+                    164,
+                    166,
+                    172,
+                    176,
+                    180,
+                    201,
+                    205,
+                    206,
+                    213,
+                    215,
+                    224,
+                    234,
+                    244,
+                    252,
+                    271,
+                    273,
+                    287,
+                    289,
+                    293,
+                    294,
+                    308,
+                    309,
+                    318,
+                    319,
+                    329,
+                    353,
+                    358,
+                    365,
+                    370,
+                    371,
+                    376,
+                    377,
+                    382,
+                    384,
+                    397,
+                    431,
+                    432,
+                    434,
+                    436,
+                    438,
+                    455,
+                    456,
+                    461,
+                    469
+                ],
+                "display.vvvv": [
+                    298,
+                    179,
+                    37,
+                    71
+                ],
+                "self.api_server": [
+                    513,
+                    517,
+                    397,
+                    271,
+                    542,
+                    287,
+                    545,
+                    162,
+                    37,
+                    166,
+                    293,
+                    41,
+                    44,
+                    432,
+                    434,
+                    308,
+                    438,
+                    58,
+                    318,
+                    62,
+                    72,
+                    329,
+                    456,
+                    461,
+                    80,
+                    213,
+                    224,
+                    358,
+                    370,
+                    244,
+                    376,
+                    382
+                ],
+                "n_url": [
+                    546,
+                    542,
+                    41,
+                    42,
+                    45,
+                    48,
+                    432,
+                    434,
+                    52,
+                    436,
+                    55,
+                    58,
+                    62
+                ],
+                "error_context_msg": [
+                    544,
+                    546,
+                    516,
+                    518,
+                    42,
+                    48,
+                    560,
+                    55,
+                    183
+                ],
+                "self.name": [
+                    545,
+                    517,
+                    72,
+                    42,
+                    397,
+                    80,
+                    146,
+                    438,
+                    158
+                ],
+                "data": [
+                    384,
+                    385,
+                    518,
+                    520,
+                    521,
+                    522,
+                    273,
+                    274,
+                    275,
+                    407,
+                    416,
+                    289,
+                    290,
+                    291,
+                    546,
+                    293,
+                    294,
+                    295,
+                    296,
+                    421,
+                    424,
+                    550,
+                    428,
+                    552,
+                    559,
+                    48,
+                    436,
+                    309,
+                    310,
+                    55,
+                    56,
+                    311,
+                    313,
+                    315,
+                    316,
+                    189,
+                    318,
+                    319,
+                    320,
+                    321,
+                    66,
+                    194,
+                    452,
+                    469,
+                    216,
+                    217,
+                    472,
+                    474,
+                    353,
+                    354,
+                    487,
+                    234,
+                    235,
+                    236,
+                    237,
+                    365,
+                    366,
+                    497,
+                    371,
+                    372,
+                    499,
+                    377,
+                    378,
+                    252,
+                    253
+                ],
+                "self._call_galaxy": [
+                    384,
+                    518,
+                    273,
+                    289,
+                    546,
+                    294,
+                    559,
+                    48,
+                    436,
+                    309,
+                    55,
+                    319,
+                    469,
+                    353,
+                    234,
+                    365,
+                    371,
+                    377,
+                    252
+                ],
+                "AnsibleError": [
+                    191,
+                    324,
+                    484,
+                    202,
+                    269,
+                    78,
+                    49,
+                    401,
+                    403,
+                    500,
+                    185,
+                    250,
+                    91,
+                    57
+                ],
+                "GalaxyError": [
+                    49,
+                    183,
+                    95
+                ],
+                "_urljoin": [
+                    515,
+                    271,
+                    542,
+                    287,
+                    293,
+                    432,
+                    434,
+                    52,
+                    308,
+                    318,
+                    456,
+                    329,
+                    461,
+                    213,
+                    224,
+                    358,
+                    370,
+                    244,
+                    376,
+                    382
+                ],
+                "available_versions": [
+                    66,
+                    67,
+                    68,
+                    70,
+                    72,
+                    75,
+                    76,
+                    79
+                ],
+                "data.get": [
+                    321,
+                    66,
+                    291,
+                    487,
+                    296,
+                    235,
+                    472,
+                    474,
+                    316
+                ],
+                "available_versions.keys": [
+                    72,
+                    67
+                ],
+                "join": [
+                    72,
+                    264,
+                    424,
+                    79,
+                    341,
+                    88,
+                    345,
+                    122
+                ],
+                "self._available_api_versions.keys": [
+                    75
+                ],
+                "common_versions": [
+                    76,
+                    77
+                ],
+                "intersection": [
+                    76
+                ],
+                "versions": [
+                    548,
+                    550,
+                    76,
+                    79,
+                    562
+                ],
+                "method.__name__": [
+                    79
+                ],
+                "method": [
+                    82,
+                    181,
+                    79
+                ],
+                "args": [
+                    225,
+                    231,
+                    359,
+                    233,
+                    234,
+                    365,
+                    82,
+                    180,
+                    214,
+                    215,
+                    88
+                ],
+                "kwargs": [
+                    334,
+                    335,
+                    336,
+                    337,
+                    82
+                ],
+                "wrapped": [
+                    83
+                ],
+                "decorator": [
+                    84
+                ],
+                "strip": [
+                    88
+                ],
+                "to_native": [
+                    128,
+                    192,
+                    324,
+                    485,
+                    559,
+                    401,
+                    497,
+                    498,
+                    180,
+                    404,
+                    88,
+                    185
+                ],
+                "a": [
+                    88
+                ],
+                "__init__": [
+                    95
+                ],
+                "message": [
+                    487,
+                    488,
+                    490,
+                    492,
+                    109,
+                    494,
+                    122,
+                    126,
+                    95
+                ],
+                "self.http_code": [
+                    96,
+                    109,
+                    126,
+                    119
+                ],
+                "http_error.code": [
+                    96
+                ],
+                "http_error": [
+                    96,
+                    97,
+                    100
+                ],
+                "self.url": [
+                    97,
+                    105
+                ],
+                "http_error.geturl": [
+                    97
+                ],
+                "http_msg": [
+                    100,
+                    101
+                ],
+                "to_text": [
+                    100,
+                    260,
+                    299,
+                    332,
+                    216,
+                    187
+                ],
+                "http_error.read": [
+                    100
+                ],
+                "err_info": [
+                    101,
+                    103,
+                    107,
+                    108,
+                    111,
+                    125
+                ],
+                "json.loads": [
+                    216,
+                    101,
+                    189
+                ],
+                "json": [
+                    216,
+                    101,
+                    189
+                ],
+                "url_split": [
+                    105,
+                    106,
+                    110
+                ],
+                "self.url.split": [
+                    105
+                ],
+                "galaxy_msg": [
+                    125,
+                    107,
+                    109,
+                    126
+                ],
+                "err_info.get": [
+                    107,
+                    108,
+                    125,
+                    111
+                ],
+                "code": [
+                    497,
+                    500,
+                    108,
+                    109
+                ],
+                "full_error_msg": [
+                    128,
+                    122,
+                    109,
+                    126
+                ],
+                "errors": [
+                    112,
+                    113,
+                    116,
+                    111
+                ],
+                "message_lines": [
+                    120,
+                    122,
+                    115
+                ],
+                "error": [
+                    116,
+                    117,
+                    118,
+                    324
+                ],
+                "error_msg": [
+                    117,
+                    119
+                ],
+                "error.get": [
+                    117,
+                    118
+                ],
+                "error_code": [
+                    118,
+                    119
+                ],
+                "message_line": [
+                    120,
+                    119
+                ],
+                "message_lines.append": [
+                    120
+                ],
+                "self.message": [
+                    128
+                ],
+                "self.namespace": [
+                    145
+                ],
+                "namespace": [
+                    545,
+                    513,
+                    517,
+                    145,
+                    542
+                ],
+                "name": [
+                    513,
+                    545,
+                    517,
+                    542,
+                    146,
+                    158
+                ],
+                "self.version": [
+                    147
+                ],
+                "version": [
+                    513,
+                    147,
+                    517
+                ],
+                "self.download_url": [
+                    148
+                ],
+                "download_url": [
+                    148
+                ],
+                "self.artifact_sha256": [
+                    149
+                ],
+                "artifact_sha256": [
+                    149
+                ],
+                "self.dependencies": [
+                    150
+                ],
+                "dependencies": [
+                    150
+                ],
+                "self.galaxy": [
+                    157
+                ],
+                "galaxy": [
+                    157
+                ],
+                "self.username": [
+                    159
+                ],
+                "username": [
+                    159
+                ],
+                "self.password": [
+                    160
+                ],
+                "password": [
+                    160
+                ],
+                "self.token": [
+                    161,
+                    201,
+                    205,
+                    206
+                ],
+                "token": [
+                    161
+                ],
+                "url": [
+                    384,
+                    271,
+                    273,
+                    287,
+                    289,
+                    162,
+                    293,
+                    294,
+                    176,
+                    179,
+                    180,
+                    308,
+                    309,
+                    185,
+                    318,
+                    319,
+                    213,
+                    215,
+                    224,
+                    376,
+                    358,
+                    234,
+                    365,
+                    370,
+                    371,
+                    244,
+                    246,
+                    248,
+                    377,
+                    252,
+                    382
+                ],
+                "self.validate_certs": [
+                    163,
+                    180,
+                    166,
+                    215
+                ],
+                "context.CLIARGS": [
+                    163
+                ],
+                "context": [
+                    163
+                ],
+                "display.debug": [
+                    166
+                ],
+                "g_connect": [
+                    356,
+                    389,
+                    326,
+                    169,
+                    524,
+                    302,
+                    239,
+                    208,
+                    368,
+                    278,
+                    374,
+                    502,
+                    441,
+                    219,
+                    380,
+                    255
+                ],
+                "headers": [
+                    198,
+                    426,
+                    206,
+                    175,
+                    176,
+                    180,
+                    436
+                ],
+                "self._add_auth_token": [
+                    176
+                ],
+                "auth_required": [
+                    176
+                ],
+                "resp": [
+                    192,
+                    439,
+                    180,
+                    436,
+                    215,
+                    216,
+                    187
+                ],
+                "open_url": [
+                    180,
+                    215
+                ],
+                "HTTPError": [
+                    182
+                ],
+                "e": [
+                    185,
+                    299,
+                    183
+                ],
+                "resp_data": [
+                    192,
+                    187,
+                    189
+                ],
+                "resp.read": [
+                    216,
+                    187
+                ],
+                "resp.url": [
+                    192
+                ],
+                "required": [
+                    201
+                ],
+                "headers.update": [
+                    206
+                ],
+                "self.token.headers": [
+                    206
+                ],
+                "self.available_api_versions": [
+                    512,
+                    271,
+                    533,
+                    534,
+                    538,
+                    287,
+                    431,
+                    432,
+                    434,
+                    308,
+                    455,
+                    456,
+                    329,
+                    461,
+                    213,
+                    224,
+                    358,
+                    370,
+                    244,
+                    376,
+                    382
+                ],
+                "urlencode": [
+                    234,
+                    214,
+                    359
+                ],
+                "github_token": [
+                    214
+                ],
+                "github_user": [
+                    226,
+                    361,
+                    247,
+                    248,
+                    383
+                ],
+                "github_repo": [
+                    227,
+                    232,
+                    233,
+                    362,
+                    247,
+                    248,
+                    383
+                ],
+                "reference": [
+                    228
+                ],
+                "role_name": [
+                    260,
+                    230,
+                    263,
+                    231,
+                    265,
+                    267,
+                    269,
+                    272
+                ],
+                "github_repo.startswith": [
+                    232
+                ],
+                "task_id": [
+                    457,
+                    462,
+                    245,
+                    246
+                ],
+                "urlquote": [
+                    260,
+                    332
+                ],
+                "to_bytes": [
+                    416,
+                    260,
+                    332,
+                    399,
+                    411
+                ],
+                "parts": [
+                    264,
+                    265,
+                    263
+                ],
+                "role_name.split": [
+                    263
+                ],
+                "user_name": [
+                    264,
+                    272,
+                    267
+                ],
+                "notify": [
+                    266
+                ],
+                "display.display": [
+                    464,
+                    267,
+                    397
+                ],
+                "results": [
+                    320,
+                    290,
+                    322,
+                    295,
+                    300,
+                    311,
+                    313,
+                    285
+                ],
+                "role_id": [
+                    299,
+                    287
+                ],
+                "related": [
+                    299,
+                    287
+                ],
+                "done": [
+                    321,
+                    291,
+                    292,
+                    296,
+                    314,
+                    316,
+                    317
+                ],
+                "what": [
+                    308,
+                    324
+                ],
+                "search_url": [
+                    353,
+                    329,
+                    332,
+                    341,
+                    345,
+                    348,
+                    351
+                ],
+                "search": [
+                    331,
+                    332
+                ],
+                "tags": [
+                    339,
+                    340,
+                    341,
+                    334
+                ],
+                "kwargs.get": [
+                    336,
+                    337,
+                    334,
+                    335
+                ],
+                "platforms": [
+                    344,
+                    345,
+                    343,
+                    335
+                ],
+                "page_size": [
+                    336,
+                    347,
+                    348
+                ],
+                "author": [
+                    337,
+                    350,
+                    351
+                ],
+                "string_types": [
+                    339,
+                    343
+                ],
+                "tags.split": [
+                    340
+                ],
+                "platforms.split": [
+                    344
+                ],
+                "source": [
+                    360
+                ],
+                "secret": [
+                    363
+                ],
+                "secret_id": [
+                    376
+                ],
+                "collection_path": [
+                    401,
+                    404,
+                    397,
+                    399
+                ],
+                "b_collection_path": [
+                    399,
+                    400,
+                    402,
+                    406,
+                    410
+                ],
+                "os.path.exists": [
+                    400
+                ],
+                "os.path": [
+                    400,
+                    410
+                ],
+                "os": [
+                    400,
+                    410
+                ],
+                "tarfile.is_tarfile": [
+                    402
+                ],
+                "tarfile": [
+                    402
+                ],
+                "collection_tar": [
+                    406,
+                    407
+                ],
+                "collection_tar.read": [
+                    407
+                ],
+                "boundary": [
+                    409,
+                    411,
+                    427
+                ],
+                "uuid.uuid4": [
+                    409
+                ],
+                "uuid": [
+                    409
+                ],
+                "b_file_name": [
+                    418,
+                    410
+                ],
+                "os.path.basename": [
+                    410
+                ],
+                "part_boundary": [
+                    417,
+                    411,
+                    422,
+                    414
+                ],
+                "form": [
+                    424,
+                    413
+                ],
+                "secure_hash_s": [
+                    416
+                ],
+                "state": [
+                    451,
+                    483,
+                    496,
+                    472,
+                    478
+                ],
+                "full_url": [
+                    485,
+                    456,
+                    461,
+                    464,
+                    499,
+                    469,
+                    470
+                ],
+                "start": [
+                    465,
+                    468
+                ],
+                "time.time": [
+                    465,
+                    468
+                ],
+                "time": [
+                    465,
+                    468,
+                    479
+                ],
+                "wait": [
+                    466,
+                    482,
+                    478,
+                    479
+                ],
+                "timeout": [
+                    468
+                ],
+                "display.vvv": [
+                    477,
+                    494
+                ],
+                "time.sleep": [
+                    479
+                ],
+                "level": [
+                    488,
+                    489,
+                    491,
+                    494
+                ],
+                "display.error": [
+                    490
+                ],
+                "display.warning": [
+                    492
+                ],
+                "get": [
+                    497,
+                    499
+                ],
+                "description": [
+                    498,
+                    500
+                ],
+                "api_path": [
+                    512,
+                    513,
+                    534,
+                    538,
+                    542
+                ],
+                "self.available_api_versions.get": [
+                    512
+                ],
+                "url_paths": [
+                    513,
+                    515
+                ],
+                "n_collection_url": [
+                    515,
+                    518
+                ],
+                "CollectionVersionMetadata": [
+                    520
+                ],
+                "results_key": [
+                    539,
+                    550,
+                    535
+                ],
+                "pagination_path": [
+                    536,
+                    553,
+                    540
+                ],
+                "v": [
+                    550
+                ],
+                "next_link": [
+                    552,
+                    554,
+                    556,
+                    559
+                ],
+                "path": [
+                    553,
+                    554
+                ],
+                "next_link.get": [
+                    554
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/ansible_14/test/units/galaxy/test_api.py",
+                "test_function": "test_get_role_versions_pagination",
+                "test_function_code": "@pytest.mark.parametrize('responses', [\n    [\n        {\n            'count': 2,\n            'results': [{'name': '3.5.1', }, {'name': '3.5.2'}],\n            'next_link': None,\n            'next': None,\n            'previous_link': None,\n            'previous': None\n        },\n    ],\n    [\n        {\n            'count': 2,\n            'results': [{'name': '3.5.1'}],\n            'next_link': '/api/v1/roles/432/versions/?page=2&page_size=50',\n            'next': '/roles/432/versions/?page=2&page_size=50',\n            'previous_link': None,\n            'previous': None\n        },\n        {\n            'count': 2,\n            'results': [{'name': '3.5.2'}],\n            'next_link': None,\n            'next': None,\n            'previous_link': '/api/v1/roles/432/versions/?&page_size=50',\n            'previous': '/roles/432/versions/?page_size=50',\n        },\n    ]\n])\ndef test_get_role_versions_pagination(monkeypatch, responses):\n    api = get_test_galaxy_api('https://galaxy.com/api/', 'v1')\n\n    mock_open = MagicMock()\n    mock_open.side_effect = [StringIO(to_text(json.dumps(r))) for r in responses]\n    monkeypatch.setattr(galaxy_api, 'open_url', mock_open)\n\n    actual = api.fetch_role_related('versions', 432)\n    assert actual == [{'name': '3.5.1'}, {'name': '3.5.2'}]\n\n    assert mock_open.call_count == len(responses)\n\n    assert mock_open.mock_calls[0][1][0] == 'https://galaxy.com/api/v1/roles/432/versions/?page_size=50'\n    if len(responses) == 2:\n        assert mock_open.mock_calls[1][1][0] == 'https://galaxy.com/api/v1/roles/432/versions/?page=2&page_size=50'",
+                "test_error": "AssertionError: assert 'https://galaxy.com/api/api/v1/roles/432/versions/?page=2&page_size=50' == 'https://galaxy.com/api/v1/roles/432/versions/?page=2&page_size=50'\n  - https://galaxy.com/api/v1/roles/432/versions/?page=2&page_size=50\n  + https://galaxy.com/api/api/v1/roles/432/versions/?page=2&page_size=50\n  ?                   ++++",
+                "full_test_error": "monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1110e7050>\nresponses = [{'count': 2, 'next': '/roles/432/versions/?page=2&page_size=50', 'next_link': '/api/v1/roles/432/versions/?page=2&pag...ious': None, ...}, {'count': 2, 'next': None, 'next_link': None, 'previous': '/roles/432/versions/?page_size=50', ...}]\n\n    @pytest.mark.parametrize('responses', [\n        [\n            {\n                'count': 2,\n                'results': [{'name': '3.5.1', }, {'name': '3.5.2'}],\n                'next_link': None,\n                'next': None,\n                'previous_link': None,\n                'previous': None\n            },\n        ],\n        [\n            {\n                'count': 2,\n                'results': [{'name': '3.5.1'}],\n                'next_link': '/api/v1/roles/432/versions/?page=2&page_size=50',\n                'next': '/roles/432/versions/?page=2&page_size=50',\n                'previous_link': None,\n                'previous': None\n            },\n            {\n                'count': 2,\n                'results': [{'name': '3.5.2'}],\n                'next_link': None,\n                'next': None,\n                'previous_link': '/api/v1/roles/432/versions/?&page_size=50',\n                'previous': '/roles/432/versions/?page_size=50',\n            },\n        ]\n    ])\n    def test_get_role_versions_pagination(monkeypatch, responses):\n        api = get_test_galaxy_api('https://galaxy.com/api/', 'v1')\n    \n        mock_open = MagicMock()\n        mock_open.side_effect = [StringIO(to_text(json.dumps(r))) for r in responses]\n        monkeypatch.setattr(galaxy_api, 'open_url', mock_open)\n    \n        actual = api.fetch_role_related('versions', 432)\n        assert actual == [{'name': '3.5.1'}, {'name': '3.5.2'}]\n    \n        assert mock_open.call_count == len(responses)\n    \n        assert mock_open.mock_calls[0][1][0] == 'https://galaxy.com/api/v1/roles/432/versions/?page_size=50'\n        if len(responses) == 2:\n>           assert mock_open.mock_calls[1][1][0] == 'https://galaxy.com/api/v1/roles/432/versions/?page=2&page_size=50'\nE           AssertionError: assert 'https://galaxy.com/api/api/v1/roles/432/versions/?page=2&page_size=50' == 'https://galaxy.com/api/v1/roles/432/versions/?page=2&page_size=50'\nE             - https://galaxy.com/api/v1/roles/432/versions/?page=2&page_size=50\nE             + https://galaxy.com/api/api/v1/roles/432/versions/?page=2&page_size=50\nE             ?                   ++++\n\ntest/units/galaxy/test_api.py:909: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('responses', [[{'count': 2, 'results': [{'name': '3.5.1'}, {'name': '3.5.2'}], 'next_link': None, 'next': None, 'previous_link': None, 'previous': None}], [{'count': 2, 'results': [{'name': '3.5.1'}], 'next_link': '/api/v1/roles/432/versions/?page=2&page_size=50', 'next': '/roles/432/versions/?page=2&page_size=50', 'previous_link': None, 'previous': None}, {'count': 2, 'results': [{'name': '3.5.2'}], 'next_link': None, 'next': None, 'previous_link': '/api/v1/roles/432/versions/?&page_size=50', 'previous': '/roles/432/versions/?page_size=50'}]])"
+                ]
+            }
+        ]
+    }
+}

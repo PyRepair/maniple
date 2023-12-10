@@ -1,0 +1,119 @@
+{
+    "1.1.1": "def process_response(self, request, response, spider):\n    if (request.meta.get('dont_redirect', False) or\n            response.status in getattr(spider, 'handle_httpstatus_list', []) or\n            response.status in request.meta.get('handle_httpstatus_list', []) or\n            request.meta.get('handle_httpstatus_all', False)):\n        return response\n\n    allowed_status = (301, 302, 303, 307)\n    if 'Location' not in response.headers or response.status not in allowed_status:\n        return response\n\n    # HTTP header is ascii or latin1, redirected url will be percent-encoded utf-8\n    location = to_native_str(response.headers['location'].decode('latin1'))\n\n    redirected_url = urljoin(request.url, location)\n\n    if response.status in (301, 307) or request.method == 'HEAD':\n        redirected = request.replace(url=redirected_url)\n        return self._redirect(redirected, request, spider, response.status)\n\n    redirected = self._redirect_request_using_get(request, redirected_url)\n    return self._redirect(redirected, request, spider, response.status)\n",
+    "1.1.2": null,
+    "1.2.1": "class RedirectMiddleware(BaseRedirectMiddleware)",
+    "1.2.2": "Handle redirection of requests based on response status and meta-refresh html tag",
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_10/scrapy/downloadermiddlewares/redirect.py",
+    "1.3.2": [
+        "_redirect(self, redirected, request, spider, reason)",
+        "_redirect_request_using_get(self, request, redirect_url)"
+    ],
+    "1.4.1": [
+        "    def test_utf8_location(self):\n        req = Request('http://scrapytest.org/first')\n        utf8_location = u'/a\u00e7\u00e3o'.encode('utf-8')  # header using UTF-8 encoding\n        resp = Response('http://scrapytest.org/first', headers={'Location': utf8_location}, status=302)\n        req_result = self.mw.process_response(req, resp, self.spider)\n        perc_encoded_utf8_url = 'http://scrapytest.org/a%C3%A7%C3%A3o'\n        self.assertEquals(perc_encoded_utf8_url, req_result.url)"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_10/tests/test_downloadermiddleware_redirect.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: 'http://scrapytest.org/a%C3%A7%C3%A3o' != 'http://scrapytest.org/a%C3%83%C2%A7%C3%83%C2%A3o'\nE       - http://scrapytest.org/a%C3%A7%C3%A3o\nE       + http://scrapytest.org/a%C3%83%C2%A7%C3%83%C2%A3o\nE       ?                            ++++++      ++++++"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tests.test_downloadermiddleware_redirect.RedirectMiddlewareTest testMethod=test_utf8_location>\n\n    def test_utf8_location(self):\n        req = Request('http://scrapytest.org/first')\n        utf8_location = u'/a\u00e7\u00e3o'.encode('utf-8')  # header using UTF-8 encoding\n        resp = Response('http://scrapytest.org/first', headers={'Location': utf8_location}, status=302)\n        req_result = self.mw.process_response(req, resp, self.spider)\n        perc_encoded_utf8_url = 'http://scrapytest.org/a%C3%A7%C3%A3o'\n>       self.assertEquals(perc_encoded_utf8_url, req_result.url)",
+            "\n/Volumes/SSD2T/bgp_envs_non_pandas/repos/scrapy_10/tests/test_downloadermiddleware_redirect.py:169: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "request.meta": "{}",
+                "request": "<GET http://scrapytest.org/first>",
+                "response.status": "302",
+                "response": "<302 http://scrapytest.org/first>",
+                "response.headers": "{b'Location': [b'/a\\xc3\\xa7\\xc3\\xa3o']}",
+                "request.url": "'http://scrapytest.org/first'",
+                "request.method": "'GET'",
+                "request.replace": "<bound method Request.replace of <GET http://scrapytest.org/first>>",
+                "self": "<scrapy.downloadermiddlewares.redirect.RedirectMiddleware object at 0x10ab8be50>"
+            },
+            {
+                "allowed_status": "(301, 302, 303, 307)",
+                "location": "'/a\u00c3\u00a7\u00c3\u00a3o'",
+                "redirected_url": "'http://scrapytest.org/a\u00c3\u00a7\u00c3\u00a3o'",
+                "redirected": "<GET http://scrapytest.org/a%C3%83%C2%A7%C3%83%C2%A3o>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "request.meta": "dict",
+                "request": "Request",
+                "response.status": "int",
+                "response": "Response",
+                "response.headers": "Headers",
+                "request.url": "str",
+                "request.method": "str",
+                "request.replace": "method",
+                "self": "RedirectMiddleware"
+            },
+            {
+                "allowed_status": "tuple",
+                "location": "str",
+                "redirected_url": "str",
+                "redirected": "Request"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "request.meta": "{}",
+                "request": "<GET http://scrapytest.org/first>",
+                "response.status": "302",
+                "response": "<302 http://scrapytest.org/first>",
+                "response.headers": "{b'Location': [b'/a\\xc3\\xa7\\xc3\\xa3o']}",
+                "request.url": "'http://scrapytest.org/first'",
+                "request.method": "'GET'",
+                "request.replace": "<bound method Request.replace of <GET http://scrapytest.org/first>>",
+                "self": "<scrapy.downloadermiddlewares.redirect.RedirectMiddleware object at 0x1038d2d30>"
+            },
+            {
+                "allowed_status": "(301, 302, 303, 307)",
+                "location": "'/a%C3%A7%C3%A3o'",
+                "redirected_url": "'http://scrapytest.org/a%C3%A7%C3%A3o'",
+                "redirected": "<GET http://scrapytest.org/a%C3%A7%C3%A3o>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "request.meta": "dict",
+                "request": "Request",
+                "response.status": "int",
+                "response": "Response",
+                "response.headers": "Headers",
+                "request.url": "str",
+                "request.method": "str",
+                "request.replace": "method",
+                "self": "RedirectMiddleware"
+            },
+            {
+                "allowed_status": "tuple",
+                "location": "str",
+                "redirected_url": "str",
+                "redirected": "Request"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "\n"
+    ],
+    "3.1.2": [
+        "\n"
+    ]
+}

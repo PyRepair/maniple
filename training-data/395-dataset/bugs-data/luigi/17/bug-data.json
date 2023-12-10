@@ -1,0 +1,1028 @@
+{
+    "luigi:17": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_17/luigi/interface.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "create_local_scheduler",
+                    "function_code": "def create_local_scheduler(self):\n    return scheduler.CentralPlannerScheduler(prune_on_get_work=True)\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 133,
+                    "end_line": 134,
+                    "variables": {
+                        "scheduler.CentralPlannerScheduler": [
+                            134
+                        ],
+                        "scheduler": [
+                            134
+                        ]
+                    },
+                    "filtered_variables": {
+                        "scheduler.CentralPlannerScheduler": [
+                            134
+                        ],
+                        "scheduler": [
+                            134
+                        ]
+                    },
+                    "diff_line_number": 134,
+                    "class_data": {
+                        "signature": "class _WorkerSchedulerFactory(object)",
+                        "docstring": null,
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def create_local_scheduler(self):\n    return scheduler.CentralPlannerScheduler(prune_on_get_work=True)",
+                            "def create_remote_scheduler(self, url):\n    return rpc.RemoteScheduler(url)",
+                            "def create_worker(self, scheduler, worker_processes, assistant=False):\n    return worker.Worker(scheduler=scheduler, worker_processes=worker_processes, assistant=assistant)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "create_local_scheduler(self)",
+                            "create_remote_scheduler(self, url)",
+                            "create_worker(self, scheduler, worker_processes, assistant=False)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "scheduler.CentralPlannerScheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "scheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "scheduler.CentralPlannerScheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "scheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "scheduler.CentralPlannerScheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "scheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "scheduler.CentralPlannerScheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "scheduler": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def setup_interface_logging(conf_file=None):\n    # use a variable in the function object to determine if it has run before\n    if getattr(setup_interface_logging, \"has_run\", False):\n        return\n\n    if conf_file is None:\n        logger = logging.getLogger('luigi-interface')\n        logger.setLevel(logging.DEBUG)\n\n        stream_handler = logging.StreamHandler()\n        stream_handler.setLevel(logging.DEBUG)\n\n        formatter = logging.Formatter('%(levelname)s: %(message)s')\n        stream_handler.setFormatter(formatter)\n\n        logger.addHandler(stream_handler)\n    else:\n        logging.config.fileConfig(conf_file, disable_existing_loggers=False)\n\n    setup_interface_logging.has_run = True",
+                "def _schedule_and_run(tasks, worker_scheduler_factory=None, override_defaults=None):\n    \"\"\"\n    :param tasks:\n    :param worker_scheduler_factory:\n    :param override_defaults:\n    :return: True if all tasks and their dependencies were successfully run (or already completed);\n             False if any error occurred.\n    \"\"\"\n\n    if worker_scheduler_factory is None:\n        worker_scheduler_factory = _WorkerSchedulerFactory()\n    if override_defaults is None:\n        override_defaults = {}\n    env_params = core(**override_defaults)\n    # search for logging configuration path first on the command line, then\n    # in the application config file\n    logging_conf = env_params.logging_conf_file\n    if logging_conf is not None and not os.path.exists(logging_conf):\n        raise Exception(\n            \"Error: Unable to locate specified logging configuration file!\"\n        )\n\n    if not configuration.get_config().getboolean(\n            'core', 'no_configure_logging', False):\n        setup_interface_logging(logging_conf)\n\n    kill_signal = signal.SIGUSR1 if env_params.take_lock else None\n    if (not env_params.no_lock and\n            not(lock.acquire_for(env_params.lock_pid_dir, env_params.lock_size, kill_signal))):\n        raise PidLockAlreadyTakenExit()\n\n    if env_params.local_scheduler:\n        sch = worker_scheduler_factory.create_local_scheduler()\n    else:\n        if env_params.scheduler_url is not None:\n            url = env_params.scheduler_url\n        else:\n            url = 'http://{host}:{port:d}/'.format(\n                host=env_params.scheduler_host,\n                port=env_params.scheduler_port,\n            )\n        sch = worker_scheduler_factory.create_remote_scheduler(url=url)\n\n    worker = worker_scheduler_factory.create_worker(\n        scheduler=sch, worker_processes=env_params.workers, assistant=env_params.assistant)\n\n    success = True\n    logger = logging.getLogger('luigi-interface')\n    with worker:\n        for t in tasks:\n            success &= worker.add(t, env_params.parallel_scheduling)\n        logger.info('Done scheduling tasks')\n        if env_params.workers != 0:\n            success &= worker.run()\n    logger.info(execution_summary.summary(worker))\n    return dict(success=success, worker=worker)",
+                "def run(*args, **kwargs):\n    return _run(*args, **kwargs)['success']",
+                "def _run(cmdline_args=None, main_task_cls=None,\n         worker_scheduler_factory=None, use_dynamic_argparse=None, local_scheduler=False):\n    \"\"\"\n    Please dont use. Instead use `luigi` binary.\n\n    Run from cmdline using argparse.\n\n    :param cmdline_args:\n    :param main_task_cls:\n    :param worker_scheduler_factory:\n    :param use_dynamic_argparse: Deprecated and ignored\n    :param local_scheduler:\n    \"\"\"\n    if use_dynamic_argparse is not None:\n        warnings.warn(\"use_dynamic_argparse is deprecated, don't set it.\",\n                      DeprecationWarning, stacklevel=2)\n    if cmdline_args is None:\n        cmdline_args = sys.argv[1:]\n\n    if main_task_cls:\n        cmdline_args.insert(0, main_task_cls.task_family)\n    if local_scheduler:\n        cmdline_args.insert(0, '--local-scheduler')\n\n    with CmdlineParser.global_instance(cmdline_args) as cp:\n        return _schedule_and_run([cp.get_task_obj()], worker_scheduler_factory)",
+                "def build(tasks, worker_scheduler_factory=None, **env_params):\n    \"\"\"\n    Run internally, bypassing the cmdline parsing.\n\n    Useful if you have some luigi code that you want to run internally.\n    Example:\n\n    .. code-block:: python\n\n        luigi.build([MyTask1(), MyTask2()], local_scheduler=True)\n\n    One notable difference is that `build` defaults to not using\n    the identical process lock. Otherwise, `build` would only be\n    callable once from each process.\n\n    :param tasks:\n    :param worker_scheduler_factory:\n    :param env_params:\n    :return: True if there were no scheduling errors, even if tasks may fail.\n    \"\"\"\n    if \"no_lock\" not in env_params:\n        env_params[\"no_lock\"] = True\n\n    return _schedule_and_run(tasks, worker_scheduler_factory, override_defaults=env_params)['success']",
+                "def create_local_scheduler(self):\n    return scheduler.CentralPlannerScheduler(prune_on_get_work=True)",
+                "def create_remote_scheduler(self, url):\n    return rpc.RemoteScheduler(url)",
+                "def create_worker(self, scheduler, worker_processes, assistant=False):\n    return worker.Worker(\n        scheduler=scheduler, worker_processes=worker_processes, assistant=assistant)"
+            ],
+            "inscope_function_signatures": [
+                "setup_interface_logging(conf_file=None)",
+                "_schedule_and_run(tasks, worker_scheduler_factory=None, override_defaults=None)",
+                "run(*args, **kwargs)",
+                "_run(cmdline_args=None, main_task_cls=None, worker_scheduler_factory=None, use_dynamic_argparse=None, local_scheduler=False)",
+                "build(tasks, worker_scheduler_factory=None, **env_params)",
+                "create_local_scheduler(self)",
+                "create_remote_scheduler(self, url)",
+                "create_worker(self, scheduler, worker_processes, assistant=False)"
+            ],
+            "variables_in_file": {
+                "getattr": [
+                    45
+                ],
+                "setup_interface_logging": [
+                    168,
+                    45,
+                    62
+                ],
+                "conf_file": [
+                    48,
+                    60
+                ],
+                "logger": [
+                    195,
+                    198,
+                    49,
+                    50,
+                    58,
+                    191
+                ],
+                "logging.getLogger": [
+                    49,
+                    191
+                ],
+                "logging": [
+                    49,
+                    50,
+                    52,
+                    53,
+                    55,
+                    60,
+                    191
+                ],
+                "logger.setLevel": [
+                    50
+                ],
+                "logging.DEBUG": [
+                    50,
+                    53
+                ],
+                "stream_handler": [
+                    56,
+                    58,
+                    52,
+                    53
+                ],
+                "logging.StreamHandler": [
+                    52
+                ],
+                "stream_handler.setLevel": [
+                    53
+                ],
+                "formatter": [
+                    56,
+                    55
+                ],
+                "logging.Formatter": [
+                    55
+                ],
+                "stream_handler.setFormatter": [
+                    56
+                ],
+                "logger.addHandler": [
+                    58
+                ],
+                "logging.config.fileConfig": [
+                    60
+                ],
+                "logging.config": [
+                    60
+                ],
+                "setup_interface_logging.has_run": [
+                    62
+                ],
+                "task.Config": [
+                    65
+                ],
+                "task": [
+                    65
+                ],
+                "use_cmdline_section": [
+                    74
+                ],
+                "local_scheduler": [
+                    234,
+                    76
+                ],
+                "parameter.BoolParameter": [
+                    96,
+                    102,
+                    76,
+                    115,
+                    118,
+                    121,
+                    125
+                ],
+                "parameter": [
+                    96,
+                    99,
+                    102,
+                    105,
+                    76,
+                    108,
+                    111,
+                    80,
+                    115,
+                    84,
+                    125,
+                    118,
+                    88,
+                    121,
+                    93
+                ],
+                "scheduler_host": [
+                    80
+                ],
+                "parameter.Parameter": [
+                    99,
+                    108,
+                    111,
+                    80,
+                    88
+                ],
+                "dict": [
+                    199,
+                    91,
+                    83,
+                    87
+                ],
+                "scheduler_port": [
+                    84
+                ],
+                "parameter.IntParameter": [
+                    105,
+                    84,
+                    93
+                ],
+                "scheduler_url": [
+                    88
+                ],
+                "lock_size": [
+                    93
+                ],
+                "no_lock": [
+                    96
+                ],
+                "lock_pid_dir": [
+                    99
+                ],
+                "os.path.join": [
+                    100
+                ],
+                "os.path": [
+                    161,
+                    100
+                ],
+                "os": [
+                    161,
+                    100
+                ],
+                "tempfile.gettempdir": [
+                    100
+                ],
+                "tempfile": [
+                    100
+                ],
+                "take_lock": [
+                    102
+                ],
+                "workers": [
+                    105
+                ],
+                "logging_conf_file": [
+                    108
+                ],
+                "module": [
+                    111
+                ],
+                "parallel_scheduling": [
+                    115
+                ],
+                "assistant": [
+                    141,
+                    118
+                ],
+                "help": [
+                    121
+                ],
+                "help_all": [
+                    125
+                ],
+                "object": [
+                    131
+                ],
+                "scheduler.CentralPlannerScheduler": [
+                    134
+                ],
+                "scheduler": [
+                    141,
+                    134
+                ],
+                "rpc.RemoteScheduler": [
+                    137
+                ],
+                "rpc": [
+                    137
+                ],
+                "url": [
+                    185,
+                    137,
+                    179,
+                    181
+                ],
+                "worker.Worker": [
+                    140
+                ],
+                "worker": [
+                    192,
+                    194,
+                    197,
+                    198,
+                    199,
+                    140,
+                    187
+                ],
+                "worker_processes": [
+                    141
+                ],
+                "worker_scheduler_factory": [
+                    185,
+                    264,
+                    238,
+                    176,
+                    153,
+                    154,
+                    187
+                ],
+                "_WorkerSchedulerFactory": [
+                    154
+                ],
+                "override_defaults": [
+                    155,
+                    156,
+                    157
+                ],
+                "env_params": [
+                    160,
+                    194,
+                    196,
+                    261,
+                    262,
+                    264,
+                    170,
+                    171,
+                    172,
+                    175,
+                    178,
+                    179,
+                    182,
+                    183,
+                    188,
+                    157
+                ],
+                "core": [
+                    157
+                ],
+                "logging_conf": [
+                    160,
+                    161,
+                    168
+                ],
+                "env_params.logging_conf_file": [
+                    160
+                ],
+                "os.path.exists": [
+                    161
+                ],
+                "Exception": [
+                    162
+                ],
+                "getboolean": [
+                    166
+                ],
+                "configuration.get_config": [
+                    166
+                ],
+                "configuration": [
+                    166
+                ],
+                "kill_signal": [
+                    170,
+                    172
+                ],
+                "env_params.take_lock": [
+                    170
+                ],
+                "signal.SIGUSR1": [
+                    170
+                ],
+                "signal": [
+                    170
+                ],
+                "env_params.no_lock": [
+                    171
+                ],
+                "lock.acquire_for": [
+                    172
+                ],
+                "lock": [
+                    172
+                ],
+                "env_params.lock_pid_dir": [
+                    172
+                ],
+                "env_params.lock_size": [
+                    172
+                ],
+                "PidLockAlreadyTakenExit": [
+                    173
+                ],
+                "env_params.local_scheduler": [
+                    175
+                ],
+                "sch": [
+                    176,
+                    185,
+                    188
+                ],
+                "worker_scheduler_factory.create_local_scheduler": [
+                    176
+                ],
+                "env_params.scheduler_url": [
+                    178,
+                    179
+                ],
+                "format": [
+                    181
+                ],
+                "env_params.scheduler_host": [
+                    182
+                ],
+                "env_params.scheduler_port": [
+                    183
+                ],
+                "worker_scheduler_factory.create_remote_scheduler": [
+                    185
+                ],
+                "worker_scheduler_factory.create_worker": [
+                    187
+                ],
+                "env_params.workers": [
+                    196,
+                    188
+                ],
+                "env_params.assistant": [
+                    188
+                ],
+                "success": [
+                    194,
+                    197,
+                    190,
+                    199
+                ],
+                "t": [
+                    193,
+                    194
+                ],
+                "tasks": [
+                    264,
+                    193
+                ],
+                "worker.add": [
+                    194
+                ],
+                "env_params.parallel_scheduling": [
+                    194
+                ],
+                "logger.info": [
+                    195,
+                    198
+                ],
+                "worker.run": [
+                    197
+                ],
+                "execution_summary.summary": [
+                    198
+                ],
+                "execution_summary": [
+                    198
+                ],
+                "SystemExit": [
+                    202
+                ],
+                "_run": [
+                    210
+                ],
+                "args": [
+                    210
+                ],
+                "kwargs": [
+                    210
+                ],
+                "use_dynamic_argparse": [
+                    226
+                ],
+                "warnings.warn": [
+                    227
+                ],
+                "warnings": [
+                    227
+                ],
+                "DeprecationWarning": [
+                    228
+                ],
+                "cmdline_args": [
+                    229,
+                    230,
+                    233,
+                    235,
+                    237
+                ],
+                "sys.argv": [
+                    230
+                ],
+                "sys": [
+                    230
+                ],
+                "main_task_cls": [
+                    232,
+                    233
+                ],
+                "cmdline_args.insert": [
+                    233,
+                    235
+                ],
+                "main_task_cls.task_family": [
+                    233
+                ],
+                "CmdlineParser.global_instance": [
+                    237
+                ],
+                "CmdlineParser": [
+                    237
+                ],
+                "cp": [
+                    237,
+                    238
+                ],
+                "_schedule_and_run": [
+                    264,
+                    238
+                ],
+                "cp.get_task_obj": [
+                    238
+                ]
+            },
+            "filtered_variables_in_file": {
+                "setup_interface_logging": [
+                    168,
+                    45,
+                    62
+                ],
+                "conf_file": [
+                    48,
+                    60
+                ],
+                "logger": [
+                    195,
+                    198,
+                    49,
+                    50,
+                    58,
+                    191
+                ],
+                "logging.getLogger": [
+                    49,
+                    191
+                ],
+                "logging": [
+                    49,
+                    50,
+                    52,
+                    53,
+                    55,
+                    60,
+                    191
+                ],
+                "logger.setLevel": [
+                    50
+                ],
+                "logging.DEBUG": [
+                    50,
+                    53
+                ],
+                "stream_handler": [
+                    56,
+                    58,
+                    52,
+                    53
+                ],
+                "logging.StreamHandler": [
+                    52
+                ],
+                "stream_handler.setLevel": [
+                    53
+                ],
+                "formatter": [
+                    56,
+                    55
+                ],
+                "logging.Formatter": [
+                    55
+                ],
+                "stream_handler.setFormatter": [
+                    56
+                ],
+                "logger.addHandler": [
+                    58
+                ],
+                "logging.config.fileConfig": [
+                    60
+                ],
+                "logging.config": [
+                    60
+                ],
+                "setup_interface_logging.has_run": [
+                    62
+                ],
+                "task.Config": [
+                    65
+                ],
+                "task": [
+                    65
+                ],
+                "use_cmdline_section": [
+                    74
+                ],
+                "local_scheduler": [
+                    234,
+                    76
+                ],
+                "parameter.BoolParameter": [
+                    96,
+                    102,
+                    76,
+                    115,
+                    118,
+                    121,
+                    125
+                ],
+                "parameter": [
+                    96,
+                    99,
+                    102,
+                    105,
+                    76,
+                    108,
+                    111,
+                    80,
+                    115,
+                    84,
+                    125,
+                    118,
+                    88,
+                    121,
+                    93
+                ],
+                "scheduler_host": [
+                    80
+                ],
+                "parameter.Parameter": [
+                    99,
+                    108,
+                    111,
+                    80,
+                    88
+                ],
+                "scheduler_port": [
+                    84
+                ],
+                "parameter.IntParameter": [
+                    105,
+                    84,
+                    93
+                ],
+                "scheduler_url": [
+                    88
+                ],
+                "lock_size": [
+                    93
+                ],
+                "no_lock": [
+                    96
+                ],
+                "lock_pid_dir": [
+                    99
+                ],
+                "os.path.join": [
+                    100
+                ],
+                "os.path": [
+                    161,
+                    100
+                ],
+                "os": [
+                    161,
+                    100
+                ],
+                "tempfile.gettempdir": [
+                    100
+                ],
+                "tempfile": [
+                    100
+                ],
+                "take_lock": [
+                    102
+                ],
+                "workers": [
+                    105
+                ],
+                "logging_conf_file": [
+                    108
+                ],
+                "module": [
+                    111
+                ],
+                "parallel_scheduling": [
+                    115
+                ],
+                "assistant": [
+                    141,
+                    118
+                ],
+                "help_all": [
+                    125
+                ],
+                "scheduler.CentralPlannerScheduler": [
+                    134
+                ],
+                "scheduler": [
+                    141,
+                    134
+                ],
+                "rpc.RemoteScheduler": [
+                    137
+                ],
+                "rpc": [
+                    137
+                ],
+                "url": [
+                    185,
+                    137,
+                    179,
+                    181
+                ],
+                "worker.Worker": [
+                    140
+                ],
+                "worker": [
+                    192,
+                    194,
+                    197,
+                    198,
+                    199,
+                    140,
+                    187
+                ],
+                "worker_processes": [
+                    141
+                ],
+                "worker_scheduler_factory": [
+                    185,
+                    264,
+                    238,
+                    176,
+                    153,
+                    154,
+                    187
+                ],
+                "_WorkerSchedulerFactory": [
+                    154
+                ],
+                "override_defaults": [
+                    155,
+                    156,
+                    157
+                ],
+                "env_params": [
+                    160,
+                    194,
+                    196,
+                    261,
+                    262,
+                    264,
+                    170,
+                    171,
+                    172,
+                    175,
+                    178,
+                    179,
+                    182,
+                    183,
+                    188,
+                    157
+                ],
+                "core": [
+                    157
+                ],
+                "logging_conf": [
+                    160,
+                    161,
+                    168
+                ],
+                "env_params.logging_conf_file": [
+                    160
+                ],
+                "os.path.exists": [
+                    161
+                ],
+                "getboolean": [
+                    166
+                ],
+                "configuration.get_config": [
+                    166
+                ],
+                "configuration": [
+                    166
+                ],
+                "kill_signal": [
+                    170,
+                    172
+                ],
+                "env_params.take_lock": [
+                    170
+                ],
+                "signal.SIGUSR1": [
+                    170
+                ],
+                "signal": [
+                    170
+                ],
+                "env_params.no_lock": [
+                    171
+                ],
+                "lock.acquire_for": [
+                    172
+                ],
+                "lock": [
+                    172
+                ],
+                "env_params.lock_pid_dir": [
+                    172
+                ],
+                "env_params.lock_size": [
+                    172
+                ],
+                "PidLockAlreadyTakenExit": [
+                    173
+                ],
+                "env_params.local_scheduler": [
+                    175
+                ],
+                "sch": [
+                    176,
+                    185,
+                    188
+                ],
+                "worker_scheduler_factory.create_local_scheduler": [
+                    176
+                ],
+                "env_params.scheduler_url": [
+                    178,
+                    179
+                ],
+                "env_params.scheduler_host": [
+                    182
+                ],
+                "env_params.scheduler_port": [
+                    183
+                ],
+                "worker_scheduler_factory.create_remote_scheduler": [
+                    185
+                ],
+                "worker_scheduler_factory.create_worker": [
+                    187
+                ],
+                "env_params.workers": [
+                    196,
+                    188
+                ],
+                "env_params.assistant": [
+                    188
+                ],
+                "success": [
+                    194,
+                    197,
+                    190,
+                    199
+                ],
+                "t": [
+                    193,
+                    194
+                ],
+                "tasks": [
+                    264,
+                    193
+                ],
+                "worker.add": [
+                    194
+                ],
+                "env_params.parallel_scheduling": [
+                    194
+                ],
+                "logger.info": [
+                    195,
+                    198
+                ],
+                "worker.run": [
+                    197
+                ],
+                "execution_summary.summary": [
+                    198
+                ],
+                "execution_summary": [
+                    198
+                ],
+                "_run": [
+                    210
+                ],
+                "args": [
+                    210
+                ],
+                "kwargs": [
+                    210
+                ],
+                "use_dynamic_argparse": [
+                    226
+                ],
+                "warnings.warn": [
+                    227
+                ],
+                "warnings": [
+                    227
+                ],
+                "cmdline_args": [
+                    229,
+                    230,
+                    233,
+                    235,
+                    237
+                ],
+                "sys.argv": [
+                    230
+                ],
+                "sys": [
+                    230
+                ],
+                "main_task_cls": [
+                    232,
+                    233
+                ],
+                "cmdline_args.insert": [
+                    233,
+                    235
+                ],
+                "main_task_cls.task_family": [
+                    233
+                ],
+                "CmdlineParser.global_instance": [
+                    237
+                ],
+                "CmdlineParser": [
+                    237
+                ],
+                "cp": [
+                    237,
+                    238
+                ],
+                "_schedule_and_run": [
+                    264,
+                    238
+                ],
+                "cp.get_task_obj": [
+                    238
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_17/test/scheduler_test.py",
+                "test_function": "test_local_scheduler_task_history_status",
+                "test_function_code": "    @with_config({'scheduler': {'record_task_history': 'True'},\n                  'task_history': {'db_connection': 'sqlite:////none/existing/path/hist.db'}})\n    def test_local_scheduler_task_history_status(self):\n        ls = luigi.interface._WorkerSchedulerFactory().create_local_scheduler()\n        self.assertEqual(False, ls._config.record_task_history)",
+                "test_error": "ModuleNotFoundError: No module named 'sqlalchemy'",
+                "full_test_error": "self = <scheduler_test.SchedulerTest testMethod=test_local_scheduler_task_history_status>\n\n    @with_config({'scheduler': {'record_task_history': 'True'},\n                  'task_history': {'db_connection': 'sqlite:////none/existing/path/hist.db'}})\n    def test_local_scheduler_task_history_status(self):\n>       ls = luigi.interface._WorkerSchedulerFactory().create_local_scheduler()\n\ntest/scheduler_test.py:81: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/interface.py:134: in create_local_scheduler\n    return scheduler.CentralPlannerScheduler(prune_on_get_work=True)\nluigi/scheduler.py:533: in __init__\n    from luigi import db_task_history  # Needs sqlalchemy, thus imported here\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    \"\"\"\n    Provides a database backend to the central scheduler. This lets you see historical runs.\n    See :ref:`TaskHistory` for information about how to turn out the task history feature.\n    \"\"\"\n    #\n    # Description: Added codes for visualization of how long each task takes\n    # running-time until it reaches the next status (failed or done)\n    # At \"{base_url}/tasklist\", all completed(failed or done) tasks are shown.\n    # At \"{base_url}/tasklist\", a user can select one specific task to see\n    # how its running-time has changed over time.\n    # At \"{base_url}/tasklist/{task_name}\", it visualizes a multi-bar graph\n    # that represents the changes of the running-time for a selected task\n    # up to the next status (failed or done).\n    # This visualization let us know how the running-time of the specific task\n    # has changed over time.\n    #\n    # Copyright 2015 Naver Corp.\n    # Author Yeseul Park (yeseul.park@navercorp.com)\n    #\n    \n    import datetime\n    import logging\n    from contextlib import contextmanager\n    \n    from luigi import six\n    \n    from luigi import configuration\n    from luigi import task_history\n    from luigi.task_status import DONE, FAILED, PENDING, RUNNING\n    \n>   import sqlalchemy\nE   ModuleNotFoundError: No module named 'sqlalchemy'\n\nluigi/db_task_history.py:48: ModuleNotFoundError",
+                "traceback": "luigi/interface.py:134: in create_local_scheduler\n    return scheduler.CentralPlannerScheduler(prune_on_get_work=True)\nluigi/scheduler.py:533: in __init__\n    from luigi import db_task_history  # Needs sqlalchemy, thus imported here",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    \"\"\"\n    Provides a database backend to the central scheduler. This lets you see historical runs.\n    See :ref:`TaskHistory` for information about how to turn out the task history feature.\n    \"\"\"\n    #\n    # Description: Added codes for visualization of how long each task takes\n    # running-time until it reaches the next status (failed or done)\n    # At \"{base_url}/tasklist\", all completed(failed or done) tasks are shown.\n    # At \"{base_url}/tasklist\", a user can select one specific task to see\n    # how its running-time has changed over time.\n    # At \"{base_url}/tasklist/{task_name}\", it visualizes a multi-bar graph\n    # that represents the changes of the running-time for a selected task\n    # up to the next status (failed or done).\n    # This visualization let us know how the running-time of the specific task\n    # has changed over time.\n    #\n    # Copyright 2015 Naver Corp.\n    # Author Yeseul Park (yeseul.park@navercorp.com)\n    #\n    \n    import datetime\n    import logging\n    from contextlib import contextmanager\n    \n    from luigi import six\n    \n    from luigi import configuration\n    from luigi import task_history\n    from luigi.task_status import DONE, FAILED, PENDING, RUNNING\n    \n>   import sqlalchemy\nE   ModuleNotFoundError: No module named 'sqlalchemy'\n\nluigi/db_task_history.py:48: ModuleNotFoundError",
+                "test_function_decorators": [
+                    "with_config({'scheduler': {'record_task_history': 'True'}, 'task_history': {'db_connection': 'sqlite:////none/existing/path/hist.db'}})"
+                ]
+            }
+        ]
+    }
+}

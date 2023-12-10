@@ -1,0 +1,3702 @@
+{
+    "keras:41": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_41/keras/utils/data_utils.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "get",
+                    "function_code": "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        Generator yielding tuples (inputs, targets)\n            or (inputs, targets, sample_weights)\n    \"\"\"\n    try:\n        while self.is_running():\n            inputs = self.queue.get(block=True).get()\n            self.queue.task_done()\n            if inputs is not None:\n                yield inputs\n    except Exception as e:\n        self.stop()\n        raise StopIteration(e)\n",
+                    "decorators": [],
+                    "docstring": "Creates a generator to extract data from the queue.\n\nSkip the data if it is `None`.\n\n# Returns\n    Generator yielding tuples (inputs, targets)\n        or (inputs, targets, sample_weights)",
+                    "start_line": 539,
+                    "end_line": 556,
+                    "variables": {
+                        "self.is_running": [
+                            549
+                        ],
+                        "self": [
+                            555,
+                            549,
+                            550,
+                            551
+                        ],
+                        "inputs": [
+                            552,
+                            553,
+                            550
+                        ],
+                        "get": [
+                            550
+                        ],
+                        "self.queue.get": [
+                            550
+                        ],
+                        "self.queue": [
+                            550,
+                            551
+                        ],
+                        "self.queue.task_done": [
+                            551
+                        ],
+                        "Exception": [
+                            554
+                        ],
+                        "self.stop": [
+                            555
+                        ],
+                        "StopIteration": [
+                            556
+                        ],
+                        "e": [
+                            556
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self.is_running": [
+                            549
+                        ],
+                        "self": [
+                            555,
+                            549,
+                            550,
+                            551
+                        ],
+                        "inputs": [
+                            552,
+                            553,
+                            550
+                        ],
+                        "get": [
+                            550
+                        ],
+                        "self.queue.get": [
+                            550
+                        ],
+                        "self.queue": [
+                            550,
+                            551
+                        ],
+                        "self.queue.task_done": [
+                            551
+                        ],
+                        "self.stop": [
+                            555
+                        ],
+                        "e": [
+                            556
+                        ]
+                    },
+                    "diff_line_number": 556,
+                    "class_data": {
+                        "signature": "class OrderedEnqueuer(SequenceEnqueuer)",
+                        "docstring": "Builds a Enqueuer from a Sequence.\n\nUsed in `fit_generator`, `evaluate_generator`, `predict_generator`.\n\n# Arguments\n    sequence: A `keras.utils.data_utils.Sequence` object.\n    use_multiprocessing: use multiprocessing if True, otherwise threading\n    shuffle: whether to shuffle the data at the beginning of each epoch",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, sequence, use_multiprocessing=False, shuffle=False):\n    self.sequence = sequence\n    global _SEQUENCE_COUNTER\n    if _SEQUENCE_COUNTER is None:\n        _SEQUENCE_COUNTER = multiprocessing.Value('i', 0)\n    with _SEQUENCE_COUNTER.get_lock():\n        self.uid = _SEQUENCE_COUNTER.value\n        _SEQUENCE_COUNTER.value += 1\n    self.use_multiprocessing = use_multiprocessing\n    self.shuffle = shuffle\n    self.workers = 0\n    self.executor = None\n    self.queue = None\n    self.run_thread = None\n    self.stop_signal = None",
+                            "def is_running(self):\n    return self.stop_signal is not None and (not self.stop_signal.is_set())",
+                            "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Start the handler's workers.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, workers could block on `put()`)\n    \"\"\"\n    if self.use_multiprocessing:\n        self.executor = multiprocessing.Pool(workers)\n    else:\n        self.executor = ThreadPool(workers)\n    self.workers = workers\n    self.queue = queue.Queue(max_queue_size)\n    self.stop_signal = threading.Event()\n    self.run_thread = threading.Thread(target=self._run)\n    self.run_thread.daemon = True\n    self.run_thread.start()",
+                            "def _wait_queue(self):\n    \"\"\"Wait for the queue to be empty.\"\"\"\n    while True:\n        time.sleep(0.1)\n        if self.queue.unfinished_tasks == 0 or self.stop_signal.is_set():\n            return",
+                            "def _run(self):\n    \"\"\"Function to submit request to the executor and queue the `Future` objects.\"\"\"\n    sequence = list(range(len(self.sequence)))\n    self._send_sequence()\n    while True:\n        if self.shuffle:\n            random.shuffle(sequence)\n        for i in sequence:\n            if self.stop_signal.is_set():\n                return\n            self.queue.put(self.executor.apply_async(get_index, (self.uid, i)), block=True)\n        self._wait_queue()\n        if self.stop_signal.is_set():\n            return\n        self.sequence.on_epoch_end()\n        self._send_sequence()",
+                            "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        Generator yielding tuples (inputs, targets)\n            or (inputs, targets, sample_weights)\n    \"\"\"\n    try:\n        while self.is_running():\n            inputs = self.queue.get(block=True).get()\n            self.queue.task_done()\n            if inputs is not None:\n                yield inputs\n    except Exception as e:\n        self.stop()\n        raise StopIteration(e)",
+                            "def _send_sequence(self):\n    \"\"\"Send current Sequence to all workers.\"\"\"\n    global _SHARED_SEQUENCES\n    _SHARED_SEQUENCES[self.uid] = self.sequence\n    self._close_pool()\n    if self.use_multiprocessing:\n        self.executor = multiprocessing.Pool(self.workers)\n    else:\n        self.executor = ThreadPool(self.workers)",
+                            "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`\n    \"\"\"\n    global _SHARED_SEQUENCES\n    self.stop_signal.set()\n    with self.queue.mutex:\n        self.queue.queue.clear()\n        self.queue.unfinished_tasks = 0\n        self.queue.not_full.notify()\n    self._close_pool()\n    self.run_thread.join(timeout)\n    _SHARED_SEQUENCES[self.uid] = None",
+                            "def _close_pool(self):\n    self.executor.close()\n    self.executor.join()"
+                        ],
+                        "constructor_variables": [
+                            "queue",
+                            "sequence",
+                            "_SEQUENCE_COUNTER",
+                            "use_multiprocessing",
+                            "uid",
+                            "shuffle",
+                            "workers",
+                            "run_thread",
+                            "stop_signal",
+                            "executor"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, sequence, use_multiprocessing=False, shuffle=False)",
+                            "is_running(self)",
+                            "start(self, workers=1, max_queue_size=10)",
+                            "_wait_queue(self)",
+                            "_run(self)",
+                            "get(self)",
+                            "_send_sequence(self)",
+                            "stop(self, timeout=None)",
+                            "_close_pool(self)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {}
+                        ],
+                        [
+                            {
+                                "self.is_running": {
+                                    "variable_value": "<bound method GeneratorEnqueuer.is_running of <keras.utils.data_utils.GeneratorEnqueuer object at 0x121694d50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.utils.data_utils.GeneratorEnqueuer object at 0x121694d50>",
+                                    "variable_type": "GeneratorEnqueuer",
+                                    "variable_shape": null
+                                },
+                                "self.queue.empty": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.queue": {
+                                    "variable_value": "<queue.Queue object at 0x121694e10>",
+                                    "variable_type": "Queue",
+                                    "variable_shape": null
+                                },
+                                "success": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.queue.get": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "six.reraise": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "six": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value.__class__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value.__traceback__": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "all_finished": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "thread.is_alive": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "thread": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._threads": {
+                                    "variable_value": "[<Thread(Thread-1, stopped 123145579507712)>, <Thread(Thread-2, stopped 123145579507712)>, <Thread(Thread-3, stopped 123145579507712)>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "3"
+                                },
+                                "time.sleep": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.wait_time": {
+                                    "variable_value": "0.05",
+                                    "variable_type": "float",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "__init__",
+                    "function_code": "def __init__(self, generator,\n             use_multiprocessing=False,\n             wait_time=0.05,\n             seed=None):\n    self.wait_time = wait_time\n    self._generator = generator\n    self._use_multiprocessing = use_multiprocessing\n    self._threads = []\n    self._stop_event = None\n    self.queue = None\n    self.seed = seed\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 608,
+                    "end_line": 618,
+                    "variables": {
+                        "self.wait_time": [
+                            612
+                        ],
+                        "self": [
+                            612,
+                            613,
+                            614,
+                            615,
+                            616,
+                            617,
+                            618
+                        ],
+                        "wait_time": [
+                            612
+                        ],
+                        "self._generator": [
+                            613
+                        ],
+                        "generator": [
+                            613
+                        ],
+                        "self._use_multiprocessing": [
+                            614
+                        ],
+                        "use_multiprocessing": [
+                            614
+                        ],
+                        "self._threads": [
+                            615
+                        ],
+                        "self._stop_event": [
+                            616
+                        ],
+                        "self.queue": [
+                            617
+                        ],
+                        "self.seed": [
+                            618
+                        ],
+                        "seed": [
+                            618
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self.wait_time": [
+                            612
+                        ],
+                        "self": [
+                            612,
+                            613,
+                            614,
+                            615,
+                            616,
+                            617,
+                            618
+                        ],
+                        "wait_time": [
+                            612
+                        ],
+                        "self._generator": [
+                            613
+                        ],
+                        "generator": [
+                            613
+                        ],
+                        "self._use_multiprocessing": [
+                            614
+                        ],
+                        "use_multiprocessing": [
+                            614
+                        ],
+                        "self._threads": [
+                            615
+                        ],
+                        "self._stop_event": [
+                            616
+                        ],
+                        "self.queue": [
+                            617
+                        ],
+                        "self.seed": [
+                            618
+                        ],
+                        "seed": [
+                            618
+                        ]
+                    },
+                    "diff_line_number": 616,
+                    "class_data": {
+                        "signature": "class GeneratorEnqueuer(SequenceEnqueuer)",
+                        "docstring": "Builds a queue out of a data generator.\n\nThe provided generator can be finite in which case the class will throw\na `StopIteration` exception.\n\nUsed in `fit_generator`, `evaluate_generator`, `predict_generator`.\n\n# Arguments\n    generator: a generator function which yields data\n    use_multiprocessing: use multiprocessing if True, otherwise threading\n    wait_time: time to sleep in-between calls to `put()`\n    random_seed: Initial seed for workers,\n        will be incremented by one for each worker.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None):\n    self.wait_time = wait_time\n    self._generator = generator\n    self._use_multiprocessing = use_multiprocessing\n    self._threads = []\n    self._stop_event = None\n    self.queue = None\n    self.seed = seed",
+                            "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Kicks off threads which add data from the generator into the queue.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, threads could block on `put()`)\n    \"\"\"\n\n    def data_generator_task():\n        while not self._stop_event.is_set():\n            try:\n                if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                    generator_output = next(self._generator)\n                    self.queue.put(generator_output)\n                else:\n                    time.sleep(self.wait_time)\n            except StopIteration:\n                break\n            except Exception:\n                self._stop_event.set()\n                raise\n    try:\n        if self._use_multiprocessing:\n            self.queue = multiprocessing.Queue(maxsize=max_queue_size)\n            self._stop_event = multiprocessing.Event()\n        else:\n            self.queue = queue.Queue()\n            self._stop_event = threading.Event()\n        for _ in range(workers):\n            if self._use_multiprocessing:\n                np.random.seed(self.seed)\n                thread = multiprocessing.Process(target=data_generator_task)\n                thread.daemon = True\n                if self.seed is not None:\n                    self.seed += 1\n            else:\n                thread = threading.Thread(target=data_generator_task)\n            self._threads.append(thread)\n            thread.start()\n    except:\n        self.stop()\n        raise",
+                            "def is_running(self):\n    return self._stop_event is not None and (not self._stop_event.is_set())",
+                            "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`.\n    \"\"\"\n    if self.is_running():\n        self._stop_event.set()\n    for thread in self._threads:\n        if thread.is_alive():\n            if self._use_multiprocessing:\n                thread.terminate()\n            else:\n                thread.join(timeout)\n    if self._use_multiprocessing:\n        if self.queue is not None:\n            self.queue.close()\n    self._threads = []\n    self._stop_event = None\n    self.queue = None",
+                            "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        A generator\n    \"\"\"\n    while self.is_running():\n        if not self.queue.empty():\n            inputs = self.queue.get()\n            if inputs is not None:\n                yield inputs\n        else:\n            all_finished = all([not thread.is_alive() for thread in self._threads])\n            if all_finished and self.queue.empty():\n                raise StopIteration()\n            else:\n                time.sleep(self.wait_time)",
+                            "def data_generator_task():\n    while not self._stop_event.is_set():\n        try:\n            if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                generator_output = next(self._generator)\n                self.queue.put(generator_output)\n            else:\n                time.sleep(self.wait_time)\n        except StopIteration:\n            break\n        except Exception:\n            self._stop_event.set()\n            raise"
+                        ],
+                        "constructor_variables": [
+                            "queue",
+                            "_generator",
+                            "_threads",
+                            "wait_time",
+                            "_use_multiprocessing",
+                            "_stop_event",
+                            "seed"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None)",
+                            "start(self, workers=1, max_queue_size=10)",
+                            "is_running(self)",
+                            "stop(self, timeout=None)",
+                            "get(self)",
+                            "data_generator_task()"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "self.wait_time": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.utils.data_utils.GeneratorEnqueuer object at 0x127152c90>",
+                                    "variable_type": "GeneratorEnqueuer",
+                                    "variable_shape": null
+                                },
+                                "wait_time": {
+                                    "variable_value": "0.05",
+                                    "variable_type": "float",
+                                    "variable_shape": null
+                                },
+                                "self._generator": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "generator": {
+                                    "variable_value": "<data_utils_test.threadsafe_iter object at 0x127152c50>",
+                                    "variable_type": "threadsafe_iter",
+                                    "variable_shape": null
+                                },
+                                "self._use_multiprocessing": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "use_multiprocessing": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._threads": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._stop_event": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.queue": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.seed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "seed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "self.wait_time": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.utils.data_utils.GeneratorEnqueuer object at 0x1267c3c90>",
+                                    "variable_type": "GeneratorEnqueuer",
+                                    "variable_shape": null
+                                },
+                                "wait_time": {
+                                    "variable_value": "0.05",
+                                    "variable_type": "float",
+                                    "variable_shape": null
+                                },
+                                "self._generator": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "generator": {
+                                    "variable_value": "<data_utils_test.threadsafe_iter object at 0x1267c3c50>",
+                                    "variable_type": "threadsafe_iter",
+                                    "variable_shape": null
+                                },
+                                "self._use_multiprocessing": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "use_multiprocessing": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._threads": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._stop_event": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._manager": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.queue": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.seed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "seed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "start",
+                    "function_code": "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Kicks off threads which add data from the generator into the queue.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, threads could block on `put()`)\n    \"\"\"\n\n    def data_generator_task():\n        while not self._stop_event.is_set():\n            try:\n                if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                    generator_output = next(self._generator)\n                    self.queue.put(generator_output)\n                else:\n                    time.sleep(self.wait_time)\n            except StopIteration:\n                break\n            except Exception:\n                self._stop_event.set()\n                raise\n\n    try:\n        if self._use_multiprocessing:\n            self.queue = multiprocessing.Queue(maxsize=max_queue_size)\n            self._stop_event = multiprocessing.Event()\n        else:\n            self.queue = queue.Queue()\n            self._stop_event = threading.Event()\n\n        for _ in range(workers):\n            if self._use_multiprocessing:\n                # Reset random seed else all children processes\n                # share the same seed\n                np.random.seed(self.seed)\n                thread = multiprocessing.Process(target=data_generator_task)\n                thread.daemon = True\n                if self.seed is not None:\n                    self.seed += 1\n            else:\n                thread = threading.Thread(target=data_generator_task)\n            self._threads.append(thread)\n            thread.start()\n    except:\n        self.stop()\n        raise\n",
+                    "decorators": [],
+                    "docstring": "Kicks off threads which add data from the generator into the queue.\n\n# Arguments\n    workers: number of worker threads\n    max_queue_size: queue size\n        (when full, threads could block on `put()`)",
+                    "start_line": 620,
+                    "end_line": 666,
+                    "variables": {
+                        "self._stop_event.is_set": [
+                            630
+                        ],
+                        "self._stop_event": [
+                            640,
+                            649,
+                            646,
+                            630
+                        ],
+                        "self": [
+                            640,
+                            644,
+                            645,
+                            646,
+                            648,
+                            649,
+                            652,
+                            655,
+                            658,
+                            659,
+                            665,
+                            630,
+                            662,
+                            632,
+                            633,
+                            634,
+                            636
+                        ],
+                        "self._use_multiprocessing": [
+                            632,
+                            652,
+                            644
+                        ],
+                        "self.queue.qsize": [
+                            632
+                        ],
+                        "self.queue": [
+                            632,
+                            634,
+                            648,
+                            645
+                        ],
+                        "max_queue_size": [
+                            632,
+                            645
+                        ],
+                        "generator_output": [
+                            633,
+                            634
+                        ],
+                        "next": [
+                            633
+                        ],
+                        "self._generator": [
+                            633
+                        ],
+                        "self.queue.put": [
+                            634
+                        ],
+                        "time.sleep": [
+                            636
+                        ],
+                        "time": [
+                            636
+                        ],
+                        "self.wait_time": [
+                            636
+                        ],
+                        "StopIteration": [
+                            637
+                        ],
+                        "Exception": [
+                            639
+                        ],
+                        "self._stop_event.set": [
+                            640
+                        ],
+                        "multiprocessing.Queue": [
+                            645
+                        ],
+                        "multiprocessing": [
+                            656,
+                            645,
+                            646
+                        ],
+                        "multiprocessing.Event": [
+                            646
+                        ],
+                        "queue.Queue": [
+                            648
+                        ],
+                        "queue": [
+                            648
+                        ],
+                        "threading.Event": [
+                            649
+                        ],
+                        "threading": [
+                            649,
+                            661
+                        ],
+                        "_": [
+                            651
+                        ],
+                        "range": [
+                            651
+                        ],
+                        "workers": [
+                            651
+                        ],
+                        "np.random.seed": [
+                            655
+                        ],
+                        "np.random": [
+                            655
+                        ],
+                        "np": [
+                            655
+                        ],
+                        "self.seed": [
+                            658,
+                            659,
+                            655
+                        ],
+                        "thread": [
+                            656,
+                            657,
+                            661,
+                            662,
+                            663
+                        ],
+                        "multiprocessing.Process": [
+                            656
+                        ],
+                        "data_generator_task": [
+                            656,
+                            661
+                        ],
+                        "thread.daemon": [
+                            657
+                        ],
+                        "threading.Thread": [
+                            661
+                        ],
+                        "self._threads.append": [
+                            662
+                        ],
+                        "self._threads": [
+                            662
+                        ],
+                        "thread.start": [
+                            663
+                        ],
+                        "self.stop": [
+                            665
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self._stop_event.is_set": [
+                            630
+                        ],
+                        "self._stop_event": [
+                            640,
+                            649,
+                            646,
+                            630
+                        ],
+                        "self": [
+                            640,
+                            644,
+                            645,
+                            646,
+                            648,
+                            649,
+                            652,
+                            655,
+                            658,
+                            659,
+                            665,
+                            630,
+                            662,
+                            632,
+                            633,
+                            634,
+                            636
+                        ],
+                        "self._use_multiprocessing": [
+                            632,
+                            652,
+                            644
+                        ],
+                        "self.queue.qsize": [
+                            632
+                        ],
+                        "self.queue": [
+                            632,
+                            634,
+                            648,
+                            645
+                        ],
+                        "max_queue_size": [
+                            632,
+                            645
+                        ],
+                        "generator_output": [
+                            633,
+                            634
+                        ],
+                        "self._generator": [
+                            633
+                        ],
+                        "self.queue.put": [
+                            634
+                        ],
+                        "time.sleep": [
+                            636
+                        ],
+                        "time": [
+                            636
+                        ],
+                        "self.wait_time": [
+                            636
+                        ],
+                        "self._stop_event.set": [
+                            640
+                        ],
+                        "multiprocessing.Queue": [
+                            645
+                        ],
+                        "multiprocessing": [
+                            656,
+                            645,
+                            646
+                        ],
+                        "multiprocessing.Event": [
+                            646
+                        ],
+                        "queue.Queue": [
+                            648
+                        ],
+                        "queue": [
+                            648
+                        ],
+                        "threading.Event": [
+                            649
+                        ],
+                        "threading": [
+                            649,
+                            661
+                        ],
+                        "_": [
+                            651
+                        ],
+                        "workers": [
+                            651
+                        ],
+                        "np.random.seed": [
+                            655
+                        ],
+                        "np.random": [
+                            655
+                        ],
+                        "np": [
+                            655
+                        ],
+                        "self.seed": [
+                            658,
+                            659,
+                            655
+                        ],
+                        "thread": [
+                            656,
+                            657,
+                            661,
+                            662,
+                            663
+                        ],
+                        "multiprocessing.Process": [
+                            656
+                        ],
+                        "data_generator_task": [
+                            656,
+                            661
+                        ],
+                        "thread.daemon": [
+                            657
+                        ],
+                        "threading.Thread": [
+                            661
+                        ],
+                        "self._threads.append": [
+                            662
+                        ],
+                        "self._threads": [
+                            662
+                        ],
+                        "thread.start": [
+                            663
+                        ],
+                        "self.stop": [
+                            665
+                        ]
+                    },
+                    "diff_line_number": 634,
+                    "class_data": {
+                        "signature": "class GeneratorEnqueuer(SequenceEnqueuer)",
+                        "docstring": "Builds a queue out of a data generator.\n\nThe provided generator can be finite in which case the class will throw\na `StopIteration` exception.\n\nUsed in `fit_generator`, `evaluate_generator`, `predict_generator`.\n\n# Arguments\n    generator: a generator function which yields data\n    use_multiprocessing: use multiprocessing if True, otherwise threading\n    wait_time: time to sleep in-between calls to `put()`\n    random_seed: Initial seed for workers,\n        will be incremented by one for each worker.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None):\n    self.wait_time = wait_time\n    self._generator = generator\n    self._use_multiprocessing = use_multiprocessing\n    self._threads = []\n    self._stop_event = None\n    self.queue = None\n    self.seed = seed",
+                            "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Kicks off threads which add data from the generator into the queue.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, threads could block on `put()`)\n    \"\"\"\n\n    def data_generator_task():\n        while not self._stop_event.is_set():\n            try:\n                if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                    generator_output = next(self._generator)\n                    self.queue.put(generator_output)\n                else:\n                    time.sleep(self.wait_time)\n            except StopIteration:\n                break\n            except Exception:\n                self._stop_event.set()\n                raise\n    try:\n        if self._use_multiprocessing:\n            self.queue = multiprocessing.Queue(maxsize=max_queue_size)\n            self._stop_event = multiprocessing.Event()\n        else:\n            self.queue = queue.Queue()\n            self._stop_event = threading.Event()\n        for _ in range(workers):\n            if self._use_multiprocessing:\n                np.random.seed(self.seed)\n                thread = multiprocessing.Process(target=data_generator_task)\n                thread.daemon = True\n                if self.seed is not None:\n                    self.seed += 1\n            else:\n                thread = threading.Thread(target=data_generator_task)\n            self._threads.append(thread)\n            thread.start()\n    except:\n        self.stop()\n        raise",
+                            "def is_running(self):\n    return self._stop_event is not None and (not self._stop_event.is_set())",
+                            "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`.\n    \"\"\"\n    if self.is_running():\n        self._stop_event.set()\n    for thread in self._threads:\n        if thread.is_alive():\n            if self._use_multiprocessing:\n                thread.terminate()\n            else:\n                thread.join(timeout)\n    if self._use_multiprocessing:\n        if self.queue is not None:\n            self.queue.close()\n    self._threads = []\n    self._stop_event = None\n    self.queue = None",
+                            "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        A generator\n    \"\"\"\n    while self.is_running():\n        if not self.queue.empty():\n            inputs = self.queue.get()\n            if inputs is not None:\n                yield inputs\n        else:\n            all_finished = all([not thread.is_alive() for thread in self._threads])\n            if all_finished and self.queue.empty():\n                raise StopIteration()\n            else:\n                time.sleep(self.wait_time)",
+                            "def data_generator_task():\n    while not self._stop_event.is_set():\n        try:\n            if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                generator_output = next(self._generator)\n                self.queue.put(generator_output)\n            else:\n                time.sleep(self.wait_time)\n        except StopIteration:\n            break\n        except Exception:\n            self._stop_event.set()\n            raise"
+                        ],
+                        "constructor_variables": [
+                            "queue",
+                            "_generator",
+                            "_threads",
+                            "wait_time",
+                            "_use_multiprocessing",
+                            "_stop_event",
+                            "seed"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None)",
+                            "start(self, workers=1, max_queue_size=10)",
+                            "is_running(self)",
+                            "stop(self, timeout=None)",
+                            "get(self)",
+                            "data_generator_task()"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "self._stop_event.is_set": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._stop_event": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.utils.data_utils.GeneratorEnqueuer object at 0x1304b2090>",
+                                    "variable_type": "GeneratorEnqueuer",
+                                    "variable_shape": null
+                                },
+                                "self._use_multiprocessing": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self.queue.qsize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.queue": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "max_queue_size": {
+                                    "variable_value": "10",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "generator_output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._generator": {
+                                    "variable_value": "<data_utils_test.threadsafe_iter object at 0x1304b2050>",
+                                    "variable_type": "threadsafe_iter",
+                                    "variable_shape": null
+                                },
+                                "self.queue.put": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "time.sleep": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.wait_time": {
+                                    "variable_value": "0.05",
+                                    "variable_type": "float",
+                                    "variable_shape": null
+                                },
+                                "self._stop_event.set": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing.Queue": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing.Event": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "queue.Queue": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "queue": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "threading.Event": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "threading": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "workers": {
+                                    "variable_value": "3",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "np.random.seed": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.random": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.seed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "thread": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing.Process": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "data_generator_task": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "thread.daemon": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "threading.Thread": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._threads.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._threads": {
+                                    "variable_value": "[]",
+                                    "variable_type": "list",
+                                    "variable_shape": "0"
+                                },
+                                "thread.start": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.stop": {
+                                    "variable_value": "<bound method GeneratorEnqueuer.stop of <keras.utils.data_utils.GeneratorEnqueuer object at 0x1304b2090>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "self._stop_event.is_set": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._stop_event": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.utils.data_utils.GeneratorEnqueuer object at 0x12bbb0190>",
+                                    "variable_type": "GeneratorEnqueuer",
+                                    "variable_shape": null
+                                },
+                                "self._use_multiprocessing": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self.queue.qsize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.queue": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "max_queue_size": {
+                                    "variable_value": "10",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "generator_output": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._generator": {
+                                    "variable_value": "<data_utils_test.threadsafe_iter object at 0x12bbb0150>",
+                                    "variable_type": "threadsafe_iter",
+                                    "variable_shape": null
+                                },
+                                "self.queue.put": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "time.sleep": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.wait_time": {
+                                    "variable_value": "0.05",
+                                    "variable_type": "float",
+                                    "variable_shape": null
+                                },
+                                "traceback.print_exc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "traceback": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sys.exc_info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "sys": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._stop_event.set": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._manager": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing.Manager": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._manager.Queue": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing.Event": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "queue.Queue": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "queue": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "threading.Event": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "threading": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "workers": {
+                                    "variable_value": "3",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "np.random.seed": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.random": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.seed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "thread": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "multiprocessing.Process": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "data_generator_task": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "thread.daemon": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "threading.Thread": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._threads.append": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._threads": {
+                                    "variable_value": "[]",
+                                    "variable_type": "list",
+                                    "variable_shape": "0"
+                                },
+                                "thread.start": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.stop": {
+                                    "variable_value": "<bound method GeneratorEnqueuer.stop of <keras.utils.data_utils.GeneratorEnqueuer object at 0x12bbb0190>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "stop",
+                    "function_code": "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`.\n    \"\"\"\n    if self.is_running():\n        self._stop_event.set()\n\n    for thread in self._threads:\n        if thread.is_alive():\n            if self._use_multiprocessing:\n                thread.terminate()\n            else:\n                thread.join(timeout)\n\n    if self._use_multiprocessing:\n        if self.queue is not None:\n            self.queue.close()\n\n    self._threads = []\n    self._stop_event = None\n    self.queue = None\n",
+                    "decorators": [],
+                    "docstring": "Stops running threads and wait for them to exit, if necessary.\n\nShould be called by the same thread which called `start()`.\n\n# Arguments\n    timeout: maximum time to wait on `thread.join()`.",
+                    "start_line": 671,
+                    "end_line": 695,
+                    "variables": {
+                        "self.is_running": [
+                            679
+                        ],
+                        "self": [
+                            679,
+                            680,
+                            682,
+                            684,
+                            689,
+                            690,
+                            691,
+                            693,
+                            694,
+                            695
+                        ],
+                        "self._stop_event.set": [
+                            680
+                        ],
+                        "self._stop_event": [
+                            680,
+                            694
+                        ],
+                        "thread": [
+                            682,
+                            683,
+                            685,
+                            687
+                        ],
+                        "self._threads": [
+                            682,
+                            693
+                        ],
+                        "thread.is_alive": [
+                            683
+                        ],
+                        "self._use_multiprocessing": [
+                            689,
+                            684
+                        ],
+                        "thread.terminate": [
+                            685
+                        ],
+                        "thread.join": [
+                            687
+                        ],
+                        "timeout": [
+                            687
+                        ],
+                        "self.queue": [
+                            690,
+                            691,
+                            695
+                        ],
+                        "self.queue.close": [
+                            691
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self.is_running": [
+                            679
+                        ],
+                        "self": [
+                            679,
+                            680,
+                            682,
+                            684,
+                            689,
+                            690,
+                            691,
+                            693,
+                            694,
+                            695
+                        ],
+                        "self._stop_event.set": [
+                            680
+                        ],
+                        "self._stop_event": [
+                            680,
+                            694
+                        ],
+                        "thread": [
+                            682,
+                            683,
+                            685,
+                            687
+                        ],
+                        "self._threads": [
+                            682,
+                            693
+                        ],
+                        "thread.is_alive": [
+                            683
+                        ],
+                        "self._use_multiprocessing": [
+                            689,
+                            684
+                        ],
+                        "thread.terminate": [
+                            685
+                        ],
+                        "thread.join": [
+                            687
+                        ],
+                        "timeout": [
+                            687
+                        ],
+                        "self.queue": [
+                            690,
+                            691,
+                            695
+                        ],
+                        "self.queue.close": [
+                            691
+                        ]
+                    },
+                    "diff_line_number": 689,
+                    "class_data": {
+                        "signature": "class GeneratorEnqueuer(SequenceEnqueuer)",
+                        "docstring": "Builds a queue out of a data generator.\n\nThe provided generator can be finite in which case the class will throw\na `StopIteration` exception.\n\nUsed in `fit_generator`, `evaluate_generator`, `predict_generator`.\n\n# Arguments\n    generator: a generator function which yields data\n    use_multiprocessing: use multiprocessing if True, otherwise threading\n    wait_time: time to sleep in-between calls to `put()`\n    random_seed: Initial seed for workers,\n        will be incremented by one for each worker.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None):\n    self.wait_time = wait_time\n    self._generator = generator\n    self._use_multiprocessing = use_multiprocessing\n    self._threads = []\n    self._stop_event = None\n    self.queue = None\n    self.seed = seed",
+                            "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Kicks off threads which add data from the generator into the queue.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, threads could block on `put()`)\n    \"\"\"\n\n    def data_generator_task():\n        while not self._stop_event.is_set():\n            try:\n                if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                    generator_output = next(self._generator)\n                    self.queue.put(generator_output)\n                else:\n                    time.sleep(self.wait_time)\n            except StopIteration:\n                break\n            except Exception:\n                self._stop_event.set()\n                raise\n    try:\n        if self._use_multiprocessing:\n            self.queue = multiprocessing.Queue(maxsize=max_queue_size)\n            self._stop_event = multiprocessing.Event()\n        else:\n            self.queue = queue.Queue()\n            self._stop_event = threading.Event()\n        for _ in range(workers):\n            if self._use_multiprocessing:\n                np.random.seed(self.seed)\n                thread = multiprocessing.Process(target=data_generator_task)\n                thread.daemon = True\n                if self.seed is not None:\n                    self.seed += 1\n            else:\n                thread = threading.Thread(target=data_generator_task)\n            self._threads.append(thread)\n            thread.start()\n    except:\n        self.stop()\n        raise",
+                            "def is_running(self):\n    return self._stop_event is not None and (not self._stop_event.is_set())",
+                            "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`.\n    \"\"\"\n    if self.is_running():\n        self._stop_event.set()\n    for thread in self._threads:\n        if thread.is_alive():\n            if self._use_multiprocessing:\n                thread.terminate()\n            else:\n                thread.join(timeout)\n    if self._use_multiprocessing:\n        if self.queue is not None:\n            self.queue.close()\n    self._threads = []\n    self._stop_event = None\n    self.queue = None",
+                            "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        A generator\n    \"\"\"\n    while self.is_running():\n        if not self.queue.empty():\n            inputs = self.queue.get()\n            if inputs is not None:\n                yield inputs\n        else:\n            all_finished = all([not thread.is_alive() for thread in self._threads])\n            if all_finished and self.queue.empty():\n                raise StopIteration()\n            else:\n                time.sleep(self.wait_time)",
+                            "def data_generator_task():\n    while not self._stop_event.is_set():\n        try:\n            if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                generator_output = next(self._generator)\n                self.queue.put(generator_output)\n            else:\n                time.sleep(self.wait_time)\n        except StopIteration:\n            break\n        except Exception:\n            self._stop_event.set()\n            raise"
+                        ],
+                        "constructor_variables": [
+                            "queue",
+                            "_generator",
+                            "_threads",
+                            "wait_time",
+                            "_use_multiprocessing",
+                            "_stop_event",
+                            "seed"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None)",
+                            "start(self, workers=1, max_queue_size=10)",
+                            "is_running(self)",
+                            "stop(self, timeout=None)",
+                            "get(self)",
+                            "data_generator_task()"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {},
+                            {}
+                        ]
+                    ]
+                },
+                {
+                    "function_name": "get",
+                    "function_code": "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        A generator\n    \"\"\"\n    while self.is_running():\n        if not self.queue.empty():\n            inputs = self.queue.get()\n            if inputs is not None:\n                yield inputs\n        else:\n            all_finished = all([not thread.is_alive() for thread in self._threads])\n            if all_finished and self.queue.empty():\n                raise StopIteration()\n            else:\n                time.sleep(self.wait_time)\n",
+                    "decorators": [],
+                    "docstring": "Creates a generator to extract data from the queue.\n\nSkip the data if it is `None`.\n\n# Returns\n    A generator",
+                    "start_line": 697,
+                    "end_line": 715,
+                    "variables": {
+                        "self.is_running": [
+                            705
+                        ],
+                        "self": [
+                            705,
+                            706,
+                            707,
+                            711,
+                            712,
+                            715
+                        ],
+                        "self.queue.empty": [
+                            712,
+                            706
+                        ],
+                        "self.queue": [
+                            712,
+                            706,
+                            707
+                        ],
+                        "inputs": [
+                            707,
+                            708,
+                            709
+                        ],
+                        "self.queue.get": [
+                            707
+                        ],
+                        "all_finished": [
+                            712,
+                            711
+                        ],
+                        "all": [
+                            711
+                        ],
+                        "thread.is_alive": [
+                            711
+                        ],
+                        "thread": [
+                            711
+                        ],
+                        "self._threads": [
+                            711
+                        ],
+                        "StopIteration": [
+                            713
+                        ],
+                        "time.sleep": [
+                            715
+                        ],
+                        "time": [
+                            715
+                        ],
+                        "self.wait_time": [
+                            715
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self.is_running": [
+                            705
+                        ],
+                        "self": [
+                            705,
+                            706,
+                            707,
+                            711,
+                            712,
+                            715
+                        ],
+                        "self.queue.empty": [
+                            712,
+                            706
+                        ],
+                        "self.queue": [
+                            712,
+                            706,
+                            707
+                        ],
+                        "inputs": [
+                            707,
+                            708,
+                            709
+                        ],
+                        "self.queue.get": [
+                            707
+                        ],
+                        "all_finished": [
+                            712,
+                            711
+                        ],
+                        "thread.is_alive": [
+                            711
+                        ],
+                        "thread": [
+                            711
+                        ],
+                        "self._threads": [
+                            711
+                        ],
+                        "time.sleep": [
+                            715
+                        ],
+                        "time": [
+                            715
+                        ],
+                        "self.wait_time": [
+                            715
+                        ]
+                    },
+                    "diff_line_number": 707,
+                    "class_data": {
+                        "signature": "class GeneratorEnqueuer(SequenceEnqueuer)",
+                        "docstring": "Builds a queue out of a data generator.\n\nThe provided generator can be finite in which case the class will throw\na `StopIteration` exception.\n\nUsed in `fit_generator`, `evaluate_generator`, `predict_generator`.\n\n# Arguments\n    generator: a generator function which yields data\n    use_multiprocessing: use multiprocessing if True, otherwise threading\n    wait_time: time to sleep in-between calls to `put()`\n    random_seed: Initial seed for workers,\n        will be incremented by one for each worker.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None):\n    self.wait_time = wait_time\n    self._generator = generator\n    self._use_multiprocessing = use_multiprocessing\n    self._threads = []\n    self._stop_event = None\n    self.queue = None\n    self.seed = seed",
+                            "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Kicks off threads which add data from the generator into the queue.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, threads could block on `put()`)\n    \"\"\"\n\n    def data_generator_task():\n        while not self._stop_event.is_set():\n            try:\n                if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                    generator_output = next(self._generator)\n                    self.queue.put(generator_output)\n                else:\n                    time.sleep(self.wait_time)\n            except StopIteration:\n                break\n            except Exception:\n                self._stop_event.set()\n                raise\n    try:\n        if self._use_multiprocessing:\n            self.queue = multiprocessing.Queue(maxsize=max_queue_size)\n            self._stop_event = multiprocessing.Event()\n        else:\n            self.queue = queue.Queue()\n            self._stop_event = threading.Event()\n        for _ in range(workers):\n            if self._use_multiprocessing:\n                np.random.seed(self.seed)\n                thread = multiprocessing.Process(target=data_generator_task)\n                thread.daemon = True\n                if self.seed is not None:\n                    self.seed += 1\n            else:\n                thread = threading.Thread(target=data_generator_task)\n            self._threads.append(thread)\n            thread.start()\n    except:\n        self.stop()\n        raise",
+                            "def is_running(self):\n    return self._stop_event is not None and (not self._stop_event.is_set())",
+                            "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`.\n    \"\"\"\n    if self.is_running():\n        self._stop_event.set()\n    for thread in self._threads:\n        if thread.is_alive():\n            if self._use_multiprocessing:\n                thread.terminate()\n            else:\n                thread.join(timeout)\n    if self._use_multiprocessing:\n        if self.queue is not None:\n            self.queue.close()\n    self._threads = []\n    self._stop_event = None\n    self.queue = None",
+                            "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        A generator\n    \"\"\"\n    while self.is_running():\n        if not self.queue.empty():\n            inputs = self.queue.get()\n            if inputs is not None:\n                yield inputs\n        else:\n            all_finished = all([not thread.is_alive() for thread in self._threads])\n            if all_finished and self.queue.empty():\n                raise StopIteration()\n            else:\n                time.sleep(self.wait_time)",
+                            "def data_generator_task():\n    while not self._stop_event.is_set():\n        try:\n            if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                generator_output = next(self._generator)\n                self.queue.put(generator_output)\n            else:\n                time.sleep(self.wait_time)\n        except StopIteration:\n            break\n        except Exception:\n            self._stop_event.set()\n            raise"
+                        ],
+                        "constructor_variables": [
+                            "queue",
+                            "_generator",
+                            "_threads",
+                            "wait_time",
+                            "_use_multiprocessing",
+                            "_stop_event",
+                            "seed"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None)",
+                            "start(self, workers=1, max_queue_size=10)",
+                            "is_running(self)",
+                            "stop(self, timeout=None)",
+                            "get(self)",
+                            "data_generator_task()"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "self.is_running": {
+                                    "variable_value": "<bound method GeneratorEnqueuer.is_running of <keras.utils.data_utils.GeneratorEnqueuer object at 0x125bc3e90>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<keras.utils.data_utils.GeneratorEnqueuer object at 0x125bc3e90>",
+                                    "variable_type": "GeneratorEnqueuer",
+                                    "variable_shape": null
+                                },
+                                "self.queue.empty": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.queue": {
+                                    "variable_value": "<queue.Queue object at 0x125bc3f50>",
+                                    "variable_type": "Queue",
+                                    "variable_shape": null
+                                },
+                                "inputs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.queue.get": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "all_finished": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "thread.is_alive": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "thread": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._threads": {
+                                    "variable_value": "[<Thread(Thread-1, started 123145510825984)>, <Thread(Thread-2, stopped 123145516081152)>, <Thread(Thread-3, stopped 123145516081152)>]",
+                                    "variable_type": "list",
+                                    "variable_shape": "3"
+                                },
+                                "time.sleep": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.wait_time": {
+                                    "variable_value": "0.05",
+                                    "variable_type": "float",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "import time\nimport zipfile",
+                    "start_line": 13,
+                    "end_line": 14
+                }
+            ],
+            "inscope_functions": [
+                "def _extract_archive(file_path, path='.', archive_format='auto'):\n    \"\"\"Extracts an archive if it matches tar, tar.gz, tar.bz, or zip formats.\n\n    # Arguments\n        file_path: path to the archive file\n        path: path to extract the archive file\n        archive_format: Archive format to try for extracting the file.\n            Options are 'auto', 'tar', 'zip', and None.\n            'tar' includes tar, tar.gz, and tar.bz files.\n            The default 'auto' is ['tar', 'zip'].\n            None or an empty list will return no matches found.\n\n    # Returns\n        True if a match was found and an archive extraction was completed,\n        False otherwise.\n    \"\"\"\n    if archive_format is None:\n        return False\n    if archive_format is 'auto':\n        archive_format = ['tar', 'zip']\n    if isinstance(archive_format, six.string_types):\n        archive_format = [archive_format]\n\n    for archive_type in archive_format:\n        if archive_type is 'tar':\n            open_fn = tarfile.open\n            is_match_fn = tarfile.is_tarfile\n        if archive_type is 'zip':\n            open_fn = zipfile.ZipFile\n            is_match_fn = zipfile.is_zipfile\n\n        if is_match_fn(file_path):\n            with open_fn(file_path) as archive:\n                try:\n                    archive.extractall(path)\n                except (tarfile.TarError, RuntimeError,\n                        KeyboardInterrupt):\n                    if os.path.exists(path):\n                        if os.path.isfile(path):\n                            os.remove(path)\n                        else:\n                            shutil.rmtree(path)\n                    raise\n            return True\n    return False",
+                "def get_file(fname,\n             origin,\n             untar=False,\n             md5_hash=None,\n             file_hash=None,\n             cache_subdir='datasets',\n             hash_algorithm='auto',\n             extract=False,\n             archive_format='auto',\n             cache_dir=None):\n    \"\"\"Downloads a file from a URL if it not already in the cache.\n\n    By default the file at the url `origin` is downloaded to the\n    cache_dir `~/.keras`, placed in the cache_subdir `datasets`,\n    and given the filename `fname`. The final location of a file\n    `example.txt` would therefore be `~/.keras/datasets/example.txt`.\n\n    Files in tar, tar.gz, tar.bz, and zip formats can also be extracted.\n    Passing a hash will verify the file after download. The command line\n    programs `shasum` and `sha256sum` can compute the hash.\n\n    # Arguments\n        fname: Name of the file. If an absolute path `/path/to/file.txt` is\n            specified the file will be saved at that location.\n        origin: Original URL of the file.\n        untar: Deprecated in favor of 'extract'.\n            boolean, whether the file should be decompressed\n        md5_hash: Deprecated in favor of 'file_hash'.\n            md5 hash of the file for verification\n        file_hash: The expected hash string of the file after download.\n            The sha256 and md5 hash algorithms are both supported.\n        cache_subdir: Subdirectory under the Keras cache dir where the file is\n            saved. If an absolute path `/path/to/folder` is\n            specified the file will be saved at that location.\n        hash_algorithm: Select the hash algorithm to verify the file.\n            options are 'md5', 'sha256', and 'auto'.\n            The default 'auto' detects the hash algorithm in use.\n        extract: True tries extracting the file as an Archive, like tar or zip.\n        archive_format: Archive format to try for extracting the file.\n            Options are 'auto', 'tar', 'zip', and None.\n            'tar' includes tar, tar.gz, and tar.bz files.\n            The default 'auto' is ['tar', 'zip'].\n            None or an empty list will return no matches found.\n        cache_dir: Location to store cached files, when None it\n            defaults to the [Keras Directory](/faq/#where-is-the-keras-configuration-filed-stored).\n\n    # Returns\n        Path to the downloaded file\n    \"\"\"\n    if cache_dir is None:\n        cache_dir = os.path.expanduser(os.path.join('~', '.keras'))\n    if md5_hash is not None and file_hash is None:\n        file_hash = md5_hash\n        hash_algorithm = 'md5'\n    datadir_base = os.path.expanduser(cache_dir)\n    if not os.access(datadir_base, os.W_OK):\n        datadir_base = os.path.join('/tmp', '.keras')\n    datadir = os.path.join(datadir_base, cache_subdir)\n    if not os.path.exists(datadir):\n        os.makedirs(datadir)\n\n    if untar:\n        untar_fpath = os.path.join(datadir, fname)\n        fpath = untar_fpath + '.tar.gz'\n    else:\n        fpath = os.path.join(datadir, fname)\n\n    download = False\n    if os.path.exists(fpath):\n        # File found; verify integrity if a hash was provided.\n        if file_hash is not None:\n            if not validate_file(fpath, file_hash, algorithm=hash_algorithm):\n                print('A local file was found, but it seems to be '\n                      'incomplete or outdated because the ' + hash_algorithm +\n                      ' file hash does not match the original value of ' +\n                      file_hash + ' so we will re-download the data.')\n                download = True\n    else:\n        download = True\n\n    if download:\n        print('Downloading data from', origin)\n\n        class ProgressTracker(object):\n            # Maintain progbar for the lifetime of download.\n            # This design was chosen for Python 2.7 compatibility.\n            progbar = None\n\n        def dl_progress(count, block_size, total_size):\n            if ProgressTracker.progbar is None:\n                if total_size is -1:\n                    total_size = None\n                ProgressTracker.progbar = Progbar(total_size)\n            else:\n                ProgressTracker.progbar.update(count * block_size)\n\n        error_msg = 'URL fetch failure on {}: {} -- {}'\n        try:\n            try:\n                urlretrieve(origin, fpath, dl_progress)\n            except URLError as e:\n                raise Exception(error_msg.format(origin, e.errno, e.reason))\n            except HTTPError as e:\n                raise Exception(error_msg.format(origin, e.code, e.msg))\n        except (Exception, KeyboardInterrupt) as e:\n            if os.path.exists(fpath):\n                os.remove(fpath)\n            raise\n        ProgressTracker.progbar = None\n\n    if untar:\n        if not os.path.exists(untar_fpath):\n            _extract_archive(fpath, datadir, archive_format='tar')\n        return untar_fpath\n\n    if extract:\n        _extract_archive(fpath, datadir, archive_format)\n\n    return fpath",
+                "def _hash_file(fpath, algorithm='sha256', chunk_size=65535):\n    \"\"\"Calculates a file sha256 or md5 hash.\n\n    # Example\n\n    ```python\n        >>> from keras.data_utils import _hash_file\n        >>> _hash_file('/path/to/file.zip')\n        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'\n    ```\n\n    # Arguments\n        fpath: path to the file being validated\n        algorithm: hash algorithm, one of 'auto', 'sha256', or 'md5'.\n            The default 'auto' detects the hash algorithm in use.\n        chunk_size: Bytes to read at a time, important for large files.\n\n    # Returns\n        The file hash\n    \"\"\"\n    if (algorithm is 'sha256') or (algorithm is 'auto' and len(hash) is 64):\n        hasher = hashlib.sha256()\n    else:\n        hasher = hashlib.md5()\n\n    with open(fpath, 'rb') as fpath_file:\n        for chunk in iter(lambda: fpath_file.read(chunk_size), b''):\n            hasher.update(chunk)\n\n    return hasher.hexdigest()",
+                "def validate_file(fpath, file_hash, algorithm='auto', chunk_size=65535):\n    \"\"\"Validates a file against a sha256 or md5 hash.\n\n    # Arguments\n        fpath: path to the file being validated\n        file_hash:  The expected hash string of the file.\n            The sha256 and md5 hash algorithms are both supported.\n        algorithm: Hash algorithm, one of 'auto', 'sha256', or 'md5'.\n            The default 'auto' detects the hash algorithm in use.\n        chunk_size: Bytes to read at a time, important for large files.\n\n    # Returns\n        Whether the file is valid\n    \"\"\"\n    if ((algorithm is 'sha256') or\n            (algorithm is 'auto' and len(file_hash) is 64)):\n        hasher = 'sha256'\n    else:\n        hasher = 'md5'\n\n    if str(_hash_file(fpath, hasher, chunk_size)) == str(file_hash):\n        return True\n    else:\n        return False",
+                "def get_index(uid, i):\n    \"\"\"Get the value from the Sequence `uid` at index `i`.\n\n    To allow multiple Sequences to be used at the same time, we use `uid` to\n    get a specific one. A single Sequence would cause the validation to\n    overwrite the training Sequence.\n\n    # Arguments\n        uid: int, Sequence identifier\n        i: index\n\n    # Returns\n        The value at index `i`.\n    \"\"\"\n    global _SHARED_SEQUENCES\n    return _SHARED_SEQUENCES[uid][i]",
+                "def urlretrieve(url, filename, reporthook=None, data=None):\n    \"\"\"Replacement for `urlretrive` for Python 2.\n\n    Under Python 2, `urlretrieve` relies on `FancyURLopener` from legacy\n    `urllib` module, known to have issues with proxy management.\n\n    # Arguments\n        url: url to retrieve.\n        filename: where to store the retrieved data locally.\n        reporthook: a hook function that will be called once\n            on establishment of the network connection and once\n            after each block read thereafter.\n            The hook will be passed three arguments;\n            a count of blocks transferred so far,\n            a block size in bytes, and the total size of the file.\n        data: `data` argument passed to `urlopen`.\n    \"\"\"\n\n    def chunk_read(response, chunk_size=8192, reporthook=None):\n        content_type = response.info().get('Content-Length')\n        total_size = -1\n        if content_type is not None:\n            total_size = int(content_type.strip())\n        count = 0\n        while True:\n            chunk = response.read(chunk_size)\n            count += 1\n            if reporthook is not None:\n                reporthook(count, chunk_size, total_size)\n            if chunk:\n                yield chunk\n            else:\n                break\n\n    response = urlopen(url, data)\n    with open(filename, 'wb') as fd:\n        for chunk in chunk_read(response, reporthook=reporthook):\n            fd.write(chunk)",
+                "@abstractmethod\ndef __getitem__(self, index):\n    \"\"\"Gets batch at position `index`.\n\n    # Arguments\n        index: position of the batch in the Sequence.\n\n    # Returns\n        A batch\n    \"\"\"\n    raise NotImplementedError",
+                "@abstractmethod\ndef __len__(self):\n    \"\"\"Number of batch in the Sequence.\n\n    # Returns\n        The number of batches in the Sequence.\n    \"\"\"\n    raise NotImplementedError",
+                "def on_epoch_end(self):\n    \"\"\"Method called at the end of every epoch.\n    \"\"\"\n    pass",
+                "@abstractmethod\ndef is_running(self):\n    raise NotImplementedError",
+                "@abstractmethod\ndef start(self, workers=1, max_queue_size=10):\n    \"\"\"Starts the handler's workers.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, threads could block on `put()`).\n    \"\"\"\n    raise NotImplementedError",
+                "@abstractmethod\ndef stop(self, timeout=None):\n    \"\"\"Stop running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called start().\n\n    # Arguments\n        timeout: maximum time to wait on thread.join()\n    \"\"\"\n    raise NotImplementedError",
+                "@abstractmethod\ndef get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        Generator yielding tuples `(inputs, targets)`\n            or `(inputs, targets, sample_weights)`.\n    \"\"\"\n    raise NotImplementedError",
+                "def __init__(self, sequence,\n             use_multiprocessing=False,\n             shuffle=False):\n    self.sequence = sequence\n\n    global _SEQUENCE_COUNTER\n    if _SEQUENCE_COUNTER is None:\n        _SEQUENCE_COUNTER = multiprocessing.Value('i', 0)\n\n    # Doing Multiprocessing.Value += x is not process-safe.\n    with _SEQUENCE_COUNTER.get_lock():\n        self.uid = _SEQUENCE_COUNTER.value\n        _SEQUENCE_COUNTER.value += 1\n    self.use_multiprocessing = use_multiprocessing\n    self.shuffle = shuffle\n    self.workers = 0\n    self.executor = None\n    self.queue = None\n    self.run_thread = None\n    self.stop_signal = None",
+                "def is_running(self):\n    return self.stop_signal is not None and not self.stop_signal.is_set()",
+                "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Start the handler's workers.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, workers could block on `put()`)\n    \"\"\"\n    if self.use_multiprocessing:\n        self.executor = multiprocessing.Pool(workers)\n    else:\n        self.executor = ThreadPool(workers)\n    self.workers = workers\n    self.queue = queue.Queue(max_queue_size)\n    self.stop_signal = threading.Event()\n    self.run_thread = threading.Thread(target=self._run)\n    self.run_thread.daemon = True\n    self.run_thread.start()",
+                "def _wait_queue(self):\n    \"\"\"Wait for the queue to be empty.\"\"\"\n    while True:\n        time.sleep(0.1)\n        if self.queue.unfinished_tasks == 0 or self.stop_signal.is_set():\n            return",
+                "def _run(self):\n    \"\"\"Function to submit request to the executor and queue the `Future` objects.\"\"\"\n    sequence = list(range(len(self.sequence)))\n    self._send_sequence()  # Share the initial sequence\n    while True:\n        if self.shuffle:\n            random.shuffle(sequence)\n        for i in sequence:\n            if self.stop_signal.is_set():\n                return\n            self.queue.put(\n                self.executor.apply_async(get_index, (self.uid, i)), block=True)\n\n        # Done with the current epoch, waiting for the final batches\n        self._wait_queue()\n\n        if self.stop_signal.is_set():\n            # We're done\n            return\n\n        # Call the internal on epoch end.\n        self.sequence.on_epoch_end()\n        self._send_sequence()  # Update the pool",
+                "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        Generator yielding tuples (inputs, targets)\n            or (inputs, targets, sample_weights)\n    \"\"\"\n    try:\n        while self.is_running():\n            inputs = self.queue.get(block=True).get()\n            self.queue.task_done()\n            if inputs is not None:\n                yield inputs\n    except Exception as e:\n        self.stop()\n        raise StopIteration(e)",
+                "def _send_sequence(self):\n    \"\"\"Send current Sequence to all workers.\"\"\"\n    global _SHARED_SEQUENCES\n    _SHARED_SEQUENCES[self.uid] = self.sequence  # For new processes that may spawn\n\n    self._close_pool()\n    if self.use_multiprocessing:\n        self.executor = multiprocessing.Pool(self.workers)\n    else:\n        self.executor = ThreadPool(self.workers)",
+                "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`\n    \"\"\"\n    global _SHARED_SEQUENCES\n    self.stop_signal.set()\n    with self.queue.mutex:\n        self.queue.queue.clear()\n        self.queue.unfinished_tasks = 0\n        self.queue.not_full.notify()\n    self._close_pool()\n    self.run_thread.join(timeout)\n    _SHARED_SEQUENCES[self.uid] = None",
+                "def _close_pool(self):\n    self.executor.close()\n    self.executor.join()",
+                "def __init__(self, generator,\n             use_multiprocessing=False,\n             wait_time=0.05,\n             seed=None):\n    self.wait_time = wait_time\n    self._generator = generator\n    self._use_multiprocessing = use_multiprocessing\n    self._threads = []\n    self._stop_event = None\n    self.queue = None\n    self.seed = seed",
+                "def start(self, workers=1, max_queue_size=10):\n    \"\"\"Kicks off threads which add data from the generator into the queue.\n\n    # Arguments\n        workers: number of worker threads\n        max_queue_size: queue size\n            (when full, threads could block on `put()`)\n    \"\"\"\n\n    def data_generator_task():\n        while not self._stop_event.is_set():\n            try:\n                if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                    generator_output = next(self._generator)\n                    self.queue.put(generator_output)\n                else:\n                    time.sleep(self.wait_time)\n            except StopIteration:\n                break\n            except Exception:\n                self._stop_event.set()\n                raise\n\n    try:\n        if self._use_multiprocessing:\n            self.queue = multiprocessing.Queue(maxsize=max_queue_size)\n            self._stop_event = multiprocessing.Event()\n        else:\n            self.queue = queue.Queue()\n            self._stop_event = threading.Event()\n\n        for _ in range(workers):\n            if self._use_multiprocessing:\n                # Reset random seed else all children processes\n                # share the same seed\n                np.random.seed(self.seed)\n                thread = multiprocessing.Process(target=data_generator_task)\n                thread.daemon = True\n                if self.seed is not None:\n                    self.seed += 1\n            else:\n                thread = threading.Thread(target=data_generator_task)\n            self._threads.append(thread)\n            thread.start()\n    except:\n        self.stop()\n        raise",
+                "def is_running(self):\n    return self._stop_event is not None and not self._stop_event.is_set()",
+                "def stop(self, timeout=None):\n    \"\"\"Stops running threads and wait for them to exit, if necessary.\n\n    Should be called by the same thread which called `start()`.\n\n    # Arguments\n        timeout: maximum time to wait on `thread.join()`.\n    \"\"\"\n    if self.is_running():\n        self._stop_event.set()\n\n    for thread in self._threads:\n        if thread.is_alive():\n            if self._use_multiprocessing:\n                thread.terminate()\n            else:\n                thread.join(timeout)\n\n    if self._use_multiprocessing:\n        if self.queue is not None:\n            self.queue.close()\n\n    self._threads = []\n    self._stop_event = None\n    self.queue = None",
+                "def get(self):\n    \"\"\"Creates a generator to extract data from the queue.\n\n    Skip the data if it is `None`.\n\n    # Returns\n        A generator\n    \"\"\"\n    while self.is_running():\n        if not self.queue.empty():\n            inputs = self.queue.get()\n            if inputs is not None:\n                yield inputs\n        else:\n            all_finished = all([not thread.is_alive() for thread in self._threads])\n            if all_finished and self.queue.empty():\n                raise StopIteration()\n            else:\n                time.sleep(self.wait_time)",
+                "def chunk_read(response, chunk_size=8192, reporthook=None):\n    content_type = response.info().get('Content-Length')\n    total_size = -1\n    if content_type is not None:\n        total_size = int(content_type.strip())\n    count = 0\n    while True:\n        chunk = response.read(chunk_size)\n        count += 1\n        if reporthook is not None:\n            reporthook(count, chunk_size, total_size)\n        if chunk:\n            yield chunk\n        else:\n            break",
+                "def dl_progress(count, block_size, total_size):\n    if ProgressTracker.progbar is None:\n        if total_size is -1:\n            total_size = None\n        ProgressTracker.progbar = Progbar(total_size)\n    else:\n        ProgressTracker.progbar.update(count * block_size)",
+                "def data_generator_task():\n    while not self._stop_event.is_set():\n        try:\n            if self._use_multiprocessing or self.queue.qsize() < max_queue_size:\n                generator_output = next(self._generator)\n                self.queue.put(generator_output)\n            else:\n                time.sleep(self.wait_time)\n        except StopIteration:\n            break\n        except Exception:\n            self._stop_event.set()\n            raise"
+            ],
+            "inscope_function_signatures": [
+                "_extract_archive(file_path, path='.', archive_format='auto')",
+                "get_file(fname, origin, untar=False, md5_hash=None, file_hash=None, cache_subdir='datasets', hash_algorithm='auto', extract=False, archive_format='auto', cache_dir=None)",
+                "_hash_file(fpath, algorithm='sha256', chunk_size=65535)",
+                "validate_file(fpath, file_hash, algorithm='auto', chunk_size=65535)",
+                "get_index(uid, i)",
+                "urlretrieve(url, filename, reporthook=None, data=None)",
+                "__getitem__(self, index)",
+                "__len__(self)",
+                "on_epoch_end(self)",
+                "is_running(self)",
+                "start(self, workers=1, max_queue_size=10)",
+                "stop(self, timeout=None)",
+                "get(self)",
+                "__init__(self, sequence, use_multiprocessing=False, shuffle=False)",
+                "is_running(self)",
+                "start(self, workers=1, max_queue_size=10)",
+                "_wait_queue(self)",
+                "_run(self)",
+                "get(self)",
+                "_send_sequence(self)",
+                "stop(self, timeout=None)",
+                "_close_pool(self)",
+                "__init__(self, generator, use_multiprocessing=False, wait_time=0.05, seed=None)",
+                "start(self, workers=1, max_queue_size=10)",
+                "is_running(self)",
+                "stop(self, timeout=None)",
+                "get(self)",
+                "chunk_read(response, chunk_size=8192, reporthook=None)",
+                "dl_progress(count, block_size, total_size)",
+                "data_generator_task()"
+            ],
+            "variables_in_file": {
+                "ImportError": [
+                    26
+                ],
+                "sys.version_info": [
+                    31
+                ],
+                "sys": [
+                    31
+                ],
+                "content_type": [
+                    51,
+                    53,
+                    54
+                ],
+                "get": [
+                    51,
+                    550
+                ],
+                "response.info": [
+                    51
+                ],
+                "response": [
+                    57,
+                    66,
+                    51,
+                    68
+                ],
+                "total_size": [
+                    211,
+                    212,
+                    52,
+                    54,
+                    213,
+                    60
+                ],
+                "int": [
+                    54
+                ],
+                "content_type.strip": [
+                    54
+                ],
+                "count": [
+                    58,
+                    215,
+                    60,
+                    55
+                ],
+                "chunk": [
+                    68,
+                    69,
+                    268,
+                    269,
+                    57,
+                    61,
+                    62
+                ],
+                "response.read": [
+                    57
+                ],
+                "chunk_size": [
+                    57,
+                    60,
+                    268,
+                    294
+                ],
+                "reporthook": [
+                    59,
+                    60,
+                    68
+                ],
+                "urlopen": [
+                    66
+                ],
+                "url": [
+                    66
+                ],
+                "data": [
+                    66
+                ],
+                "open": [
+                    267,
+                    67
+                ],
+                "filename": [
+                    67
+                ],
+                "fd": [
+                    67,
+                    69
+                ],
+                "chunk_read": [
+                    68
+                ],
+                "fd.write": [
+                    69
+                ],
+                "archive_format": [
+                    97,
+                    237,
+                    90,
+                    92,
+                    93,
+                    94,
+                    95
+                ],
+                "isinstance": [
+                    94
+                ],
+                "six.string_types": [
+                    94
+                ],
+                "six": [
+                    94
+                ],
+                "archive_type": [
+                    97,
+                    98,
+                    101
+                ],
+                "open_fn": [
+                    106,
+                    99,
+                    102
+                ],
+                "tarfile.open": [
+                    99
+                ],
+                "tarfile": [
+                    99,
+                    100,
+                    109
+                ],
+                "is_match_fn": [
+                    105,
+                    100,
+                    103
+                ],
+                "tarfile.is_tarfile": [
+                    100
+                ],
+                "zipfile.ZipFile": [
+                    102
+                ],
+                "zipfile": [
+                    102,
+                    103
+                ],
+                "zipfile.is_zipfile": [
+                    103
+                ],
+                "file_path": [
+                    105,
+                    106
+                ],
+                "archive": [
+                    106,
+                    108
+                ],
+                "archive.extractall": [
+                    108
+                ],
+                "path": [
+                    108,
+                    111,
+                    112,
+                    113,
+                    115
+                ],
+                "tarfile.TarError": [
+                    109
+                ],
+                "RuntimeError": [
+                    109
+                ],
+                "KeyboardInterrupt": [
+                    225,
+                    110
+                ],
+                "os.path.exists": [
+                    226,
+                    232,
+                    111,
+                    179,
+                    189
+                ],
+                "os.path": [
+                    226,
+                    232,
+                    171,
+                    175,
+                    112,
+                    177,
+                    111,
+                    178,
+                    179,
+                    183,
+                    186,
+                    189
+                ],
+                "os": [
+                    226,
+                    227,
+                    232,
+                    171,
+                    175,
+                    112,
+                    113,
+                    111,
+                    176,
+                    177,
+                    178,
+                    179,
+                    180,
+                    183,
+                    186,
+                    189
+                ],
+                "os.path.isfile": [
+                    112
+                ],
+                "os.remove": [
+                    113,
+                    227
+                ],
+                "shutil.rmtree": [
+                    115
+                ],
+                "shutil": [
+                    115
+                ],
+                "cache_dir": [
+                    170,
+                    171,
+                    175
+                ],
+                "os.path.expanduser": [
+                    171,
+                    175
+                ],
+                "os.path.join": [
+                    171,
+                    177,
+                    178,
+                    183,
+                    186
+                ],
+                "md5_hash": [
+                    172,
+                    173
+                ],
+                "file_hash": [
+                    192,
+                    289,
+                    196,
+                    294,
+                    172,
+                    173,
+                    191
+                ],
+                "hash_algorithm": [
+                    192,
+                    194,
+                    174
+                ],
+                "datadir_base": [
+                    176,
+                    177,
+                    178,
+                    175
+                ],
+                "os.access": [
+                    176
+                ],
+                "os.W_OK": [
+                    176
+                ],
+                "datadir": [
+                    233,
+                    237,
+                    178,
+                    179,
+                    180,
+                    183,
+                    186
+                ],
+                "cache_subdir": [
+                    178
+                ],
+                "os.makedirs": [
+                    180
+                ],
+                "untar": [
+                    182,
+                    231
+                ],
+                "untar_fpath": [
+                    184,
+                    232,
+                    234,
+                    183
+                ],
+                "fname": [
+                    186,
+                    183
+                ],
+                "fpath": [
+                    192,
+                    226,
+                    227,
+                    294,
+                    233,
+                    267,
+                    237,
+                    239,
+                    184,
+                    186,
+                    220,
+                    189
+                ],
+                "download": [
+                    201,
+                    188,
+                    197,
+                    199
+                ],
+                "validate_file": [
+                    192
+                ],
+                "print": [
+                    193,
+                    202
+                ],
+                "origin": [
+                    224,
+                    202,
+                    220,
+                    222
+                ],
+                "object": [
+                    393,
+                    204,
+                    300
+                ],
+                "progbar": [
+                    207
+                ],
+                "ProgressTracker.progbar": [
+                    229,
+                    210,
+                    213,
+                    215
+                ],
+                "ProgressTracker": [
+                    229,
+                    210,
+                    213,
+                    215
+                ],
+                "Progbar": [
+                    213
+                ],
+                "ProgressTracker.progbar.update": [
+                    215
+                ],
+                "block_size": [
+                    215
+                ],
+                "error_msg": [
+                    224,
+                    217,
+                    222
+                ],
+                "urlretrieve": [
+                    220
+                ],
+                "dl_progress": [
+                    220
+                ],
+                "URLError": [
+                    221
+                ],
+                "Exception": [
+                    224,
+                    225,
+                    554,
+                    222,
+                    639
+                ],
+                "error_msg.format": [
+                    224,
+                    222
+                ],
+                "e.errno": [
+                    222
+                ],
+                "e": [
+                    224,
+                    556,
+                    222
+                ],
+                "e.reason": [
+                    222
+                ],
+                "HTTPError": [
+                    223
+                ],
+                "e.code": [
+                    224
+                ],
+                "e.msg": [
+                    224
+                ],
+                "_extract_archive": [
+                    233,
+                    237
+                ],
+                "extract": [
+                    236
+                ],
+                "algorithm": [
+                    288,
+                    289,
+                    262
+                ],
+                "len": [
+                    289,
+                    517,
+                    262
+                ],
+                "hash": [
+                    262
+                ],
+                "hasher": [
+                    290,
+                    292,
+                    294,
+                    263,
+                    265,
+                    269,
+                    271
+                ],
+                "hashlib.sha256": [
+                    263
+                ],
+                "hashlib": [
+                    265,
+                    263
+                ],
+                "hashlib.md5": [
+                    265
+                ],
+                "fpath_file": [
+                    267,
+                    268
+                ],
+                "iter": [
+                    268
+                ],
+                "fpath_file.read": [
+                    268
+                ],
+                "hasher.update": [
+                    269
+                ],
+                "hasher.hexdigest": [
+                    271
+                ],
+                "str": [
+                    294
+                ],
+                "_hash_file": [
+                    294
+                ],
+                "NotImplementedError": [
+                    352,
+                    417,
+                    451,
+                    361,
+                    428,
+                    439
+                ],
+                "abstractmethod": [
+                    354,
+                    419,
+                    430,
+                    342,
+                    441,
+                    415
+                ],
+                "_SHARED_SEQUENCES": [
+                    585,
+                    561,
+                    370,
+                    390
+                ],
+                "_SEQUENCE_COUNTER": [
+                    372,
+                    471,
+                    472,
+                    475,
+                    476,
+                    477
+                ],
+                "uid": [
+                    390
+                ],
+                "i": [
+                    522,
+                    390,
+                    526
+                ],
+                "SequenceEnqueuer": [
+                    592,
+                    454
+                ],
+                "self.sequence": [
+                    536,
+                    561,
+                    468,
+                    517
+                ],
+                "self": [
+                    512,
+                    517,
+                    518,
+                    520,
+                    523,
+                    525,
+                    526,
+                    529,
+                    531,
+                    536,
+                    537,
+                    549,
+                    550,
+                    551,
+                    555,
+                    561,
+                    563,
+                    564,
+                    565,
+                    567,
+                    578,
+                    579,
+                    580,
+                    581,
+                    582,
+                    583,
+                    584,
+                    585,
+                    588,
+                    589,
+                    612,
+                    613,
+                    614,
+                    615,
+                    616,
+                    617,
+                    618,
+                    630,
+                    632,
+                    633,
+                    634,
+                    636,
+                    640,
+                    644,
+                    645,
+                    646,
+                    648,
+                    649,
+                    652,
+                    655,
+                    658,
+                    659,
+                    662,
+                    665,
+                    669,
+                    679,
+                    680,
+                    682,
+                    684,
+                    689,
+                    690,
+                    691,
+                    693,
+                    694,
+                    695,
+                    705,
+                    706,
+                    707,
+                    711,
+                    712,
+                    715,
+                    468,
+                    476,
+                    478,
+                    479,
+                    480,
+                    481,
+                    482,
+                    483,
+                    484,
+                    487,
+                    497,
+                    498,
+                    500,
+                    501,
+                    502,
+                    503,
+                    504,
+                    505,
+                    506
+                ],
+                "sequence": [
+                    521,
+                    522,
+                    468,
+                    517
+                ],
+                "multiprocessing.Value": [
+                    472
+                ],
+                "multiprocessing": [
+                    645,
+                    646,
+                    656,
+                    498,
+                    565,
+                    472
+                ],
+                "_SEQUENCE_COUNTER.get_lock": [
+                    475
+                ],
+                "self.uid": [
+                    585,
+                    561,
+                    476,
+                    526
+                ],
+                "_SEQUENCE_COUNTER.value": [
+                    476,
+                    477
+                ],
+                "self.use_multiprocessing": [
+                    497,
+                    564,
+                    478
+                ],
+                "use_multiprocessing": [
+                    614,
+                    478
+                ],
+                "self.shuffle": [
+                    520,
+                    479
+                ],
+                "shuffle": [
+                    479
+                ],
+                "self.workers": [
+                    480,
+                    565,
+                    501,
+                    567
+                ],
+                "self.executor": [
+                    481,
+                    588,
+                    589,
+                    526,
+                    498,
+                    500,
+                    565,
+                    567
+                ],
+                "self.queue": [
+                    512,
+                    645,
+                    648,
+                    525,
+                    550,
+                    551,
+                    690,
+                    691,
+                    695,
+                    706,
+                    579,
+                    580,
+                    581,
+                    582,
+                    707,
+                    712,
+                    482,
+                    617,
+                    502,
+                    632,
+                    634
+                ],
+                "self.run_thread": [
+                    483,
+                    584,
+                    504,
+                    505,
+                    506
+                ],
+                "self.stop_signal": [
+                    512,
+                    578,
+                    484,
+                    487,
+                    523,
+                    531,
+                    503
+                ],
+                "self.stop_signal.is_set": [
+                    512,
+                    531,
+                    523,
+                    487
+                ],
+                "multiprocessing.Pool": [
+                    498,
+                    565
+                ],
+                "workers": [
+                    498,
+                    651,
+                    500,
+                    501
+                ],
+                "ThreadPool": [
+                    500,
+                    567
+                ],
+                "queue.Queue": [
+                    648,
+                    502
+                ],
+                "queue": [
+                    648,
+                    502
+                ],
+                "max_queue_size": [
+                    632,
+                    645,
+                    502
+                ],
+                "threading.Event": [
+                    649,
+                    503
+                ],
+                "threading": [
+                    504,
+                    649,
+                    661,
+                    503
+                ],
+                "threading.Thread": [
+                    504,
+                    661
+                ],
+                "self._run": [
+                    504
+                ],
+                "self.run_thread.daemon": [
+                    505
+                ],
+                "self.run_thread.start": [
+                    506
+                ],
+                "time.sleep": [
+                    715,
+                    636,
+                    511
+                ],
+                "time": [
+                    715,
+                    636,
+                    511
+                ],
+                "self.queue.unfinished_tasks": [
+                    512,
+                    581
+                ],
+                "list": [
+                    517
+                ],
+                "range": [
+                    651,
+                    517
+                ],
+                "self._send_sequence": [
+                    537,
+                    518
+                ],
+                "random.shuffle": [
+                    521
+                ],
+                "random": [
+                    521
+                ],
+                "self.queue.put": [
+                    634,
+                    525
+                ],
+                "self.executor.apply_async": [
+                    526
+                ],
+                "get_index": [
+                    526
+                ],
+                "self._wait_queue": [
+                    529
+                ],
+                "self.sequence.on_epoch_end": [
+                    536
+                ],
+                "self.is_running": [
+                    705,
+                    549,
+                    679
+                ],
+                "inputs": [
+                    707,
+                    708,
+                    709,
+                    550,
+                    552,
+                    553
+                ],
+                "self.queue.get": [
+                    707,
+                    550
+                ],
+                "self.queue.task_done": [
+                    551
+                ],
+                "self.stop": [
+                    665,
+                    555
+                ],
+                "StopIteration": [
+                    713,
+                    556,
+                    637
+                ],
+                "self._close_pool": [
+                    563,
+                    583
+                ],
+                "self.stop_signal.set": [
+                    578
+                ],
+                "self.queue.mutex": [
+                    579
+                ],
+                "self.queue.queue.clear": [
+                    580
+                ],
+                "self.queue.queue": [
+                    580
+                ],
+                "self.queue.not_full.notify": [
+                    582
+                ],
+                "self.queue.not_full": [
+                    582
+                ],
+                "self.run_thread.join": [
+                    584
+                ],
+                "timeout": [
+                    584,
+                    687
+                ],
+                "self.executor.close": [
+                    588
+                ],
+                "self.executor.join": [
+                    589
+                ],
+                "self.wait_time": [
+                    636,
+                    715,
+                    612
+                ],
+                "wait_time": [
+                    612
+                ],
+                "self._generator": [
+                    633,
+                    613
+                ],
+                "generator": [
+                    613
+                ],
+                "self._use_multiprocessing": [
+                    644,
+                    614,
+                    652,
+                    684,
+                    689,
+                    632
+                ],
+                "self._threads": [
+                    711,
+                    615,
+                    682,
+                    693,
+                    662
+                ],
+                "self._stop_event": [
+                    640,
+                    646,
+                    616,
+                    649,
+                    680,
+                    630,
+                    694,
+                    669
+                ],
+                "self.seed": [
+                    618,
+                    659,
+                    658,
+                    655
+                ],
+                "seed": [
+                    618
+                ],
+                "self._stop_event.is_set": [
+                    669,
+                    630
+                ],
+                "self.queue.qsize": [
+                    632
+                ],
+                "generator_output": [
+                    633,
+                    634
+                ],
+                "next": [
+                    633
+                ],
+                "self._stop_event.set": [
+                    640,
+                    680
+                ],
+                "multiprocessing.Queue": [
+                    645
+                ],
+                "multiprocessing.Event": [
+                    646
+                ],
+                "_": [
+                    651
+                ],
+                "np.random.seed": [
+                    655
+                ],
+                "np.random": [
+                    655
+                ],
+                "np": [
+                    655
+                ],
+                "thread": [
+                    711,
+                    682,
+                    683,
+                    685,
+                    687,
+                    656,
+                    657,
+                    661,
+                    662,
+                    663
+                ],
+                "multiprocessing.Process": [
+                    656
+                ],
+                "data_generator_task": [
+                    656,
+                    661
+                ],
+                "thread.daemon": [
+                    657
+                ],
+                "self._threads.append": [
+                    662
+                ],
+                "thread.start": [
+                    663
+                ],
+                "thread.is_alive": [
+                    683,
+                    711
+                ],
+                "thread.terminate": [
+                    685
+                ],
+                "thread.join": [
+                    687
+                ],
+                "self.queue.close": [
+                    691
+                ],
+                "self.queue.empty": [
+                    712,
+                    706
+                ],
+                "all_finished": [
+                    712,
+                    711
+                ],
+                "all": [
+                    711
+                ]
+            },
+            "filtered_variables_in_file": {
+                "sys.version_info": [
+                    31
+                ],
+                "sys": [
+                    31
+                ],
+                "content_type": [
+                    51,
+                    53,
+                    54
+                ],
+                "get": [
+                    51,
+                    550
+                ],
+                "response.info": [
+                    51
+                ],
+                "response": [
+                    57,
+                    66,
+                    51,
+                    68
+                ],
+                "total_size": [
+                    211,
+                    212,
+                    52,
+                    54,
+                    213,
+                    60
+                ],
+                "content_type.strip": [
+                    54
+                ],
+                "count": [
+                    58,
+                    215,
+                    60,
+                    55
+                ],
+                "chunk": [
+                    68,
+                    69,
+                    268,
+                    269,
+                    57,
+                    61,
+                    62
+                ],
+                "response.read": [
+                    57
+                ],
+                "chunk_size": [
+                    57,
+                    60,
+                    268,
+                    294
+                ],
+                "reporthook": [
+                    59,
+                    60,
+                    68
+                ],
+                "urlopen": [
+                    66
+                ],
+                "url": [
+                    66
+                ],
+                "data": [
+                    66
+                ],
+                "filename": [
+                    67
+                ],
+                "fd": [
+                    67,
+                    69
+                ],
+                "chunk_read": [
+                    68
+                ],
+                "fd.write": [
+                    69
+                ],
+                "archive_format": [
+                    97,
+                    237,
+                    90,
+                    92,
+                    93,
+                    94,
+                    95
+                ],
+                "six.string_types": [
+                    94
+                ],
+                "six": [
+                    94
+                ],
+                "archive_type": [
+                    97,
+                    98,
+                    101
+                ],
+                "open_fn": [
+                    106,
+                    99,
+                    102
+                ],
+                "tarfile.open": [
+                    99
+                ],
+                "tarfile": [
+                    99,
+                    100,
+                    109
+                ],
+                "is_match_fn": [
+                    105,
+                    100,
+                    103
+                ],
+                "tarfile.is_tarfile": [
+                    100
+                ],
+                "zipfile.ZipFile": [
+                    102
+                ],
+                "zipfile": [
+                    102,
+                    103
+                ],
+                "zipfile.is_zipfile": [
+                    103
+                ],
+                "file_path": [
+                    105,
+                    106
+                ],
+                "archive": [
+                    106,
+                    108
+                ],
+                "archive.extractall": [
+                    108
+                ],
+                "path": [
+                    108,
+                    111,
+                    112,
+                    113,
+                    115
+                ],
+                "tarfile.TarError": [
+                    109
+                ],
+                "os.path.exists": [
+                    226,
+                    232,
+                    111,
+                    179,
+                    189
+                ],
+                "os.path": [
+                    226,
+                    232,
+                    171,
+                    175,
+                    112,
+                    177,
+                    111,
+                    178,
+                    179,
+                    183,
+                    186,
+                    189
+                ],
+                "os": [
+                    226,
+                    227,
+                    232,
+                    171,
+                    175,
+                    112,
+                    113,
+                    111,
+                    176,
+                    177,
+                    178,
+                    179,
+                    180,
+                    183,
+                    186,
+                    189
+                ],
+                "os.path.isfile": [
+                    112
+                ],
+                "os.remove": [
+                    113,
+                    227
+                ],
+                "shutil.rmtree": [
+                    115
+                ],
+                "shutil": [
+                    115
+                ],
+                "cache_dir": [
+                    170,
+                    171,
+                    175
+                ],
+                "os.path.expanduser": [
+                    171,
+                    175
+                ],
+                "os.path.join": [
+                    171,
+                    177,
+                    178,
+                    183,
+                    186
+                ],
+                "md5_hash": [
+                    172,
+                    173
+                ],
+                "file_hash": [
+                    192,
+                    289,
+                    196,
+                    294,
+                    172,
+                    173,
+                    191
+                ],
+                "hash_algorithm": [
+                    192,
+                    194,
+                    174
+                ],
+                "datadir_base": [
+                    176,
+                    177,
+                    178,
+                    175
+                ],
+                "os.access": [
+                    176
+                ],
+                "os.W_OK": [
+                    176
+                ],
+                "datadir": [
+                    233,
+                    237,
+                    178,
+                    179,
+                    180,
+                    183,
+                    186
+                ],
+                "cache_subdir": [
+                    178
+                ],
+                "os.makedirs": [
+                    180
+                ],
+                "untar": [
+                    182,
+                    231
+                ],
+                "untar_fpath": [
+                    184,
+                    232,
+                    234,
+                    183
+                ],
+                "fname": [
+                    186,
+                    183
+                ],
+                "fpath": [
+                    192,
+                    226,
+                    227,
+                    294,
+                    233,
+                    267,
+                    237,
+                    239,
+                    184,
+                    186,
+                    220,
+                    189
+                ],
+                "download": [
+                    201,
+                    188,
+                    197,
+                    199
+                ],
+                "validate_file": [
+                    192
+                ],
+                "origin": [
+                    224,
+                    202,
+                    220,
+                    222
+                ],
+                "progbar": [
+                    207
+                ],
+                "ProgressTracker.progbar": [
+                    229,
+                    210,
+                    213,
+                    215
+                ],
+                "ProgressTracker": [
+                    229,
+                    210,
+                    213,
+                    215
+                ],
+                "Progbar": [
+                    213
+                ],
+                "ProgressTracker.progbar.update": [
+                    215
+                ],
+                "block_size": [
+                    215
+                ],
+                "error_msg": [
+                    224,
+                    217,
+                    222
+                ],
+                "urlretrieve": [
+                    220
+                ],
+                "dl_progress": [
+                    220
+                ],
+                "URLError": [
+                    221
+                ],
+                "error_msg.format": [
+                    224,
+                    222
+                ],
+                "e.errno": [
+                    222
+                ],
+                "e": [
+                    224,
+                    556,
+                    222
+                ],
+                "e.reason": [
+                    222
+                ],
+                "HTTPError": [
+                    223
+                ],
+                "e.code": [
+                    224
+                ],
+                "e.msg": [
+                    224
+                ],
+                "_extract_archive": [
+                    233,
+                    237
+                ],
+                "extract": [
+                    236
+                ],
+                "algorithm": [
+                    288,
+                    289,
+                    262
+                ],
+                "hasher": [
+                    290,
+                    292,
+                    294,
+                    263,
+                    265,
+                    269,
+                    271
+                ],
+                "hashlib.sha256": [
+                    263
+                ],
+                "hashlib": [
+                    265,
+                    263
+                ],
+                "hashlib.md5": [
+                    265
+                ],
+                "fpath_file": [
+                    267,
+                    268
+                ],
+                "fpath_file.read": [
+                    268
+                ],
+                "hasher.update": [
+                    269
+                ],
+                "hasher.hexdigest": [
+                    271
+                ],
+                "_hash_file": [
+                    294
+                ],
+                "abstractmethod": [
+                    354,
+                    419,
+                    430,
+                    342,
+                    441,
+                    415
+                ],
+                "_SHARED_SEQUENCES": [
+                    585,
+                    561,
+                    370,
+                    390
+                ],
+                "_SEQUENCE_COUNTER": [
+                    372,
+                    471,
+                    472,
+                    475,
+                    476,
+                    477
+                ],
+                "uid": [
+                    390
+                ],
+                "i": [
+                    522,
+                    390,
+                    526
+                ],
+                "SequenceEnqueuer": [
+                    592,
+                    454
+                ],
+                "self.sequence": [
+                    536,
+                    561,
+                    468,
+                    517
+                ],
+                "self": [
+                    512,
+                    517,
+                    518,
+                    520,
+                    523,
+                    525,
+                    526,
+                    529,
+                    531,
+                    536,
+                    537,
+                    549,
+                    550,
+                    551,
+                    555,
+                    561,
+                    563,
+                    564,
+                    565,
+                    567,
+                    578,
+                    579,
+                    580,
+                    581,
+                    582,
+                    583,
+                    584,
+                    585,
+                    588,
+                    589,
+                    612,
+                    613,
+                    614,
+                    615,
+                    616,
+                    617,
+                    618,
+                    630,
+                    632,
+                    633,
+                    634,
+                    636,
+                    640,
+                    644,
+                    645,
+                    646,
+                    648,
+                    649,
+                    652,
+                    655,
+                    658,
+                    659,
+                    662,
+                    665,
+                    669,
+                    679,
+                    680,
+                    682,
+                    684,
+                    689,
+                    690,
+                    691,
+                    693,
+                    694,
+                    695,
+                    705,
+                    706,
+                    707,
+                    711,
+                    712,
+                    715,
+                    468,
+                    476,
+                    478,
+                    479,
+                    480,
+                    481,
+                    482,
+                    483,
+                    484,
+                    487,
+                    497,
+                    498,
+                    500,
+                    501,
+                    502,
+                    503,
+                    504,
+                    505,
+                    506
+                ],
+                "sequence": [
+                    521,
+                    522,
+                    468,
+                    517
+                ],
+                "multiprocessing.Value": [
+                    472
+                ],
+                "multiprocessing": [
+                    645,
+                    646,
+                    656,
+                    498,
+                    565,
+                    472
+                ],
+                "_SEQUENCE_COUNTER.get_lock": [
+                    475
+                ],
+                "self.uid": [
+                    585,
+                    561,
+                    476,
+                    526
+                ],
+                "_SEQUENCE_COUNTER.value": [
+                    476,
+                    477
+                ],
+                "self.use_multiprocessing": [
+                    497,
+                    564,
+                    478
+                ],
+                "use_multiprocessing": [
+                    614,
+                    478
+                ],
+                "self.shuffle": [
+                    520,
+                    479
+                ],
+                "shuffle": [
+                    479
+                ],
+                "self.workers": [
+                    480,
+                    565,
+                    501,
+                    567
+                ],
+                "self.executor": [
+                    481,
+                    588,
+                    589,
+                    526,
+                    498,
+                    500,
+                    565,
+                    567
+                ],
+                "self.queue": [
+                    512,
+                    645,
+                    648,
+                    525,
+                    550,
+                    551,
+                    690,
+                    691,
+                    695,
+                    706,
+                    579,
+                    580,
+                    581,
+                    582,
+                    707,
+                    712,
+                    482,
+                    617,
+                    502,
+                    632,
+                    634
+                ],
+                "self.run_thread": [
+                    483,
+                    584,
+                    504,
+                    505,
+                    506
+                ],
+                "self.stop_signal": [
+                    512,
+                    578,
+                    484,
+                    487,
+                    523,
+                    531,
+                    503
+                ],
+                "self.stop_signal.is_set": [
+                    512,
+                    531,
+                    523,
+                    487
+                ],
+                "multiprocessing.Pool": [
+                    498,
+                    565
+                ],
+                "workers": [
+                    498,
+                    651,
+                    500,
+                    501
+                ],
+                "ThreadPool": [
+                    500,
+                    567
+                ],
+                "queue.Queue": [
+                    648,
+                    502
+                ],
+                "queue": [
+                    648,
+                    502
+                ],
+                "max_queue_size": [
+                    632,
+                    645,
+                    502
+                ],
+                "threading.Event": [
+                    649,
+                    503
+                ],
+                "threading": [
+                    504,
+                    649,
+                    661,
+                    503
+                ],
+                "threading.Thread": [
+                    504,
+                    661
+                ],
+                "self._run": [
+                    504
+                ],
+                "self.run_thread.daemon": [
+                    505
+                ],
+                "self.run_thread.start": [
+                    506
+                ],
+                "time.sleep": [
+                    715,
+                    636,
+                    511
+                ],
+                "time": [
+                    715,
+                    636,
+                    511
+                ],
+                "self.queue.unfinished_tasks": [
+                    512,
+                    581
+                ],
+                "self._send_sequence": [
+                    537,
+                    518
+                ],
+                "random.shuffle": [
+                    521
+                ],
+                "random": [
+                    521
+                ],
+                "self.queue.put": [
+                    634,
+                    525
+                ],
+                "self.executor.apply_async": [
+                    526
+                ],
+                "get_index": [
+                    526
+                ],
+                "self._wait_queue": [
+                    529
+                ],
+                "self.sequence.on_epoch_end": [
+                    536
+                ],
+                "self.is_running": [
+                    705,
+                    549,
+                    679
+                ],
+                "inputs": [
+                    707,
+                    708,
+                    709,
+                    550,
+                    552,
+                    553
+                ],
+                "self.queue.get": [
+                    707,
+                    550
+                ],
+                "self.queue.task_done": [
+                    551
+                ],
+                "self.stop": [
+                    665,
+                    555
+                ],
+                "self._close_pool": [
+                    563,
+                    583
+                ],
+                "self.stop_signal.set": [
+                    578
+                ],
+                "self.queue.mutex": [
+                    579
+                ],
+                "self.queue.queue.clear": [
+                    580
+                ],
+                "self.queue.queue": [
+                    580
+                ],
+                "self.queue.not_full.notify": [
+                    582
+                ],
+                "self.queue.not_full": [
+                    582
+                ],
+                "self.run_thread.join": [
+                    584
+                ],
+                "timeout": [
+                    584,
+                    687
+                ],
+                "self.executor.close": [
+                    588
+                ],
+                "self.executor.join": [
+                    589
+                ],
+                "self.wait_time": [
+                    636,
+                    715,
+                    612
+                ],
+                "wait_time": [
+                    612
+                ],
+                "self._generator": [
+                    633,
+                    613
+                ],
+                "generator": [
+                    613
+                ],
+                "self._use_multiprocessing": [
+                    644,
+                    614,
+                    652,
+                    684,
+                    689,
+                    632
+                ],
+                "self._threads": [
+                    711,
+                    615,
+                    682,
+                    693,
+                    662
+                ],
+                "self._stop_event": [
+                    640,
+                    646,
+                    616,
+                    649,
+                    680,
+                    630,
+                    694,
+                    669
+                ],
+                "self.seed": [
+                    618,
+                    659,
+                    658,
+                    655
+                ],
+                "seed": [
+                    618
+                ],
+                "self._stop_event.is_set": [
+                    669,
+                    630
+                ],
+                "self.queue.qsize": [
+                    632
+                ],
+                "generator_output": [
+                    633,
+                    634
+                ],
+                "self._stop_event.set": [
+                    640,
+                    680
+                ],
+                "multiprocessing.Queue": [
+                    645
+                ],
+                "multiprocessing.Event": [
+                    646
+                ],
+                "_": [
+                    651
+                ],
+                "np.random.seed": [
+                    655
+                ],
+                "np.random": [
+                    655
+                ],
+                "np": [
+                    655
+                ],
+                "thread": [
+                    711,
+                    682,
+                    683,
+                    685,
+                    687,
+                    656,
+                    657,
+                    661,
+                    662,
+                    663
+                ],
+                "multiprocessing.Process": [
+                    656
+                ],
+                "data_generator_task": [
+                    656,
+                    661
+                ],
+                "thread.daemon": [
+                    657
+                ],
+                "self._threads.append": [
+                    662
+                ],
+                "thread.start": [
+                    663
+                ],
+                "thread.is_alive": [
+                    683,
+                    711
+                ],
+                "thread.terminate": [
+                    685
+                ],
+                "thread.join": [
+                    687
+                ],
+                "self.queue.close": [
+                    691
+                ],
+                "self.queue.empty": [
+                    712,
+                    706
+                ],
+                "all_finished": [
+                    712,
+                    711
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_41/tests/keras/utils/data_utils_test.py",
+                "test_function": "test_generator_enqueuer_fail_threads",
+                "test_function_code": "def test_generator_enqueuer_fail_threads():\n    enqueuer = GeneratorEnqueuer(create_generator_from_sequence_threads(\n        FaultSequence()), use_multiprocessing=False)\n    enqueuer.start(3, 10)\n    gen_output = enqueuer.get()\n    with pytest.raises(IndexError):\n        next(gen_output)",
+                "test_error": "StopIteration",
+                "full_test_error": "def test_generator_enqueuer_fail_threads():\n        enqueuer = GeneratorEnqueuer(create_generator_from_sequence_threads(\n            FaultSequence()), use_multiprocessing=False)\n        enqueuer.start(3, 10)\n        gen_output = enqueuer.get()\n        with pytest.raises(IndexError):\n>           next(gen_output)\nE           StopIteration\n\ntests/keras/utils/data_utils_test.py:186: StopIteration",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

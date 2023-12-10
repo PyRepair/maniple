@@ -1,0 +1,4467 @@
+{
+    "luigi:30": {
+        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_30/luigi/worker.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "run",
+                    "function_code": "def run(self):\n    logger.info('[pid %s] Worker %s running   %s', os.getpid(), self.worker_id, self.task.task_id)\n\n    if self.random_seed:\n        # Need to have different random seeds if running in separate processes\n        random.seed((os.getpid(), time.time()))\n\n    status = FAILED\n    error_message = ''\n    missing = []\n    new_deps = []\n    try:\n        # Verify that all the tasks are fulfilled!\n        missing = [dep.task_id for dep in self.task.deps() if not dep.complete()]\n        if missing:\n            deps = 'dependency' if len(missing) == 1 else 'dependencies'\n            raise RuntimeError('Unfulfilled %s at run time: %s' % (deps, ', '.join(missing)))\n        self.task.trigger_event(Event.START, self.task)\n        t0 = time.time()\n        status = None\n        try:\n            new_deps = self._run_get_new_deps()\n            if new_deps is None:\n                status = RUNNING\n            else:\n                status = SUSPENDED\n                logger.info(\n                    '[pid %s] Worker %s new requirements      %s',\n                    os.getpid(), self.worker_id, self.task.task_id)\n                return\n        finally:\n            if status != SUSPENDED:\n                self.task.trigger_event(\n                    Event.PROCESSING_TIME, self.task, time.time() - t0)\n                error_message = json.dumps(self.task.on_success())\n                logger.info('[pid %s] Worker %s done      %s', os.getpid(),\n                            self.worker_id, self.task.task_id)\n                self.task.trigger_event(Event.SUCCESS, self.task)\n                status = DONE\n\n    except KeyboardInterrupt:\n        raise\n    except BaseException as ex:\n        status = FAILED\n        logger.exception(\"[pid %s] Worker %s failed    %s\", os.getpid(), self.worker_id, self.task)\n        error_message = notifications.wrap_traceback(self.task.on_failure(ex))\n        self.task.trigger_event(Event.FAILURE, self.task, ex)\n        subject = \"Luigi: %s FAILED\" % self.task\n        notifications.send_error_email(subject, error_message)\n    finally:\n        self.result_queue.put(\n            (self.task.task_id, status, error_message, missing, new_deps))\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 168,
+                    "end_line": 219,
+                    "variables": {
+                        "logger.info": [
+                            169,
+                            194,
+                            203
+                        ],
+                        "logger": [
+                            169,
+                            194,
+                            203,
+                            212
+                        ],
+                        "os.getpid": [
+                            196,
+                            169,
+                            203,
+                            173,
+                            212
+                        ],
+                        "os": [
+                            196,
+                            169,
+                            203,
+                            173,
+                            212
+                        ],
+                        "self.worker_id": [
+                            212,
+                            169,
+                            204,
+                            196
+                        ],
+                        "self": [
+                            196,
+                            200,
+                            169,
+                            201,
+                            171,
+                            202,
+                            204,
+                            205,
+                            218,
+                            212,
+                            181,
+                            213,
+                            214,
+                            185,
+                            215,
+                            219,
+                            189
+                        ],
+                        "self.task.task_id": [
+                            169,
+                            204,
+                            196,
+                            219
+                        ],
+                        "self.task": [
+                            196,
+                            200,
+                            169,
+                            201,
+                            202,
+                            204,
+                            205,
+                            212,
+                            181,
+                            213,
+                            214,
+                            185,
+                            215,
+                            219
+                        ],
+                        "self.random_seed": [
+                            171
+                        ],
+                        "random.seed": [
+                            173
+                        ],
+                        "random": [
+                            173
+                        ],
+                        "time.time": [
+                            201,
+                            186,
+                            173
+                        ],
+                        "time": [
+                            201,
+                            186,
+                            173
+                        ],
+                        "status": [
+                            193,
+                            199,
+                            206,
+                            175,
+                            219,
+                            211,
+                            187,
+                            191
+                        ],
+                        "FAILED": [
+                            211,
+                            175
+                        ],
+                        "error_message": [
+                            202,
+                            176,
+                            213,
+                            216,
+                            219
+                        ],
+                        "missing": [
+                            177,
+                            181,
+                            182,
+                            183,
+                            184,
+                            219
+                        ],
+                        "new_deps": [
+                            178,
+                            219,
+                            189,
+                            190
+                        ],
+                        "dep.task_id": [
+                            181
+                        ],
+                        "dep": [
+                            181
+                        ],
+                        "self.task.deps": [
+                            181
+                        ],
+                        "dep.complete": [
+                            181
+                        ],
+                        "deps": [
+                            184,
+                            183
+                        ],
+                        "len": [
+                            183
+                        ],
+                        "RuntimeError": [
+                            184
+                        ],
+                        "join": [
+                            184
+                        ],
+                        "self.task.trigger_event": [
+                            200,
+                            185,
+                            205,
+                            214
+                        ],
+                        "Event.START": [
+                            185
+                        ],
+                        "Event": [
+                            185,
+                            201,
+                            205,
+                            214
+                        ],
+                        "t0": [
+                            201,
+                            186
+                        ],
+                        "self._run_get_new_deps": [
+                            189
+                        ],
+                        "RUNNING": [
+                            191
+                        ],
+                        "SUSPENDED": [
+                            193,
+                            199
+                        ],
+                        "Event.PROCESSING_TIME": [
+                            201
+                        ],
+                        "json.dumps": [
+                            202
+                        ],
+                        "json": [
+                            202
+                        ],
+                        "self.task.on_success": [
+                            202
+                        ],
+                        "Event.SUCCESS": [
+                            205
+                        ],
+                        "DONE": [
+                            206
+                        ],
+                        "KeyboardInterrupt": [
+                            208
+                        ],
+                        "BaseException": [
+                            210
+                        ],
+                        "logger.exception": [
+                            212
+                        ],
+                        "notifications.wrap_traceback": [
+                            213
+                        ],
+                        "notifications": [
+                            216,
+                            213
+                        ],
+                        "self.task.on_failure": [
+                            213
+                        ],
+                        "ex": [
+                            213,
+                            214
+                        ],
+                        "Event.FAILURE": [
+                            214
+                        ],
+                        "subject": [
+                            216,
+                            215
+                        ],
+                        "notifications.send_error_email": [
+                            216
+                        ],
+                        "self.result_queue.put": [
+                            218
+                        ],
+                        "self.result_queue": [
+                            218
+                        ]
+                    },
+                    "filtered_variables": {
+                        "logger.info": [
+                            169,
+                            194,
+                            203
+                        ],
+                        "logger": [
+                            169,
+                            194,
+                            203,
+                            212
+                        ],
+                        "os.getpid": [
+                            196,
+                            169,
+                            203,
+                            173,
+                            212
+                        ],
+                        "os": [
+                            196,
+                            169,
+                            203,
+                            173,
+                            212
+                        ],
+                        "self.worker_id": [
+                            212,
+                            169,
+                            204,
+                            196
+                        ],
+                        "self": [
+                            196,
+                            200,
+                            169,
+                            201,
+                            171,
+                            202,
+                            204,
+                            205,
+                            218,
+                            212,
+                            181,
+                            213,
+                            214,
+                            185,
+                            215,
+                            219,
+                            189
+                        ],
+                        "self.task.task_id": [
+                            169,
+                            204,
+                            196,
+                            219
+                        ],
+                        "self.task": [
+                            196,
+                            200,
+                            169,
+                            201,
+                            202,
+                            204,
+                            205,
+                            212,
+                            181,
+                            213,
+                            214,
+                            185,
+                            215,
+                            219
+                        ],
+                        "self.random_seed": [
+                            171
+                        ],
+                        "random.seed": [
+                            173
+                        ],
+                        "random": [
+                            173
+                        ],
+                        "time.time": [
+                            201,
+                            186,
+                            173
+                        ],
+                        "time": [
+                            201,
+                            186,
+                            173
+                        ],
+                        "status": [
+                            193,
+                            199,
+                            206,
+                            175,
+                            219,
+                            211,
+                            187,
+                            191
+                        ],
+                        "FAILED": [
+                            211,
+                            175
+                        ],
+                        "error_message": [
+                            202,
+                            176,
+                            213,
+                            216,
+                            219
+                        ],
+                        "missing": [
+                            177,
+                            181,
+                            182,
+                            183,
+                            184,
+                            219
+                        ],
+                        "new_deps": [
+                            178,
+                            219,
+                            189,
+                            190
+                        ],
+                        "dep.task_id": [
+                            181
+                        ],
+                        "dep": [
+                            181
+                        ],
+                        "self.task.deps": [
+                            181
+                        ],
+                        "dep.complete": [
+                            181
+                        ],
+                        "deps": [
+                            184,
+                            183
+                        ],
+                        "join": [
+                            184
+                        ],
+                        "self.task.trigger_event": [
+                            200,
+                            185,
+                            205,
+                            214
+                        ],
+                        "Event.START": [
+                            185
+                        ],
+                        "Event": [
+                            185,
+                            201,
+                            205,
+                            214
+                        ],
+                        "t0": [
+                            201,
+                            186
+                        ],
+                        "self._run_get_new_deps": [
+                            189
+                        ],
+                        "RUNNING": [
+                            191
+                        ],
+                        "SUSPENDED": [
+                            193,
+                            199
+                        ],
+                        "Event.PROCESSING_TIME": [
+                            201
+                        ],
+                        "json.dumps": [
+                            202
+                        ],
+                        "json": [
+                            202
+                        ],
+                        "self.task.on_success": [
+                            202
+                        ],
+                        "Event.SUCCESS": [
+                            205
+                        ],
+                        "DONE": [
+                            206
+                        ],
+                        "logger.exception": [
+                            212
+                        ],
+                        "notifications.wrap_traceback": [
+                            213
+                        ],
+                        "notifications": [
+                            216,
+                            213
+                        ],
+                        "self.task.on_failure": [
+                            213
+                        ],
+                        "ex": [
+                            213,
+                            214
+                        ],
+                        "Event.FAILURE": [
+                            214
+                        ],
+                        "subject": [
+                            216,
+                            215
+                        ],
+                        "notifications.send_error_email": [
+                            216
+                        ],
+                        "self.result_queue.put": [
+                            218
+                        ],
+                        "self.result_queue": [
+                            218
+                        ]
+                    },
+                    "diff_line_number": 188,
+                    "class_data": {
+                        "signature": "class TaskProcess(AbstractTaskProcess)",
+                        "docstring": "Wrap all task execution in this class.\n\nMainly for convenience since this is run in a separate process. ",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def _run_get_new_deps(self):\n    task_gen = self.task.run()\n    if not isinstance(task_gen, types.GeneratorType):\n        return None\n    next_send = None\n    while True:\n        try:\n            if next_send is None:\n                requires = six.next(task_gen)\n            else:\n                requires = task_gen.send(next_send)\n        except StopIteration:\n            return None\n        new_req = flatten(requires)\n        new_deps = [(t.task_module, t.task_family, t.to_str_params()) for t in new_req]\n        if all((t.complete() for t in new_req)):\n            next_send = getpaths(requires)\n        else:\n            return new_deps",
+                            "def run(self):\n    logger.info('[pid %s] Worker %s running   %s', os.getpid(), self.worker_id, self.task.task_id)\n    if self.random_seed:\n        random.seed((os.getpid(), time.time()))\n    status = FAILED\n    error_message = ''\n    missing = []\n    new_deps = []\n    try:\n        missing = [dep.task_id for dep in self.task.deps() if not dep.complete()]\n        if missing:\n            deps = 'dependency' if len(missing) == 1 else 'dependencies'\n            raise RuntimeError('Unfulfilled %s at run time: %s' % (deps, ', '.join(missing)))\n        self.task.trigger_event(Event.START, self.task)\n        t0 = time.time()\n        status = None\n        try:\n            new_deps = self._run_get_new_deps()\n            if new_deps is None:\n                status = RUNNING\n            else:\n                status = SUSPENDED\n                logger.info('[pid %s] Worker %s new requirements      %s', os.getpid(), self.worker_id, self.task.task_id)\n                return\n        finally:\n            if status != SUSPENDED:\n                self.task.trigger_event(Event.PROCESSING_TIME, self.task, time.time() - t0)\n                error_message = json.dumps(self.task.on_success())\n                logger.info('[pid %s] Worker %s done      %s', os.getpid(), self.worker_id, self.task.task_id)\n                self.task.trigger_event(Event.SUCCESS, self.task)\n                status = DONE\n    except KeyboardInterrupt:\n        raise\n    except BaseException as ex:\n        status = FAILED\n        logger.exception('[pid %s] Worker %s failed    %s', os.getpid(), self.worker_id, self.task)\n        error_message = notifications.wrap_traceback(self.task.on_failure(ex))\n        self.task.trigger_event(Event.FAILURE, self.task, ex)\n        subject = 'Luigi: %s FAILED' % self.task\n        notifications.send_error_email(subject, error_message)\n    finally:\n        self.result_queue.put((self.task.task_id, status, error_message, missing, new_deps))"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "_run_get_new_deps(self)",
+                            "run(self)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "logger.info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "logger": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "os.getpid": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "os": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.worker_id": {
+                                    "variable_value": "'Worker(salt=959885664, workers=1, host=boyudeMacBook-Pro.local, username=jerry, pid=12326)'",
+                                    "variable_type": "str",
+                                    "variable_shape": "90"
+                                },
+                                "self": {
+                                    "variable_value": "<TaskProcess name='TaskProcess-2' parent=12326 initial>",
+                                    "variable_type": "TaskProcess",
+                                    "variable_shape": null
+                                },
+                                "self.task.task_id": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.task": {
+                                    "variable_value": "EmptyTask(fail=True)",
+                                    "variable_type": "EmptyTask",
+                                    "variable_shape": null
+                                },
+                                "self.random_seed": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "random.seed": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "random": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time.time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "status": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "FAILED": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "error_message": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_deps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dep.task_id": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dep": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.deps": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dep.complete": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "deps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "join": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.trigger_event": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "Event.START": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Event": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "t0": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._run_get_new_deps": {
+                                    "variable_value": "<bound method TaskProcess._run_get_new_deps of <TaskProcess name='TaskProcess-2' parent=12326 initial>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "RUNNING": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "SUSPENDED": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Event.PROCESSING_TIME": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json.dumps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.on_success": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "Event.SUCCESS": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DONE": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "logger.exception": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "notifications.wrap_traceback": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "notifications": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.on_failure": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "ex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Event.FAILURE": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "subject": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "notifications.send_error_email": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.result_queue.put": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.result_queue": {
+                                    "variable_value": "<multiprocessing.queues.Queue object at 0x10f1f2ac0>",
+                                    "variable_type": "Queue",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "logger.info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "logger": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "os.getpid": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "os": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.worker_id": {
+                                    "variable_value": "'Worker(salt=880514000, workers=1, host=boyudeMacBook-Pro.local, username=jerry, pid=12339)'",
+                                    "variable_type": "str",
+                                    "variable_shape": "90"
+                                },
+                                "self": {
+                                    "variable_value": "<TaskProcess name='TaskProcess-2' parent=12339 initial>",
+                                    "variable_type": "TaskProcess",
+                                    "variable_shape": null
+                                },
+                                "self.task.task_id": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.task": {
+                                    "variable_value": "EmptyTask(fail=True)",
+                                    "variable_type": "EmptyTask",
+                                    "variable_shape": null
+                                },
+                                "self.random_seed": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "random.seed": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "random": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time.time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "time": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "status": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "FAILED": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "error_message": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "new_deps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dep.task_id": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dep": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.deps": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dep.complete": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "deps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "join": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.trigger_event": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "Event.START": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Event": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "t0": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._run_get_new_deps": {
+                                    "variable_value": "<bound method TaskProcess._run_get_new_deps of <TaskProcess name='TaskProcess-2' parent=12339 initial>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "DONE": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Event.PROCESSING_TIME": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json.dumps": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "json": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.on_success": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "Event.SUCCESS": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "SUSPENDED": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "logger.exception": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "notifications.wrap_traceback": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "notifications": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.task.on_failure": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "ex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Event.FAILURE": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "subject": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "notifications.send_error_email": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.result_queue.put": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.result_queue": {
+                                    "variable_value": "<multiprocessing.queues.Queue object at 0x10630d430>",
+                                    "variable_type": "Queue",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def check_complete(task, out_queue):\n    \"\"\"\n    Checks if task is complete, puts the result to out_queue.\n    \"\"\"\n    logger.debug(\"Checking if %s is complete\", task)\n    try:\n        is_complete = task.complete()\n    except BaseException:\n        is_complete = TracebackWrapper(traceback.format_exc())\n    out_queue.put((task, is_complete))",
+                "def __init__(self, task, worker_id, result_queue, random_seed=False, worker_timeout=0):\n    super(AbstractTaskProcess, self).__init__()\n    self.task = task\n    self.worker_id = worker_id\n    self.result_queue = result_queue\n    self.random_seed = random_seed\n    if task.worker_timeout is not None:\n        worker_timeout = task.worker_timeout\n    self.timeout_time = time.time() + worker_timeout if worker_timeout else None",
+                "@abc.abstractmethod\ndef run(self):\n    pass",
+                "def run(self):\n    logger.info('[pid %s] Worker %s running   %s', os.getpid(), self.worker_id, self.task.task_id)\n\n    if self.random_seed:\n        # Need to have different random seeds if running in separate processes\n        random.seed((os.getpid(), time.time()))\n\n    status = FAILED\n    error_message = ''\n    try:\n        self.task.trigger_event(Event.START, self.task)\n        t0 = time.time()\n        status = None\n        try:\n            status = DONE if self.task.complete() else FAILED\n            logger.debug('[pid %s] Task %s has status %s', os.getpid(), self.task, status)\n        finally:\n            self.task.trigger_event(\n                Event.PROCESSING_TIME, self.task, time.time() - t0)\n\n        error_message = json.dumps(self.task.on_success())\n        logger.info('[pid %s] Worker %s done      %s', os.getpid(),\n                    self.worker_id, self.task.task_id)\n        self.task.trigger_event(Event.SUCCESS, self.task)\n\n    except KeyboardInterrupt:\n        raise\n    except BaseException as ex:\n        status = FAILED\n        logger.exception('[pid %s] Worker %s failed    %s', os.getpid(), self.worker_id, self.task)\n        error_message = notifications.wrap_traceback(self.task.on_failure(ex))\n        self.task.trigger_event(Event.FAILURE, self.task, ex)\n        subject = \"Luigi: %s FAILED\" % self.task\n        notifications.send_error_email(subject, error_message)\n    finally:\n        logger.debug('Putting result into queue: %s %s %s', self.task.task_id, status, error_message)\n        self.result_queue.put(\n            (self.task.task_id, status, error_message, [], []))",
+                "def _run_get_new_deps(self):\n    task_gen = self.task.run()\n    if not isinstance(task_gen, types.GeneratorType):\n        return None\n\n    next_send = None\n    while True:\n        try:\n            if next_send is None:\n                requires = six.next(task_gen)\n            else:\n                requires = task_gen.send(next_send)\n        except StopIteration:\n            return None\n\n        new_req = flatten(requires)\n        new_deps = [(t.task_module, t.task_family, t.to_str_params())\n                    for t in new_req]\n        if all(t.complete() for t in new_req):\n            next_send = getpaths(requires)\n        else:\n            return new_deps",
+                "def run(self):\n    logger.info('[pid %s] Worker %s running   %s', os.getpid(), self.worker_id, self.task.task_id)\n\n    if self.random_seed:\n        # Need to have different random seeds if running in separate processes\n        random.seed((os.getpid(), time.time()))\n\n    status = FAILED\n    error_message = ''\n    missing = []\n    new_deps = []\n    try:\n        # Verify that all the tasks are fulfilled!\n        missing = [dep.task_id for dep in self.task.deps() if not dep.complete()]\n        if missing:\n            deps = 'dependency' if len(missing) == 1 else 'dependencies'\n            raise RuntimeError('Unfulfilled %s at run time: %s' % (deps, ', '.join(missing)))\n        self.task.trigger_event(Event.START, self.task)\n        t0 = time.time()\n        status = None\n        try:\n            new_deps = self._run_get_new_deps()\n            if new_deps is None:\n                status = RUNNING\n            else:\n                status = SUSPENDED\n                logger.info(\n                    '[pid %s] Worker %s new requirements      %s',\n                    os.getpid(), self.worker_id, self.task.task_id)\n                return\n        finally:\n            if status != SUSPENDED:\n                self.task.trigger_event(\n                    Event.PROCESSING_TIME, self.task, time.time() - t0)\n                error_message = json.dumps(self.task.on_success())\n                logger.info('[pid %s] Worker %s done      %s', os.getpid(),\n                            self.worker_id, self.task.task_id)\n                self.task.trigger_event(Event.SUCCESS, self.task)\n                status = DONE\n\n    except KeyboardInterrupt:\n        raise\n    except BaseException as ex:\n        status = FAILED\n        logger.exception(\"[pid %s] Worker %s failed    %s\", os.getpid(), self.worker_id, self.task)\n        error_message = notifications.wrap_traceback(self.task.on_failure(ex))\n        self.task.trigger_event(Event.FAILURE, self.task, ex)\n        subject = \"Luigi: %s FAILED\" % self.task\n        notifications.send_error_email(subject, error_message)\n    finally:\n        self.result_queue.put(\n            (self.task.task_id, status, error_message, missing, new_deps))",
+                "def apply_async(self, function, args):\n    return function(*args)",
+                "def __init__(self, trace):\n    self.trace = trace",
+                "def __init__(self, trace):\n    self.trace = trace",
+                "def __init__(self, scheduler, worker_id, ping_interval):\n    super(KeepAliveThread, self).__init__()\n    self._should_stop = threading.Event()\n    self._scheduler = scheduler\n    self._worker_id = worker_id\n    self._ping_interval = ping_interval",
+                "def stop(self):\n    self._should_stop.set()",
+                "def run(self):\n    while True:\n        self._should_stop.wait(self._ping_interval)\n        if self._should_stop.is_set():\n            logger.info(\"Worker %s was stopped. Shutting down Keep-Alive thread\" % self._worker_id)\n            break\n        with fork_lock:\n            try:\n                self._scheduler.ping(worker=self._worker_id)\n            except:  # httplib.BadStatusLine:\n                logger.warning('Failed pinging scheduler')",
+                "def __init__(self, scheduler=None, worker_id=None, worker_processes=1, assistant=False, **kwargs):\n    if scheduler is None:\n        scheduler = CentralPlannerScheduler()\n\n    self.worker_processes = int(worker_processes)\n    self._worker_info = self._generate_worker_info()\n\n    if not worker_id:\n        worker_id = 'Worker(%s)' % ', '.join(['%s=%s' % (k, v) for k, v in self._worker_info])\n\n    self._config = worker(**kwargs)\n\n    self._id = worker_id\n    self._scheduler = scheduler\n    self._assistant = assistant\n\n    self.host = socket.gethostname()\n    self._scheduled_tasks = {}\n    self._suspended_tasks = {}\n\n    self._first_task = None\n\n    self.add_succeeded = True\n    self.run_succeeded = True\n    self.unfulfilled_counts = collections.defaultdict(int)\n\n    self._keep_alive_thread = KeepAliveThread(self._scheduler, self._id, self._config.ping_interval)\n    self._keep_alive_thread.daemon = True\n    self._keep_alive_thread.start()\n\n    # Keep info about what tasks are running (could be in other processes)\n    self._task_result_queue = multiprocessing.Queue()\n    self._running_tasks = {}",
+                "def stop(self):\n    \"\"\"\n    Stop the KeepAliveThread associated with this Worker.\n\n    This should be called whenever you are done with a worker instance to clean up.\n\n    Warning: this should _only_ be performed if you are sure this worker\n    is not performing any work or will perform any work after this has been called\n\n    TODO: also kill all currently running tasks\n\n    TODO (maybe): Worker should be/have a context manager to enforce calling this\n        whenever you stop using a Worker instance\n    \"\"\"\n    self._keep_alive_thread.stop()\n    self._keep_alive_thread.join()",
+                "def _generate_worker_info(self):\n    # Generate as much info as possible about the worker\n    # Some of these calls might not be available on all OS's\n    args = [('salt', '%09d' % random.randrange(0, 999999999)),\n            ('workers', self.worker_processes)]\n    try:\n        args += [('host', socket.gethostname())]\n    except BaseException:\n        pass\n    try:\n        args += [('username', getpass.getuser())]\n    except BaseException:\n        pass\n    try:\n        args += [('pid', os.getpid())]\n    except BaseException:\n        pass\n    try:\n        sudo_user = os.getenv(\"SUDO_USER\")\n        if sudo_user:\n            args.append(('sudo_user', sudo_user))\n    except BaseException:\n        pass\n    return args",
+                "def _validate_task(self, task):\n    if not isinstance(task, Task):\n        raise TaskException('Can not schedule non-task %s' % task)\n\n    if not task.initialized():\n        # we can't get the repr of it since it's not initialized...\n        raise TaskException('Task of class %s not initialized. Did you override __init__ and forget to call super(...).__init__?' % task.__class__.__name__)",
+                "def _log_complete_error(self, task, tb):\n    log_msg = \"Will not schedule {task} or any dependencies due to error in complete() method:\\n{tb}\".format(task=task, tb=tb)\n    logger.warning(log_msg)",
+                "def _log_unexpected_error(self, task):\n    logger.exception(\"Luigi unexpected framework error while scheduling %s\", task)  # needs to be called from within except clause",
+                "def _email_complete_error(self, task, formatted_traceback):\n    # like logger.exception but with WARNING level\n    formatted_traceback = notifications.wrap_traceback(formatted_traceback)\n    subject = \"Luigi: {task} failed scheduling. Host: {host}\".format(task=task, host=self.host)\n    message = \"Will not schedule {task} or any dependencies due to error in complete() method:\\n{traceback}\".format(task=task, traceback=formatted_traceback)\n    notifications.send_error_email(subject, message)",
+                "def _email_unexpected_error(self, task, formatted_traceback):\n    formatted_traceback = notifications.wrap_traceback(formatted_traceback)\n    subject = \"Luigi: Framework error while scheduling {task}. Host: {host}\".format(task=task, host=self.host)\n    message = \"Luigi framework error:\\n{traceback}\".format(traceback=formatted_traceback)\n    notifications.send_error_email(subject, message)",
+                "def add(self, task, multiprocess=False):\n    \"\"\"\n    Add a Task for the worker to check and possibly schedule and run.\n\n    Returns True if task and its dependencies were successfully scheduled or completed before.\n    \"\"\"\n    if self._first_task is None and hasattr(task, 'task_id'):\n        self._first_task = task.task_id\n    self.add_succeeded = True\n    if multiprocess:\n        queue = multiprocessing.Manager().Queue()\n        pool = multiprocessing.Pool()\n    else:\n        queue = DequeQueue()\n        pool = SingleProcessPool()\n    self._validate_task(task)\n    pool.apply_async(check_complete, [task, queue])\n\n    # we track queue size ourselves because len(queue) won't work for multiprocessing\n    queue_size = 1\n    try:\n        seen = set([task.task_id])\n        while queue_size:\n            current = queue.get()\n            queue_size -= 1\n            item, is_complete = current\n            for next in self._add(item, is_complete):\n                if next.task_id not in seen:\n                    self._validate_task(next)\n                    seen.add(next.task_id)\n                    pool.apply_async(check_complete, [next, queue])\n                    queue_size += 1\n    except (KeyboardInterrupt, TaskException):\n        raise\n    except Exception as ex:\n        self.add_succeeded = False\n        formatted_traceback = traceback.format_exc()\n        self._log_unexpected_error(task)\n        task.trigger_event(Event.BROKEN_TASK, task, ex)\n        self._email_unexpected_error(task, formatted_traceback)\n    return self.add_succeeded",
+                "def _add(self, task, is_complete):\n    if self._config.task_limit is not None and len(self._scheduled_tasks) >= self._config.task_limit:\n        logger.warning('Will not schedule %s or any dependencies due to exceeded task-limit of %d', task, self._config.task_limit)\n        return\n\n    formatted_traceback = None\n    try:\n        self._check_complete_value(is_complete)\n    except KeyboardInterrupt:\n        raise\n    except AsyncCompletionException as ex:\n        formatted_traceback = ex.trace\n    except BaseException:\n        formatted_traceback = traceback.format_exc()\n\n    if formatted_traceback is not None:\n        self.add_succeeded = False\n        self._log_complete_error(task, formatted_traceback)\n        task.trigger_event(Event.DEPENDENCY_MISSING, task)\n        self._email_complete_error(task, formatted_traceback)\n        # abort, i.e. don't schedule any subtasks of a task with\n        # failing complete()-method since we don't know if the task\n        # is complete and subtasks might not be desirable to run if\n        # they have already ran before\n        return\n\n    if is_complete:\n        deps = None\n        status = DONE\n        runnable = False\n\n        task.trigger_event(Event.DEPENDENCY_PRESENT, task)\n    elif task.run == NotImplemented:\n        deps = None\n        status = PENDING\n        runnable = configuration.get_config().getboolean('core', 'retry-external-tasks', False)\n\n        task.trigger_event(Event.DEPENDENCY_MISSING, task)\n        logger.warning('Task %s is not complete and run() is not implemented. Probably a missing external dependency.', task.task_id)\n\n    else:\n        deps = task.deps()\n        status = PENDING\n        runnable = True\n\n    if task.disabled:\n        status = DISABLED\n\n    if deps:\n        for d in deps:\n            self._validate_dependency(d)\n            task.trigger_event(Event.DEPENDENCY_DISCOVERED, task, d)\n            yield d  # return additional tasks to add\n\n        deps = [d.task_id for d in deps]\n\n    self._scheduled_tasks[task.task_id] = task\n    self._scheduler.add_task(self._id, task.task_id, status=status,\n                             deps=deps, runnable=runnable, priority=task.priority,\n                             resources=task.process_resources(),\n                             params=task.to_str_params(),\n                             family=task.task_family,\n                             module=task.task_module)\n\n    logger.info('Scheduled %s (%s)', task.task_id, status)",
+                "def _validate_dependency(self, dependency):\n    if isinstance(dependency, Target):\n        raise Exception('requires() can not return Target objects. Wrap it in an ExternalTask class')\n    elif not isinstance(dependency, Task):\n        raise Exception('requires() must return Task objects')",
+                "def _check_complete_value(self, is_complete):\n    if is_complete not in (True, False):\n        if isinstance(is_complete, TracebackWrapper):\n            raise AsyncCompletionException(is_complete.trace)\n        raise Exception(\"Return value of Task.complete() must be boolean (was %r)\" % is_complete)",
+                "def _add_worker(self):\n    self._worker_info.append(('first_task', self._first_task))\n    self._scheduler.add_worker(self._id, self._worker_info)",
+                "def _log_remote_tasks(self, running_tasks, n_pending_tasks, n_unique_pending):\n    logger.info(\"Done\")\n    logger.info(\"There are no more tasks to run at this time\")\n    if running_tasks:\n        for r in running_tasks:\n            logger.info('%s is currently run by worker %s', r['task_id'], r['worker'])\n    elif n_pending_tasks:\n        logger.info(\"There are %s pending tasks possibly being run by other workers\", n_pending_tasks)\n        if n_unique_pending:\n            logger.info(\"There are %i pending tasks unique to this worker\", n_unique_pending)",
+                "def _get_work(self):\n    logger.debug(\"Asking scheduler for work...\")\n    r = self._scheduler.get_work(worker=self._id, host=self.host, assistant=self._assistant)\n    n_pending_tasks = r['n_pending_tasks']\n    task_id = r['task_id']\n    running_tasks = r['running_tasks']\n    n_unique_pending = r['n_unique_pending']\n\n    if task_id is not None and task_id not in self._scheduled_tasks:\n        logger.info('Did not schedule %s, will load it dynamically', task_id)\n\n        try:\n            # TODO: we should obtain the module name from the server!\n            self._scheduled_tasks[task_id] = \\\n                load_task(module=r.get('task_module'),\n                          task_name=r['task_family'],\n                          params_str=r['task_params'])\n        except TaskClassException as ex:\n            msg = 'Cannot find task for %s' % task_id\n            logger.exception(msg)\n            subject = 'Luigi: %s' % msg\n            error_message = notifications.wrap_traceback(ex)\n            notifications.send_error_email(subject, error_message)\n            self._scheduler.add_task(self._id, task_id, status=FAILED, runnable=False,\n                                     assistant=self._assistant)\n            task_id = None\n            self.run_succeeded = False\n\n    return task_id, running_tasks, n_pending_tasks, n_unique_pending",
+                "def _run_task(self, task_id):\n    task = self._scheduled_tasks[task_id]\n\n    if task.run == NotImplemented:\n        p = ExternalTaskProcess(task, self._id, self._task_result_queue,\n                                random_seed=bool(self.worker_processes > 1),\n                                worker_timeout=self._config.timeout)\n    else:\n        p = TaskProcess(task, self._id, self._task_result_queue,\n                        random_seed=bool(self.worker_processes > 1),\n                        worker_timeout=self._config.timeout)\n\n    self._running_tasks[task_id] = p\n\n    if self.worker_processes > 1:\n        with fork_lock:\n            p.start()\n    else:\n        # Run in the same process\n        p.run()",
+                "def _purge_children(self):\n    \"\"\"\n    Find dead children and put a response on the result queue.\n\n    :return:\n    \"\"\"\n    for task_id, p in six.iteritems(self._running_tasks):\n        if not p.is_alive() and p.exitcode:\n            error_msg = 'Worker task %s died unexpectedly with exit code %s' % (task_id, p.exitcode)\n        elif p.timeout_time is not None and time.time() > float(p.timeout_time) and p.is_alive():\n            p.terminate()\n            error_msg = 'Worker task %s timed out and was terminated.' % task_id\n        else:\n            continue\n\n        logger.info(error_msg)\n        self._task_result_queue.put((task_id, FAILED, error_msg, [], []))",
+                "def _handle_next_task(self):\n    \"\"\"\n    We have to catch three ways a task can be \"done\":\n\n    1. normal execution: the task runs/fails and puts a result back on the queue,\n    2. new dependencies: the task yielded new deps that were not complete and\n       will be rescheduled and dependencies added,\n    3. child process dies: we need to catch this separately.\n    \"\"\"\n    while True:\n        self._purge_children()  # Deal with subprocess failures\n\n        try:\n            task_id, status, error_message, missing, new_requirements = (\n                self._task_result_queue.get(\n                    timeout=float(self._config.wait_interval)))\n        except Queue.Empty:\n            return\n\n        task = self._scheduled_tasks[task_id]\n        if not task or task_id not in self._running_tasks:\n            continue\n            # Not a running task. Probably already removed.\n            # Maybe it yielded something?\n        new_deps = []\n        if new_requirements:\n            new_req = [load_task(module, name, params)\n                       for module, name, params in new_requirements]\n            for t in new_req:\n                self.add(t)\n            new_deps = [t.task_id for t in new_req]\n\n        self._scheduler.add_task(self._id,\n                                 task_id,\n                                 status=status,\n                                 expl=error_message,\n                                 resources=task.process_resources(),\n                                 runnable=None,\n                                 params=task.to_str_params(),\n                                 family=task.task_family,\n                                 module=task.task_module,\n                                 new_deps=new_deps,\n                                 assistant=self._assistant)\n\n        if status == RUNNING:\n            continue\n        self._running_tasks.pop(task_id)\n\n        # re-add task to reschedule missing dependencies\n        if missing:\n            reschedule = True\n\n            # keep out of infinite loops by not rescheduling too many times\n            for task_id in missing:\n                self.unfulfilled_counts[task_id] += 1\n                if (self.unfulfilled_counts[task_id] >\n                        self._config.max_reschedules):\n                    reschedule = False\n            if reschedule:\n                self.add(task)\n\n        self.run_succeeded &= status in (DONE, SUSPENDED)\n        return",
+                "def _sleeper(self):\n    # TODO is exponential backoff necessary?\n    while True:\n        wait_interval = self._config.wait_interval + random.randint(1, 5)\n        logger.debug('Sleeping for %d seconds', wait_interval)\n        time.sleep(wait_interval)\n        yield",
+                "def _keep_alive(self, n_pending_tasks, n_unique_pending):\n    \"\"\"\n    Returns true if a worker should stay alive given.\n\n    If worker-keep-alive is not set, this will always return false.\n    For an assistant, it will always return the value of worker-keep-alive.\n    Otherwise, it will return true for nonzero n_pending_tasks.\n\n    If worker-count-uniques is true, it will also\n    require that one of the tasks is unique to this worker.\n    \"\"\"\n    if not self._config.keep_alive:\n        return False\n    elif self._assistant:\n        return True\n    else:\n        return n_pending_tasks and (n_unique_pending or not self._config.count_uniques)",
+                "def run(self):\n    \"\"\"\n    Returns True if all scheduled tasks were executed successfully.\n    \"\"\"\n    logger.info('Running Worker with %d processes', self.worker_processes)\n\n    sleeper = self._sleeper()\n    self.run_succeeded = True\n\n    self._add_worker()\n\n    while True:\n        while len(self._running_tasks) >= self.worker_processes:\n            logger.debug('%d running tasks, waiting for next task to finish', len(self._running_tasks))\n            self._handle_next_task()\n\n        task_id, running_tasks, n_pending_tasks, n_unique_pending = self._get_work()\n\n        if task_id is None:\n            self._log_remote_tasks(running_tasks, n_pending_tasks, n_unique_pending)\n            if len(self._running_tasks) == 0:\n                if self._keep_alive(n_pending_tasks, n_unique_pending):\n                    six.next(sleeper)\n                    continue\n                else:\n                    break\n            else:\n                self._handle_next_task()\n                continue\n\n        # task_id is not None:\n        logger.debug(\"Pending tasks: %s\", n_pending_tasks)\n        self._run_task(task_id)\n\n    while len(self._running_tasks):\n        logger.debug('Shut down Worker, %d more tasks to go', len(self._running_tasks))\n        self._handle_next_task()\n\n    return self.run_succeeded"
+            ],
+            "inscope_function_signatures": [
+                "check_complete(task, out_queue)",
+                "__init__(self, task, worker_id, result_queue, random_seed=False, worker_timeout=0)",
+                "run(self)",
+                "run(self)",
+                "_run_get_new_deps(self)",
+                "run(self)",
+                "apply_async(self, function, args)",
+                "__init__(self, trace)",
+                "__init__(self, trace)",
+                "__init__(self, scheduler, worker_id, ping_interval)",
+                "stop(self)",
+                "run(self)",
+                "__init__(self, scheduler=None, worker_id=None, worker_processes=1, assistant=False, **kwargs)",
+                "stop(self)",
+                "_generate_worker_info(self)",
+                "_validate_task(self, task)",
+                "_log_complete_error(self, task, tb)",
+                "_log_unexpected_error(self, task)",
+                "_email_complete_error(self, task, formatted_traceback)",
+                "_email_unexpected_error(self, task, formatted_traceback)",
+                "add(self, task, multiprocess=False)",
+                "_add(self, task, is_complete)",
+                "_validate_dependency(self, dependency)",
+                "_check_complete_value(self, is_complete)",
+                "_add_worker(self)",
+                "_log_remote_tasks(self, running_tasks, n_pending_tasks, n_unique_pending)",
+                "_get_work(self)",
+                "_run_task(self, task_id)",
+                "_purge_children(self)",
+                "_handle_next_task(self)",
+                "_sleeper(self)",
+                "_keep_alive(self, n_pending_tasks, n_unique_pending)",
+                "run(self)"
+            ],
+            "variables_in_file": {
+                "ImportError": [
+                    57,
+                    35
+                ],
+                "logger": [
+                    132,
+                    517,
+                    266,
+                    638,
+                    766,
+                    543,
+                    419,
+                    422,
+                    169,
+                    562,
+                    563,
+                    566,
+                    568,
+                    314,
+                    570,
+                    60,
+                    573,
+                    320,
+                    194,
+                    581,
+                    709,
+                    203,
+                    591,
+                    212,
+                    735,
+                    481,
+                    98,
+                    744,
+                    112,
+                    118,
+                    762,
+                    126
+                ],
+                "logging.getLogger": [
+                    60
+                ],
+                "logging": [
+                    60
+                ],
+                "fork_lock": [
+                    64,
+                    617,
+                    316
+                ],
+                "threading.Lock": [
+                    64
+                ],
+                "threading": [
+                    64,
+                    302,
+                    295
+                ],
+                "Exception": [
+                    547,
+                    67,
+                    549,
+                    555,
+                    244,
+                    471
+                ],
+                "multiprocessing.Process": [
+                    72
+                ],
+                "multiprocessing": [
+                    72,
+                    364,
+                    448,
+                    447
+                ],
+                "__init__": [
+                    301,
+                    77
+                ],
+                "super": [
+                    301,
+                    77
+                ],
+                "AbstractTaskProcess": [
+                    136,
+                    139,
+                    77,
+                    91,
+                    221
+                ],
+                "self": [
+                    529,
+                    535,
+                    536,
+                    558,
+                    559,
+                    574,
+                    580,
+                    585,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    595,
+                    84,
+                    596,
+                    598,
+                    603,
+                    606,
+                    607,
+                    608,
+                    98,
+                    610,
+                    100,
+                    611,
+                    612,
+                    614,
+                    616,
+                    107,
+                    111,
+                    112,
+                    114,
+                    115,
+                    117,
+                    629,
+                    119,
+                    120,
+                    126,
+                    127,
+                    128,
+                    129,
+                    639,
+                    132,
+                    133,
+                    134,
+                    651,
+                    655,
+                    656,
+                    146,
+                    660,
+                    661,
+                    670,
+                    673,
+                    169,
+                    171,
+                    683,
+                    687,
+                    181,
+                    695,
+                    696,
+                    185,
+                    697,
+                    700,
+                    189,
+                    702,
+                    196,
+                    708,
+                    200,
+                    201,
+                    202,
+                    204,
+                    205,
+                    212,
+                    213,
+                    214,
+                    215,
+                    724,
+                    726,
+                    218,
+                    219,
+                    729,
+                    735,
+                    737,
+                    738,
+                    740,
+                    743,
+                    744,
+                    745,
+                    747,
+                    750,
+                    751,
+                    752,
+                    758,
+                    250,
+                    763,
+                    765,
+                    766,
+                    767,
+                    769,
+                    259,
+                    301,
+                    302,
+                    303,
+                    304,
+                    305,
+                    308,
+                    312,
+                    313,
+                    314,
+                    318,
+                    337,
+                    338,
+                    341,
+                    343,
+                    345,
+                    346,
+                    347,
+                    349,
+                    350,
+                    351,
+                    353,
+                    355,
+                    356,
+                    357,
+                    359,
+                    360,
+                    361,
+                    364,
+                    365,
+                    381,
+                    382,
+                    388,
+                    427,
+                    433,
+                    443,
+                    444,
+                    445,
+                    452,
+                    463,
+                    465,
+                    472,
+                    474,
+                    476,
+                    477,
+                    480,
+                    481,
+                    486,
+                    495,
+                    496,
+                    498
+                ],
+                "self.task": [
+                    128,
+                    129,
+                    132,
+                    134,
+                    146,
+                    169,
+                    181,
+                    185,
+                    196,
+                    200,
+                    201,
+                    202,
+                    204,
+                    205,
+                    78,
+                    212,
+                    213,
+                    214,
+                    215,
+                    219,
+                    98,
+                    107,
+                    111,
+                    112,
+                    114,
+                    115,
+                    117,
+                    119,
+                    120,
+                    126,
+                    127
+                ],
+                "task": [
+                    516,
+                    517,
+                    520,
+                    266,
+                    268,
+                    524,
+                    271,
+                    530,
+                    660,
+                    661,
+                    535,
+                    536,
+                    537,
+                    410,
+                    411,
+                    538,
+                    413,
+                    539,
+                    415,
+                    540,
+                    541,
+                    418,
+                    543,
+                    677,
+                    422,
+                    679,
+                    680,
+                    681,
+                    427,
+                    428,
+                    433,
+                    443,
+                    444,
+                    700,
+                    452,
+                    453,
+                    458,
+                    78,
+                    82,
+                    83,
+                    474,
+                    475,
+                    476,
+                    603,
+                    605,
+                    606,
+                    481,
+                    610,
+                    496,
+                    497,
+                    498,
+                    510,
+                    511
+                ],
+                "self.worker_id": [
+                    98,
+                    196,
+                    169,
+                    204,
+                    79,
+                    212,
+                    119,
+                    126
+                ],
+                "worker_id": [
+                    79,
+                    304,
+                    340,
+                    341,
+                    345
+                ],
+                "self.result_queue": [
+                    80,
+                    218,
+                    133
+                ],
+                "result_queue": [
+                    80
+                ],
+                "self.random_seed": [
+                    81,
+                    171,
+                    100
+                ],
+                "random_seed": [
+                    81
+                ],
+                "task.worker_timeout": [
+                    82,
+                    83
+                ],
+                "worker_timeout": [
+                    83,
+                    84
+                ],
+                "self.timeout_time": [
+                    84
+                ],
+                "time.time": [
+                    102,
+                    201,
+                    108,
+                    173,
+                    115,
+                    84,
+                    632,
+                    186
+                ],
+                "time": [
+                    102,
+                    710,
+                    201,
+                    108,
+                    173,
+                    115,
+                    84,
+                    632,
+                    186
+                ],
+                "abc.abstractmethod": [
+                    86
+                ],
+                "abc": [
+                    86,
+                    71
+                ],
+                "six.add_metaclass": [
+                    71
+                ],
+                "six": [
+                    753,
+                    154,
+                    629,
+                    71
+                ],
+                "abc.ABCMeta": [
+                    71
+                ],
+                "logger.info": [
+                    98,
+                    194,
+                    581,
+                    169,
+                    203,
+                    562,
+                    563,
+                    570,
+                    735,
+                    118,
+                    566,
+                    568,
+                    314,
+                    638,
+                    543
+                ],
+                "os.getpid": [
+                    98,
+                    196,
+                    102,
+                    169,
+                    203,
+                    173,
+                    398,
+                    112,
+                    212,
+                    118,
+                    126
+                ],
+                "os": [
+                    98,
+                    196,
+                    102,
+                    169,
+                    203,
+                    173,
+                    398,
+                    112,
+                    402,
+                    212,
+                    118,
+                    126
+                ],
+                "self.task.task_id": [
+                    98,
+                    132,
+                    196,
+                    134,
+                    169,
+                    204,
+                    119,
+                    219
+                ],
+                "random.seed": [
+                    173,
+                    102
+                ],
+                "random": [
+                    387,
+                    708,
+                    173,
+                    102
+                ],
+                "status": [
+                    513,
+                    132,
+                    134,
+                    521,
+                    525,
+                    654,
+                    536,
+                    543,
+                    675,
+                    685,
+                    175,
+                    187,
+                    702,
+                    191,
+                    193,
+                    199,
+                    206,
+                    211,
+                    219,
+                    104,
+                    109,
+                    111,
+                    112,
+                    507,
+                    125
+                ],
+                "FAILED": [
+                    104,
+                    175,
+                    111,
+                    211,
+                    595,
+                    125,
+                    639
+                ],
+                "error_message": [
+                    130,
+                    132,
+                    676,
+                    134,
+                    105,
+                    202,
+                    654,
+                    176,
+                    593,
+                    594,
+                    117,
+                    213,
+                    216,
+                    219,
+                    127
+                ],
+                "self.task.trigger_event": [
+                    128,
+                    200,
+                    107,
+                    205,
+                    114,
+                    214,
+                    120,
+                    185
+                ],
+                "Event.START": [
+                    185,
+                    107
+                ],
+                "Event": [
+                    128,
+                    516,
+                    201,
+                    107,
+                    205,
+                    497,
+                    530,
+                    115,
+                    214,
+                    120,
+                    185,
+                    475,
+                    510
+                ],
+                "t0": [
+                    201,
+                    186,
+                    115,
+                    108
+                ],
+                "self.task.complete": [
+                    111
+                ],
+                "DONE": [
+                    507,
+                    702,
+                    206,
+                    111
+                ],
+                "logger.debug": [
+                    132,
+                    709,
+                    744,
+                    266,
+                    112,
+                    762,
+                    573,
+                    766
+                ],
+                "Event.PROCESSING_TIME": [
+                    201,
+                    115
+                ],
+                "json.dumps": [
+                    202,
+                    117
+                ],
+                "json": [
+                    202,
+                    117
+                ],
+                "self.task.on_success": [
+                    202,
+                    117
+                ],
+                "Event.SUCCESS": [
+                    120,
+                    205
+                ],
+                "KeyboardInterrupt": [
+                    208,
+                    122,
+                    469,
+                    487
+                ],
+                "BaseException": [
+                    391,
+                    395,
+                    491,
+                    269,
+                    399,
+                    210,
+                    405,
+                    124
+                ],
+                "logger.exception": [
+                    212,
+                    422,
+                    126,
+                    591
+                ],
+                "notifications.wrap_traceback": [
+                    426,
+                    432,
+                    593,
+                    213,
+                    127
+                ],
+                "notifications": [
+                    130,
+                    426,
+                    429,
+                    432,
+                    593,
+                    594,
+                    435,
+                    213,
+                    216,
+                    127
+                ],
+                "self.task.on_failure": [
+                    213,
+                    127
+                ],
+                "ex": [
+                    128,
+                    490,
+                    593,
+                    213,
+                    214,
+                    475,
+                    127
+                ],
+                "Event.FAILURE": [
+                    128,
+                    214
+                ],
+                "subject": [
+                    129,
+                    130,
+                    427,
+                    429,
+                    592,
+                    433,
+                    594,
+                    435,
+                    215,
+                    216
+                ],
+                "notifications.send_error_email": [
+                    130,
+                    429,
+                    594,
+                    435,
+                    216
+                ],
+                "self.result_queue.put": [
+                    218,
+                    133
+                ],
+                "AbstractTaskProcess.register": [
+                    136,
+                    221
+                ],
+                "ExternalTaskProcess": [
+                    136,
+                    606
+                ],
+                "task_gen": [
+                    146,
+                    147,
+                    156,
+                    154
+                ],
+                "self.task.run": [
+                    146
+                ],
+                "isinstance": [
+                    546,
+                    548,
+                    553,
+                    147,
+                    410
+                ],
+                "types.GeneratorType": [
+                    147
+                ],
+                "types": [
+                    147
+                ],
+                "next_send": [
+                    153,
+                    164,
+                    156,
+                    150
+                ],
+                "requires": [
+                    160,
+                    154,
+                    164,
+                    156
+                ],
+                "six.next": [
+                    753,
+                    154
+                ],
+                "task_gen.send": [
+                    156
+                ],
+                "StopIteration": [
+                    157
+                ],
+                "new_req": [
+                    160,
+                    162,
+                    163,
+                    667,
+                    669,
+                    671
+                ],
+                "flatten": [
+                    160
+                ],
+                "new_deps": [
+                    161,
+                    166,
+                    682,
+                    178,
+                    665,
+                    219,
+                    189,
+                    190,
+                    671
+                ],
+                "t.task_module": [
+                    161
+                ],
+                "t": [
+                    161,
+                    162,
+                    163,
+                    669,
+                    670,
+                    671
+                ],
+                "t.task_family": [
+                    161
+                ],
+                "t.to_str_params": [
+                    161
+                ],
+                "all": [
+                    163
+                ],
+                "t.complete": [
+                    163
+                ],
+                "getpaths": [
+                    164
+                ],
+                "missing": [
+                    654,
+                    177,
+                    690,
+                    181,
+                    182,
+                    183,
+                    184,
+                    694,
+                    219
+                ],
+                "dep.task_id": [
+                    181
+                ],
+                "dep": [
+                    181
+                ],
+                "self.task.deps": [
+                    181
+                ],
+                "dep.complete": [
+                    181
+                ],
+                "deps": [
+                    512,
+                    520,
+                    527,
+                    528,
+                    533,
+                    183,
+                    184,
+                    537,
+                    506
+                ],
+                "len": [
+                    480,
+                    743,
+                    744,
+                    751,
+                    183,
+                    765,
+                    766
+                ],
+                "RuntimeError": [
+                    184
+                ],
+                "join": [
+                    184,
+                    341
+                ],
+                "self._run_get_new_deps": [
+                    189
+                ],
+                "RUNNING": [
+                    685,
+                    191
+                ],
+                "SUSPENDED": [
+                    193,
+                    702,
+                    199
+                ],
+                "TaskProcess": [
+                    610,
+                    221
+                ],
+                "object": [
+                    224,
+                    323,
+                    253
+                ],
+                "function": [
+                    232
+                ],
+                "args": [
+                    387,
+                    390,
+                    232,
+                    394,
+                    398,
+                    404,
+                    407
+                ],
+                "collections.deque": [
+                    240,
+                    241,
+                    235
+                ],
+                "collections": [
+                    240,
+                    241,
+                    235,
+                    357
+                ],
+                "put": [
+                    240
+                ],
+                "collections.deque.append": [
+                    240
+                ],
+                "get": [
+                    241
+                ],
+                "collections.deque.pop": [
+                    241
+                ],
+                "self.trace": [
+                    250,
+                    259
+                ],
+                "trace": [
+                    250,
+                    259
+                ],
+                "is_complete": [
+                    486,
+                    552,
+                    553,
+                    554,
+                    555,
+                    268,
+                    462,
+                    463,
+                    270,
+                    271,
+                    505
+                ],
+                "task.complete": [
+                    268
+                ],
+                "TracebackWrapper": [
+                    553,
+                    270
+                ],
+                "traceback.format_exc": [
+                    473,
+                    492,
+                    270
+                ],
+                "traceback": [
+                    473,
+                    492,
+                    270
+                ],
+                "out_queue.put": [
+                    271
+                ],
+                "out_queue": [
+                    271
+                ],
+                "Config": [
+                    274
+                ],
+                "ping_interval": [
+                    305,
+                    276
+                ],
+                "FloatParameter": [
+                    276
+                ],
+                "dict": [
+                    288,
+                    290,
+                    292,
+                    277,
+                    279,
+                    281,
+                    286
+                ],
+                "keep_alive": [
+                    278
+                ],
+                "BoolParameter": [
+                    280,
+                    278
+                ],
+                "count_uniques": [
+                    280
+                ],
+                "wait_interval": [
+                    709,
+                    708,
+                    285,
+                    710
+                ],
+                "IntParameter": [
+                    289,
+                    291,
+                    285,
+                    287
+                ],
+                "max_reschedules": [
+                    287
+                ],
+                "timeout": [
+                    289
+                ],
+                "task_limit": [
+                    291
+                ],
+                "threading.Thread": [
+                    295
+                ],
+                "KeepAliveThread": [
+                    301,
+                    359
+                ],
+                "self._should_stop": [
+                    312,
+                    313,
+                    308,
+                    302
+                ],
+                "threading.Event": [
+                    302
+                ],
+                "self._scheduler": [
+                    673,
+                    359,
+                    574,
+                    303,
+                    559,
+                    595,
+                    536,
+                    346,
+                    318
+                ],
+                "scheduler": [
+                    346,
+                    335,
+                    334,
+                    303
+                ],
+                "self._worker_id": [
+                    304,
+                    314,
+                    318
+                ],
+                "self._ping_interval": [
+                    312,
+                    305
+                ],
+                "self._should_stop.set": [
+                    308
+                ],
+                "self._should_stop.wait": [
+                    312
+                ],
+                "self._should_stop.is_set": [
+                    313
+                ],
+                "self._scheduler.ping": [
+                    318
+                ],
+                "logger.warning": [
+                    320,
+                    481,
+                    419,
+                    517
+                ],
+                "CentralPlannerScheduler": [
+                    335
+                ],
+                "self.worker_processes": [
+                    611,
+                    388,
+                    743,
+                    616,
+                    337,
+                    735,
+                    607
+                ],
+                "int": [
+                    337,
+                    357
+                ],
+                "worker_processes": [
+                    337
+                ],
+                "self._worker_info": [
+                    338,
+                    341,
+                    558,
+                    559
+                ],
+                "self._generate_worker_info": [
+                    338
+                ],
+                "k": [
+                    341
+                ],
+                "v": [
+                    341
+                ],
+                "self._config": [
+                    480,
+                    481,
+                    608,
+                    612,
+                    708,
+                    359,
+                    656,
+                    724,
+                    729,
+                    343,
+                    697
+                ],
+                "worker": [
+                    343
+                ],
+                "kwargs": [
+                    343
+                ],
+                "self._id": [
+                    673,
+                    610,
+                    359,
+                    606,
+                    559,
+                    595,
+                    536,
+                    345,
+                    574
+                ],
+                "self._assistant": [
+                    683,
+                    596,
+                    726,
+                    347,
+                    574
+                ],
+                "assistant": [
+                    347
+                ],
+                "self.host": [
+                    433,
+                    427,
+                    349,
+                    574
+                ],
+                "socket.gethostname": [
+                    349,
+                    390
+                ],
+                "socket": [
+                    349,
+                    390
+                ],
+                "self._scheduled_tasks": [
+                    480,
+                    580,
+                    585,
+                    660,
+                    535,
+                    603,
+                    350
+                ],
+                "self._suspended_tasks": [
+                    351
+                ],
+                "self._first_task": [
+                    353,
+                    443,
+                    444,
+                    558
+                ],
+                "self.add_succeeded": [
+                    355,
+                    495,
+                    472,
+                    477,
+                    445
+                ],
+                "self.run_succeeded": [
+                    769,
+                    738,
+                    356,
+                    598,
+                    702
+                ],
+                "self.unfulfilled_counts": [
+                    696,
+                    357,
+                    695
+                ],
+                "collections.defaultdict": [
+                    357
+                ],
+                "self._keep_alive_thread": [
+                    359,
+                    360,
+                    361,
+                    381,
+                    382
+                ],
+                "self._config.ping_interval": [
+                    359
+                ],
+                "self._keep_alive_thread.daemon": [
+                    360
+                ],
+                "self._keep_alive_thread.start": [
+                    361
+                ],
+                "self._task_result_queue": [
+                    610,
+                    364,
+                    655,
+                    606,
+                    639
+                ],
+                "multiprocessing.Queue": [
+                    364
+                ],
+                "self._running_tasks": [
+                    614,
+                    743,
+                    744,
+                    365,
+                    687,
+                    751,
+                    629,
+                    661,
+                    765,
+                    766
+                ],
+                "self._keep_alive_thread.stop": [
+                    381
+                ],
+                "self._keep_alive_thread.join": [
+                    382
+                ],
+                "random.randrange": [
+                    387
+                ],
+                "getpass.getuser": [
+                    394
+                ],
+                "getpass": [
+                    394
+                ],
+                "sudo_user": [
+                    402,
+                    403,
+                    404
+                ],
+                "os.getenv": [
+                    402
+                ],
+                "args.append": [
+                    404
+                ],
+                "Task": [
+                    410,
+                    548
+                ],
+                "TaskException": [
+                    411,
+                    469,
+                    415
+                ],
+                "task.initialized": [
+                    413
+                ],
+                "task.__class__.__name__": [
+                    415
+                ],
+                "task.__class__": [
+                    415
+                ],
+                "log_msg": [
+                    418,
+                    419
+                ],
+                "format": [
+                    418,
+                    427,
+                    428,
+                    433,
+                    434
+                ],
+                "tb": [
+                    418
+                ],
+                "formatted_traceback": [
+                    484,
+                    426,
+                    490,
+                    428,
+                    492,
+                    494,
+                    432,
+                    496,
+                    434,
+                    498,
+                    473,
+                    476
+                ],
+                "message": [
+                    434,
+                    435,
+                    428,
+                    429
+                ],
+                "hasattr": [
+                    443
+                ],
+                "task.task_id": [
+                    517,
+                    458,
+                    535,
+                    536,
+                    444,
+                    543
+                ],
+                "multiprocess": [
+                    446
+                ],
+                "queue": [
+                    450,
+                    453,
+                    460,
+                    467,
+                    447
+                ],
+                "Queue": [
+                    657,
+                    447
+                ],
+                "multiprocessing.Manager": [
+                    447
+                ],
+                "pool": [
+                    448,
+                    451,
+                    453,
+                    467
+                ],
+                "multiprocessing.Pool": [
+                    448
+                ],
+                "DequeQueue": [
+                    450
+                ],
+                "SingleProcessPool": [
+                    451
+                ],
+                "self._validate_task": [
+                    465,
+                    452
+                ],
+                "pool.apply_async": [
+                    467,
+                    453
+                ],
+                "check_complete": [
+                    467,
+                    453
+                ],
+                "queue_size": [
+                    456,
+                    459,
+                    468,
+                    461
+                ],
+                "seen": [
+                    464,
+                    466,
+                    458
+                ],
+                "set": [
+                    458
+                ],
+                "current": [
+                    460,
+                    462
+                ],
+                "queue.get": [
+                    460
+                ],
+                "item": [
+                    462,
+                    463
+                ],
+                "next": [
+                    463,
+                    464,
+                    465,
+                    466,
+                    467
+                ],
+                "self._add": [
+                    463
+                ],
+                "next.task_id": [
+                    464,
+                    466
+                ],
+                "seen.add": [
+                    466
+                ],
+                "self._log_unexpected_error": [
+                    474
+                ],
+                "task.trigger_event": [
+                    516,
+                    497,
+                    530,
+                    475,
+                    510
+                ],
+                "Event.BROKEN_TASK": [
+                    475
+                ],
+                "self._email_unexpected_error": [
+                    476
+                ],
+                "self._config.task_limit": [
+                    480,
+                    481
+                ],
+                "self._check_complete_value": [
+                    486
+                ],
+                "AsyncCompletionException": [
+                    489,
+                    554
+                ],
+                "ex.trace": [
+                    490
+                ],
+                "self._log_complete_error": [
+                    496
+                ],
+                "Event.DEPENDENCY_MISSING": [
+                    497,
+                    516
+                ],
+                "self._email_complete_error": [
+                    498
+                ],
+                "runnable": [
+                    537,
+                    514,
+                    522,
+                    508
+                ],
+                "Event.DEPENDENCY_PRESENT": [
+                    510
+                ],
+                "task.run": [
+                    605,
+                    511
+                ],
+                "NotImplemented": [
+                    605,
+                    511
+                ],
+                "PENDING": [
+                    513,
+                    521
+                ],
+                "getboolean": [
+                    514
+                ],
+                "configuration.get_config": [
+                    514
+                ],
+                "configuration": [
+                    514
+                ],
+                "task.deps": [
+                    520
+                ],
+                "task.disabled": [
+                    524
+                ],
+                "DISABLED": [
+                    525
+                ],
+                "d": [
+                    528,
+                    529,
+                    530,
+                    531,
+                    533
+                ],
+                "self._validate_dependency": [
+                    529
+                ],
+                "Event.DEPENDENCY_DISCOVERED": [
+                    530
+                ],
+                "d.task_id": [
+                    533
+                ],
+                "self._scheduler.add_task": [
+                    536,
+                    673,
+                    595
+                ],
+                "task.priority": [
+                    537
+                ],
+                "task.process_resources": [
+                    538,
+                    677
+                ],
+                "task.to_str_params": [
+                    539,
+                    679
+                ],
+                "task.task_family": [
+                    680,
+                    540
+                ],
+                "task.task_module": [
+                    681,
+                    541
+                ],
+                "dependency": [
+                    546,
+                    548
+                ],
+                "Target": [
+                    546
+                ],
+                "is_complete.trace": [
+                    554
+                ],
+                "self._worker_info.append": [
+                    558
+                ],
+                "self._scheduler.add_worker": [
+                    559
+                ],
+                "running_tasks": [
+                    577,
+                    747,
+                    750,
+                    564,
+                    565,
+                    600
+                ],
+                "r": [
+                    576,
+                    577,
+                    578,
+                    586,
+                    587,
+                    588,
+                    565,
+                    566,
+                    574,
+                    575
+                ],
+                "n_pending_tasks": [
+                    600,
+                    747,
+                    750,
+                    752,
+                    567,
+                    568,
+                    729,
+                    762,
+                    575
+                ],
+                "n_unique_pending": [
+                    578,
+                    747,
+                    750,
+                    752,
+                    729,
+                    600,
+                    569,
+                    570
+                ],
+                "self._scheduler.get_work": [
+                    574
+                ],
+                "task_id": [
+                    654,
+                    660,
+                    661,
+                    674,
+                    687,
+                    694,
+                    695,
+                    696,
+                    576,
+                    580,
+                    581,
+                    585,
+                    590,
+                    595,
+                    597,
+                    600,
+                    603,
+                    614,
+                    747,
+                    749,
+                    629,
+                    631,
+                    634,
+                    763,
+                    639
+                ],
+                "load_task": [
+                    586,
+                    667
+                ],
+                "r.get": [
+                    586
+                ],
+                "TaskClassException": [
+                    589
+                ],
+                "msg": [
+                    592,
+                    590,
+                    591
+                ],
+                "p": [
+                    610,
+                    614,
+                    618,
+                    621,
+                    629,
+                    630,
+                    631,
+                    632,
+                    633,
+                    606
+                ],
+                "bool": [
+                    611,
+                    607
+                ],
+                "self._config.timeout": [
+                    608,
+                    612
+                ],
+                "p.start": [
+                    618
+                ],
+                "p.run": [
+                    621
+                ],
+                "six.iteritems": [
+                    629
+                ],
+                "p.is_alive": [
+                    632,
+                    630
+                ],
+                "p.exitcode": [
+                    630,
+                    631
+                ],
+                "error_msg": [
+                    634,
+                    639,
+                    638,
+                    631
+                ],
+                "p.timeout_time": [
+                    632
+                ],
+                "float": [
+                    632,
+                    656
+                ],
+                "p.terminate": [
+                    633
+                ],
+                "self._task_result_queue.put": [
+                    639
+                ],
+                "self._purge_children": [
+                    651
+                ],
+                "new_requirements": [
+                    666,
+                    668,
+                    654
+                ],
+                "self._task_result_queue.get": [
+                    655
+                ],
+                "self._config.wait_interval": [
+                    656,
+                    708
+                ],
+                "Queue.Empty": [
+                    657
+                ],
+                "module": [
+                    667,
+                    668
+                ],
+                "name": [
+                    667,
+                    668
+                ],
+                "params": [
+                    667,
+                    668
+                ],
+                "self.add": [
+                    700,
+                    670
+                ],
+                "t.task_id": [
+                    671
+                ],
+                "self._running_tasks.pop": [
+                    687
+                ],
+                "reschedule": [
+                    698,
+                    691,
+                    699
+                ],
+                "self._config.max_reschedules": [
+                    697
+                ],
+                "random.randint": [
+                    708
+                ],
+                "time.sleep": [
+                    710
+                ],
+                "self._config.keep_alive": [
+                    724
+                ],
+                "self._config.count_uniques": [
+                    729
+                ],
+                "sleeper": [
+                    737,
+                    753
+                ],
+                "self._sleeper": [
+                    737
+                ],
+                "self._add_worker": [
+                    740
+                ],
+                "self._handle_next_task": [
+                    745,
+                    758,
+                    767
+                ],
+                "self._get_work": [
+                    747
+                ],
+                "self._log_remote_tasks": [
+                    750
+                ],
+                "self._keep_alive": [
+                    752
+                ],
+                "self._run_task": [
+                    763
+                ]
+            },
+            "filtered_variables_in_file": {
+                "logger": [
+                    132,
+                    517,
+                    266,
+                    638,
+                    766,
+                    543,
+                    419,
+                    422,
+                    169,
+                    562,
+                    563,
+                    566,
+                    568,
+                    314,
+                    570,
+                    60,
+                    573,
+                    320,
+                    194,
+                    581,
+                    709,
+                    203,
+                    591,
+                    212,
+                    735,
+                    481,
+                    98,
+                    744,
+                    112,
+                    118,
+                    762,
+                    126
+                ],
+                "logging.getLogger": [
+                    60
+                ],
+                "logging": [
+                    60
+                ],
+                "fork_lock": [
+                    64,
+                    617,
+                    316
+                ],
+                "threading.Lock": [
+                    64
+                ],
+                "threading": [
+                    64,
+                    302,
+                    295
+                ],
+                "multiprocessing.Process": [
+                    72
+                ],
+                "multiprocessing": [
+                    72,
+                    364,
+                    448,
+                    447
+                ],
+                "__init__": [
+                    301,
+                    77
+                ],
+                "AbstractTaskProcess": [
+                    136,
+                    139,
+                    77,
+                    91,
+                    221
+                ],
+                "self": [
+                    529,
+                    535,
+                    536,
+                    558,
+                    559,
+                    574,
+                    580,
+                    585,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    595,
+                    84,
+                    596,
+                    598,
+                    603,
+                    606,
+                    607,
+                    608,
+                    98,
+                    610,
+                    100,
+                    611,
+                    612,
+                    614,
+                    616,
+                    107,
+                    111,
+                    112,
+                    114,
+                    115,
+                    117,
+                    629,
+                    119,
+                    120,
+                    126,
+                    127,
+                    128,
+                    129,
+                    639,
+                    132,
+                    133,
+                    134,
+                    651,
+                    655,
+                    656,
+                    146,
+                    660,
+                    661,
+                    670,
+                    673,
+                    169,
+                    171,
+                    683,
+                    687,
+                    181,
+                    695,
+                    696,
+                    185,
+                    697,
+                    700,
+                    189,
+                    702,
+                    196,
+                    708,
+                    200,
+                    201,
+                    202,
+                    204,
+                    205,
+                    212,
+                    213,
+                    214,
+                    215,
+                    724,
+                    726,
+                    218,
+                    219,
+                    729,
+                    735,
+                    737,
+                    738,
+                    740,
+                    743,
+                    744,
+                    745,
+                    747,
+                    750,
+                    751,
+                    752,
+                    758,
+                    250,
+                    763,
+                    765,
+                    766,
+                    767,
+                    769,
+                    259,
+                    301,
+                    302,
+                    303,
+                    304,
+                    305,
+                    308,
+                    312,
+                    313,
+                    314,
+                    318,
+                    337,
+                    338,
+                    341,
+                    343,
+                    345,
+                    346,
+                    347,
+                    349,
+                    350,
+                    351,
+                    353,
+                    355,
+                    356,
+                    357,
+                    359,
+                    360,
+                    361,
+                    364,
+                    365,
+                    381,
+                    382,
+                    388,
+                    427,
+                    433,
+                    443,
+                    444,
+                    445,
+                    452,
+                    463,
+                    465,
+                    472,
+                    474,
+                    476,
+                    477,
+                    480,
+                    481,
+                    486,
+                    495,
+                    496,
+                    498
+                ],
+                "self.task": [
+                    128,
+                    129,
+                    132,
+                    134,
+                    146,
+                    169,
+                    181,
+                    185,
+                    196,
+                    200,
+                    201,
+                    202,
+                    204,
+                    205,
+                    78,
+                    212,
+                    213,
+                    214,
+                    215,
+                    219,
+                    98,
+                    107,
+                    111,
+                    112,
+                    114,
+                    115,
+                    117,
+                    119,
+                    120,
+                    126,
+                    127
+                ],
+                "task": [
+                    516,
+                    517,
+                    520,
+                    266,
+                    268,
+                    524,
+                    271,
+                    530,
+                    660,
+                    661,
+                    535,
+                    536,
+                    537,
+                    410,
+                    411,
+                    538,
+                    413,
+                    539,
+                    415,
+                    540,
+                    541,
+                    418,
+                    543,
+                    677,
+                    422,
+                    679,
+                    680,
+                    681,
+                    427,
+                    428,
+                    433,
+                    443,
+                    444,
+                    700,
+                    452,
+                    453,
+                    458,
+                    78,
+                    82,
+                    83,
+                    474,
+                    475,
+                    476,
+                    603,
+                    605,
+                    606,
+                    481,
+                    610,
+                    496,
+                    497,
+                    498,
+                    510,
+                    511
+                ],
+                "self.worker_id": [
+                    98,
+                    196,
+                    169,
+                    204,
+                    79,
+                    212,
+                    119,
+                    126
+                ],
+                "worker_id": [
+                    79,
+                    304,
+                    340,
+                    341,
+                    345
+                ],
+                "self.result_queue": [
+                    80,
+                    218,
+                    133
+                ],
+                "result_queue": [
+                    80
+                ],
+                "self.random_seed": [
+                    81,
+                    171,
+                    100
+                ],
+                "random_seed": [
+                    81
+                ],
+                "task.worker_timeout": [
+                    82,
+                    83
+                ],
+                "worker_timeout": [
+                    83,
+                    84
+                ],
+                "self.timeout_time": [
+                    84
+                ],
+                "time.time": [
+                    102,
+                    201,
+                    108,
+                    173,
+                    115,
+                    84,
+                    632,
+                    186
+                ],
+                "time": [
+                    102,
+                    710,
+                    201,
+                    108,
+                    173,
+                    115,
+                    84,
+                    632,
+                    186
+                ],
+                "abc.abstractmethod": [
+                    86
+                ],
+                "abc": [
+                    86,
+                    71
+                ],
+                "six.add_metaclass": [
+                    71
+                ],
+                "six": [
+                    753,
+                    154,
+                    629,
+                    71
+                ],
+                "abc.ABCMeta": [
+                    71
+                ],
+                "logger.info": [
+                    98,
+                    194,
+                    581,
+                    169,
+                    203,
+                    562,
+                    563,
+                    570,
+                    735,
+                    118,
+                    566,
+                    568,
+                    314,
+                    638,
+                    543
+                ],
+                "os.getpid": [
+                    98,
+                    196,
+                    102,
+                    169,
+                    203,
+                    173,
+                    398,
+                    112,
+                    212,
+                    118,
+                    126
+                ],
+                "os": [
+                    98,
+                    196,
+                    102,
+                    169,
+                    203,
+                    173,
+                    398,
+                    112,
+                    402,
+                    212,
+                    118,
+                    126
+                ],
+                "self.task.task_id": [
+                    98,
+                    132,
+                    196,
+                    134,
+                    169,
+                    204,
+                    119,
+                    219
+                ],
+                "random.seed": [
+                    173,
+                    102
+                ],
+                "random": [
+                    387,
+                    708,
+                    173,
+                    102
+                ],
+                "status": [
+                    513,
+                    132,
+                    134,
+                    521,
+                    525,
+                    654,
+                    536,
+                    543,
+                    675,
+                    685,
+                    175,
+                    187,
+                    702,
+                    191,
+                    193,
+                    199,
+                    206,
+                    211,
+                    219,
+                    104,
+                    109,
+                    111,
+                    112,
+                    507,
+                    125
+                ],
+                "FAILED": [
+                    104,
+                    175,
+                    111,
+                    211,
+                    595,
+                    125,
+                    639
+                ],
+                "error_message": [
+                    130,
+                    132,
+                    676,
+                    134,
+                    105,
+                    202,
+                    654,
+                    176,
+                    593,
+                    594,
+                    117,
+                    213,
+                    216,
+                    219,
+                    127
+                ],
+                "self.task.trigger_event": [
+                    128,
+                    200,
+                    107,
+                    205,
+                    114,
+                    214,
+                    120,
+                    185
+                ],
+                "Event.START": [
+                    185,
+                    107
+                ],
+                "Event": [
+                    128,
+                    516,
+                    201,
+                    107,
+                    205,
+                    497,
+                    530,
+                    115,
+                    214,
+                    120,
+                    185,
+                    475,
+                    510
+                ],
+                "t0": [
+                    201,
+                    186,
+                    115,
+                    108
+                ],
+                "self.task.complete": [
+                    111
+                ],
+                "DONE": [
+                    507,
+                    702,
+                    206,
+                    111
+                ],
+                "logger.debug": [
+                    132,
+                    709,
+                    744,
+                    266,
+                    112,
+                    762,
+                    573,
+                    766
+                ],
+                "Event.PROCESSING_TIME": [
+                    201,
+                    115
+                ],
+                "json.dumps": [
+                    202,
+                    117
+                ],
+                "json": [
+                    202,
+                    117
+                ],
+                "self.task.on_success": [
+                    202,
+                    117
+                ],
+                "Event.SUCCESS": [
+                    120,
+                    205
+                ],
+                "logger.exception": [
+                    212,
+                    422,
+                    126,
+                    591
+                ],
+                "notifications.wrap_traceback": [
+                    426,
+                    432,
+                    593,
+                    213,
+                    127
+                ],
+                "notifications": [
+                    130,
+                    426,
+                    429,
+                    432,
+                    593,
+                    594,
+                    435,
+                    213,
+                    216,
+                    127
+                ],
+                "self.task.on_failure": [
+                    213,
+                    127
+                ],
+                "ex": [
+                    128,
+                    490,
+                    593,
+                    213,
+                    214,
+                    475,
+                    127
+                ],
+                "Event.FAILURE": [
+                    128,
+                    214
+                ],
+                "subject": [
+                    129,
+                    130,
+                    427,
+                    429,
+                    592,
+                    433,
+                    594,
+                    435,
+                    215,
+                    216
+                ],
+                "notifications.send_error_email": [
+                    130,
+                    429,
+                    594,
+                    435,
+                    216
+                ],
+                "self.result_queue.put": [
+                    218,
+                    133
+                ],
+                "AbstractTaskProcess.register": [
+                    136,
+                    221
+                ],
+                "ExternalTaskProcess": [
+                    136,
+                    606
+                ],
+                "task_gen": [
+                    146,
+                    147,
+                    156,
+                    154
+                ],
+                "self.task.run": [
+                    146
+                ],
+                "types.GeneratorType": [
+                    147
+                ],
+                "types": [
+                    147
+                ],
+                "next_send": [
+                    153,
+                    164,
+                    156,
+                    150
+                ],
+                "requires": [
+                    160,
+                    154,
+                    164,
+                    156
+                ],
+                "six.next": [
+                    753,
+                    154
+                ],
+                "task_gen.send": [
+                    156
+                ],
+                "new_req": [
+                    160,
+                    162,
+                    163,
+                    667,
+                    669,
+                    671
+                ],
+                "flatten": [
+                    160
+                ],
+                "new_deps": [
+                    161,
+                    166,
+                    682,
+                    178,
+                    665,
+                    219,
+                    189,
+                    190,
+                    671
+                ],
+                "t.task_module": [
+                    161
+                ],
+                "t": [
+                    161,
+                    162,
+                    163,
+                    669,
+                    670,
+                    671
+                ],
+                "t.task_family": [
+                    161
+                ],
+                "t.to_str_params": [
+                    161
+                ],
+                "t.complete": [
+                    163
+                ],
+                "getpaths": [
+                    164
+                ],
+                "missing": [
+                    654,
+                    177,
+                    690,
+                    181,
+                    182,
+                    183,
+                    184,
+                    694,
+                    219
+                ],
+                "dep.task_id": [
+                    181
+                ],
+                "dep": [
+                    181
+                ],
+                "self.task.deps": [
+                    181
+                ],
+                "dep.complete": [
+                    181
+                ],
+                "deps": [
+                    512,
+                    520,
+                    527,
+                    528,
+                    533,
+                    183,
+                    184,
+                    537,
+                    506
+                ],
+                "join": [
+                    184,
+                    341
+                ],
+                "self._run_get_new_deps": [
+                    189
+                ],
+                "RUNNING": [
+                    685,
+                    191
+                ],
+                "SUSPENDED": [
+                    193,
+                    702,
+                    199
+                ],
+                "TaskProcess": [
+                    610,
+                    221
+                ],
+                "function": [
+                    232
+                ],
+                "args": [
+                    387,
+                    390,
+                    232,
+                    394,
+                    398,
+                    404,
+                    407
+                ],
+                "collections.deque": [
+                    240,
+                    241,
+                    235
+                ],
+                "collections": [
+                    240,
+                    241,
+                    235,
+                    357
+                ],
+                "put": [
+                    240
+                ],
+                "collections.deque.append": [
+                    240
+                ],
+                "get": [
+                    241
+                ],
+                "collections.deque.pop": [
+                    241
+                ],
+                "self.trace": [
+                    250,
+                    259
+                ],
+                "trace": [
+                    250,
+                    259
+                ],
+                "is_complete": [
+                    486,
+                    552,
+                    553,
+                    554,
+                    555,
+                    268,
+                    462,
+                    463,
+                    270,
+                    271,
+                    505
+                ],
+                "task.complete": [
+                    268
+                ],
+                "TracebackWrapper": [
+                    553,
+                    270
+                ],
+                "traceback.format_exc": [
+                    473,
+                    492,
+                    270
+                ],
+                "traceback": [
+                    473,
+                    492,
+                    270
+                ],
+                "out_queue.put": [
+                    271
+                ],
+                "out_queue": [
+                    271
+                ],
+                "Config": [
+                    274
+                ],
+                "ping_interval": [
+                    305,
+                    276
+                ],
+                "FloatParameter": [
+                    276
+                ],
+                "keep_alive": [
+                    278
+                ],
+                "BoolParameter": [
+                    280,
+                    278
+                ],
+                "count_uniques": [
+                    280
+                ],
+                "wait_interval": [
+                    709,
+                    708,
+                    285,
+                    710
+                ],
+                "IntParameter": [
+                    289,
+                    291,
+                    285,
+                    287
+                ],
+                "max_reschedules": [
+                    287
+                ],
+                "timeout": [
+                    289
+                ],
+                "task_limit": [
+                    291
+                ],
+                "threading.Thread": [
+                    295
+                ],
+                "KeepAliveThread": [
+                    301,
+                    359
+                ],
+                "self._should_stop": [
+                    312,
+                    313,
+                    308,
+                    302
+                ],
+                "threading.Event": [
+                    302
+                ],
+                "self._scheduler": [
+                    673,
+                    359,
+                    574,
+                    303,
+                    559,
+                    595,
+                    536,
+                    346,
+                    318
+                ],
+                "scheduler": [
+                    346,
+                    335,
+                    334,
+                    303
+                ],
+                "self._worker_id": [
+                    304,
+                    314,
+                    318
+                ],
+                "self._ping_interval": [
+                    312,
+                    305
+                ],
+                "self._should_stop.set": [
+                    308
+                ],
+                "self._should_stop.wait": [
+                    312
+                ],
+                "self._should_stop.is_set": [
+                    313
+                ],
+                "self._scheduler.ping": [
+                    318
+                ],
+                "logger.warning": [
+                    320,
+                    481,
+                    419,
+                    517
+                ],
+                "CentralPlannerScheduler": [
+                    335
+                ],
+                "self.worker_processes": [
+                    611,
+                    388,
+                    743,
+                    616,
+                    337,
+                    735,
+                    607
+                ],
+                "worker_processes": [
+                    337
+                ],
+                "self._worker_info": [
+                    338,
+                    341,
+                    558,
+                    559
+                ],
+                "self._generate_worker_info": [
+                    338
+                ],
+                "k": [
+                    341
+                ],
+                "v": [
+                    341
+                ],
+                "self._config": [
+                    480,
+                    481,
+                    608,
+                    612,
+                    708,
+                    359,
+                    656,
+                    724,
+                    729,
+                    343,
+                    697
+                ],
+                "worker": [
+                    343
+                ],
+                "kwargs": [
+                    343
+                ],
+                "self._id": [
+                    673,
+                    610,
+                    359,
+                    606,
+                    559,
+                    595,
+                    536,
+                    345,
+                    574
+                ],
+                "self._assistant": [
+                    683,
+                    596,
+                    726,
+                    347,
+                    574
+                ],
+                "assistant": [
+                    347
+                ],
+                "self.host": [
+                    433,
+                    427,
+                    349,
+                    574
+                ],
+                "socket.gethostname": [
+                    349,
+                    390
+                ],
+                "socket": [
+                    349,
+                    390
+                ],
+                "self._scheduled_tasks": [
+                    480,
+                    580,
+                    585,
+                    660,
+                    535,
+                    603,
+                    350
+                ],
+                "self._suspended_tasks": [
+                    351
+                ],
+                "self._first_task": [
+                    353,
+                    443,
+                    444,
+                    558
+                ],
+                "self.add_succeeded": [
+                    355,
+                    495,
+                    472,
+                    477,
+                    445
+                ],
+                "self.run_succeeded": [
+                    769,
+                    738,
+                    356,
+                    598,
+                    702
+                ],
+                "self.unfulfilled_counts": [
+                    696,
+                    357,
+                    695
+                ],
+                "collections.defaultdict": [
+                    357
+                ],
+                "self._keep_alive_thread": [
+                    359,
+                    360,
+                    361,
+                    381,
+                    382
+                ],
+                "self._config.ping_interval": [
+                    359
+                ],
+                "self._keep_alive_thread.daemon": [
+                    360
+                ],
+                "self._keep_alive_thread.start": [
+                    361
+                ],
+                "self._task_result_queue": [
+                    610,
+                    364,
+                    655,
+                    606,
+                    639
+                ],
+                "multiprocessing.Queue": [
+                    364
+                ],
+                "self._running_tasks": [
+                    614,
+                    743,
+                    744,
+                    365,
+                    687,
+                    751,
+                    629,
+                    661,
+                    765,
+                    766
+                ],
+                "self._keep_alive_thread.stop": [
+                    381
+                ],
+                "self._keep_alive_thread.join": [
+                    382
+                ],
+                "random.randrange": [
+                    387
+                ],
+                "getpass.getuser": [
+                    394
+                ],
+                "getpass": [
+                    394
+                ],
+                "sudo_user": [
+                    402,
+                    403,
+                    404
+                ],
+                "os.getenv": [
+                    402
+                ],
+                "args.append": [
+                    404
+                ],
+                "Task": [
+                    410,
+                    548
+                ],
+                "TaskException": [
+                    411,
+                    469,
+                    415
+                ],
+                "task.initialized": [
+                    413
+                ],
+                "task.__class__.__name__": [
+                    415
+                ],
+                "task.__class__": [
+                    415
+                ],
+                "log_msg": [
+                    418,
+                    419
+                ],
+                "tb": [
+                    418
+                ],
+                "formatted_traceback": [
+                    484,
+                    426,
+                    490,
+                    428,
+                    492,
+                    494,
+                    432,
+                    496,
+                    434,
+                    498,
+                    473,
+                    476
+                ],
+                "message": [
+                    434,
+                    435,
+                    428,
+                    429
+                ],
+                "task.task_id": [
+                    517,
+                    458,
+                    535,
+                    536,
+                    444,
+                    543
+                ],
+                "multiprocess": [
+                    446
+                ],
+                "queue": [
+                    450,
+                    453,
+                    460,
+                    467,
+                    447
+                ],
+                "Queue": [
+                    657,
+                    447
+                ],
+                "multiprocessing.Manager": [
+                    447
+                ],
+                "pool": [
+                    448,
+                    451,
+                    453,
+                    467
+                ],
+                "multiprocessing.Pool": [
+                    448
+                ],
+                "DequeQueue": [
+                    450
+                ],
+                "SingleProcessPool": [
+                    451
+                ],
+                "self._validate_task": [
+                    465,
+                    452
+                ],
+                "pool.apply_async": [
+                    467,
+                    453
+                ],
+                "check_complete": [
+                    467,
+                    453
+                ],
+                "queue_size": [
+                    456,
+                    459,
+                    468,
+                    461
+                ],
+                "seen": [
+                    464,
+                    466,
+                    458
+                ],
+                "current": [
+                    460,
+                    462
+                ],
+                "queue.get": [
+                    460
+                ],
+                "item": [
+                    462,
+                    463
+                ],
+                "self._add": [
+                    463
+                ],
+                "next.task_id": [
+                    464,
+                    466
+                ],
+                "seen.add": [
+                    466
+                ],
+                "self._log_unexpected_error": [
+                    474
+                ],
+                "task.trigger_event": [
+                    516,
+                    497,
+                    530,
+                    475,
+                    510
+                ],
+                "Event.BROKEN_TASK": [
+                    475
+                ],
+                "self._email_unexpected_error": [
+                    476
+                ],
+                "self._config.task_limit": [
+                    480,
+                    481
+                ],
+                "self._check_complete_value": [
+                    486
+                ],
+                "AsyncCompletionException": [
+                    489,
+                    554
+                ],
+                "ex.trace": [
+                    490
+                ],
+                "self._log_complete_error": [
+                    496
+                ],
+                "Event.DEPENDENCY_MISSING": [
+                    497,
+                    516
+                ],
+                "self._email_complete_error": [
+                    498
+                ],
+                "runnable": [
+                    537,
+                    514,
+                    522,
+                    508
+                ],
+                "Event.DEPENDENCY_PRESENT": [
+                    510
+                ],
+                "task.run": [
+                    605,
+                    511
+                ],
+                "PENDING": [
+                    513,
+                    521
+                ],
+                "getboolean": [
+                    514
+                ],
+                "configuration.get_config": [
+                    514
+                ],
+                "configuration": [
+                    514
+                ],
+                "task.deps": [
+                    520
+                ],
+                "task.disabled": [
+                    524
+                ],
+                "DISABLED": [
+                    525
+                ],
+                "d": [
+                    528,
+                    529,
+                    530,
+                    531,
+                    533
+                ],
+                "self._validate_dependency": [
+                    529
+                ],
+                "Event.DEPENDENCY_DISCOVERED": [
+                    530
+                ],
+                "d.task_id": [
+                    533
+                ],
+                "self._scheduler.add_task": [
+                    536,
+                    673,
+                    595
+                ],
+                "task.priority": [
+                    537
+                ],
+                "task.process_resources": [
+                    538,
+                    677
+                ],
+                "task.to_str_params": [
+                    539,
+                    679
+                ],
+                "task.task_family": [
+                    680,
+                    540
+                ],
+                "task.task_module": [
+                    681,
+                    541
+                ],
+                "dependency": [
+                    546,
+                    548
+                ],
+                "Target": [
+                    546
+                ],
+                "is_complete.trace": [
+                    554
+                ],
+                "self._worker_info.append": [
+                    558
+                ],
+                "self._scheduler.add_worker": [
+                    559
+                ],
+                "running_tasks": [
+                    577,
+                    747,
+                    750,
+                    564,
+                    565,
+                    600
+                ],
+                "r": [
+                    576,
+                    577,
+                    578,
+                    586,
+                    587,
+                    588,
+                    565,
+                    566,
+                    574,
+                    575
+                ],
+                "n_pending_tasks": [
+                    600,
+                    747,
+                    750,
+                    752,
+                    567,
+                    568,
+                    729,
+                    762,
+                    575
+                ],
+                "n_unique_pending": [
+                    578,
+                    747,
+                    750,
+                    752,
+                    729,
+                    600,
+                    569,
+                    570
+                ],
+                "self._scheduler.get_work": [
+                    574
+                ],
+                "task_id": [
+                    654,
+                    660,
+                    661,
+                    674,
+                    687,
+                    694,
+                    695,
+                    696,
+                    576,
+                    580,
+                    581,
+                    585,
+                    590,
+                    595,
+                    597,
+                    600,
+                    603,
+                    614,
+                    747,
+                    749,
+                    629,
+                    631,
+                    634,
+                    763,
+                    639
+                ],
+                "load_task": [
+                    586,
+                    667
+                ],
+                "r.get": [
+                    586
+                ],
+                "TaskClassException": [
+                    589
+                ],
+                "msg": [
+                    592,
+                    590,
+                    591
+                ],
+                "p": [
+                    610,
+                    614,
+                    618,
+                    621,
+                    629,
+                    630,
+                    631,
+                    632,
+                    633,
+                    606
+                ],
+                "self._config.timeout": [
+                    608,
+                    612
+                ],
+                "p.start": [
+                    618
+                ],
+                "p.run": [
+                    621
+                ],
+                "six.iteritems": [
+                    629
+                ],
+                "p.is_alive": [
+                    632,
+                    630
+                ],
+                "p.exitcode": [
+                    630,
+                    631
+                ],
+                "error_msg": [
+                    634,
+                    639,
+                    638,
+                    631
+                ],
+                "p.timeout_time": [
+                    632
+                ],
+                "p.terminate": [
+                    633
+                ],
+                "self._task_result_queue.put": [
+                    639
+                ],
+                "self._purge_children": [
+                    651
+                ],
+                "new_requirements": [
+                    666,
+                    668,
+                    654
+                ],
+                "self._task_result_queue.get": [
+                    655
+                ],
+                "self._config.wait_interval": [
+                    656,
+                    708
+                ],
+                "Queue.Empty": [
+                    657
+                ],
+                "module": [
+                    667,
+                    668
+                ],
+                "name": [
+                    667,
+                    668
+                ],
+                "params": [
+                    667,
+                    668
+                ],
+                "self.add": [
+                    700,
+                    670
+                ],
+                "t.task_id": [
+                    671
+                ],
+                "self._running_tasks.pop": [
+                    687
+                ],
+                "reschedule": [
+                    698,
+                    691,
+                    699
+                ],
+                "self._config.max_reschedules": [
+                    697
+                ],
+                "random.randint": [
+                    708
+                ],
+                "time.sleep": [
+                    710
+                ],
+                "self._config.keep_alive": [
+                    724
+                ],
+                "self._config.count_uniques": [
+                    729
+                ],
+                "sleeper": [
+                    737,
+                    753
+                ],
+                "self._sleeper": [
+                    737
+                ],
+                "self._add_worker": [
+                    740
+                ],
+                "self._handle_next_task": [
+                    745,
+                    758,
+                    767
+                ],
+                "self._get_work": [
+                    747
+                ],
+                "self._log_remote_tasks": [
+                    750
+                ],
+                "self._keep_alive": [
+                    752
+                ],
+                "self._run_task": [
+                    763
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_30/test/test_event_callbacks.py",
+                "test_function": "test_failure",
+                "test_function_code": "    def test_failure(self):\n        t, successes, failures, exceptions = self._run_empty_task(True)\n        self.assertEqual(successes, [])\n        self.assertEqual(failures, [t])\n        self.assertEqual(len(exceptions), 1)\n        self.assertTrue(isinstance(exceptions[0], DummyException))",
+                "test_error": "AssertionError: Lists differ: [EmptyTask(fail=True)] != []  First list contains 1 additional elements. First extra element 0: EmptyTask(fail=True)  - [EmptyTask(fail=True)] + []",
+                "full_test_error": "self = <test_event_callbacks.TestEventCallbacks testMethod=test_failure>\n\n    def test_failure(self):\n        t, successes, failures, exceptions = self._run_empty_task(True)\n>       self.assertEqual(successes, [])\nE       AssertionError: Lists differ: [EmptyTask(fail=True)] != []\nE       \nE       First list contains 1 additional elements.\nE       First extra element 0:\nE       EmptyTask(fail=True)\nE       \nE       - [EmptyTask(fail=True)]\nE       + []\n\ntest/test_event_callbacks.py:87: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            },
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_30/test/test_event_callbacks.py",
+                "test_function": "test_processing_time_handler_failure",
+                "test_function_code": "    def test_processing_time_handler_failure(self):\n        t, result = self._run_processing_time_handler(True)\n        self.assertEqual(result, [])",
+                "test_error": "AssertionError: Lists differ: [(EmptyTask(fail=True), 42.0)] != []  First list contains 1 additional elements. First extra element 0: (EmptyTask(fail=True), 42.0)  - [(EmptyTask(fail=True), 42.0)] + []",
+                "full_test_error": "self = <test_event_callbacks.TestEventCallbacks testMethod=test_processing_time_handler_failure>\n\n    def test_processing_time_handler_failure(self):\n        t, result = self._run_processing_time_handler(True)\n>       self.assertEqual(result, [])\nE       AssertionError: Lists differ: [(EmptyTask(fail=True), 42.0)] != []\nE       \nE       First list contains 1 additional elements.\nE       First extra element 0:\nE       (EmptyTask(fail=True), 42.0)\nE       \nE       - [(EmptyTask(fail=True), 42.0)]\nE       + []\n\ntest/test_event_callbacks.py:127: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}
