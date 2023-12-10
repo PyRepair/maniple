@@ -12,7 +12,9 @@ DatasetType = Union[
 ]
 
 
-def load_bugids_from_dataset(dataset: DatasetType, test_mode=False):
+def load_bugids_from_dataset(
+    dataset: DatasetType, exclude_projects=[], test_mode=False
+):
     current_script_path = os.path.dirname(os.path.abspath(__file__))
 
     if dataset == "106subset":
@@ -60,6 +62,8 @@ def load_bugids_from_dataset(dataset: DatasetType, test_mode=False):
     bugids = []
     for project_name, bugids_list in dataset_indices.items():
         for bugid in bugids_list:
+            if project_name in exclude_projects:
+                continue
             bugid_label = f"{project_name}:{bugid}"
             if bugid_label in IGNORED_BUGS:
                 continue

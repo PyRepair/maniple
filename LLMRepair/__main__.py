@@ -2,7 +2,13 @@ import argparse
 import os
 
 from utils import print_in_yellow
-from cleaner import clear_features, clear_logs, clear_prompts, clear_results, clear_responses
+from cleaner import (
+    clear_features,
+    clear_logs,
+    clear_prompts,
+    clear_results,
+    clear_responses,
+)
 from features_extractor import collect_facts, NotSupportedError
 from patch_validator import validate_patches
 from dataset_manager import load_bugids_from_dataset
@@ -42,6 +48,13 @@ def resolve_cli_args():
     )
 
     args_parser.add_argument(
+        "--exclude-projects",
+        type=lambda s: s.split(","),
+        help="specify a list of projects to exclude",
+        default=[],
+    )
+
+    args_parser.add_argument(
         "--output-dir",
         type=str,
         help="specify directory to store prompt and result files",
@@ -53,24 +66,28 @@ def resolve_cli_args():
         help="specify the path to prepared environments",
         default=None,
     )
+
     args_parser.add_argument(
         "--test-mode",
         action="store_true",
         help="Take only 1 bug from each project",
         default=False,
     )
+
     args_parser.add_argument(
         "--overwrite",
         help="whether overwrite existing results",
         action="store_true",
         default=False,
     )
+
     args_parser.add_argument(
         "--use-docker",
         help="whether use docker to run the command",
         action="store_true",
         default=False,
     )
+
     args = args_parser.parse_args()
 
     if args.output_dir is None:
@@ -84,11 +101,23 @@ def main(args):
     if len(args.bugids) > 0:
         bugids = args.bugids
     elif args.dataset == "all":
-        s1 = load_bugids_from_dataset("106subset", test_mode=args.test_mode)
-        s2 = load_bugids_from_dataset("395subset", test_mode=args.test_mode)
+        s1 = load_bugids_from_dataset(
+            "106subset",
+            exclude_projects=args.exclude_projects,
+            test_mode=args.test_mode,
+        )
+        s2 = load_bugids_from_dataset(
+            "395subset",
+            exclude_projects=args.exclude_projects,
+            test_mode=args.test_mode,
+        )
         bugids = s1 + s2
     else:
-        bugids = load_bugids_from_dataset(args.dataset, test_mode=args.test_mode)
+        bugids = load_bugids_from_dataset(
+            args.dataset,
+            exclude_projects=args.exclude_projects,
+            test_mode=args.test_mode,
+        )
 
     for bugid in bugids:
         bwd = os.path.join(args.output_dir, *bugid.split(":"))
@@ -97,17 +126,11 @@ def main(args):
 
         try:
             if args.command == "prep":
-                ensure_clone_and_prep_complete(
-                    bugid, args.envs_dir, args.use_docker, args.overwrite
-                )
+                ensure_clone_and_prep_complete(bugid, args.envs_dir, args.use_docker, args.overwrite)
             elif args.command == "extract":
-                collect_facts(
-                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
-                )
+                collect_facts(bugid, bwd, args.envs_dir, args.use_docker, args.overwrite)
             elif args.command == "validate":
-                validate_patches(
-                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
-                )
+                validate_patches(bugid, bwd, args.envs_dir, args.use_docker, args.overwrite)
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":

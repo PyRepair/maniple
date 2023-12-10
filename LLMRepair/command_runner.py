@@ -142,7 +142,10 @@ def run_extract_features_command(
         print_in_red(
             f"FATAL: bgp extract_features failed with error code {e.returncode}"
         )
-        with open(f"{bugid}_extract_feature_error.log", "w") as f:
+        logpath = os.path.join(
+            os.getcwd(), "logs", f"{bugid.replace(':', '_')}_extract_feature_error.txt"
+        )
+        with open(logpath, "w") as f:
             f.write(e.stdout.decode("utf-8"))
         return False
 
