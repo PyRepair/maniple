@@ -57,10 +57,10 @@ def load_bugids_from_dataset(
         dataset_indices = json.load(f)
 
     support_list = []
-    with open(os.path.join(subset_list_path, "supported106.json"), "r") as f:
+    with open(os.path.join(subset_list_path, "supported106.txt"), "r") as f:
         supported106 = f.read().split(",")
         support_list.extend(supported106)
-    with open(os.path.join(subset_list_path, "supported395.json"), "r") as f:
+    with open(os.path.join(subset_list_path, "supported395.txt"), "r") as f:
         supported395 = f.read().split(",")
         support_list.extend(supported395)
 
