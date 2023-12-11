@@ -7,7 +7,7 @@ import openai
 import tiktoken
 from openai import OpenAI
 from typing import List
-from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_from_code_block, find_patch_from_response
+from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_from_code_block, find_patch_from_response, IGNORED_BUGS
 
 client = OpenAI(api_key="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")
 
@@ -317,10 +317,12 @@ class PromptGenerator:
                 self.prompt = self.prompt + self.facts["1.4.1"][test_index] + "\n```"
                 self.add_newline_between_sections()
 
-            error_messages = self.facts["2.1.1"][test_index]
-            stack_traces = self.facts["2.1.2"][test_index]
+            if (self.actual_bitvector["2.1.1"] == 1 and self.actual_bitvector["2.1.2"] == 1 and
+                    (self.facts["2.1.1"] is not None and self.facts["2.1.2"] is not None)):
 
-            if self.actual_bitvector["2.1.1"] == 1 and self.actual_bitvector["2.1.2"] == 1:
+                error_messages = self.facts["2.1.1"][test_index]
+                stack_traces = self.facts["2.1.2"][test_index]
+
                 self.prompt = self.prompt + self.template["2.1.1"] + "```text\n"
                 for error_index in range(len(stack_traces)):
                     self.prompt = self.prompt + stack_traces[error_index] + "\n"
@@ -330,14 +332,20 @@ class PromptGenerator:
                 self.prompt = self.prompt + "\n```"
 
             else:
-                if self.actual_bitvector["2.1.2"] == 1:
+                if self.actual_bitvector["2.1.2"] == 1 and (self.facts["2.1.2"] is not None):
+
+                    stack_traces = self.facts["2.1.2"][test_index]
+
                     self.prompt = self.prompt + self.template["2.1.2"] + "```text\n"
                     for error_index in range(len(stack_traces)):
                         self.prompt = self.prompt + stack_traces[error_index] + "\n"
 
                     self.prompt = self.prompt + "\n```"
 
-                if self.actual_bitvector["2.1.1"] == 1:
+                if self.actual_bitvector["2.1.1"] == 1 and (self.facts["2.1.2"] is not None):
+
+                    error_messages = self.facts["2.1.1"][test_index]
+
                     self.prompt = self.prompt + self.template["2.1.1"] + "```text\n"
                     for error_index in range(len(error_messages)):
                         self.prompt = self.prompt + error_messages[error_index] + "\n"
@@ -486,16 +494,16 @@ class PromptGenerator:
                 }
                 json.dump(test_input_data, json_file, indent=4)
 
-            print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
+            if self.max_conversation_count == 0:
+                print_in_yellow(f"{self.output_dir}/{response_md_file_name} exceed max conversation count")
+            else:
+                print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
 
         except Exception as error:
             error_str = ""
             if self.max_generation_count == 0:
                 print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} "
                                       f"exceed max generation count"))
-            elif self.max_conversation_count == 0:
-                print_in_yellow(f"{self.output_dir}/{response_md_file_name} "
-                                f"exceed max conversation count")
             else:
                 error_str = str(error)
                 print_in_red(error_str)
@@ -556,25 +564,29 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    stratum_path = os.path.join("..", "preliminary-study", "first-stratum")
+    database_path = os.path.join("..", "training-data", "106-dataset", "bugs-data")
 
-    projects = os.listdir(stratum_path)
+    projects = os.listdir(database_path)
 
     strata_bitvectors = []
 
     pattern = "*bitvector*.json"
-    bitvector_files = glob.glob(os.path.join("..", "preliminary-study", "strata-bitvectors", pattern))
+    bitvector_files = glob.glob(os.path.join("..", "training-data", "strata-bitvectors", pattern))
     for file in bitvector_files:
         with open(file, "r") as input_bitvector_file:
             strata_bitvectors.append(json.load(input_bitvector_file))
 
     for bitvector_strata in strata_bitvectors:
         for project in projects:
-            bug_ids = os.listdir(os.path.join(stratum_path, project))
+            bug_ids = os.listdir(os.path.join(database_path, project))
             for bid in bug_ids:
+
+                if f"{project}:{bid}" in IGNORED_BUGS:
+                    continue
+
                 try:
                     print(f"generate prompt for {project}:{bid}")
-                    prompt_generator = PromptGenerator(stratum_path, project, bid, bitvector_strata)
+                    prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                     prompt_generator.generate_prompt()
                     prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
                 except Exception as e:
