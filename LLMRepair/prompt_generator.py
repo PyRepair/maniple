@@ -88,6 +88,7 @@ class PromptGenerator:
             user_dir: str = list(bug_data)[0]
             self.buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]
             self.buggy_function_start_line: str = bug_data[user_dir]["buggy_functions"][0]["start_line"]
+            self.buggy_function_source_code: str = bug_data[user_dir]["buggy_functions"][0]["function_code"]
 
             prefix = project_name + "/"
             start_idx = user_dir.find(prefix) + len(prefix)
@@ -410,18 +411,9 @@ class PromptGenerator:
 
         self.prompt = self.prompt + indent + "# this is the buggy function you need to fix\n"
 
-        source_code: str = self.facts["1.1.1"]
+        source_code: str = self.buggy_function_source_code
         for statement in source_code.split('\n'):
             self.prompt = self.prompt + indent + statement + "\n"
-
-            if ("def " + self.buggy_function_name) in statement and self.actual_bitvector["1.1.2"] == 1:
-                buggy_function_docs = self.facts["1.1.2"]
-
-                self.prompt = self.prompt + indent + "    \"\"\"\n"
-                for doc in buggy_function_docs.split('\n'):
-                    self.prompt = self.prompt + indent + "    " + doc + "\n"
-
-                self.prompt = self.prompt + indent + "    \"\"\"\n\n"
 
         self.prompt = self.prompt + "```"
 
@@ -564,7 +556,7 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    database_path = os.path.join("..", "training-data", "395-dataset", "bugs-data")
+    database_path = os.path.join("..", "training-data", "106-dataset", "bugs-data")
 
     projects = os.listdir(database_path)
 
@@ -588,7 +580,7 @@ if __name__ == "__main__":
                 if not os.path.isdir(bug_dir_path):
                     continue
 
-                if f"{project}:{bid}" in IGNORED_BUGS:
+                if project != "pandas" and bid != "6":
                     continue
 
                 try:
