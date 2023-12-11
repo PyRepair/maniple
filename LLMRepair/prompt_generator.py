@@ -454,7 +454,7 @@ class PromptGenerator:
         try:
             buggy_function_length = estimate_function_code_length(self.facts["1.1.1"])
             self.max_generation_count = 10
-            self.max_conversation_count = 5
+            self.max_conversation_count = 3
             messages = [{"role": "user", "content": self.prompt}]
 
             response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
