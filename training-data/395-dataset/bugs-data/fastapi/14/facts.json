@@ -4,13 +4,13 @@
     "1.2.1": null,
     "1.2.2": null,
     "1.2.3": null,
-    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_14/fastapi/openapi/models.py",
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/fastapi_14/fastapi/openapi/models.py",
     "1.3.2": null,
     "1.4.1": [
         "def test_additional_properties_schema():\n    response = client.get(\"/openapi.json\")\n    assert response.status_code == 200\n    assert response.json() == openapi_schema"
     ],
     "1.4.2": [
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_14/tests/test_additional_properties.py"
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_14/tests/test_additional_properties.py"
     ],
     "2.1.1": [
         [
@@ -28,9 +28,9 @@
     "2.1.5": null,
     "2.1.6": null,
     "3.1.1": [
-        "\n"
+        "FastAPI does not set additionalProperties correctly when dealing with Dicts.\n"
     ],
     "3.1.2": [
-        "\n"
+        "Describe the bug\nWhen creating the schema for a Dict FastAPI sets \"additionalProperties\": true instead of setting it to the schema of the values. This does not appear to be an issue with pydantic.\n\nTo Reproduce\nA minimal working example is:\n\nfrom typing import Dict\n\nfrom fastapi import FastAPI\nfrom pydantic import BaseModel\n\n\napp = FastAPI()\n\n\nclass Items(BaseModel):\n\titems: Dict[str, int]\n\n\n@app.post(\"/foo\")\ndef foo(items: Items):\n\treturn items.items\nPut this in a file called test.py and run it with uvicorn test:app. The JSON returned from the openapi.json endpoint is:\n\n{\"openapi\":\"3.0.2\",\"info\":{\"title\":\"Fast API\",\"version\":\"0.1.0\"},\"paths\":{\"/foo\":{\"post\":{\"responses\":{\"200\":{\"description\":\"Successful Response\",\"content\":{\"application/json\":{\"schema\":{}}}},\"422\":{\"description\":\"Validation Error\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/HTTPValidationError\"}}}}},\"summary\":\"Foo Post\",\"operationId\":\"foo_foo_post\",\"requestBody\":{\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Items\"}}},\"required\":true}}}},\"components\":{\"schemas\":{\"Items\":{\"title\":\"Items\",\"required\":[\"items\"],\"type\":\"object\",\"properties\":{\"items\":{\"title\":\"Items\",\"type\":\"object\",\"additionalProperties\":true}}},\"ValidationError\":{\"title\":\"ValidationError\",\"required\":[\"loc\",\"msg\",\"type\"],\"type\":\"object\",\"properties\":{\"loc\":{\"title\":\"Location\",\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"msg\":{\"title\":\"Message\",\"type\":\"string\"},\"type\":{\"title\":\"Error Type\",\"type\":\"string\"}}},\"HTTPValidationError\":{\"title\":\"HTTPValidationError\",\"type\":\"object\",\"properties\":{\"detail\":{\"title\":\"Detail\",\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/ValidationError\"}}}}}}}\nIn particular the schema for Items is:\n\n{\"title\":\"Items\",\"required\":[\"items\"],\"type\":\"object\",\"properties\":{\"items\":{\"title\":\"Items\",\"type\":\"object\",\"additionalProperties\":true}}}\nExpected behavior\nThe additionalProperties should be {'type': 'integer'} as it is when using pydantic directly:\n\nPython 3.7.2 (default, Dec 24 2018, 03:41:55) \n[GCC 7.4.0] on linux\nType \"help\", \"copyright\", \"credits\" or \"license\" for more information.\n>>> import test\nWARNING:root:email-validator not installed, email fields will be treated as str.\nTo install, run: pip install email-validator\n>>> test.Items.schema()\n{'title': 'Items', 'type': 'object', 'properties': {'items': {'title': 'Items', 'type': 'object', 'additionalProperties': {'type': 'integer'}}}, 'required': ['items']}\n>>>\nEnvironment:\n\nOS: Linux\nFastAPI Version 0.8.0\nPython Version 3.7.2\n$ pip list\nPackage    Version\n---------- -------\nClick      7.0    \nfastapi    0.8.0  \nh11        0.8.1  \nhttptools  0.0.13 \npip        18.1   \npydantic   0.18.2 \nsetuptools 40.6.2 \nstarlette  0.11.1 \nuvicorn    0.6.1  \nuvloop     0.12.1 \nwebsockets 7.0\n"
     ]
 }

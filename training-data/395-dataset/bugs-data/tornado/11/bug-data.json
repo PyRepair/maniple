@@ -1,0 +1,3839 @@
+{
+    "tornado:11": {
+        "/Volumes/SSD2T/bgp_envs/repos/tornado_11/tornado/http1connection.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_read_body",
+                    "function_code": "def _read_body(self, code, headers, delegate):\n    if \"Content-Length\" in headers:\n        if \"Transfer-Encoding\" in headers:\n            # Response cannot contain both Content-Length and\n            # Transfer-Encoding headers.\n            # http://tools.ietf.org/html/rfc7230#section-3.3.3\n            raise httputil.HTTPInputError(\n                \"Response with both Transfer-Encoding and Content-Length\")\n        if \",\" in headers[\"Content-Length\"]:\n            # Proxies sometimes cause Content-Length headers to get\n            # duplicated.  If all the values are identical then we can\n            # use them but if they differ it's an error.\n            pieces = re.split(r',\\s*', headers[\"Content-Length\"])\n            if any(i != pieces[0] for i in pieces):\n                raise httputil.HTTPInputError(\n                    \"Multiple unequal Content-Lengths: %r\" %\n                    headers[\"Content-Length\"])\n            headers[\"Content-Length\"] = pieces[0]\n\n        try:\n            content_length = int(headers[\"Content-Length\"])\n        except ValueError:\n            # Handles non-integer Content-Length value.\n            raise httputil.HTTPInputError(\n                \"Only integer Content-Length is allowed: %s\" % headers[\"Content-Length\"])\n\n        if content_length > self._max_body_size:\n            raise httputil.HTTPInputError(\"Content-Length too long\")\n    else:\n        content_length = None\n\n    if code == 204:\n        # This response code is not allowed to have a non-empty body,\n        # and has an implicit length of zero instead of read-until-close.\n        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.3\n        if (\"Transfer-Encoding\" in headers or\n                content_length not in (None, 0)):\n            raise httputil.HTTPInputError(\n                \"Response with code %d should not have body\" % code)\n        content_length = 0\n\n    if content_length is not None:\n        return self._read_fixed_body(content_length, delegate)\n    if headers.get(\"Transfer-Encoding\") == \"chunked\":\n        return self._read_chunked_body(delegate)\n    if self.is_client:\n        return self._read_body_until_close(delegate)\n    return None\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 525,
+                    "end_line": 572,
+                    "variables": {
+                        "headers": [
+                            545,
+                            549,
+                            526,
+                            527,
+                            560,
+                            533,
+                            568,
+                            537,
+                            541,
+                            542
+                        ],
+                        "httputil.HTTPInputError": [
+                            548,
+                            552,
+                            562,
+                            531,
+                            539
+                        ],
+                        "httputil": [
+                            548,
+                            552,
+                            562,
+                            531,
+                            539
+                        ],
+                        "pieces": [
+                            537,
+                            538,
+                            542
+                        ],
+                        "re.split": [
+                            537
+                        ],
+                        "re": [
+                            537
+                        ],
+                        "any": [
+                            538
+                        ],
+                        "i": [
+                            538
+                        ],
+                        "content_length": [
+                            545,
+                            551,
+                            554,
+                            561,
+                            564,
+                            566,
+                            567
+                        ],
+                        "int": [
+                            545
+                        ],
+                        "ValueError": [
+                            546
+                        ],
+                        "self._max_body_size": [
+                            551
+                        ],
+                        "self": [
+                            551,
+                            567,
+                            569,
+                            570,
+                            571
+                        ],
+                        "code": [
+                            563,
+                            556
+                        ],
+                        "self._read_fixed_body": [
+                            567
+                        ],
+                        "delegate": [
+                            569,
+                            571,
+                            567
+                        ],
+                        "headers.get": [
+                            568
+                        ],
+                        "self._read_chunked_body": [
+                            569
+                        ],
+                        "self.is_client": [
+                            570
+                        ],
+                        "self._read_body_until_close": [
+                            571
+                        ]
+                    },
+                    "filtered_variables": {
+                        "headers": [
+                            545,
+                            549,
+                            526,
+                            527,
+                            560,
+                            533,
+                            568,
+                            537,
+                            541,
+                            542
+                        ],
+                        "httputil.HTTPInputError": [
+                            548,
+                            552,
+                            562,
+                            531,
+                            539
+                        ],
+                        "httputil": [
+                            548,
+                            552,
+                            562,
+                            531,
+                            539
+                        ],
+                        "pieces": [
+                            537,
+                            538,
+                            542
+                        ],
+                        "re.split": [
+                            537
+                        ],
+                        "re": [
+                            537
+                        ],
+                        "i": [
+                            538
+                        ],
+                        "content_length": [
+                            545,
+                            551,
+                            554,
+                            561,
+                            564,
+                            566,
+                            567
+                        ],
+                        "self._max_body_size": [
+                            551
+                        ],
+                        "self": [
+                            551,
+                            567,
+                            569,
+                            570,
+                            571
+                        ],
+                        "code": [
+                            563,
+                            556
+                        ],
+                        "self._read_fixed_body": [
+                            567
+                        ],
+                        "delegate": [
+                            569,
+                            571,
+                            567
+                        ],
+                        "headers.get": [
+                            568
+                        ],
+                        "self._read_chunked_body": [
+                            569
+                        ],
+                        "self.is_client": [
+                            570
+                        ],
+                        "self._read_body_until_close": [
+                            571
+                        ]
+                    },
+                    "diff_line_number": 568,
+                    "class_data": {
+                        "signature": "class HTTP1Connection(httputil.HTTPConnection)",
+                        "docstring": "Implements the HTTP/1.x protocol.\n\nThis class can be on its own for clients, or via `HTTP1ServerConnection`\nfor servers.",
+                        "constructor_docstring": ":arg stream: an `.IOStream`\n:arg bool is_client: client or server\n:arg params: a `.HTTP1ConnectionParameters` instance or ``None``\n:arg context: an opaque application-defined object that can be accessed\n    as ``connection.context``.",
+                        "functions": [
+                            "def __init__(self, stream, is_client, params=None, context=None):\n    \"\"\"\n    :arg stream: an `.IOStream`\n    :arg bool is_client: client or server\n    :arg params: a `.HTTP1ConnectionParameters` instance or ``None``\n    :arg context: an opaque application-defined object that can be accessed\n        as ``connection.context``.\n    \"\"\"\n    self.is_client = is_client\n    self.stream = stream\n    if params is None:\n        params = HTTP1ConnectionParameters()\n    self.params = params\n    self.context = context\n    self.no_keep_alive = params.no_keep_alive\n    self._max_body_size = self.params.max_body_size or self.stream.max_buffer_size\n    self._body_timeout = self.params.body_timeout\n    self._write_finished = False\n    self._read_finished = False\n    self._finish_future = Future()\n    self._disconnect_on_finish = False\n    self._clear_callbacks()\n    self._request_start_line = None\n    self._response_start_line = None\n    self._request_headers = None\n    self._chunking_output = None\n    self._expected_content_remaining = None\n    self._pending_write = None",
+                            "def read_response(self, delegate):\n    \"\"\"Read a single HTTP response.\n\n    Typical client-mode usage is to write a request using `write_headers`,\n    `write`, and `finish`, and then call ``read_response``.\n\n    :arg delegate: a `.HTTPMessageDelegate`\n\n    Returns a `.Future` that resolves to None after the full response has\n    been read.\n    \"\"\"\n    if self.params.decompress:\n        delegate = _GzipMessageDelegate(delegate, self.params.chunk_size)\n    return self._read_message(delegate)",
+                            "@gen.coroutine\ndef _read_message(self, delegate):\n    need_delegate_close = False\n    try:\n        header_future = self.stream.read_until_regex(b'\\r?\\n\\r?\\n', max_bytes=self.params.max_header_size)\n        if self.params.header_timeout is None:\n            header_data = (yield header_future)\n        else:\n            try:\n                header_data = (yield gen.with_timeout(self.stream.io_loop.time() + self.params.header_timeout, header_future, io_loop=self.stream.io_loop, quiet_exceptions=iostream.StreamClosedError))\n            except gen.TimeoutError:\n                self.close()\n                raise gen.Return(False)\n        start_line, headers = self._parse_headers(header_data)\n        if self.is_client:\n            start_line = httputil.parse_response_start_line(start_line)\n            self._response_start_line = start_line\n        else:\n            start_line = httputil.parse_request_start_line(start_line)\n            self._request_start_line = start_line\n            self._request_headers = headers\n        self._disconnect_on_finish = not self._can_keep_alive(start_line, headers)\n        need_delegate_close = True\n        with _ExceptionLoggingContext(app_log):\n            header_future = delegate.headers_received(start_line, headers)\n            if header_future is not None:\n                yield header_future\n        if self.stream is None:\n            need_delegate_close = False\n            raise gen.Return(False)\n        skip_body = False\n        if self.is_client:\n            if self._request_start_line is not None and self._request_start_line.method == 'HEAD':\n                skip_body = True\n            code = start_line.code\n            if code == 304:\n                skip_body = True\n            if code >= 100 and code < 200:\n                if 'Content-Length' in headers or 'Transfer-Encoding' in headers:\n                    raise httputil.HTTPInputError('Response code %d cannot have body' % code)\n                yield self._read_message(delegate)\n        elif headers.get('Expect') == '100-continue' and (not self._write_finished):\n            self.stream.write(b'HTTP/1.1 100 (Continue)\\r\\n\\r\\n')\n        if not skip_body:\n            body_future = self._read_body(start_line.code if self.is_client else 0, headers, delegate)\n            if body_future is not None:\n                if self._body_timeout is None:\n                    yield body_future\n                else:\n                    try:\n                        yield gen.with_timeout(self.stream.io_loop.time() + self._body_timeout, body_future, self.stream.io_loop, quiet_exceptions=iostream.StreamClosedError)\n                    except gen.TimeoutError:\n                        gen_log.info('Timeout reading body from %s', self.context)\n                        self.stream.close()\n                        raise gen.Return(False)\n        self._read_finished = True\n        if not self._write_finished or self.is_client:\n            need_delegate_close = False\n            with _ExceptionLoggingContext(app_log):\n                delegate.finish()\n        if not self._finish_future.done() and self.stream is not None and (not self.stream.closed()):\n            self.stream.set_close_callback(self._on_connection_close)\n            yield self._finish_future\n        if self.is_client and self._disconnect_on_finish:\n            self.close()\n        if self.stream is None:\n            raise gen.Return(False)\n    except httputil.HTTPInputError as e:\n        gen_log.info('Malformed HTTP message from %s: %s', self.context, e)\n        self.close()\n        raise gen.Return(False)\n    finally:\n        if need_delegate_close:\n            with _ExceptionLoggingContext(app_log):\n                delegate.on_connection_close()\n        self._clear_callbacks()\n    raise gen.Return(True)",
+                            "def _clear_callbacks(self):\n    \"\"\"Clears the callback attributes.\n\n    This allows the request handler to be garbage collected more\n    quickly in CPython by breaking up reference cycles.\n    \"\"\"\n    self._write_callback = None\n    self._write_future = None\n    self._close_callback = None\n    if self.stream is not None:\n        self.stream.set_close_callback(None)",
+                            "def set_close_callback(self, callback):\n    \"\"\"Sets a callback that will be run when the connection is closed.\n\n    .. deprecated:: 4.0\n        Use `.HTTPMessageDelegate.on_connection_close` instead.\n    \"\"\"\n    self._close_callback = stack_context.wrap(callback)",
+                            "def _on_connection_close(self):\n    if self._close_callback is not None:\n        callback = self._close_callback\n        self._close_callback = None\n        callback()\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)\n    self._clear_callbacks()",
+                            "def close(self):\n    if self.stream is not None:\n        self.stream.close()\n    self._clear_callbacks()\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)",
+                            "def detach(self):\n    \"\"\"Take control of the underlying stream.\n\n    Returns the underlying `.IOStream` object and stops all further\n    HTTP processing.  May only be called during\n    `.HTTPMessageDelegate.headers_received`.  Intended for implementing\n    protocols like websockets that tunnel over an HTTP handshake.\n    \"\"\"\n    self._clear_callbacks()\n    stream = self.stream\n    self.stream = None\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)\n    return stream",
+                            "def set_body_timeout(self, timeout):\n    \"\"\"Sets the body timeout for a single request.\n\n    Overrides the value from `.HTTP1ConnectionParameters`.\n    \"\"\"\n    self._body_timeout = timeout",
+                            "def set_max_body_size(self, max_body_size):\n    \"\"\"Sets the body size limit for a single request.\n\n    Overrides the value from `.HTTP1ConnectionParameters`.\n    \"\"\"\n    self._max_body_size = max_body_size",
+                            "def write_headers(self, start_line, headers, chunk=None, callback=None):\n    \"\"\"Implements `.HTTPConnection.write_headers`.\"\"\"\n    lines = []\n    if self.is_client:\n        self._request_start_line = start_line\n        lines.append(utf8('%s %s HTTP/1.1' % (start_line[0], start_line[1])))\n        self._chunking_output = start_line.method in ('POST', 'PUT', 'PATCH') and 'Content-Length' not in headers and ('Transfer-Encoding' not in headers)\n    else:\n        self._response_start_line = start_line\n        lines.append(utf8('HTTP/1.1 %d %s' % (start_line[1], start_line[2])))\n        self._chunking_output = self._request_start_line.version == 'HTTP/1.1' and start_line.code not in (204, 304) and ('Content-Length' not in headers) and ('Transfer-Encoding' not in headers)\n        if self._request_start_line.version == 'HTTP/1.0' and self._request_headers.get('Connection', '').lower() == 'keep-alive':\n            headers['Connection'] = 'Keep-Alive'\n    if self._chunking_output:\n        headers['Transfer-Encoding'] = 'chunked'\n    if not self.is_client and (self._request_start_line.method == 'HEAD' or start_line.code == 304):\n        self._expected_content_remaining = 0\n    elif 'Content-Length' in headers:\n        self._expected_content_remaining = int(headers['Content-Length'])\n    else:\n        self._expected_content_remaining = None\n    header_lines = (native_str(n) + ': ' + native_str(v) for n, v in headers.get_all())\n    if PY3:\n        lines.extend((l.encode('latin1') for l in header_lines))\n    else:\n        lines.extend(header_lines)\n    for line in lines:\n        if b'\\n' in line:\n            raise ValueError('Newline in header: ' + repr(line))\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        future.set_exception(iostream.StreamClosedError())\n        future.exception()\n    else:\n        if callback is not None:\n            self._write_callback = stack_context.wrap(callback)\n        else:\n            future = self._write_future = Future()\n        data = b'\\r\\n'.join(lines) + b'\\r\\n\\r\\n'\n        if chunk:\n            data += self._format_chunk(chunk)\n        self._pending_write = self.stream.write(data)\n        self._pending_write.add_done_callback(self._on_write_complete)\n    return future",
+                            "def _format_chunk(self, chunk):\n    if self._expected_content_remaining is not None:\n        self._expected_content_remaining -= len(chunk)\n        if self._expected_content_remaining < 0:\n            self.stream.close()\n            raise httputil.HTTPOutputError('Tried to write more data than Content-Length')\n    if self._chunking_output and chunk:\n        return utf8('%x' % len(chunk)) + b'\\r\\n' + chunk + b'\\r\\n'\n    else:\n        return chunk",
+                            "def write(self, chunk, callback=None):\n    \"\"\"Implements `.HTTPConnection.write`.\n\n    For backwards compatibility is is allowed but deprecated to\n    skip `write_headers` and instead call `write()` with a\n    pre-encoded header block.\n    \"\"\"\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        self._write_future.set_exception(iostream.StreamClosedError())\n        self._write_future.exception()\n    else:\n        if callback is not None:\n            self._write_callback = stack_context.wrap(callback)\n        else:\n            future = self._write_future = Future()\n        self._pending_write = self.stream.write(self._format_chunk(chunk))\n        self._pending_write.add_done_callback(self._on_write_complete)\n    return future",
+                            "def finish(self):\n    \"\"\"Implements `.HTTPConnection.finish`.\"\"\"\n    if self._expected_content_remaining is not None and self._expected_content_remaining != 0 and (not self.stream.closed()):\n        self.stream.close()\n        raise httputil.HTTPOutputError('Tried to write %d bytes less than Content-Length' % self._expected_content_remaining)\n    if self._chunking_output:\n        if not self.stream.closed():\n            self._pending_write = self.stream.write(b'0\\r\\n\\r\\n')\n            self._pending_write.add_done_callback(self._on_write_complete)\n    self._write_finished = True\n    if not self._read_finished:\n        self._disconnect_on_finish = True\n    self.stream.set_nodelay(True)\n    if self._pending_write is None:\n        self._finish_request(None)\n    else:\n        self._pending_write.add_done_callback(self._finish_request)",
+                            "def _on_write_complete(self, future):\n    exc = future.exception()\n    if exc is not None and (not isinstance(exc, iostream.StreamClosedError)):\n        future.result()\n    if self._write_callback is not None:\n        callback = self._write_callback\n        self._write_callback = None\n        self.stream.io_loop.add_callback(callback)\n    if self._write_future is not None:\n        future = self._write_future\n        self._write_future = None\n        future.set_result(None)",
+                            "def _can_keep_alive(self, start_line, headers):\n    if self.params.no_keep_alive:\n        return False\n    connection_header = headers.get('Connection')\n    if connection_header is not None:\n        connection_header = connection_header.lower()\n    if start_line.version == 'HTTP/1.1':\n        return connection_header != 'close'\n    elif 'Content-Length' in headers or headers.get('Transfer-Encoding', '').lower() == 'chunked' or getattr(start_line, 'method', None) in ('HEAD', 'GET'):\n        return connection_header == 'keep-alive'\n    return False",
+                            "def _finish_request(self, future):\n    self._clear_callbacks()\n    if not self.is_client and self._disconnect_on_finish:\n        self.close()\n        return\n    self.stream.set_nodelay(False)\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)",
+                            "def _parse_headers(self, data):\n    data = native_str(data.decode('latin1')).lstrip('\\r\\n')\n    eol = data.find('\\n')\n    start_line = data[:eol].rstrip('\\r')\n    try:\n        headers = httputil.HTTPHeaders.parse(data[eol:])\n    except ValueError:\n        raise httputil.HTTPInputError('Malformed HTTP headers: %r' % data[eol:100])\n    return (start_line, headers)",
+                            "def _read_body(self, code, headers, delegate):\n    if 'Content-Length' in headers:\n        if 'Transfer-Encoding' in headers:\n            raise httputil.HTTPInputError('Response with both Transfer-Encoding and Content-Length')\n        if ',' in headers['Content-Length']:\n            pieces = re.split(',\\\\s*', headers['Content-Length'])\n            if any((i != pieces[0] for i in pieces)):\n                raise httputil.HTTPInputError('Multiple unequal Content-Lengths: %r' % headers['Content-Length'])\n            headers['Content-Length'] = pieces[0]\n        try:\n            content_length = int(headers['Content-Length'])\n        except ValueError:\n            raise httputil.HTTPInputError('Only integer Content-Length is allowed: %s' % headers['Content-Length'])\n        if content_length > self._max_body_size:\n            raise httputil.HTTPInputError('Content-Length too long')\n    else:\n        content_length = None\n    if code == 204:\n        if 'Transfer-Encoding' in headers or content_length not in (None, 0):\n            raise httputil.HTTPInputError('Response with code %d should not have body' % code)\n        content_length = 0\n    if content_length is not None:\n        return self._read_fixed_body(content_length, delegate)\n    if headers.get('Transfer-Encoding') == 'chunked':\n        return self._read_chunked_body(delegate)\n    if self.is_client:\n        return self._read_body_until_close(delegate)\n    return None",
+                            "@gen.coroutine\ndef _read_fixed_body(self, content_length, delegate):\n    while content_length > 0:\n        body = (yield self.stream.read_bytes(min(self.params.chunk_size, content_length), partial=True))\n        content_length -= len(body)\n        if not self._write_finished or self.is_client:\n            with _ExceptionLoggingContext(app_log):\n                ret = delegate.data_received(body)\n                if ret is not None:\n                    yield ret",
+                            "@gen.coroutine\ndef _read_chunked_body(self, delegate):\n    total_size = 0\n    while True:\n        chunk_len = (yield self.stream.read_until(b'\\r\\n', max_bytes=64))\n        chunk_len = int(chunk_len.strip(), 16)\n        if chunk_len == 0:\n            return\n        total_size += chunk_len\n        if total_size > self._max_body_size:\n            raise httputil.HTTPInputError('chunked body too large')\n        bytes_to_read = chunk_len\n        while bytes_to_read:\n            chunk = (yield self.stream.read_bytes(min(bytes_to_read, self.params.chunk_size), partial=True))\n            bytes_to_read -= len(chunk)\n            if not self._write_finished or self.is_client:\n                with _ExceptionLoggingContext(app_log):\n                    ret = delegate.data_received(chunk)\n                    if ret is not None:\n                        yield ret\n        crlf = (yield self.stream.read_bytes(2))\n        assert crlf == b'\\r\\n'",
+                            "@gen.coroutine\ndef _read_body_until_close(self, delegate):\n    body = (yield self.stream.read_until_close())\n    if not self._write_finished or self.is_client:\n        with _ExceptionLoggingContext(app_log):\n            delegate.data_received(body)"
+                        ],
+                        "constructor_variables": [
+                            "_expected_content_remaining",
+                            "_response_start_line",
+                            "_read_finished",
+                            "_request_start_line",
+                            "_finish_future",
+                            "_disconnect_on_finish",
+                            "_chunking_output",
+                            "_body_timeout",
+                            "stream",
+                            "_request_headers",
+                            "_write_finished",
+                            "_pending_write",
+                            "is_client",
+                            "no_keep_alive",
+                            "_max_body_size",
+                            "context",
+                            "params"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, stream, is_client, params=None, context=None)",
+                            "read_response(self, delegate)",
+                            "_read_message(self, delegate)",
+                            "_clear_callbacks(self)",
+                            "set_close_callback(self, callback)",
+                            "_on_connection_close(self)",
+                            "close(self)",
+                            "detach(self)",
+                            "set_body_timeout(self, timeout)",
+                            "set_max_body_size(self, max_body_size)",
+                            "write_headers(self, start_line, headers, chunk=None, callback=None)",
+                            "_format_chunk(self, chunk)",
+                            "write(self, chunk, callback=None)",
+                            "finish(self)",
+                            "_on_write_complete(self, future)",
+                            "_can_keep_alive(self, start_line, headers)",
+                            "_finish_request(self, future)",
+                            "_parse_headers(self, data)",
+                            "_read_body(self, code, headers, delegate)",
+                            "_read_fixed_body(self, content_length, delegate)",
+                            "_read_chunked_body(self, delegate)",
+                            "_read_body_until_close(self, delegate)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x107e67e10>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x108082e10>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x108082e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x108082d50>",
+                                    "variable_type": "_ServerRequestAdapter",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x107e67e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x108082e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x108082e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x107e67e10>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x108082e10>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x108082e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x108082d50>",
+                                    "variable_type": "_ServerRequestAdapter",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x107e67e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x108082e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x108082e10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x1080e3910>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x1080cb510>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "200",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x1080cb510>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x1080cbc50>",
+                                    "variable_type": "Delegate",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x1080e3910>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x1080cb510>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x1080cb510>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x1080e3910>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x1080cb510>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "200",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x1080cb510>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x1080cbc50>",
+                                    "variable_type": "Delegate",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x1080e3910>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x1080cb510>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x1080cb510>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10d1b7fd0>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10d00aad0>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10d00aad0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x10d1b7e90>",
+                                    "variable_type": "_ServerRequestAdapter",
+                                    "variable_shape": null
+                                },
+                                "lower": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10d1b7fd0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10d00aad0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10d00aad0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10d1b7fd0>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10d00aad0>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10d00aad0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x10d1b7e90>",
+                                    "variable_type": "_ServerRequestAdapter",
+                                    "variable_shape": null
+                                },
+                                "lower": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10d1b7fd0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10d00aad0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10d00aad0>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10d1dba50>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "200",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10d1b7790>",
+                                    "variable_type": "Delegate",
+                                    "variable_shape": null
+                                },
+                                "lower": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10d1dba50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "headers": {
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10d1dba50>",
+                                    "variable_type": "HTTPHeaders",
+                                    "variable_shape": null
+                                },
+                                "httputil.HTTPInputError": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "httputil": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "pieces": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re.split": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "re": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "content_length": {
+                                    "variable_value": "16",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._max_body_size": {
+                                    "variable_value": "104857600",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>",
+                                    "variable_type": "HTTP1Connection",
+                                    "variable_shape": null
+                                },
+                                "code": {
+                                    "variable_value": "200",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._read_fixed_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "delegate": {
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10d1b7790>",
+                                    "variable_type": "Delegate",
+                                    "variable_shape": null
+                                },
+                                "lower": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "headers.get": {
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10d1dba50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self._read_chunked_body": {
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.is_client": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "self._read_body_until_close": {
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10d1b7a50>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def __init__(self):\n    pass",
+                "def __init__(self, logger):\n    self.logger = logger",
+                "def __enter__(self):\n    pass",
+                "def __exit__(self, typ, value, tb):\n    if value is not None:\n        self.logger.error(\"Uncaught exception\", exc_info=(typ, value, tb))\n        raise _QuietException",
+                "def __init__(self, no_keep_alive=False, chunk_size=None,\n             max_header_size=None, header_timeout=None, max_body_size=None,\n             body_timeout=None, decompress=False):\n    \"\"\"\n    :arg bool no_keep_alive: If true, always close the connection after\n        one request.\n    :arg int chunk_size: how much data to read into memory at once\n    :arg int max_header_size:  maximum amount of data for HTTP headers\n    :arg float header_timeout: how long to wait for all headers (seconds)\n    :arg int max_body_size: maximum amount of data for body\n    :arg float body_timeout: how long to wait while reading body (seconds)\n    :arg bool decompress: if true, decode incoming\n        ``Content-Encoding: gzip``\n    \"\"\"\n    self.no_keep_alive = no_keep_alive\n    self.chunk_size = chunk_size or 65536\n    self.max_header_size = max_header_size or 65536\n    self.header_timeout = header_timeout\n    self.max_body_size = max_body_size\n    self.body_timeout = body_timeout\n    self.decompress = decompress",
+                "def __init__(self, stream, is_client, params=None, context=None):\n    \"\"\"\n    :arg stream: an `.IOStream`\n    :arg bool is_client: client or server\n    :arg params: a `.HTTP1ConnectionParameters` instance or ``None``\n    :arg context: an opaque application-defined object that can be accessed\n        as ``connection.context``.\n    \"\"\"\n    self.is_client = is_client\n    self.stream = stream\n    if params is None:\n        params = HTTP1ConnectionParameters()\n    self.params = params\n    self.context = context\n    self.no_keep_alive = params.no_keep_alive\n    # The body limits can be altered by the delegate, so save them\n    # here instead of just referencing self.params later.\n    self._max_body_size = (self.params.max_body_size or\n                           self.stream.max_buffer_size)\n    self._body_timeout = self.params.body_timeout\n    # _write_finished is set to True when finish() has been called,\n    # i.e. there will be no more data sent.  Data may still be in the\n    # stream's write buffer.\n    self._write_finished = False\n    # True when we have read the entire incoming body.\n    self._read_finished = False\n    # _finish_future resolves when all data has been written and flushed\n    # to the IOStream.\n    self._finish_future = Future()\n    # If true, the connection should be closed after this request\n    # (after the response has been written in the server side,\n    # and after it has been read in the client)\n    self._disconnect_on_finish = False\n    self._clear_callbacks()\n    # Save the start lines after we read or write them; they\n    # affect later processing (e.g. 304 responses and HEAD methods\n    # have content-length but no bodies)\n    self._request_start_line = None\n    self._response_start_line = None\n    self._request_headers = None\n    # True if we are writing output with chunked encoding.\n    self._chunking_output = None\n    # While reading a body with a content-length, this is the\n    # amount left to read.\n    self._expected_content_remaining = None\n    # A Future for our outgoing writes, returned by IOStream.write.\n    self._pending_write = None",
+                "def read_response(self, delegate):\n    \"\"\"Read a single HTTP response.\n\n    Typical client-mode usage is to write a request using `write_headers`,\n    `write`, and `finish`, and then call ``read_response``.\n\n    :arg delegate: a `.HTTPMessageDelegate`\n\n    Returns a `.Future` that resolves to None after the full response has\n    been read.\n    \"\"\"\n    if self.params.decompress:\n        delegate = _GzipMessageDelegate(delegate, self.params.chunk_size)\n    return self._read_message(delegate)",
+                "@gen.coroutine\ndef _read_message(self, delegate):\n    need_delegate_close = False\n    try:\n        header_future = self.stream.read_until_regex(\n            b\"\\r?\\n\\r?\\n\",\n            max_bytes=self.params.max_header_size)\n        if self.params.header_timeout is None:\n            header_data = yield header_future\n        else:\n            try:\n                header_data = yield gen.with_timeout(\n                    self.stream.io_loop.time() + self.params.header_timeout,\n                    header_future,\n                    io_loop=self.stream.io_loop,\n                    quiet_exceptions=iostream.StreamClosedError)\n            except gen.TimeoutError:\n                self.close()\n                raise gen.Return(False)\n        start_line, headers = self._parse_headers(header_data)\n        if self.is_client:\n            start_line = httputil.parse_response_start_line(start_line)\n            self._response_start_line = start_line\n        else:\n            start_line = httputil.parse_request_start_line(start_line)\n            self._request_start_line = start_line\n            self._request_headers = headers\n\n        self._disconnect_on_finish = not self._can_keep_alive(\n            start_line, headers)\n        need_delegate_close = True\n        with _ExceptionLoggingContext(app_log):\n            header_future = delegate.headers_received(start_line, headers)\n            if header_future is not None:\n                yield header_future\n        if self.stream is None:\n            # We've been detached.\n            need_delegate_close = False\n            raise gen.Return(False)\n        skip_body = False\n        if self.is_client:\n            if (self._request_start_line is not None and\n                    self._request_start_line.method == 'HEAD'):\n                skip_body = True\n            code = start_line.code\n            if code == 304:\n                # 304 responses may include the content-length header\n                # but do not actually have a body.\n                # http://tools.ietf.org/html/rfc7230#section-3.3\n                skip_body = True\n            if code >= 100 and code < 200:\n                # 1xx responses should never indicate the presence of\n                # a body.\n                if ('Content-Length' in headers or\n                        'Transfer-Encoding' in headers):\n                    raise httputil.HTTPInputError(\n                        \"Response code %d cannot have body\" % code)\n                # TODO: client delegates will get headers_received twice\n                # in the case of a 100-continue.  Document or change?\n                yield self._read_message(delegate)\n        else:\n            if (headers.get(\"Expect\") == \"100-continue\" and\n                    not self._write_finished):\n                self.stream.write(b\"HTTP/1.1 100 (Continue)\\r\\n\\r\\n\")\n        if not skip_body:\n            body_future = self._read_body(\n                start_line.code if self.is_client else 0, headers, delegate)\n            if body_future is not None:\n                if self._body_timeout is None:\n                    yield body_future\n                else:\n                    try:\n                        yield gen.with_timeout(\n                            self.stream.io_loop.time() + self._body_timeout,\n                            body_future, self.stream.io_loop,\n                            quiet_exceptions=iostream.StreamClosedError)\n                    except gen.TimeoutError:\n                        gen_log.info(\"Timeout reading body from %s\",\n                                     self.context)\n                        self.stream.close()\n                        raise gen.Return(False)\n        self._read_finished = True\n        if not self._write_finished or self.is_client:\n            need_delegate_close = False\n            with _ExceptionLoggingContext(app_log):\n                delegate.finish()\n        # If we're waiting for the application to produce an asynchronous\n        # response, and we're not detached, register a close callback\n        # on the stream (we didn't need one while we were reading)\n        if (not self._finish_future.done() and\n                self.stream is not None and\n                not self.stream.closed()):\n            self.stream.set_close_callback(self._on_connection_close)\n            yield self._finish_future\n        if self.is_client and self._disconnect_on_finish:\n            self.close()\n        if self.stream is None:\n            raise gen.Return(False)\n    except httputil.HTTPInputError as e:\n        gen_log.info(\"Malformed HTTP message from %s: %s\",\n                     self.context, e)\n        self.close()\n        raise gen.Return(False)\n    finally:\n        if need_delegate_close:\n            with _ExceptionLoggingContext(app_log):\n                delegate.on_connection_close()\n        self._clear_callbacks()\n    raise gen.Return(True)",
+                "def _clear_callbacks(self):\n    \"\"\"Clears the callback attributes.\n\n    This allows the request handler to be garbage collected more\n    quickly in CPython by breaking up reference cycles.\n    \"\"\"\n    self._write_callback = None\n    self._write_future = None\n    self._close_callback = None\n    if self.stream is not None:\n        self.stream.set_close_callback(None)",
+                "def set_close_callback(self, callback):\n    \"\"\"Sets a callback that will be run when the connection is closed.\n\n    .. deprecated:: 4.0\n        Use `.HTTPMessageDelegate.on_connection_close` instead.\n    \"\"\"\n    self._close_callback = stack_context.wrap(callback)",
+                "def _on_connection_close(self):\n    # Note that this callback is only registered on the IOStream\n    # when we have finished reading the request and are waiting for\n    # the application to produce its response.\n    if self._close_callback is not None:\n        callback = self._close_callback\n        self._close_callback = None\n        callback()\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)\n    self._clear_callbacks()",
+                "def close(self):\n    if self.stream is not None:\n        self.stream.close()\n    self._clear_callbacks()\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)",
+                "def detach(self):\n    \"\"\"Take control of the underlying stream.\n\n    Returns the underlying `.IOStream` object and stops all further\n    HTTP processing.  May only be called during\n    `.HTTPMessageDelegate.headers_received`.  Intended for implementing\n    protocols like websockets that tunnel over an HTTP handshake.\n    \"\"\"\n    self._clear_callbacks()\n    stream = self.stream\n    self.stream = None\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)\n    return stream",
+                "def set_body_timeout(self, timeout):\n    \"\"\"Sets the body timeout for a single request.\n\n    Overrides the value from `.HTTP1ConnectionParameters`.\n    \"\"\"\n    self._body_timeout = timeout",
+                "def set_max_body_size(self, max_body_size):\n    \"\"\"Sets the body size limit for a single request.\n\n    Overrides the value from `.HTTP1ConnectionParameters`.\n    \"\"\"\n    self._max_body_size = max_body_size",
+                "def write_headers(self, start_line, headers, chunk=None, callback=None):\n    \"\"\"Implements `.HTTPConnection.write_headers`.\"\"\"\n    lines = []\n    if self.is_client:\n        self._request_start_line = start_line\n        lines.append(utf8('%s %s HTTP/1.1' % (start_line[0], start_line[1])))\n        # Client requests with a non-empty body must have either a\n        # Content-Length or a Transfer-Encoding.\n        self._chunking_output = (\n            start_line.method in ('POST', 'PUT', 'PATCH') and\n            'Content-Length' not in headers and\n            'Transfer-Encoding' not in headers)\n    else:\n        self._response_start_line = start_line\n        lines.append(utf8('HTTP/1.1 %d %s' % (start_line[1], start_line[2])))\n        self._chunking_output = (\n            # TODO: should this use\n            # self._request_start_line.version or\n            # start_line.version?\n            self._request_start_line.version == 'HTTP/1.1' and\n            # 304 responses have no body (not even a zero-length body), and so\n            # should not have either Content-Length or Transfer-Encoding.\n            # headers.\n            start_line.code not in (204, 304) and\n            # No need to chunk the output if a Content-Length is specified.\n            'Content-Length' not in headers and\n            # Applications are discouraged from touching Transfer-Encoding,\n            # but if they do, leave it alone.\n            'Transfer-Encoding' not in headers)\n        # If a 1.0 client asked for keep-alive, add the header.\n        if (self._request_start_line.version == 'HTTP/1.0' and\n            (self._request_headers.get('Connection', '').lower() ==\n             'keep-alive')):\n            headers['Connection'] = 'Keep-Alive'\n    if self._chunking_output:\n        headers['Transfer-Encoding'] = 'chunked'\n    if (not self.is_client and\n        (self._request_start_line.method == 'HEAD' or\n         start_line.code == 304)):\n        self._expected_content_remaining = 0\n    elif 'Content-Length' in headers:\n        self._expected_content_remaining = int(headers['Content-Length'])\n    else:\n        self._expected_content_remaining = None\n    # TODO: headers are supposed to be of type str, but we still have some\n    # cases that let bytes slip through. Remove these native_str calls when those\n    # are fixed.\n    header_lines = (native_str(n) + \": \" + native_str(v) for n, v in headers.get_all())\n    if PY3:\n        lines.extend(l.encode('latin1') for l in header_lines)\n    else:\n        lines.extend(header_lines)\n    for line in lines:\n        if b'\\n' in line:\n            raise ValueError('Newline in header: ' + repr(line))\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        future.set_exception(iostream.StreamClosedError())\n        future.exception()\n    else:\n        if callback is not None:\n            self._write_callback = stack_context.wrap(callback)\n        else:\n            future = self._write_future = Future()\n        data = b\"\\r\\n\".join(lines) + b\"\\r\\n\\r\\n\"\n        if chunk:\n            data += self._format_chunk(chunk)\n        self._pending_write = self.stream.write(data)\n        self._pending_write.add_done_callback(self._on_write_complete)\n    return future",
+                "def _format_chunk(self, chunk):\n    if self._expected_content_remaining is not None:\n        self._expected_content_remaining -= len(chunk)\n        if self._expected_content_remaining < 0:\n            # Close the stream now to stop further framing errors.\n            self.stream.close()\n            raise httputil.HTTPOutputError(\n                \"Tried to write more data than Content-Length\")\n    if self._chunking_output and chunk:\n        # Don't write out empty chunks because that means END-OF-STREAM\n        # with chunked encoding\n        return utf8(\"%x\" % len(chunk)) + b\"\\r\\n\" + chunk + b\"\\r\\n\"\n    else:\n        return chunk",
+                "def write(self, chunk, callback=None):\n    \"\"\"Implements `.HTTPConnection.write`.\n\n    For backwards compatibility is is allowed but deprecated to\n    skip `write_headers` and instead call `write()` with a\n    pre-encoded header block.\n    \"\"\"\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        self._write_future.set_exception(iostream.StreamClosedError())\n        self._write_future.exception()\n    else:\n        if callback is not None:\n            self._write_callback = stack_context.wrap(callback)\n        else:\n            future = self._write_future = Future()\n        self._pending_write = self.stream.write(self._format_chunk(chunk))\n        self._pending_write.add_done_callback(self._on_write_complete)\n    return future",
+                "def finish(self):\n    \"\"\"Implements `.HTTPConnection.finish`.\"\"\"\n    if (self._expected_content_remaining is not None and\n            self._expected_content_remaining != 0 and\n            not self.stream.closed()):\n        self.stream.close()\n        raise httputil.HTTPOutputError(\n            \"Tried to write %d bytes less than Content-Length\" %\n            self._expected_content_remaining)\n    if self._chunking_output:\n        if not self.stream.closed():\n            self._pending_write = self.stream.write(b\"0\\r\\n\\r\\n\")\n            self._pending_write.add_done_callback(self._on_write_complete)\n    self._write_finished = True\n    # If the app finished the request while we're still reading,\n    # divert any remaining data away from the delegate and\n    # close the connection when we're done sending our response.\n    # Closing the connection is the only way to avoid reading the\n    # whole input body.\n    if not self._read_finished:\n        self._disconnect_on_finish = True\n    # No more data is coming, so instruct TCP to send any remaining\n    # data immediately instead of waiting for a full packet or ack.\n    self.stream.set_nodelay(True)\n    if self._pending_write is None:\n        self._finish_request(None)\n    else:\n        self._pending_write.add_done_callback(self._finish_request)",
+                "def _on_write_complete(self, future):\n    exc = future.exception()\n    if exc is not None and not isinstance(exc, iostream.StreamClosedError):\n        future.result()\n    if self._write_callback is not None:\n        callback = self._write_callback\n        self._write_callback = None\n        self.stream.io_loop.add_callback(callback)\n    if self._write_future is not None:\n        future = self._write_future\n        self._write_future = None\n        future.set_result(None)",
+                "def _can_keep_alive(self, start_line, headers):\n    if self.params.no_keep_alive:\n        return False\n    connection_header = headers.get(\"Connection\")\n    if connection_header is not None:\n        connection_header = connection_header.lower()\n    if start_line.version == \"HTTP/1.1\":\n        return connection_header != \"close\"\n    elif (\"Content-Length\" in headers or\n          headers.get(\"Transfer-Encoding\", \"\").lower() == \"chunked\" or\n          getattr(start_line, 'method', None) in (\"HEAD\", \"GET\")):\n        # start_line may be a request or reponse start line; only\n        # the former has a method attribute.\n        return connection_header == \"keep-alive\"\n    return False",
+                "def _finish_request(self, future):\n    self._clear_callbacks()\n    if not self.is_client and self._disconnect_on_finish:\n        self.close()\n        return\n    # Turn Nagle's algorithm back on, leaving the stream in its\n    # default state for the next request.\n    self.stream.set_nodelay(False)\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)",
+                "def _parse_headers(self, data):\n    # The lstrip removes newlines that some implementations sometimes\n    # insert between messages of a reused connection.  Per RFC 7230,\n    # we SHOULD ignore at least one empty line before the request.\n    # http://tools.ietf.org/html/rfc7230#section-3.5\n    data = native_str(data.decode('latin1')).lstrip(\"\\r\\n\")\n    # RFC 7230 section allows for both CRLF and bare LF.\n    eol = data.find(\"\\n\")\n    start_line = data[:eol].rstrip(\"\\r\")\n    try:\n        headers = httputil.HTTPHeaders.parse(data[eol:])\n    except ValueError:\n        # probably form split() if there was no ':' in the line\n        raise httputil.HTTPInputError(\"Malformed HTTP headers: %r\" %\n                                      data[eol:100])\n    return start_line, headers",
+                "def _read_body(self, code, headers, delegate):\n    if \"Content-Length\" in headers:\n        if \"Transfer-Encoding\" in headers:\n            # Response cannot contain both Content-Length and\n            # Transfer-Encoding headers.\n            # http://tools.ietf.org/html/rfc7230#section-3.3.3\n            raise httputil.HTTPInputError(\n                \"Response with both Transfer-Encoding and Content-Length\")\n        if \",\" in headers[\"Content-Length\"]:\n            # Proxies sometimes cause Content-Length headers to get\n            # duplicated.  If all the values are identical then we can\n            # use them but if they differ it's an error.\n            pieces = re.split(r',\\s*', headers[\"Content-Length\"])\n            if any(i != pieces[0] for i in pieces):\n                raise httputil.HTTPInputError(\n                    \"Multiple unequal Content-Lengths: %r\" %\n                    headers[\"Content-Length\"])\n            headers[\"Content-Length\"] = pieces[0]\n\n        try:\n            content_length = int(headers[\"Content-Length\"])\n        except ValueError:\n            # Handles non-integer Content-Length value.\n            raise httputil.HTTPInputError(\n                \"Only integer Content-Length is allowed: %s\" % headers[\"Content-Length\"])\n\n        if content_length > self._max_body_size:\n            raise httputil.HTTPInputError(\"Content-Length too long\")\n    else:\n        content_length = None\n\n    if code == 204:\n        # This response code is not allowed to have a non-empty body,\n        # and has an implicit length of zero instead of read-until-close.\n        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.3\n        if (\"Transfer-Encoding\" in headers or\n                content_length not in (None, 0)):\n            raise httputil.HTTPInputError(\n                \"Response with code %d should not have body\" % code)\n        content_length = 0\n\n    if content_length is not None:\n        return self._read_fixed_body(content_length, delegate)\n    if headers.get(\"Transfer-Encoding\") == \"chunked\":\n        return self._read_chunked_body(delegate)\n    if self.is_client:\n        return self._read_body_until_close(delegate)\n    return None",
+                "@gen.coroutine\ndef _read_fixed_body(self, content_length, delegate):\n    while content_length > 0:\n        body = yield self.stream.read_bytes(\n            min(self.params.chunk_size, content_length), partial=True)\n        content_length -= len(body)\n        if not self._write_finished or self.is_client:\n            with _ExceptionLoggingContext(app_log):\n                ret = delegate.data_received(body)\n                if ret is not None:\n                    yield ret",
+                "@gen.coroutine\ndef _read_chunked_body(self, delegate):\n    # TODO: \"chunk extensions\" http://tools.ietf.org/html/rfc2616#section-3.6.1\n    total_size = 0\n    while True:\n        chunk_len = yield self.stream.read_until(b\"\\r\\n\", max_bytes=64)\n        chunk_len = int(chunk_len.strip(), 16)\n        if chunk_len == 0:\n            return\n        total_size += chunk_len\n        if total_size > self._max_body_size:\n            raise httputil.HTTPInputError(\"chunked body too large\")\n        bytes_to_read = chunk_len\n        while bytes_to_read:\n            chunk = yield self.stream.read_bytes(\n                min(bytes_to_read, self.params.chunk_size), partial=True)\n            bytes_to_read -= len(chunk)\n            if not self._write_finished or self.is_client:\n                with _ExceptionLoggingContext(app_log):\n                    ret = delegate.data_received(chunk)\n                    if ret is not None:\n                        yield ret\n        # chunk ends with \\r\\n\n        crlf = yield self.stream.read_bytes(2)\n        assert crlf == b\"\\r\\n\"",
+                "@gen.coroutine\ndef _read_body_until_close(self, delegate):\n    body = yield self.stream.read_until_close()\n    if not self._write_finished or self.is_client:\n        with _ExceptionLoggingContext(app_log):\n            delegate.data_received(body)",
+                "def __init__(self, delegate, chunk_size):\n    self._delegate = delegate\n    self._chunk_size = chunk_size\n    self._decompressor = None",
+                "def headers_received(self, start_line, headers):\n    if headers.get(\"Content-Encoding\") == \"gzip\":\n        self._decompressor = GzipDecompressor()\n        # Downstream delegates will only see uncompressed data,\n        # so rename the content-encoding header.\n        # (but note that curl_httpclient doesn't do this).\n        headers.add(\"X-Consumed-Content-Encoding\",\n                    headers[\"Content-Encoding\"])\n        del headers[\"Content-Encoding\"]\n    return self._delegate.headers_received(start_line, headers)",
+                "@gen.coroutine\ndef data_received(self, chunk):\n    if self._decompressor:\n        compressed_data = chunk\n        while compressed_data:\n            decompressed = self._decompressor.decompress(\n                compressed_data, self._chunk_size)\n            if decompressed:\n                ret = self._delegate.data_received(decompressed)\n                if ret is not None:\n                    yield ret\n            compressed_data = self._decompressor.unconsumed_tail\n    else:\n        ret = self._delegate.data_received(chunk)\n        if ret is not None:\n            yield ret",
+                "def finish(self):\n    if self._decompressor is not None:\n        tail = self._decompressor.flush()\n        if tail:\n            # I believe the tail will always be empty (i.e.\n            # decompress will return all it can).  The purpose\n            # of the flush call is to detect errors such\n            # as truncated input.  But in case it ever returns\n            # anything, treat it as an extra chunk\n            self._delegate.data_received(tail)\n    return self._delegate.finish()",
+                "def on_connection_close(self):\n    return self._delegate.on_connection_close()",
+                "def __init__(self, stream, params=None, context=None):\n    \"\"\"\n    :arg stream: an `.IOStream`\n    :arg params: a `.HTTP1ConnectionParameters` or None\n    :arg context: an opaque application-defined object that is accessible\n        as ``connection.context``\n    \"\"\"\n    self.stream = stream\n    if params is None:\n        params = HTTP1ConnectionParameters()\n    self.params = params\n    self.context = context\n    self._serving_future = None",
+                "@gen.coroutine\ndef close(self):\n    \"\"\"Closes the connection.\n\n    Returns a `.Future` that resolves after the serving loop has exited.\n    \"\"\"\n    self.stream.close()\n    # Block until the serving loop is done, but ignore any exceptions\n    # (start_serving is already responsible for logging them).\n    try:\n        yield self._serving_future\n    except Exception:\n        pass",
+                "def start_serving(self, delegate):\n    \"\"\"Starts serving requests on this connection.\n\n    :arg delegate: a `.HTTPServerConnectionDelegate`\n    \"\"\"\n    assert isinstance(delegate, httputil.HTTPServerConnectionDelegate)\n    self._serving_future = self._server_request_loop(delegate)\n    # Register the future on the IOLoop so its errors get logged.\n    self.stream.io_loop.add_future(self._serving_future,\n                                   lambda f: f.result())",
+                "@gen.coroutine\ndef _server_request_loop(self, delegate):\n    try:\n        while True:\n            conn = HTTP1Connection(self.stream, False,\n                                   self.params, self.context)\n            request_delegate = delegate.start_request(self, conn)\n            try:\n                ret = yield conn.read_response(request_delegate)\n            except (iostream.StreamClosedError,\n                    iostream.UnsatisfiableReadError):\n                return\n            except _QuietException:\n                # This exception was already logged.\n                conn.close()\n                return\n            except Exception:\n                gen_log.error(\"Uncaught exception\", exc_info=True)\n                conn.close()\n                return\n            if not ret:\n                return\n            yield gen.moment\n    finally:\n        delegate.on_close(self)"
+            ],
+            "inscope_function_signatures": [
+                "__init__(self)",
+                "__init__(self, logger)",
+                "__enter__(self)",
+                "__exit__(self, typ, value, tb)",
+                "__init__(self, no_keep_alive=False, chunk_size=None, max_header_size=None, header_timeout=None, max_body_size=None, body_timeout=None, decompress=False)",
+                "__init__(self, stream, is_client, params=None, context=None)",
+                "read_response(self, delegate)",
+                "_read_message(self, delegate)",
+                "_clear_callbacks(self)",
+                "set_close_callback(self, callback)",
+                "_on_connection_close(self)",
+                "close(self)",
+                "detach(self)",
+                "set_body_timeout(self, timeout)",
+                "set_max_body_size(self, max_body_size)",
+                "write_headers(self, start_line, headers, chunk=None, callback=None)",
+                "_format_chunk(self, chunk)",
+                "write(self, chunk, callback=None)",
+                "finish(self)",
+                "_on_write_complete(self, future)",
+                "_can_keep_alive(self, start_line, headers)",
+                "_finish_request(self, future)",
+                "_parse_headers(self, data)",
+                "_read_body(self, code, headers, delegate)",
+                "_read_fixed_body(self, content_length, delegate)",
+                "_read_chunked_body(self, delegate)",
+                "_read_body_until_close(self, delegate)",
+                "__init__(self, delegate, chunk_size)",
+                "headers_received(self, start_line, headers)",
+                "data_received(self, chunk)",
+                "finish(self)",
+                "on_connection_close(self)",
+                "__init__(self, stream, params=None, context=None)",
+                "close(self)",
+                "start_serving(self, delegate)",
+                "_server_request_loop(self, delegate)"
+            ],
+            "variables_in_file": {
+                "Exception": [
+                    729,
+                    699,
+                    36
+                ],
+                "object": [
+                    672,
+                    41,
+                    58
+                ],
+                "self.logger": [
+                    54,
+                    47
+                ],
+                "self": [
+                    551,
+                    47,
+                    54,
+                    567,
+                    569,
+                    570,
+                    571,
+                    577,
+                    578,
+                    580,
+                    75,
+                    76,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    591,
+                    596,
+                    600,
+                    601,
+                    603,
+                    609,
+                    98,
+                    99,
+                    102,
+                    103,
+                    104,
+                    614,
+                    615,
+                    107,
+                    108,
+                    109,
+                    624,
+                    113,
+                    625,
+                    115,
+                    626,
+                    118,
+                    630,
+                    122,
+                    123,
+                    637,
+                    127,
+                    128,
+                    129,
+                    641,
+                    131,
+                    644,
+                    645,
+                    134,
+                    647,
+                    136,
+                    650,
+                    652,
+                    657,
+                    658,
+                    149,
+                    150,
+                    151,
+                    665,
+                    666,
+                    157,
+                    669,
+                    159,
+                    160,
+                    165,
+                    167,
+                    681,
+                    170,
+                    172,
+                    173,
+                    684,
+                    175,
+                    685,
+                    686,
+                    178,
+                    179,
+                    181,
+                    694,
+                    698,
+                    188,
+                    193,
+                    194,
+                    195,
+                    708,
+                    710,
+                    717,
+                    718,
+                    719,
+                    212,
+                    215,
+                    216,
+                    218,
+                    219,
+                    221,
+                    737,
+                    226,
+                    227,
+                    231,
+                    232,
+                    234,
+                    235,
+                    242,
+                    243,
+                    244,
+                    245,
+                    246,
+                    247,
+                    248,
+                    249,
+                    253,
+                    254,
+                    260,
+                    269,
+                    270,
+                    271,
+                    272,
+                    273,
+                    281,
+                    287,
+                    288,
+                    289,
+                    291,
+                    292,
+                    293,
+                    296,
+                    297,
+                    298,
+                    299,
+                    300,
+                    310,
+                    311,
+                    312,
+                    313,
+                    314,
+                    322,
+                    329,
+                    334,
+                    335,
+                    339,
+                    344,
+                    346,
+                    350,
+                    361,
+                    362,
+                    365,
+                    367,
+                    368,
+                    370,
+                    372,
+                    374,
+                    387,
+                    388,
+                    393,
+                    395,
+                    398,
+                    399,
+                    400,
+                    404,
+                    405,
+                    406,
+                    408,
+                    411,
+                    426,
+                    427,
+                    428,
+                    429,
+                    432,
+                    434,
+                    435,
+                    436,
+                    441,
+                    442,
+                    443,
+                    444,
+                    447,
+                    448,
+                    449,
+                    450,
+                    451,
+                    452,
+                    458,
+                    459,
+                    462,
+                    463,
+                    464,
+                    466,
+                    472,
+                    473,
+                    474,
+                    475,
+                    476,
+                    477,
+                    478,
+                    482,
+                    498,
+                    499,
+                    500,
+                    504,
+                    505,
+                    506
+                ],
+                "logger": [
+                    47
+                ],
+                "value": [
+                    53,
+                    54
+                ],
+                "self.logger.error": [
+                    54
+                ],
+                "typ": [
+                    54
+                ],
+                "tb": [
+                    54
+                ],
+                "_QuietException": [
+                    725,
+                    55
+                ],
+                "self.no_keep_alive": [
+                    104,
+                    75
+                ],
+                "no_keep_alive": [
+                    75
+                ],
+                "self.chunk_size": [
+                    76
+                ],
+                "chunk_size": [
+                    625,
+                    76
+                ],
+                "self.max_header_size": [
+                    77
+                ],
+                "max_header_size": [
+                    77
+                ],
+                "self.header_timeout": [
+                    78
+                ],
+                "header_timeout": [
+                    78
+                ],
+                "self.max_body_size": [
+                    79
+                ],
+                "max_body_size": [
+                    329,
+                    79
+                ],
+                "self.body_timeout": [
+                    80
+                ],
+                "body_timeout": [
+                    80
+                ],
+                "self.decompress": [
+                    81
+                ],
+                "decompress": [
+                    81
+                ],
+                "httputil.HTTPConnection": [
+                    84
+                ],
+                "httputil": [
+                    707,
+                    548,
+                    518,
+                    552,
+                    521,
+                    620,
+                    174,
+                    208,
+                    177,
+                    562,
+                    531,
+                    84,
+                    597,
+                    539,
+                    409,
+                    251,
+                    445
+                ],
+                "self.is_client": [
+                    193,
+                    98,
+                    603,
+                    580,
+                    615,
+                    235,
+                    173,
+                    334,
+                    367,
+                    499,
+                    247,
+                    570,
+                    219
+                ],
+                "is_client": [
+                    98
+                ],
+                "self.stream": [
+                    387,
+                    399,
+                    272,
+                    273,
+                    408,
+                    157,
+                    165,
+                    167,
+                    296,
+                    297,
+                    426,
+                    681,
+                    435,
+                    694,
+                    311,
+                    312,
+                    443,
+                    188,
+                    444,
+                    449,
+                    450,
+                    577,
+                    710,
+                    717,
+                    462,
+                    591,
+                    216,
+                    600,
+                    475,
+                    609,
+                    226,
+                    99,
+                    227,
+                    614,
+                    232,
+                    108,
+                    243,
+                    244,
+                    245,
+                    504,
+                    249
+                ],
+                "stream": [
+                    681,
+                    315,
+                    99,
+                    311
+                ],
+                "params": [
+                    100,
+                    101,
+                    102,
+                    104,
+                    682,
+                    683,
+                    684
+                ],
+                "HTTP1ConnectionParameters": [
+                    683,
+                    101
+                ],
+                "self.params": [
+                    160,
+                    482,
+                    578,
+                    165,
+                    102,
+                    107,
+                    684,
+                    109,
+                    718,
+                    149,
+                    150,
+                    601,
+                    159
+                ],
+                "self.context": [
+                    231,
+                    103,
+                    685,
+                    718,
+                    253
+                ],
+                "context": [
+                    685,
+                    103
+                ],
+                "params.no_keep_alive": [
+                    104
+                ],
+                "self._max_body_size": [
+                    329,
+                    107,
+                    596,
+                    551
+                ],
+                "self.params.max_body_size": [
+                    107
+                ],
+                "self.stream.max_buffer_size": [
+                    108
+                ],
+                "self._body_timeout": [
+                    221,
+                    226,
+                    322,
+                    109
+                ],
+                "self.params.body_timeout": [
+                    109
+                ],
+                "self._write_finished": [
+                    452,
+                    580,
+                    615,
+                    235,
+                    113,
+                    215,
+                    603
+                ],
+                "self._read_finished": [
+                    458,
+                    234,
+                    115
+                ],
+                "self._finish_future": [
+                    291,
+                    292,
+                    299,
+                    300,
+                    505,
+                    242,
+                    506,
+                    118,
+                    246,
+                    313,
+                    314
+                ],
+                "Future": [
+                    388,
+                    395,
+                    427,
+                    434,
+                    118
+                ],
+                "self._disconnect_on_finish": [
+                    459,
+                    499,
+                    181,
+                    247,
+                    122
+                ],
+                "self._clear_callbacks": [
+                    260,
+                    293,
+                    298,
+                    498,
+                    310,
+                    123
+                ],
+                "self._request_start_line": [
+                    194,
+                    195,
+                    361,
+                    335,
+                    368,
+                    178,
+                    350,
+                    127
+                ],
+                "self._response_start_line": [
+                    128,
+                    344,
+                    175
+                ],
+                "self._request_headers": [
+                    129,
+                    362,
+                    179
+                ],
+                "self._chunking_output": [
+                    448,
+                    131,
+                    365,
+                    339,
+                    346,
+                    411
+                ],
+                "self._expected_content_remaining": [
+                    134,
+                    370,
+                    404,
+                    372,
+                    374,
+                    405,
+                    406,
+                    441,
+                    442,
+                    447
+                ],
+                "self._pending_write": [
+                    450,
+                    451,
+                    136,
+                    399,
+                    400,
+                    463,
+                    466,
+                    435,
+                    436
+                ],
+                "self.params.decompress": [
+                    149
+                ],
+                "delegate": [
+                    737,
+                    259,
+                    707,
+                    567,
+                    582,
+                    708,
+                    617,
+                    238,
+                    569,
+                    624,
+                    719,
+                    212,
+                    150,
+                    151,
+                    185,
+                    219,
+                    605,
+                    571
+                ],
+                "_GzipMessageDelegate": [
+                    150
+                ],
+                "self.params.chunk_size": [
+                    601,
+                    578,
+                    150
+                ],
+                "self._read_message": [
+                    212,
+                    151
+                ],
+                "need_delegate_close": [
+                    257,
+                    236,
+                    183,
+                    155,
+                    190
+                ],
+                "header_future": [
+                    161,
+                    166,
+                    185,
+                    186,
+                    187,
+                    157
+                ],
+                "self.stream.read_until_regex": [
+                    157
+                ],
+                "self.params.max_header_size": [
+                    159
+                ],
+                "self.params.header_timeout": [
+                    160,
+                    165
+                ],
+                "header_data": [
+                    161,
+                    172,
+                    164
+                ],
+                "gen.with_timeout": [
+                    225,
+                    164
+                ],
+                "gen": [
+                    225,
+                    255,
+                    164,
+                    229,
+                    261,
+                    612,
+                    169,
+                    233,
+                    171,
+                    586,
+                    713,
+                    639,
+                    688,
+                    735,
+                    153,
+                    250,
+                    574,
+                    191
+                ],
+                "self.stream.io_loop.time": [
+                    226,
+                    165
+                ],
+                "self.stream.io_loop": [
+                    226,
+                    227,
+                    165,
+                    710,
+                    167,
+                    475
+                ],
+                "iostream.StreamClosedError": [
+                    228,
+                    389,
+                    168,
+                    428,
+                    722,
+                    470
+                ],
+                "iostream": [
+                    228,
+                    389,
+                    168,
+                    428,
+                    722,
+                    723,
+                    470
+                ],
+                "gen.TimeoutError": [
+                    169,
+                    229
+                ],
+                "self.close": [
+                    248,
+                    170,
+                    500,
+                    254
+                ],
+                "gen.Return": [
+                    191,
+                    261,
+                    233,
+                    171,
+                    250,
+                    255
+                ],
+                "start_line": [
+                    516,
+                    523,
+                    172,
+                    174,
+                    175,
+                    177,
+                    178,
+                    182,
+                    185,
+                    197,
+                    335,
+                    336,
+                    340,
+                    344,
+                    345,
+                    219,
+                    354,
+                    487,
+                    491,
+                    369,
+                    637
+                ],
+                "headers": [
+                    518,
+                    523,
+                    526,
+                    527,
+                    533,
+                    537,
+                    541,
+                    542,
+                    545,
+                    549,
+                    172,
+                    560,
+                    179,
+                    182,
+                    568,
+                    185,
+                    206,
+                    207,
+                    341,
+                    214,
+                    342,
+                    219,
+                    356,
+                    484,
+                    359,
+                    489,
+                    490,
+                    364,
+                    366,
+                    371,
+                    372,
+                    629,
+                    634,
+                    378,
+                    635,
+                    636,
+                    637
+                ],
+                "self._parse_headers": [
+                    172
+                ],
+                "httputil.parse_response_start_line": [
+                    174
+                ],
+                "httputil.parse_request_start_line": [
+                    177
+                ],
+                "self._can_keep_alive": [
+                    181
+                ],
+                "_ExceptionLoggingContext": [
+                    258,
+                    581,
+                    616,
+                    237,
+                    184,
+                    604
+                ],
+                "app_log": [
+                    258,
+                    581,
+                    616,
+                    237,
+                    184,
+                    604
+                ],
+                "delegate.headers_received": [
+                    185
+                ],
+                "skip_body": [
+                    192,
+                    217,
+                    202,
+                    196
+                ],
+                "self._request_start_line.method": [
+                    368,
+                    195
+                ],
+                "code": [
+                    197,
+                    198,
+                    203,
+                    556,
+                    209,
+                    563
+                ],
+                "start_line.code": [
+                    369,
+                    354,
+                    219,
+                    197
+                ],
+                "httputil.HTTPInputError": [
+                    548,
+                    552,
+                    521,
+                    208,
+                    562,
+                    531,
+                    597,
+                    539,
+                    251
+                ],
+                "headers.get": [
+                    484,
+                    490,
+                    629,
+                    214,
+                    568
+                ],
+                "self.stream.write": [
+                    216,
+                    450,
+                    435,
+                    399
+                ],
+                "body_future": [
+                    218,
+                    227,
+                    220,
+                    222
+                ],
+                "self._read_body": [
+                    218
+                ],
+                "gen_log.info": [
+                    252,
+                    230
+                ],
+                "gen_log": [
+                    730,
+                    252,
+                    230
+                ],
+                "self.stream.close": [
+                    232,
+                    297,
+                    694,
+                    408,
+                    444
+                ],
+                "delegate.finish": [
+                    238
+                ],
+                "self._finish_future.done": [
+                    291,
+                    313,
+                    299,
+                    242,
+                    505
+                ],
+                "self.stream.closed": [
+                    449,
+                    387,
+                    426,
+                    244,
+                    443
+                ],
+                "self.stream.set_close_callback": [
+                    273,
+                    245
+                ],
+                "self._on_connection_close": [
+                    245
+                ],
+                "e": [
+                    253
+                ],
+                "delegate.on_connection_close": [
+                    259
+                ],
+                "gen.coroutine": [
+                    612,
+                    713,
+                    586,
+                    688,
+                    153,
+                    574,
+                    639
+                ],
+                "self._write_callback": [
+                    393,
+                    269,
+                    432,
+                    472,
+                    473,
+                    474
+                ],
+                "self._write_future": [
+                    388,
+                    395,
+                    428,
+                    427,
+                    270,
+                    429,
+                    434,
+                    476,
+                    477,
+                    478
+                ],
+                "self._close_callback": [
+                    288,
+                    289,
+                    271,
+                    281,
+                    287
+                ],
+                "stack_context.wrap": [
+                    432,
+                    281,
+                    393
+                ],
+                "stack_context": [
+                    432,
+                    281,
+                    393
+                ],
+                "callback": [
+                    288,
+                    290,
+                    392,
+                    393,
+                    473,
+                    431,
+                    432,
+                    281,
+                    475
+                ],
+                "self._finish_future.set_result": [
+                    314,
+                    506,
+                    292,
+                    300
+                ],
+                "timeout": [
+                    322
+                ],
+                "lines": [
+                    396,
+                    333,
+                    336,
+                    345,
+                    380,
+                    382,
+                    383
+                ],
+                "lines.append": [
+                    336,
+                    345
+                ],
+                "utf8": [
+                    336,
+                    345,
+                    414
+                ],
+                "start_line.method": [
+                    340
+                ],
+                "self._request_start_line.version": [
+                    361,
+                    350
+                ],
+                "lower": [
+                    362,
+                    490
+                ],
+                "self._request_headers.get": [
+                    362
+                ],
+                "int": [
+                    592,
+                    545,
+                    372
+                ],
+                "header_lines": [
+                    378,
+                    380,
+                    382
+                ],
+                "native_str": [
+                    513,
+                    378
+                ],
+                "n": [
+                    378
+                ],
+                "v": [
+                    378
+                ],
+                "headers.get_all": [
+                    378
+                ],
+                "PY3": [
+                    379
+                ],
+                "lines.extend": [
+                    380,
+                    382
+                ],
+                "l.encode": [
+                    380
+                ],
+                "l": [
+                    380
+                ],
+                "line": [
+                    384,
+                    385,
+                    383
+                ],
+                "ValueError": [
+                    385,
+                    546,
+                    519
+                ],
+                "repr": [
+                    385
+                ],
+                "future": [
+                    386,
+                    388,
+                    389,
+                    390,
+                    425,
+                    395,
+                    427,
+                    401,
+                    434,
+                    437,
+                    469,
+                    471,
+                    477,
+                    479
+                ],
+                "future.set_exception": [
+                    389
+                ],
+                "future.exception": [
+                    469,
+                    390
+                ],
+                "data": [
+                    513,
+                    515,
+                    516,
+                    518,
+                    522,
+                    396,
+                    398,
+                    399
+                ],
+                "join": [
+                    396
+                ],
+                "chunk": [
+                    416,
+                    642,
+                    652,
+                    397,
+                    398,
+                    435,
+                    405,
+                    600,
+                    602,
+                    411,
+                    605,
+                    414
+                ],
+                "self._format_chunk": [
+                    435,
+                    398
+                ],
+                "self._pending_write.add_done_callback": [
+                    400,
+                    466,
+                    451,
+                    436
+                ],
+                "self._on_write_complete": [
+                    400,
+                    451,
+                    436
+                ],
+                "len": [
+                    602,
+                    579,
+                    405,
+                    414
+                ],
+                "httputil.HTTPOutputError": [
+                    409,
+                    445
+                ],
+                "self._write_future.set_exception": [
+                    428
+                ],
+                "self._write_future.exception": [
+                    429
+                ],
+                "self.stream.set_nodelay": [
+                    504,
+                    462
+                ],
+                "self._finish_request": [
+                    464,
+                    466
+                ],
+                "exc": [
+                    469,
+                    470
+                ],
+                "isinstance": [
+                    707,
+                    470
+                ],
+                "future.result": [
+                    471
+                ],
+                "self.stream.io_loop.add_callback": [
+                    475
+                ],
+                "future.set_result": [
+                    479
+                ],
+                "self.params.no_keep_alive": [
+                    482
+                ],
+                "connection_header": [
+                    484,
+                    485,
+                    486,
+                    488,
+                    494
+                ],
+                "connection_header.lower": [
+                    486
+                ],
+                "start_line.version": [
+                    487
+                ],
+                "getattr": [
+                    491
+                ],
+                "lstrip": [
+                    513
+                ],
+                "data.decode": [
+                    513
+                ],
+                "eol": [
+                    522,
+                    515,
+                    516,
+                    518
+                ],
+                "data.find": [
+                    515
+                ],
+                "rstrip": [
+                    516
+                ],
+                "httputil.HTTPHeaders.parse": [
+                    518
+                ],
+                "httputil.HTTPHeaders": [
+                    518
+                ],
+                "pieces": [
+                    537,
+                    538,
+                    542
+                ],
+                "re.split": [
+                    537
+                ],
+                "re": [
+                    537
+                ],
+                "any": [
+                    538
+                ],
+                "i": [
+                    538
+                ],
+                "content_length": [
+                    576,
+                    545,
+                    578,
+                    579,
+                    551,
+                    554,
+                    561,
+                    564,
+                    566,
+                    567
+                ],
+                "self._read_fixed_body": [
+                    567
+                ],
+                "self._read_chunked_body": [
+                    569
+                ],
+                "self._read_body_until_close": [
+                    571
+                ],
+                "body": [
+                    577,
+                    579,
+                    614,
+                    582,
+                    617
+                ],
+                "self.stream.read_bytes": [
+                    600,
+                    577,
+                    609
+                ],
+                "min": [
+                    601,
+                    578
+                ],
+                "ret": [
+                    582,
+                    583,
+                    584,
+                    647,
+                    648,
+                    649,
+                    652,
+                    653,
+                    654,
+                    733,
+                    721,
+                    605,
+                    606,
+                    607
+                ],
+                "delegate.data_received": [
+                    617,
+                    605,
+                    582
+                ],
+                "total_size": [
+                    595,
+                    596,
+                    589
+                ],
+                "chunk_len": [
+                    591,
+                    592,
+                    593,
+                    595,
+                    598
+                ],
+                "self.stream.read_until": [
+                    591
+                ],
+                "chunk_len.strip": [
+                    592
+                ],
+                "bytes_to_read": [
+                    601,
+                    602,
+                    598,
+                    599
+                ],
+                "crlf": [
+                    609,
+                    610
+                ],
+                "self.stream.read_until_close": [
+                    614
+                ],
+                "httputil.HTTPMessageDelegate": [
+                    620
+                ],
+                "self._delegate": [
+                    669,
+                    647,
+                    652,
+                    624,
+                    665,
+                    666,
+                    637
+                ],
+                "self._chunk_size": [
+                    625,
+                    645
+                ],
+                "self._decompressor": [
+                    641,
+                    644,
+                    650,
+                    657,
+                    626,
+                    658,
+                    630
+                ],
+                "GzipDecompressor": [
+                    630
+                ],
+                "headers.add": [
+                    634
+                ],
+                "self._delegate.headers_received": [
+                    637
+                ],
+                "compressed_data": [
+                    642,
+                    643,
+                    645,
+                    650
+                ],
+                "decompressed": [
+                    644,
+                    646,
+                    647
+                ],
+                "self._decompressor.decompress": [
+                    644
+                ],
+                "self._delegate.data_received": [
+                    665,
+                    652,
+                    647
+                ],
+                "self._decompressor.unconsumed_tail": [
+                    650
+                ],
+                "tail": [
+                    665,
+                    658,
+                    659
+                ],
+                "self._decompressor.flush": [
+                    658
+                ],
+                "self._delegate.finish": [
+                    666
+                ],
+                "self._delegate.on_connection_close": [
+                    669
+                ],
+                "self._serving_future": [
+                    698,
+                    708,
+                    710,
+                    686
+                ],
+                "httputil.HTTPServerConnectionDelegate": [
+                    707
+                ],
+                "self._server_request_loop": [
+                    708
+                ],
+                "self.stream.io_loop.add_future": [
+                    710
+                ],
+                "f.result": [
+                    711
+                ],
+                "f": [
+                    711
+                ],
+                "conn": [
+                    717,
+                    719,
+                    721,
+                    727,
+                    731
+                ],
+                "HTTP1Connection": [
+                    717
+                ],
+                "request_delegate": [
+                    721,
+                    719
+                ],
+                "delegate.start_request": [
+                    719
+                ],
+                "conn.read_response": [
+                    721
+                ],
+                "iostream.UnsatisfiableReadError": [
+                    723
+                ],
+                "conn.close": [
+                    731,
+                    727
+                ],
+                "gen_log.error": [
+                    730
+                ],
+                "gen.moment": [
+                    735
+                ],
+                "delegate.on_close": [
+                    737
+                ]
+            },
+            "filtered_variables_in_file": {
+                "self.logger": [
+                    54,
+                    47
+                ],
+                "self": [
+                    551,
+                    47,
+                    54,
+                    567,
+                    569,
+                    570,
+                    571,
+                    577,
+                    578,
+                    580,
+                    75,
+                    76,
+                    77,
+                    78,
+                    79,
+                    80,
+                    81,
+                    591,
+                    596,
+                    600,
+                    601,
+                    603,
+                    609,
+                    98,
+                    99,
+                    102,
+                    103,
+                    104,
+                    614,
+                    615,
+                    107,
+                    108,
+                    109,
+                    624,
+                    113,
+                    625,
+                    115,
+                    626,
+                    118,
+                    630,
+                    122,
+                    123,
+                    637,
+                    127,
+                    128,
+                    129,
+                    641,
+                    131,
+                    644,
+                    645,
+                    134,
+                    647,
+                    136,
+                    650,
+                    652,
+                    657,
+                    658,
+                    149,
+                    150,
+                    151,
+                    665,
+                    666,
+                    157,
+                    669,
+                    159,
+                    160,
+                    165,
+                    167,
+                    681,
+                    170,
+                    172,
+                    173,
+                    684,
+                    175,
+                    685,
+                    686,
+                    178,
+                    179,
+                    181,
+                    694,
+                    698,
+                    188,
+                    193,
+                    194,
+                    195,
+                    708,
+                    710,
+                    717,
+                    718,
+                    719,
+                    212,
+                    215,
+                    216,
+                    218,
+                    219,
+                    221,
+                    737,
+                    226,
+                    227,
+                    231,
+                    232,
+                    234,
+                    235,
+                    242,
+                    243,
+                    244,
+                    245,
+                    246,
+                    247,
+                    248,
+                    249,
+                    253,
+                    254,
+                    260,
+                    269,
+                    270,
+                    271,
+                    272,
+                    273,
+                    281,
+                    287,
+                    288,
+                    289,
+                    291,
+                    292,
+                    293,
+                    296,
+                    297,
+                    298,
+                    299,
+                    300,
+                    310,
+                    311,
+                    312,
+                    313,
+                    314,
+                    322,
+                    329,
+                    334,
+                    335,
+                    339,
+                    344,
+                    346,
+                    350,
+                    361,
+                    362,
+                    365,
+                    367,
+                    368,
+                    370,
+                    372,
+                    374,
+                    387,
+                    388,
+                    393,
+                    395,
+                    398,
+                    399,
+                    400,
+                    404,
+                    405,
+                    406,
+                    408,
+                    411,
+                    426,
+                    427,
+                    428,
+                    429,
+                    432,
+                    434,
+                    435,
+                    436,
+                    441,
+                    442,
+                    443,
+                    444,
+                    447,
+                    448,
+                    449,
+                    450,
+                    451,
+                    452,
+                    458,
+                    459,
+                    462,
+                    463,
+                    464,
+                    466,
+                    472,
+                    473,
+                    474,
+                    475,
+                    476,
+                    477,
+                    478,
+                    482,
+                    498,
+                    499,
+                    500,
+                    504,
+                    505,
+                    506
+                ],
+                "logger": [
+                    47
+                ],
+                "value": [
+                    53,
+                    54
+                ],
+                "self.logger.error": [
+                    54
+                ],
+                "typ": [
+                    54
+                ],
+                "tb": [
+                    54
+                ],
+                "_QuietException": [
+                    725,
+                    55
+                ],
+                "self.no_keep_alive": [
+                    104,
+                    75
+                ],
+                "no_keep_alive": [
+                    75
+                ],
+                "self.chunk_size": [
+                    76
+                ],
+                "chunk_size": [
+                    625,
+                    76
+                ],
+                "self.max_header_size": [
+                    77
+                ],
+                "max_header_size": [
+                    77
+                ],
+                "self.header_timeout": [
+                    78
+                ],
+                "header_timeout": [
+                    78
+                ],
+                "self.max_body_size": [
+                    79
+                ],
+                "max_body_size": [
+                    329,
+                    79
+                ],
+                "self.body_timeout": [
+                    80
+                ],
+                "body_timeout": [
+                    80
+                ],
+                "self.decompress": [
+                    81
+                ],
+                "decompress": [
+                    81
+                ],
+                "httputil.HTTPConnection": [
+                    84
+                ],
+                "httputil": [
+                    707,
+                    548,
+                    518,
+                    552,
+                    521,
+                    620,
+                    174,
+                    208,
+                    177,
+                    562,
+                    531,
+                    84,
+                    597,
+                    539,
+                    409,
+                    251,
+                    445
+                ],
+                "self.is_client": [
+                    193,
+                    98,
+                    603,
+                    580,
+                    615,
+                    235,
+                    173,
+                    334,
+                    367,
+                    499,
+                    247,
+                    570,
+                    219
+                ],
+                "is_client": [
+                    98
+                ],
+                "self.stream": [
+                    387,
+                    399,
+                    272,
+                    273,
+                    408,
+                    157,
+                    165,
+                    167,
+                    296,
+                    297,
+                    426,
+                    681,
+                    435,
+                    694,
+                    311,
+                    312,
+                    443,
+                    188,
+                    444,
+                    449,
+                    450,
+                    577,
+                    710,
+                    717,
+                    462,
+                    591,
+                    216,
+                    600,
+                    475,
+                    609,
+                    226,
+                    99,
+                    227,
+                    614,
+                    232,
+                    108,
+                    243,
+                    244,
+                    245,
+                    504,
+                    249
+                ],
+                "stream": [
+                    681,
+                    315,
+                    99,
+                    311
+                ],
+                "params": [
+                    100,
+                    101,
+                    102,
+                    104,
+                    682,
+                    683,
+                    684
+                ],
+                "HTTP1ConnectionParameters": [
+                    683,
+                    101
+                ],
+                "self.params": [
+                    160,
+                    482,
+                    578,
+                    165,
+                    102,
+                    107,
+                    684,
+                    109,
+                    718,
+                    149,
+                    150,
+                    601,
+                    159
+                ],
+                "self.context": [
+                    231,
+                    103,
+                    685,
+                    718,
+                    253
+                ],
+                "context": [
+                    685,
+                    103
+                ],
+                "params.no_keep_alive": [
+                    104
+                ],
+                "self._max_body_size": [
+                    329,
+                    107,
+                    596,
+                    551
+                ],
+                "self.params.max_body_size": [
+                    107
+                ],
+                "self.stream.max_buffer_size": [
+                    108
+                ],
+                "self._body_timeout": [
+                    221,
+                    226,
+                    322,
+                    109
+                ],
+                "self.params.body_timeout": [
+                    109
+                ],
+                "self._write_finished": [
+                    452,
+                    580,
+                    615,
+                    235,
+                    113,
+                    215,
+                    603
+                ],
+                "self._read_finished": [
+                    458,
+                    234,
+                    115
+                ],
+                "self._finish_future": [
+                    291,
+                    292,
+                    299,
+                    300,
+                    505,
+                    242,
+                    506,
+                    118,
+                    246,
+                    313,
+                    314
+                ],
+                "Future": [
+                    388,
+                    395,
+                    427,
+                    434,
+                    118
+                ],
+                "self._disconnect_on_finish": [
+                    459,
+                    499,
+                    181,
+                    247,
+                    122
+                ],
+                "self._clear_callbacks": [
+                    260,
+                    293,
+                    298,
+                    498,
+                    310,
+                    123
+                ],
+                "self._request_start_line": [
+                    194,
+                    195,
+                    361,
+                    335,
+                    368,
+                    178,
+                    350,
+                    127
+                ],
+                "self._response_start_line": [
+                    128,
+                    344,
+                    175
+                ],
+                "self._request_headers": [
+                    129,
+                    362,
+                    179
+                ],
+                "self._chunking_output": [
+                    448,
+                    131,
+                    365,
+                    339,
+                    346,
+                    411
+                ],
+                "self._expected_content_remaining": [
+                    134,
+                    370,
+                    404,
+                    372,
+                    374,
+                    405,
+                    406,
+                    441,
+                    442,
+                    447
+                ],
+                "self._pending_write": [
+                    450,
+                    451,
+                    136,
+                    399,
+                    400,
+                    463,
+                    466,
+                    435,
+                    436
+                ],
+                "self.params.decompress": [
+                    149
+                ],
+                "delegate": [
+                    737,
+                    259,
+                    707,
+                    567,
+                    582,
+                    708,
+                    617,
+                    238,
+                    569,
+                    624,
+                    719,
+                    212,
+                    150,
+                    151,
+                    185,
+                    219,
+                    605,
+                    571
+                ],
+                "_GzipMessageDelegate": [
+                    150
+                ],
+                "self.params.chunk_size": [
+                    601,
+                    578,
+                    150
+                ],
+                "self._read_message": [
+                    212,
+                    151
+                ],
+                "need_delegate_close": [
+                    257,
+                    236,
+                    183,
+                    155,
+                    190
+                ],
+                "header_future": [
+                    161,
+                    166,
+                    185,
+                    186,
+                    187,
+                    157
+                ],
+                "self.stream.read_until_regex": [
+                    157
+                ],
+                "self.params.max_header_size": [
+                    159
+                ],
+                "self.params.header_timeout": [
+                    160,
+                    165
+                ],
+                "header_data": [
+                    161,
+                    172,
+                    164
+                ],
+                "gen.with_timeout": [
+                    225,
+                    164
+                ],
+                "gen": [
+                    225,
+                    255,
+                    164,
+                    229,
+                    261,
+                    612,
+                    169,
+                    233,
+                    171,
+                    586,
+                    713,
+                    639,
+                    688,
+                    735,
+                    153,
+                    250,
+                    574,
+                    191
+                ],
+                "self.stream.io_loop.time": [
+                    226,
+                    165
+                ],
+                "self.stream.io_loop": [
+                    226,
+                    227,
+                    165,
+                    710,
+                    167,
+                    475
+                ],
+                "iostream.StreamClosedError": [
+                    228,
+                    389,
+                    168,
+                    428,
+                    722,
+                    470
+                ],
+                "iostream": [
+                    228,
+                    389,
+                    168,
+                    428,
+                    722,
+                    723,
+                    470
+                ],
+                "gen.TimeoutError": [
+                    169,
+                    229
+                ],
+                "self.close": [
+                    248,
+                    170,
+                    500,
+                    254
+                ],
+                "gen.Return": [
+                    191,
+                    261,
+                    233,
+                    171,
+                    250,
+                    255
+                ],
+                "start_line": [
+                    516,
+                    523,
+                    172,
+                    174,
+                    175,
+                    177,
+                    178,
+                    182,
+                    185,
+                    197,
+                    335,
+                    336,
+                    340,
+                    344,
+                    345,
+                    219,
+                    354,
+                    487,
+                    491,
+                    369,
+                    637
+                ],
+                "headers": [
+                    518,
+                    523,
+                    526,
+                    527,
+                    533,
+                    537,
+                    541,
+                    542,
+                    545,
+                    549,
+                    172,
+                    560,
+                    179,
+                    182,
+                    568,
+                    185,
+                    206,
+                    207,
+                    341,
+                    214,
+                    342,
+                    219,
+                    356,
+                    484,
+                    359,
+                    489,
+                    490,
+                    364,
+                    366,
+                    371,
+                    372,
+                    629,
+                    634,
+                    378,
+                    635,
+                    636,
+                    637
+                ],
+                "self._parse_headers": [
+                    172
+                ],
+                "httputil.parse_response_start_line": [
+                    174
+                ],
+                "httputil.parse_request_start_line": [
+                    177
+                ],
+                "self._can_keep_alive": [
+                    181
+                ],
+                "_ExceptionLoggingContext": [
+                    258,
+                    581,
+                    616,
+                    237,
+                    184,
+                    604
+                ],
+                "app_log": [
+                    258,
+                    581,
+                    616,
+                    237,
+                    184,
+                    604
+                ],
+                "delegate.headers_received": [
+                    185
+                ],
+                "skip_body": [
+                    192,
+                    217,
+                    202,
+                    196
+                ],
+                "self._request_start_line.method": [
+                    368,
+                    195
+                ],
+                "code": [
+                    197,
+                    198,
+                    203,
+                    556,
+                    209,
+                    563
+                ],
+                "start_line.code": [
+                    369,
+                    354,
+                    219,
+                    197
+                ],
+                "httputil.HTTPInputError": [
+                    548,
+                    552,
+                    521,
+                    208,
+                    562,
+                    531,
+                    597,
+                    539,
+                    251
+                ],
+                "headers.get": [
+                    484,
+                    490,
+                    629,
+                    214,
+                    568
+                ],
+                "self.stream.write": [
+                    216,
+                    450,
+                    435,
+                    399
+                ],
+                "body_future": [
+                    218,
+                    227,
+                    220,
+                    222
+                ],
+                "self._read_body": [
+                    218
+                ],
+                "gen_log.info": [
+                    252,
+                    230
+                ],
+                "gen_log": [
+                    730,
+                    252,
+                    230
+                ],
+                "self.stream.close": [
+                    232,
+                    297,
+                    694,
+                    408,
+                    444
+                ],
+                "delegate.finish": [
+                    238
+                ],
+                "self._finish_future.done": [
+                    291,
+                    313,
+                    299,
+                    242,
+                    505
+                ],
+                "self.stream.closed": [
+                    449,
+                    387,
+                    426,
+                    244,
+                    443
+                ],
+                "self.stream.set_close_callback": [
+                    273,
+                    245
+                ],
+                "self._on_connection_close": [
+                    245
+                ],
+                "e": [
+                    253
+                ],
+                "delegate.on_connection_close": [
+                    259
+                ],
+                "gen.coroutine": [
+                    612,
+                    713,
+                    586,
+                    688,
+                    153,
+                    574,
+                    639
+                ],
+                "self._write_callback": [
+                    393,
+                    269,
+                    432,
+                    472,
+                    473,
+                    474
+                ],
+                "self._write_future": [
+                    388,
+                    395,
+                    428,
+                    427,
+                    270,
+                    429,
+                    434,
+                    476,
+                    477,
+                    478
+                ],
+                "self._close_callback": [
+                    288,
+                    289,
+                    271,
+                    281,
+                    287
+                ],
+                "stack_context.wrap": [
+                    432,
+                    281,
+                    393
+                ],
+                "stack_context": [
+                    432,
+                    281,
+                    393
+                ],
+                "callback": [
+                    288,
+                    290,
+                    392,
+                    393,
+                    473,
+                    431,
+                    432,
+                    281,
+                    475
+                ],
+                "self._finish_future.set_result": [
+                    314,
+                    506,
+                    292,
+                    300
+                ],
+                "timeout": [
+                    322
+                ],
+                "lines": [
+                    396,
+                    333,
+                    336,
+                    345,
+                    380,
+                    382,
+                    383
+                ],
+                "lines.append": [
+                    336,
+                    345
+                ],
+                "utf8": [
+                    336,
+                    345,
+                    414
+                ],
+                "start_line.method": [
+                    340
+                ],
+                "self._request_start_line.version": [
+                    361,
+                    350
+                ],
+                "lower": [
+                    362,
+                    490
+                ],
+                "self._request_headers.get": [
+                    362
+                ],
+                "header_lines": [
+                    378,
+                    380,
+                    382
+                ],
+                "native_str": [
+                    513,
+                    378
+                ],
+                "n": [
+                    378
+                ],
+                "v": [
+                    378
+                ],
+                "headers.get_all": [
+                    378
+                ],
+                "PY3": [
+                    379
+                ],
+                "lines.extend": [
+                    380,
+                    382
+                ],
+                "l.encode": [
+                    380
+                ],
+                "l": [
+                    380
+                ],
+                "line": [
+                    384,
+                    385,
+                    383
+                ],
+                "future": [
+                    386,
+                    388,
+                    389,
+                    390,
+                    425,
+                    395,
+                    427,
+                    401,
+                    434,
+                    437,
+                    469,
+                    471,
+                    477,
+                    479
+                ],
+                "future.set_exception": [
+                    389
+                ],
+                "future.exception": [
+                    469,
+                    390
+                ],
+                "data": [
+                    513,
+                    515,
+                    516,
+                    518,
+                    522,
+                    396,
+                    398,
+                    399
+                ],
+                "join": [
+                    396
+                ],
+                "chunk": [
+                    416,
+                    642,
+                    652,
+                    397,
+                    398,
+                    435,
+                    405,
+                    600,
+                    602,
+                    411,
+                    605,
+                    414
+                ],
+                "self._format_chunk": [
+                    435,
+                    398
+                ],
+                "self._pending_write.add_done_callback": [
+                    400,
+                    466,
+                    451,
+                    436
+                ],
+                "self._on_write_complete": [
+                    400,
+                    451,
+                    436
+                ],
+                "httputil.HTTPOutputError": [
+                    409,
+                    445
+                ],
+                "self._write_future.set_exception": [
+                    428
+                ],
+                "self._write_future.exception": [
+                    429
+                ],
+                "self.stream.set_nodelay": [
+                    504,
+                    462
+                ],
+                "self._finish_request": [
+                    464,
+                    466
+                ],
+                "exc": [
+                    469,
+                    470
+                ],
+                "future.result": [
+                    471
+                ],
+                "self.stream.io_loop.add_callback": [
+                    475
+                ],
+                "future.set_result": [
+                    479
+                ],
+                "self.params.no_keep_alive": [
+                    482
+                ],
+                "connection_header": [
+                    484,
+                    485,
+                    486,
+                    488,
+                    494
+                ],
+                "connection_header.lower": [
+                    486
+                ],
+                "start_line.version": [
+                    487
+                ],
+                "lstrip": [
+                    513
+                ],
+                "data.decode": [
+                    513
+                ],
+                "eol": [
+                    522,
+                    515,
+                    516,
+                    518
+                ],
+                "data.find": [
+                    515
+                ],
+                "rstrip": [
+                    516
+                ],
+                "httputil.HTTPHeaders.parse": [
+                    518
+                ],
+                "httputil.HTTPHeaders": [
+                    518
+                ],
+                "pieces": [
+                    537,
+                    538,
+                    542
+                ],
+                "re.split": [
+                    537
+                ],
+                "re": [
+                    537
+                ],
+                "i": [
+                    538
+                ],
+                "content_length": [
+                    576,
+                    545,
+                    578,
+                    579,
+                    551,
+                    554,
+                    561,
+                    564,
+                    566,
+                    567
+                ],
+                "self._read_fixed_body": [
+                    567
+                ],
+                "self._read_chunked_body": [
+                    569
+                ],
+                "self._read_body_until_close": [
+                    571
+                ],
+                "body": [
+                    577,
+                    579,
+                    614,
+                    582,
+                    617
+                ],
+                "self.stream.read_bytes": [
+                    600,
+                    577,
+                    609
+                ],
+                "ret": [
+                    582,
+                    583,
+                    584,
+                    647,
+                    648,
+                    649,
+                    652,
+                    653,
+                    654,
+                    733,
+                    721,
+                    605,
+                    606,
+                    607
+                ],
+                "delegate.data_received": [
+                    617,
+                    605,
+                    582
+                ],
+                "total_size": [
+                    595,
+                    596,
+                    589
+                ],
+                "chunk_len": [
+                    591,
+                    592,
+                    593,
+                    595,
+                    598
+                ],
+                "self.stream.read_until": [
+                    591
+                ],
+                "chunk_len.strip": [
+                    592
+                ],
+                "bytes_to_read": [
+                    601,
+                    602,
+                    598,
+                    599
+                ],
+                "crlf": [
+                    609,
+                    610
+                ],
+                "self.stream.read_until_close": [
+                    614
+                ],
+                "httputil.HTTPMessageDelegate": [
+                    620
+                ],
+                "self._delegate": [
+                    669,
+                    647,
+                    652,
+                    624,
+                    665,
+                    666,
+                    637
+                ],
+                "self._chunk_size": [
+                    625,
+                    645
+                ],
+                "self._decompressor": [
+                    641,
+                    644,
+                    650,
+                    657,
+                    626,
+                    658,
+                    630
+                ],
+                "GzipDecompressor": [
+                    630
+                ],
+                "headers.add": [
+                    634
+                ],
+                "self._delegate.headers_received": [
+                    637
+                ],
+                "compressed_data": [
+                    642,
+                    643,
+                    645,
+                    650
+                ],
+                "decompressed": [
+                    644,
+                    646,
+                    647
+                ],
+                "self._decompressor.decompress": [
+                    644
+                ],
+                "self._delegate.data_received": [
+                    665,
+                    652,
+                    647
+                ],
+                "self._decompressor.unconsumed_tail": [
+                    650
+                ],
+                "tail": [
+                    665,
+                    658,
+                    659
+                ],
+                "self._decompressor.flush": [
+                    658
+                ],
+                "self._delegate.finish": [
+                    666
+                ],
+                "self._delegate.on_connection_close": [
+                    669
+                ],
+                "self._serving_future": [
+                    698,
+                    708,
+                    710,
+                    686
+                ],
+                "httputil.HTTPServerConnectionDelegate": [
+                    707
+                ],
+                "self._server_request_loop": [
+                    708
+                ],
+                "self.stream.io_loop.add_future": [
+                    710
+                ],
+                "f.result": [
+                    711
+                ],
+                "f": [
+                    711
+                ],
+                "conn": [
+                    717,
+                    719,
+                    721,
+                    727,
+                    731
+                ],
+                "HTTP1Connection": [
+                    717
+                ],
+                "request_delegate": [
+                    721,
+                    719
+                ],
+                "delegate.start_request": [
+                    719
+                ],
+                "conn.read_response": [
+                    721
+                ],
+                "iostream.UnsatisfiableReadError": [
+                    723
+                ],
+                "conn.close": [
+                    731,
+                    727
+                ],
+                "gen_log.error": [
+                    730
+                ],
+                "gen.moment": [
+                    735
+                ],
+                "delegate.on_close": [
+                    737
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs/repos/tornado_11/tornado/test/httpserver_test.py",
+                "test_function": "test_chunked_request_uppercase",
+                "test_function_code": "    def test_chunked_request_uppercase(self):\n        # As per RFC 2616 section 3.6, \"Transfer-Encoding\" header's value is\n        # case-insensitive.\n        self.stream.write(b\"\"\"\\\nPOST /echo HTTP/1.1\nTransfer-Encoding: Chunked\nContent-Type: application/x-www-form-urlencoded\n\n4\nfoo=\n3\nbar\n0\n\n\"\"\".replace(b\"\\n\", b\"\\r\\n\"))\n        read_stream_body(self.stream, self.stop)\n        headers, response = self.wait()\n        self.assertEqual(json_decode(response), {u'foo': [u'bar']})",
+                "test_error": "AssertionError: {} != {'foo': ['bar']}\n- {}\n+ {'foo': ['bar']}",
+                "full_test_error": "self = <tornado.test.httpserver_test.HTTPServerRawTest testMethod=test_chunked_request_uppercase>\n\n        def test_chunked_request_uppercase(self):\n            # As per RFC 2616 section 3.6, \"Transfer-Encoding\" header's value is\n            # case-insensitive.\n            self.stream.write(b\"\"\"\\\n    POST /echo HTTP/1.1\n    Transfer-Encoding: Chunked\n    Content-Type: application/x-www-form-urlencoded\n    \n    4\n    foo=\n    3\n    bar\n    0\n    \n    \"\"\".replace(b\"\\n\", b\"\\r\\n\"))\n            read_stream_body(self.stream, self.stop)\n            headers, response = self.wait()\n>           self.assertEqual(json_decode(response), {u'foo': [u'bar']})\nE           AssertionError: {} != {'foo': ['bar']}\nE           - {}\nE           + {'foo': ['bar']}\n\ntornado/test/httpserver_test.py:461: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

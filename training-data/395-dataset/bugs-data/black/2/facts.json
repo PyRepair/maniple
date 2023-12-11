@@ -4,7 +4,7 @@
     "1.2.1": null,
     "1.2.2": null,
     "1.2.3": null,
-    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/black_2/black.py",
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/black_2/black.py",
     "1.3.2": [
         "container_of(leaf: Leaf) -> LN",
         "list_comments(prefix: str) -> List[ProtoComment]"
@@ -13,21 +13,48 @@
         "    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_fmtonoff4(self) -> None:\n        source, expected = read_data(\"fmtonoff4\")\n        actual = fs(source)\n        self.assertFormatEqual(expected, actual)\n        black.assert_equivalent(source, actual)\n        black.assert_stable(source, actual, black.FileMode())"
     ],
     "1.4.2": [
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/black_2/tests/test_black.py"
+        "/Volumes/SSD2T/bgp_envs/repos/black_2/tests/test_black.py"
     ],
     "2.1.1": [
         [
-            "E       FileNotFoundError: [Errno 2] No such file or directory: '/Volumes/SSD2T/bgp_envs_non_pandas/repos/black_2/tests/data/fmtonoff4.py'"
+            "E   AssertionError: '# fm[57 chars] f():\\n    pass\\n\\n\\n@test(\\n    [1, 2, 3, 4,][21 chars]ss\\n' != '# fm[57 chars] f(): pass\\n\\n@test([\\n    1, 2,\\n    3, 4,\\n][14 chars]ss\\n'\nE     # fmt: off\nE     @test([\nE         1, 2,\nE         3, 4,\nE     ])\nE     # fmt: on\nE   - def f():\nE   + def f(): pass\nE   ?         +++++\nE   -     pass\nE     \nE   - \nE   - @test(\nE   + @test([\nE   ?       +\nE   -     [1, 2, 3, 4,]\nE   +     1, 2,\nE   +     3, 4,\nE   - )\nE   + ])\nE   ? +\nE   - def f():\nE   + def f(): pass\nE   ?         +++++\nE   -     pass"
         ]
     ],
     "2.1.2": [
         [
-            "self = <test_black.BlackTestCase testMethod=test_fmtonoff4>\n\n    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_fmtonoff4(self) -> None:\n>       source, expected = read_data(\"fmtonoff4\")\n\ntests/test_black.py:637: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nname = 'fmtonoff4.py', data = True\n\n    def read_data(name: str, data: bool = True) -> Tuple[str, str]:\n        \"\"\"read_data('test_name') -> 'input', 'output'\"\"\"\n        if not name.endswith((\".py\", \".pyi\", \".out\", \".diff\")):\n            name += \".py\"\n        _input: List[str] = []\n        _output: List[str] = []\n        base_dir = THIS_DIR / \"data\" if data else THIS_DIR\n>       with open(base_dir / name, \"r\", encoding=\"utf8\") as test:",
-            "\ntests/test_black.py:58: FileNotFoundError"
+            "self = <test_black.BlackTestCase testMethod=test_fmtonoff4>\n\n    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_fmtonoff4(self) -> None:\n        source, expected = read_data(\"fmtonoff4\")\n        actual = fs(source)\n>       self.assertFormatEqual(expected, actual)\n\ntests/test_black.py:639: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntests/test_black.py:153: in assertFormatEqual\n    self.assertEqual(expected, actual)"
         ]
     ],
-    "2.1.3": null,
-    "2.1.4": null,
+    "2.1.3": [
+        [
+            {
+                "leaf": "Leaf(AT, '@')"
+            },
+            {
+                "container": "Leaf(ENDMARKER, '')",
+                "container.type": "0",
+                "is_fmt_on": "False",
+                "comment": "ProtoComment(type=53, value='# fmt: off', newlines=0, consumed=11)",
+                "container.prefix": "''",
+                "comment.value": "'# fmt: off'"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "leaf": "Leaf"
+            },
+            {
+                "container": "Leaf",
+                "container.type": "int",
+                "is_fmt_on": "bool",
+                "comment": "ProtoComment",
+                "container.prefix": "str",
+                "comment.value": "str"
+            }
+        ]
+    ],
     "2.1.5": [
         [
             {
@@ -59,9 +86,9 @@
         ]
     ],
     "3.1.1": [
-        "\n"
+        "\"fmt: on\" does not work when crossing block boundaries and decorators\n"
     ],
     "3.1.2": [
-        "\n"
+        "Operating system: Linux Mint 19.0\nPython version: 3.6.6\nBlack version: 18.9b0\nDoes also happen on master: yes\n\nSimplest reproducer: the following is left unchanged. In fact, it behaves as if # fmt: off is true until end of file.\n\n# fmt: off\nif (x and y):\n# fmt: on\n    pass\n\nif (x and y):\n    pass\nThe soonest # fmt: on takes effect is at end of the indented if block.\n\nRan into this with a series of decorators:\n\n# fmt: off\n@click.command()\n@click.option(\"-a\", \"--align\",      help=\"aligned help texts\")\n@click.option(\"-b\", \"--big-option\", help=\"should stay aligned\")\n# fmt: on\ndef foo(align,    big_option):\n    pass\nSimple workaround for me is keep the formatter commands within a \"block\" - the following works perfectly fine:\n\n@click.command()\n# fmt: off\n@click.option(\"-a\", \"--align\",      help=\"aligned help texts\")\n@click.option(\"-b\", \"--big-option\", help=\"should stay aligned\")\n# fmt: on\ndef foo(align, big_option):\n    pass\n"
     ]
 }

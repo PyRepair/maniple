@@ -1,0 +1,340 @@
+{
+    "1.1.1": "def create_cloned_field(field: ModelField) -> ModelField:\n    original_type = field.type_\n    if is_dataclass(original_type) and hasattr(original_type, \"__pydantic_model__\"):\n        original_type = original_type.__pydantic_model__  # type: ignore\n    use_type = original_type\n    if lenient_issubclass(original_type, BaseModel):\n        original_type = cast(Type[BaseModel], original_type)\n        use_type = create_model(\n            original_type.__name__, __config__=original_type.__config__\n        )\n        for f in original_type.__fields__.values():\n            use_type.__fields__[f.name] = f\n        use_type.__validators__ = original_type.__validators__\n    if PYDANTIC_1:\n        new_field = ModelField(\n            name=field.name,\n            type_=use_type,\n            class_validators={},\n            default=None,\n            required=False,\n            model_config=BaseConfig,\n            field_info=FieldInfo(None),\n        )\n    else:  # pragma: nocover\n        new_field = ModelField(  # type: ignore\n            name=field.name,\n            type_=use_type,\n            class_validators={},\n            default=None,\n            required=False,\n            model_config=BaseConfig,\n            schema=FieldInfo(None),\n        )\n    new_field.has_alias = field.has_alias\n    new_field.alias = field.alias\n    new_field.class_validators = field.class_validators\n    new_field.default = field.default\n    new_field.required = field.required\n    new_field.model_config = field.model_config\n    if PYDANTIC_1:\n        new_field.field_info = field.field_info\n    else:  # pragma: nocover\n        new_field.schema = field.schema  # type: ignore\n    new_field.allow_none = field.allow_none\n    new_field.validate_always = field.validate_always\n    if field.sub_fields:\n        new_field.sub_fields = [\n            create_cloned_field(sub_field) for sub_field in field.sub_fields\n        ]\n    if field.key_field:\n        new_field.key_field = create_cloned_field(field.key_field)\n    new_field.validators = field.validators\n    if PYDANTIC_1:\n        new_field.pre_validators = field.pre_validators\n        new_field.post_validators = field.post_validators\n    else:  # pragma: nocover\n        new_field.whole_pre_validators = field.whole_pre_validators  # type: ignore\n        new_field.whole_post_validators = field.whole_post_validators  # type: ignore\n    new_field.parse_json = field.parse_json\n    new_field.shape = field.shape\n    try:\n        new_field.populate_validators()\n    except AttributeError:  # pragma: nocover\n        # TODO: remove when removing support for Pydantic < 1.0.0\n        new_field._populate_validators()  # type: ignore\n    return new_field\n",
+    "1.1.2": null,
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/fastapi_5/fastapi/utils.py",
+    "1.3.2": [
+        "create_cloned_field(field: ModelField) -> ModelField"
+    ],
+    "1.4.1": [
+        "def test_filter_sub_model():\n    response = client.get(\"/model\")\n    assert response.status_code == 200\n    assert response.json() == {\n        \"name\": \"model-a-name\",\n        \"description\": \"model-a-desc\",\n        \"model_b\": {\"username\": \"test-user\"},\n    }"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_5/tests/test_filter_pydantic_sub_model.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: assert {'description': 'model-a-desc',\\n 'model_b': {'password': 'test-password', 'username': 'test-user'},\\n 'name': 'model-a-name'} == {'description': 'model-a-desc',\\n 'model_b': {'username': 'test-user'},\\n 'name': 'model-a-name'}\nE         Common items:\nE         {'description': 'model-a-desc', 'name': 'model-a-name'}\nE         Differing items:\nE         {'model_b': {'password': 'test-password', 'username': 'test-user'}} != {'model_b': {'username': 'test-user'}}\nE         Full diff:\nE           {\nE            'description': 'model-a-desc',\nE         -  'model_b': {'username': 'test-user'},\nE         +  'model_b': {'password': 'test-password', 'username': 'test-user'},\nE            'name': 'model-a-name',\nE           }"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "def test_filter_sub_model():\n        response = client.get(\"/model\")\n        assert response.status_code == 200\n>       assert response.json() == {\n            \"name\": \"model-a-name\",\n            \"description\": \"model-a-desc\",\n            \"model_b\": {\"username\": \"test-user\"},\n        }",
+            "\ntests/test_filter_pydantic_sub_model.py:87: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "field.type_": "<class 'tests.test_filter_pydantic_sub_model.ModelA'>",
+                "field": "ModelField(name='Response_get_model_a_model_get', type=Optional[ModelA], required=False, default=None)",
+                "field.name": "'Response_get_model_a_model_get'",
+                "field.has_alias": "False",
+                "field.alias": "'Response_get_model_a_model_get'",
+                "field.class_validators": "{}",
+                "field.required": "False",
+                "field.model_config": "<class 'pydantic.main.BaseConfig'>",
+                "field.field_info": "FieldInfo(extra={})",
+                "field.allow_none": "True",
+                "field.validate_always": "False",
+                "field.validators": "[<cyfunction BaseModel.validate at 0x10529e5f0>]",
+                "field.parse_json": "False",
+                "field.shape": "1"
+            },
+            {
+                "original_type": "<class 'tests.test_filter_pydantic_sub_model.ModelA'>",
+                "use_type": "<class 'ModelA'>",
+                "original_type.__name__": "'ModelA'",
+                "original_type.__config__": "<class 'tests.test_filter_pydantic_sub_model.Config'>",
+                "f": "ModelField(name='model_b', type=ModelB, required=True)",
+                "original_type.__fields__": "{'name': ModelField(name='name', type=str, required=True), 'description': ModelField(name='description', type=Optional[str], required=False, default=None), 'model_b': ModelField(name='model_b', type=ModelB, required=True)}",
+                "use_type.__fields__": "{'name': ModelField(name='name', type=str, required=True), 'description': ModelField(name='description', type=Optional[str], required=False, default=None), 'model_b': ModelField(name='model_b', type=ModelB, required=True)}",
+                "f.name": "'model_b'",
+                "use_type.__validators__": "{}",
+                "original_type.__validators__": "{}",
+                "new_field": "ModelField(name='Response_get_model_a_model_get', type=Optional[ModelA], required=False, default=None)",
+                "new_field.has_alias": "False",
+                "new_field.alias": "'Response_get_model_a_model_get'",
+                "new_field.class_validators": "{}",
+                "new_field.required": "False",
+                "new_field.model_config": "<class 'pydantic.main.BaseConfig'>",
+                "new_field.field_info": "FieldInfo(extra={})",
+                "new_field.allow_none": "True",
+                "new_field.validate_always": "False",
+                "new_field.validators": "[<cyfunction BaseModel.validate at 0x10529e930>]",
+                "new_field.parse_json": "False",
+                "new_field.shape": "1",
+                "new_field.populate_validators": "<bound method ModelField.populate_validators of ModelField(name='Response_get_model_a_model_get', type=Optional[ModelA], required=False, default=None)>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "field.type_": "ModelMetaclass",
+                "field": "ModelField",
+                "field.name": "str",
+                "field.has_alias": "bool",
+                "field.alias": "str",
+                "field.class_validators": "dict",
+                "field.required": "bool",
+                "field.model_config": "type",
+                "field.field_info": "FieldInfo",
+                "field.allow_none": "bool",
+                "field.validate_always": "bool",
+                "field.validators": "list",
+                "field.parse_json": "bool",
+                "field.shape": "int"
+            },
+            {
+                "original_type": "ModelMetaclass",
+                "use_type": "ModelMetaclass",
+                "original_type.__name__": "str",
+                "original_type.__config__": "type",
+                "f": "ModelField",
+                "original_type.__fields__": "dict",
+                "use_type.__fields__": "dict",
+                "f.name": "str",
+                "use_type.__validators__": "dict",
+                "original_type.__validators__": "dict",
+                "new_field": "ModelField",
+                "new_field.has_alias": "bool",
+                "new_field.alias": "str",
+                "new_field.class_validators": "dict",
+                "new_field.required": "bool",
+                "new_field.model_config": "type",
+                "new_field.field_info": "FieldInfo",
+                "new_field.allow_none": "bool",
+                "new_field.validate_always": "bool",
+                "new_field.validators": "list",
+                "new_field.parse_json": "bool",
+                "new_field.shape": "int",
+                "new_field.populate_validators": "method"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "field.type_": "<class 'str'>",
+                "field": "ModelField(name='name', type=str, required=True)",
+                "field.name": "'name'",
+                "field.has_alias": "False",
+                "field.alias": "'name'",
+                "field.class_validators": "{}",
+                "field.required": "True",
+                "field.model_config": "<class 'tests.test_filter_pydantic_sub_model.Config'>",
+                "field.field_info": "FieldInfo(default=Ellipsis, extra={})",
+                "field.allow_none": "False",
+                "field.validate_always": "False",
+                "field.validators": "[<cyfunction str_validator at 0x10bbd02b0>]",
+                "field.parse_json": "False",
+                "field.shape": "1"
+            },
+            {
+                "original_type": "<class 'str'>",
+                "use_type": "<class 'str'>",
+                "original_type.__name__": "'str'",
+                "new_field": "ModelField(name='name', type=str, required=True)",
+                "new_field.has_alias": "False",
+                "new_field.alias": "'name'",
+                "new_field.class_validators": "{}",
+                "new_field.required": "True",
+                "new_field.model_config": "<class 'tests.test_filter_pydantic_sub_model.Config'>",
+                "new_field.field_info": "FieldInfo(default=Ellipsis, extra={})",
+                "new_field.allow_none": "False",
+                "new_field.validate_always": "False",
+                "new_field.validators": "[<cyfunction str_validator at 0x10bbd0ba0>]",
+                "new_field.parse_json": "False",
+                "new_field.shape": "1",
+                "new_field.populate_validators": "<bound method ModelField.populate_validators of ModelField(name='name', type=str, required=True)>"
+            }
+        ],
+        [
+            {
+                "field.type_": "<class 'str'>",
+                "field": "ModelField(name='description', type=Optional[str], required=False, default=None)",
+                "field.name": "'description'",
+                "field.has_alias": "False",
+                "field.alias": "'description'",
+                "field.class_validators": "{}",
+                "field.required": "False",
+                "field.model_config": "<class 'tests.test_filter_pydantic_sub_model.Config'>",
+                "field.field_info": "FieldInfo(extra={})",
+                "field.allow_none": "True",
+                "field.validate_always": "False",
+                "field.validators": "[<cyfunction str_validator at 0x10bbd0380>]",
+                "field.parse_json": "False",
+                "field.shape": "1"
+            },
+            {
+                "original_type": "<class 'str'>",
+                "use_type": "<class 'str'>",
+                "original_type.__name__": "'str'",
+                "new_field": "ModelField(name='description', type=Optional[str], required=False, default=None)",
+                "new_field.has_alias": "False",
+                "new_field.alias": "'description'",
+                "new_field.class_validators": "{}",
+                "new_field.required": "False",
+                "new_field.model_config": "<class 'tests.test_filter_pydantic_sub_model.Config'>",
+                "new_field.field_info": "FieldInfo(extra={})",
+                "new_field.allow_none": "True",
+                "new_field.validate_always": "False",
+                "new_field.validators": "[<cyfunction str_validator at 0x10bbd0e10>]",
+                "new_field.parse_json": "False",
+                "new_field.shape": "1",
+                "new_field.populate_validators": "<bound method ModelField.populate_validators of ModelField(name='description', type=Optional[str], required=False, default=None)>"
+            }
+        ],
+        [
+            {
+                "field.type_": "<class 'str'>",
+                "field": "ModelField(name='username', type=str, required=True)",
+                "field.name": "'username'",
+                "field.has_alias": "False",
+                "field.alias": "'username'",
+                "field.class_validators": "{}",
+                "field.required": "True",
+                "field.model_config": "<class 'tests.test_filter_pydantic_sub_model.Config'>",
+                "field.field_info": "FieldInfo(default=Ellipsis, extra={})",
+                "field.allow_none": "False",
+                "field.validate_always": "False",
+                "field.validators": "[<cyfunction str_validator at 0x10bbd0040>]",
+                "field.parse_json": "False",
+                "field.shape": "1"
+            },
+            {
+                "original_type": "<class 'str'>",
+                "use_type": "<class 'str'>",
+                "original_type.__name__": "'str'",
+                "new_field": "ModelField(name='username', type=str, required=True)",
+                "new_field.has_alias": "False",
+                "new_field.alias": "'username'",
+                "new_field.class_validators": "{}",
+                "new_field.required": "True",
+                "new_field.model_config": "<class 'tests.test_filter_pydantic_sub_model.Config'>",
+                "new_field.field_info": "FieldInfo(default=Ellipsis, extra={})",
+                "new_field.allow_none": "False",
+                "new_field.validate_always": "False",
+                "new_field.validators": "[<cyfunction str_validator at 0x10bbee380>]",
+                "new_field.parse_json": "False",
+                "new_field.shape": "1",
+                "new_field.populate_validators": "<bound method ModelField.populate_validators of ModelField(name='username', type=str, required=True)>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "field.type_": "type",
+                "field": "ModelField",
+                "field.name": "str",
+                "field.has_alias": "bool",
+                "field.alias": "str",
+                "field.class_validators": "dict",
+                "field.required": "bool",
+                "field.model_config": "type",
+                "field.field_info": "FieldInfo",
+                "field.allow_none": "bool",
+                "field.validate_always": "bool",
+                "field.validators": "list",
+                "field.parse_json": "bool",
+                "field.shape": "int"
+            },
+            {
+                "original_type": "type",
+                "use_type": "type",
+                "original_type.__name__": "str",
+                "new_field": "ModelField",
+                "new_field.has_alias": "bool",
+                "new_field.alias": "str",
+                "new_field.class_validators": "dict",
+                "new_field.required": "bool",
+                "new_field.model_config": "type",
+                "new_field.field_info": "FieldInfo",
+                "new_field.allow_none": "bool",
+                "new_field.validate_always": "bool",
+                "new_field.validators": "list",
+                "new_field.parse_json": "bool",
+                "new_field.shape": "int",
+                "new_field.populate_validators": "method"
+            }
+        ],
+        [
+            {
+                "field.type_": "type",
+                "field": "ModelField",
+                "field.name": "str",
+                "field.has_alias": "bool",
+                "field.alias": "str",
+                "field.class_validators": "dict",
+                "field.required": "bool",
+                "field.model_config": "type",
+                "field.field_info": "FieldInfo",
+                "field.allow_none": "bool",
+                "field.validate_always": "bool",
+                "field.validators": "list",
+                "field.parse_json": "bool",
+                "field.shape": "int"
+            },
+            {
+                "original_type": "type",
+                "use_type": "type",
+                "original_type.__name__": "str",
+                "new_field": "ModelField",
+                "new_field.has_alias": "bool",
+                "new_field.alias": "str",
+                "new_field.class_validators": "dict",
+                "new_field.required": "bool",
+                "new_field.model_config": "type",
+                "new_field.field_info": "FieldInfo",
+                "new_field.allow_none": "bool",
+                "new_field.validate_always": "bool",
+                "new_field.validators": "list",
+                "new_field.parse_json": "bool",
+                "new_field.shape": "int",
+                "new_field.populate_validators": "method"
+            }
+        ],
+        [
+            {
+                "field.type_": "type",
+                "field": "ModelField",
+                "field.name": "str",
+                "field.has_alias": "bool",
+                "field.alias": "str",
+                "field.class_validators": "dict",
+                "field.required": "bool",
+                "field.model_config": "type",
+                "field.field_info": "FieldInfo",
+                "field.allow_none": "bool",
+                "field.validate_always": "bool",
+                "field.validators": "list",
+                "field.parse_json": "bool",
+                "field.shape": "int"
+            },
+            {
+                "original_type": "type",
+                "use_type": "type",
+                "original_type.__name__": "str",
+                "new_field": "ModelField",
+                "new_field.has_alias": "bool",
+                "new_field.alias": "str",
+                "new_field.class_validators": "dict",
+                "new_field.required": "bool",
+                "new_field.model_config": "type",
+                "new_field.field_info": "FieldInfo",
+                "new_field.allow_none": "bool",
+                "new_field.validate_always": "bool",
+                "new_field.validators": "list",
+                "new_field.parse_json": "bool",
+                "new_field.shape": "int",
+                "new_field.populate_validators": "method"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

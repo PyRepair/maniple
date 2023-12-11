@@ -6,7 +6,7 @@
     "1.2.3": [
         "add_api_route(self, path: str, endpoint: Callable) -> None"
     ],
-    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_13/fastapi/routing.py",
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/fastapi_13/fastapi/routing.py",
     "1.3.2": [
         "add_api_route(self, path: str, endpoint: Callable) -> None"
     ],
@@ -14,7 +14,7 @@
         "def test_openapi_schema():\n    response = client.get(\"/openapi.json\")\n    assert response.status_code == 200\n    assert response.json() == openapi_schema"
     ],
     "1.4.2": [
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_13/tests/test_additional_responses_router.py"
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_13/tests/test_additional_responses_router.py"
     ],
     "2.1.1": [
         [
@@ -27,14 +27,106 @@
             "\ntests/test_additional_responses_router.py:77: AssertionError"
         ]
     ],
-    "2.1.3": null,
-    "2.1.4": null,
-    "2.1.5": null,
-    "2.1.6": null,
+    "2.1.3": [
+        [
+            {
+                "prefix": "''",
+                "router.routes": "[<fastapi.routing.APIRoute object at 0x102609430>, <fastapi.routing.APIRoute object at 0x102609640>, <fastapi.routing.APIRoute object at 0x102609850>]",
+                "router": "<fastapi.routing.APIRouter object at 0x102601eb0>",
+                "responses": "{}",
+                "self": "<fastapi.routing.APIRouter object at 0x10205f370>"
+            },
+            {
+                "route": "<fastapi.routing.APIRoute object at 0x102609850>",
+                "responses": "{501: {'description': 'Error 3'}, 502: {'description': 'Error 2'}}",
+                "route.responses": "{501: {'description': 'Error 3'}}",
+                "route.path": "'/c'",
+                "route.status_code": "200",
+                "route.tags": "[]",
+                "route.response_description": "'Successful Response'",
+                "route.methods": "['GET']",
+                "route.include_in_schema": "True",
+                "route.content_type": "<class 'starlette.responses.JSONResponse'>",
+                "route.name": "'c'"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "prefix": "str",
+                "router.routes": "list",
+                "router": "APIRouter",
+                "responses": "dict",
+                "self": "APIRouter"
+            },
+            {
+                "route": "APIRoute",
+                "responses": "dict",
+                "route.responses": "dict",
+                "route.path": "str",
+                "route.status_code": "int",
+                "route.tags": "list",
+                "route.response_description": "str",
+                "route.methods": "list",
+                "route.include_in_schema": "bool",
+                "route.content_type": "type",
+                "route.name": "str"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "prefix": "''",
+                "responses": "{}",
+                "router.routes": "[<fastapi.routing.APIRoute object at 0x1076f3490>, <fastapi.routing.APIRoute object at 0x1076f36a0>, <fastapi.routing.APIRoute object at 0x1076f38b0>]",
+                "router": "<fastapi.routing.APIRouter object at 0x1076ecfd0>",
+                "self": "<fastapi.routing.APIRouter object at 0x1070a8ee0>"
+            },
+            {
+                "route": "<fastapi.routing.APIRoute object at 0x1076f38b0>",
+                "combined_responses": "{501: {'description': 'Error 3'}}",
+                "route.responses": "{501: {'description': 'Error 3'}}",
+                "route.path": "'/c'",
+                "route.status_code": "200",
+                "route.tags": "[]",
+                "route.response_description": "'Successful Response'",
+                "route.methods": "['GET']",
+                "route.include_in_schema": "True",
+                "route.content_type": "<class 'starlette.responses.JSONResponse'>",
+                "route.name": "'c'"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "prefix": "str",
+                "responses": "dict",
+                "router.routes": "list",
+                "router": "APIRouter",
+                "self": "APIRouter"
+            },
+            {
+                "route": "APIRoute",
+                "combined_responses": "dict",
+                "route.responses": "dict",
+                "route.path": "str",
+                "route.status_code": "int",
+                "route.tags": "list",
+                "route.response_description": "str",
+                "route.methods": "list",
+                "route.include_in_schema": "bool",
+                "route.content_type": "type",
+                "route.name": "str"
+            }
+        ]
+    ],
     "3.1.1": [
-        "\n"
+        "Routes defined with same APIRouter instance share responses\n"
     ],
     "3.1.2": [
-        "\n"
+        "Describe the bug\nWhen defining routes with an API router their alternative responses are shared.\n\nTo Reproduce\nExample 1:\n\nfrom fastapi import FastAPI\nfrom fastapi import APIRouter\n\napp = FastAPI()\nrouter = APIRouter()\n\n@router.get(\"/a\", responses={501: {\"description\": \"Error 1\"}})\nasync def a():\n    return \"a\"\n\n@router.get(\"/b\", responses={502: {\"description\": \"Error 2\"}})\nasync def b():\n    return \"b\"\n\n@router.get(\"/c\", responses={501: {\"description\": \"Error 1 overwriten\"}})\nasync def c():\n    return \"c\"\n\napp.include_router(router)\n/a will now have a single 501 error as expected.\n/b will now have both a 501 and a 502 error (should only be 502).\n/c will also have both 501 and 502, but an overwritten description (should only be 501).\n\nIf you split them into different routers, the problem does not occur:\nExample 2:\n\nrouter1 = APIRouter()\nrouter2 = APIRouter()\nrouter3 = APIRouter()\n\n@router1.get(\"/a\", responses={501: {\"description\": \"Error 1\"}})\nasync def a():\n    return \"a\"\n\n@router2.get(\"/b\", responses={502: {\"description\": \"Error 2\"}})\nasync def b():\n    return \"b\"\n\n@router3.get(\"/c\", responses={501: {\"description\": \"Error 1 overwriten\"}})\nasync def c():\n    return \"c\"\n\napp.include_router(router1)\napp.include_router(router2)\napp.include_router(router3\nExpected behavior\nResponses for different paths should not be merged. This only occurs for APIRouter, not if paths are added directly to the FastAPI app instance.\n"
     ]
 }

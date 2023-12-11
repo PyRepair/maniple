@@ -1,0 +1,820 @@
+{
+    "1.1.1": "def _get_with(self, key):\n    # other: fancy integer or otherwise\n    if isinstance(key, slice):\n        return self._slice(key)\n    elif isinstance(key, ABCDataFrame):\n        raise TypeError(\n            \"Indexing a Series with DataFrame is not \"\n            \"supported, use the appropriate DataFrame column\"\n        )\n    elif isinstance(key, tuple):\n        try:\n            return self._get_values_tuple(key)\n        except ValueError:\n            # if we don't have a MultiIndex, we may still be able to handle\n            #  a 1-tuple.  see test_1tuple_without_multiindex\n            if len(key) == 1:\n                key = key[0]\n                if isinstance(key, slice):\n                    return self._get_values(key)\n            raise\n\n    if not isinstance(key, (list, np.ndarray, Series, Index)):\n        key = list(key)\n\n    if isinstance(key, Index):\n        key_type = key.inferred_type\n    else:\n        key_type = lib.infer_dtype(key, skipna=False)\n\n    # Note: The key_type == \"boolean\" case should be caught by the\n    #  com.is_bool_indexer check in __getitem__\n    if key_type == \"integer\":\n        if self.index.is_integer() or self.index.is_floating():\n            return self.loc[key]\n        elif isinstance(self.index, IntervalIndex):\n            indexer = self.index.get_indexer_for(key)\n            return self.iloc[indexer]\n        else:\n            return self._get_values(key)\n\n    if isinstance(key, (list, tuple)):\n        # TODO: de-dup with tuple case handled above?\n        # handle the dup indexing case GH#4246\n        if len(key) == 1 and isinstance(key[0], slice):\n            # [slice(0, 5, None)] will break if you convert to ndarray,\n            # e.g. as requested by np.median\n            # FIXME: hack\n            return self._get_values(key)\n\n        return self.loc[key]\n\n    return self.reindex(key)\n",
+    "1.1.2": null,
+    "1.2.1": "class Series(base.IndexOpsMixin, generic.NDFrame)",
+    "1.2.2": "One-dimensional ndarray with axis labels (including time series).\n\nLabels need not be unique but must be a hashable type. The object\nsupports both integer- and label-based indexing and provides a host of\nmethods for performing operations involving the index. Statistical\nmethods from ndarray have been overridden to automatically exclude\nmissing data (currently represented as NaN).\n\nOperations between Series (+, -, /, *, **) align values based on their\nassociated index values-- they need not be the same length. The result\nindex will be the sorted union of the two indexes.\n\nParameters\n----------\ndata : array-like, Iterable, dict, or scalar value\n    Contains data stored in Series.\n\n    .. versionchanged:: 0.23.0\n       If data is a dict, argument order is maintained for Python 3.6\n       and later.\n\nindex : array-like or Index (1d)\n    Values must be hashable and have the same length as `data`.\n    Non-unique index values are allowed. Will default to\n    RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index\n    sequence are used, the index will override the keys found in the\n    dict.\ndtype : str, numpy.dtype, or ExtensionDtype, optional\n    Data type for the output Series. If not specified, this will be\n    inferred from `data`.\n    See the :ref:`user guide <basics.dtypes>` for more usages.\nname : str, optional\n    The name to give to the Series.\ncopy : bool, default False\n    Copy input data.",
+    "1.2.3": [
+        "_slice(self, slobj: slice, axis: int=0, kind: str='getitem') -> 'Series'",
+        "_get_values_tuple(self, key)",
+        "_get_values(self, indexer)",
+        "reindex(self, index=None, **kwargs)"
+    ],
+    "1.3.1": "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/core/series.py",
+    "1.3.2": [
+        "_slice(self, slobj: slice, axis: int=0, kind: str='getitem') -> 'Series'",
+        "_get_values_tuple(self, key)",
+        "_get_values(self, indexer)",
+        "reindex(self, index=None, **kwargs)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]"
+    ],
+    "1.4.2": [
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/tests/indexing/test_indexing.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/tests/indexing/test_indexing.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/tests/indexing/test_indexing.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/tests/indexing/test_indexing.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/tests/indexing/test_indexing.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/tests/indexing/test_indexing.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_61/pandas/tests/indexing/test_indexing.py"
+    ],
+    "2.1.1": [
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x10ee09fd0>\nindex = Index(['hlezwz9oNg', '9VUiPYUHqW', 'pClTMaMAqI', 'gXxtoExo74', 'oQ0uPqXPUl'], dtype='object')\nobj = hlezwz9oNg    0\n9VUiPYUHqW    1\npClTMaMAqI    2\ngXxtoExo74    3\noQ0uPqXPUl    4\ndtype: int64\nidxr = hlezwz9oNg    0\n9VUiPYUHqW    1\npClTMaMAqI    2\ngXxtoExo74    3\noQ0uPqXPUl    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x10ed71700>\nindex = Index(['\u05d891\u05df\u05d9\u05d4\u05da\u05da\u05d2\u05df', '\u05e2\u05d34\u05dc63\u05d2\u05e5\u05df\u05d2', '5\u05e294\u05d7\u05d92\u05e5\u05df\u05dd', '6\u05e39\u05e1\u05e66\u05e75\u05df6', '\u05e5\u05d0\u05dd\u05df\u05d3\u05d76\u05db6\u05df'], dtype='object')\nobj = \u05d891\u05df\u05d9\u05d4\u05da\u05da\u05d2\u05df    0\n\u05e2\u05d34\u05dc63\u05d2\u05e5\u05df\u05d2    1\n5\u05e294\u05d7\u05d92\u05e5\u05df\u05dd    2\n6\u05e39\u05e1\u05e66\u05e75\u05df6    3\n\u05e5\u05d0\u05dd\u05df\u05d3\u05d76\u05db6\u05df    4\ndtype: int64\nidxr = \u05d891\u05df\u05d9\u05d4\u05da\u05da\u05d2\u05df    0\n\u05e2\u05d34\u05dc63\u05d2\u05e5\u05df\u05d2    1\n5\u05e294\u05d7\u05d92\u05e5\u05df\u05dd    2\n6\u05e39\u05e1\u05e66\u05e75\u05df6    3\n\u05e5\u05d0\u05dd\u05df\u05d3\u05d76\u05db6\u05df    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x10ed8de20>\nindex = DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n               '2000-01-07'],\n              dtype='datetime64[ns]', freq='B')\nobj = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x10ed77640>\nindex = PeriodIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n             '2000-01-07'],\n            dtype='period[B]', freq='B')\nobj = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x10ee43940>\nindex = TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')\nobj = 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64\nidxr = 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x10ec76550>\nindex = Index([False, True, False, False, False], dtype='object')\nobj = False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64\nidxr = False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x10eddb730>\nindex = CategoricalIndex(['fzNG', 'cPZb', 'ZQjX', 'fzNG', 'cPZb'], categories=['fzNG', 'cPZb', 'ZQjX'], ordered=False, dtype='category')\nobj = fzNG    0\ncPZb    1\nZQjX    2\nfzNG    3\ncPZb    4\ndtype: int64\nidxr = fzNG    0\ncPZb    1\nZQjX    2\nfzNG    3\ncPZb    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "key": "array([[[3, 0],\n        [2, 0]],\n\n       [[0, 1],\n        [4, 2]]])",
+                "self._slice": "<bound method Series._slice of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self.index": "Int64Index([0, 1, 2, 3, 4], dtype='int64')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af18b30>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af18b30>",
+                "self.reindex": "<bound method Series.reindex of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af18b80>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af18b80>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[0, 3],\n        [0, 3]],\n\n       [[0, 0],\n        [0, 3]]])",
+                "self._slice": "<bound method Series._slice of -2226.012348    0\n 1019.616178    1\n 3878.441909    2\n 6224.146117    3\n 6666.322064    4\ndtype: int64>",
+                "self": "-2226.012348    0\n 1019.616178    1\n 3878.441909    2\n 6224.146117    3\n 6666.322064    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of -2226.012348    0\n 1019.616178    1\n 3878.441909    2\n 6224.146117    3\n 6666.322064    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of -2226.012348    0\n 1019.616178    1\n 3878.441909    2\n 6224.146117    3\n 6666.322064    4\ndtype: int64>",
+                "self.index": "Float64Index([-2226.0123483413295,  1019.6161783832558,   3878.441909170727,\n                6224.146117314273,   6666.322063911466],\n             dtype='float64')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af345e0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af345e0>",
+                "self.reindex": "<bound method Series.reindex of -2226.012348    0\n 1019.616178    1\n 3878.441909    2\n 6224.146117    3\n 6666.322064    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af34720>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af34720>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[3, 1],\n        [2, 1]],\n\n       [[1, 3],\n        [0, 2]]])",
+                "self._slice": "<bound method Series._slice of WSCXqw0Rhw    0\nDzt516EJih    1\nX6sCbFvf7D    2\neu3bnzRBPU    3\nNgSYowwSzs    4\ndtype: int64>",
+                "self": "WSCXqw0Rhw    0\nDzt516EJih    1\nX6sCbFvf7D    2\neu3bnzRBPU    3\nNgSYowwSzs    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of WSCXqw0Rhw    0\nDzt516EJih    1\nX6sCbFvf7D    2\neu3bnzRBPU    3\nNgSYowwSzs    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of WSCXqw0Rhw    0\nDzt516EJih    1\nX6sCbFvf7D    2\neu3bnzRBPU    3\nNgSYowwSzs    4\ndtype: int64>",
+                "self.index": "Index(['WSCXqw0Rhw', 'Dzt516EJih', 'X6sCbFvf7D', 'eu3bnzRBPU', 'NgSYowwSzs'], dtype='object')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af348b0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af348b0>",
+                "self.reindex": "<bound method Series.reindex of WSCXqw0Rhw    0\nDzt516EJih    1\nX6sCbFvf7D    2\neu3bnzRBPU    3\nNgSYowwSzs    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af340e0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af340e0>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[1, 1],\n        [1, 2]],\n\n       [[4, 2],\n        [2, 0]]])",
+                "self._slice": "<bound method Series._slice of 7\u05d0\u05df\u05e8\u05da\u05e8\u05e9\u05e55\u05d9    0\n\u05e3\u05dd\u05e2\u05e5\u05e209\u05e7\u05da\u05da    1\n\u05d4113\u05dc\u05e2\u05d8\u05df\u05d38    2\n\u05db\u05d2\u05da\u05d8\u05e8\u05e3\u05e81\u05d81    3\n\u05e6\u05d1\u05e39\u05da\u05d2\u05d0\u05dc\u05e9\u05d4    4\ndtype: int64>",
+                "self": "7\u05d0\u05df\u05e8\u05da\u05e8\u05e9\u05e55\u05d9    0\n\u05e3\u05dd\u05e2\u05e5\u05e209\u05e7\u05da\u05da    1\n\u05d4113\u05dc\u05e2\u05d8\u05df\u05d38    2\n\u05db\u05d2\u05da\u05d8\u05e8\u05e3\u05e81\u05d81    3\n\u05e6\u05d1\u05e39\u05da\u05d2\u05d0\u05dc\u05e9\u05d4    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 7\u05d0\u05df\u05e8\u05da\u05e8\u05e9\u05e55\u05d9    0\n\u05e3\u05dd\u05e2\u05e5\u05e209\u05e7\u05da\u05da    1\n\u05d4113\u05dc\u05e2\u05d8\u05df\u05d38    2\n\u05db\u05d2\u05da\u05d8\u05e8\u05e3\u05e81\u05d81    3\n\u05e6\u05d1\u05e39\u05da\u05d2\u05d0\u05dc\u05e9\u05d4    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 7\u05d0\u05df\u05e8\u05da\u05e8\u05e9\u05e55\u05d9    0\n\u05e3\u05dd\u05e2\u05e5\u05e209\u05e7\u05da\u05da    1\n\u05d4113\u05dc\u05e2\u05d8\u05df\u05d38    2\n\u05db\u05d2\u05da\u05d8\u05e8\u05e3\u05e81\u05d81    3\n\u05e6\u05d1\u05e39\u05da\u05d2\u05d0\u05dc\u05e9\u05d4    4\ndtype: int64>",
+                "self.index": "Index(['7\u05d0\u05df\u05e8\u05da\u05e8\u05e9\u05e55\u05d9', '\u05e3\u05dd\u05e2\u05e5\u05e209\u05e7\u05da\u05da', '\u05d4113\u05dc\u05e2\u05d8\u05df\u05d38', '\u05db\u05d2\u05da\u05d8\u05e8\u05e3\u05e81\u05d81', '\u05e6\u05d1\u05e39\u05da\u05d2\u05d0\u05dc\u05e9\u05d4'], dtype='object')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af00810>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af00810>",
+                "self.reindex": "<bound method Series.reindex of 7\u05d0\u05df\u05e8\u05da\u05e8\u05e9\u05e55\u05d9    0\n\u05e3\u05dd\u05e2\u05e5\u05e209\u05e7\u05da\u05da    1\n\u05d4113\u05dc\u05e2\u05d8\u05df\u05d38    2\n\u05db\u05d2\u05da\u05d8\u05e8\u05e3\u05e81\u05d81    3\n\u05e6\u05d1\u05e39\u05da\u05d2\u05d0\u05dc\u05e9\u05d4    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af00a90>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af00a90>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[2, 3],\n        [1, 4]],\n\n       [[4, 0],\n        [2, 0]]])",
+                "self._slice": "<bound method Series._slice of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self.index": "DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n               '2000-01-07'],\n              dtype='datetime64[ns]', freq='B')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11b05c400>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11b05c400>",
+                "self.reindex": "<bound method Series.reindex of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af0f040>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af0f040>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[2, 3],\n        [3, 2]],\n\n       [[4, 4],\n        [0, 1]]])",
+                "self._slice": "<bound method Series._slice of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self.index": "PeriodIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n             '2000-01-07'],\n            dtype='period[B]', freq='B')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af34310>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af34310>",
+                "self.reindex": "<bound method Series.reindex of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11ae5c450>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11ae5c450>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[1, 3],\n        [2, 3]],\n\n       [[1, 4],\n        [4, 4]]])",
+                "self._slice": "<bound method Series._slice of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>",
+                "self": "1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>",
+                "self.index": "TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af340e0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af340e0>",
+                "self.reindex": "<bound method Series.reindex of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11af342c0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11af342c0>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[1, 4],\n        [2, 2]],\n\n       [[3, 0],\n        [3, 3]]])",
+                "self._slice": "<bound method Series._slice of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>",
+                "self": "False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>",
+                "self.index": "Index([False, True, False, False, False], dtype='object')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11b29ed10>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11b29ed10>",
+                "self.reindex": "<bound method Series.reindex of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11b06ba40>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11b06ba40>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[1, 4],\n        [0, 3]],\n\n       [[3, 2],\n        [0, 0]]])",
+                "self._slice": "<bound method Series._slice of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self.index": "RangeIndex(start=0, stop=5, step=1)",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11b29ef40>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11b29ef40>",
+                "self.reindex": "<bound method Series.reindex of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11b29e2c0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11b29e2c0>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[3, 1],\n        [2, 1]],\n\n       [[0, 2],\n        [4, 4]]])",
+                "self._slice": "<bound method Series._slice of jmIQ    0\nokDk    1\ne4bn    2\njmIQ    3\nokDk    4\ndtype: int64>",
+                "self": "jmIQ    0\nokDk    1\ne4bn    2\njmIQ    3\nokDk    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of jmIQ    0\nokDk    1\ne4bn    2\njmIQ    3\nokDk    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of jmIQ    0\nokDk    1\ne4bn    2\njmIQ    3\nokDk    4\ndtype: int64>",
+                "self.index": "CategoricalIndex(['jmIQ', 'okDk', 'e4bn', 'jmIQ', 'okDk'], categories=['jmIQ', 'okDk', 'e4bn'], ordered=False, dtype='category')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11b086270>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11b086270>",
+                "self.reindex": "<bound method Series.reindex of jmIQ    0\nokDk    1\ne4bn    2\njmIQ    3\nokDk    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11b06b5e0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11b06b5e0>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Int64Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Float64Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "DatetimeIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "PeriodIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "TimedeltaIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "RangeIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "CategoricalIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "key": "array([[[4, 2],\n        [3, 1]],\n\n       [[4, 3],\n        [4, 2]]])",
+                "self._slice": "<bound method Series._slice of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self.index": "Int64Index([0, 1, 2, 3, 4], dtype='int64')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806f9f0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806f9f0>",
+                "self.reindex": "<bound method Series.reindex of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806f2c0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806f2c0>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[3, 3],\n        [2, 2]],\n\n       [[4, 1],\n        [4, 1]]])",
+                "self._slice": "<bound method Series._slice of -15.503265    0\n-3.165885     1\n 20.762443    2\n 34.923787    3\n 38.349839    4\ndtype: int64>",
+                "self": "-15.503265    0\n-3.165885     1\n 20.762443    2\n 34.923787    3\n 38.349839    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of -15.503265    0\n-3.165885     1\n 20.762443    2\n 34.923787    3\n 38.349839    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of -15.503265    0\n-3.165885     1\n 20.762443    2\n 34.923787    3\n 38.349839    4\ndtype: int64>",
+                "self.index": "Float64Index([-15.503265382652398,  -3.165884718103129,  20.762442958091974,\n               34.923787104108214,   38.34983903450293],\n             dtype='float64')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x117fffd10>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x117fffd10>",
+                "self.reindex": "<bound method Series.reindex of -15.503265    0\n-3.165885     1\n 20.762443    2\n 34.923787    3\n 38.349839    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806fae0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806fae0>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[4, 3],\n        [0, 2]],\n\n       [[0, 3],\n        [1, 2]]])",
+                "self._slice": "<bound method Series._slice of DGmX9SngFy    0\nXD8J4XJzL8    1\n4YR9rz08OG    2\n2ax8jptiav    3\nbos9bH3bat    4\ndtype: int64>",
+                "self": "DGmX9SngFy    0\nXD8J4XJzL8    1\n4YR9rz08OG    2\n2ax8jptiav    3\nbos9bH3bat    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of DGmX9SngFy    0\nXD8J4XJzL8    1\n4YR9rz08OG    2\n2ax8jptiav    3\nbos9bH3bat    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of DGmX9SngFy    0\nXD8J4XJzL8    1\n4YR9rz08OG    2\n2ax8jptiav    3\nbos9bH3bat    4\ndtype: int64>",
+                "self.index": "Index(['DGmX9SngFy', 'XD8J4XJzL8', '4YR9rz08OG', '2ax8jptiav', 'bos9bH3bat'], dtype='object')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806fef0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806fef0>",
+                "self.reindex": "<bound method Series.reindex of DGmX9SngFy    0\nXD8J4XJzL8    1\n4YR9rz08OG    2\n2ax8jptiav    3\nbos9bH3bat    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x117fffe00>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x117fffe00>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[0, 1],\n        [1, 4]],\n\n       [[4, 3],\n        [0, 0]]])",
+                "self._slice": "<bound method Series._slice of 3\u05e9\u05e86\u05da1\u05e2\u05d4\u05d1\u05e7    0\n\u05e1\u05d73\u05e99\u05db\u05e9903    1\n\u05de5\u05db\u05e6\u05de\u05e8\u05da\u05e0\u05e80    2\n\u05df\u05d121\u05de57\u05d9\u05d2\u05d1    3\n6\u05e7\u05e5\u05d20\u05de\u05db7\u05dd\u05d8    4\ndtype: int64>",
+                "self": "3\u05e9\u05e86\u05da1\u05e2\u05d4\u05d1\u05e7    0\n\u05e1\u05d73\u05e99\u05db\u05e9903    1\n\u05de5\u05db\u05e6\u05de\u05e8\u05da\u05e0\u05e80    2\n\u05df\u05d121\u05de57\u05d9\u05d2\u05d1    3\n6\u05e7\u05e5\u05d20\u05de\u05db7\u05dd\u05d8    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 3\u05e9\u05e86\u05da1\u05e2\u05d4\u05d1\u05e7    0\n\u05e1\u05d73\u05e99\u05db\u05e9903    1\n\u05de5\u05db\u05e6\u05de\u05e8\u05da\u05e0\u05e80    2\n\u05df\u05d121\u05de57\u05d9\u05d2\u05d1    3\n6\u05e7\u05e5\u05d20\u05de\u05db7\u05dd\u05d8    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 3\u05e9\u05e86\u05da1\u05e2\u05d4\u05d1\u05e7    0\n\u05e1\u05d73\u05e99\u05db\u05e9903    1\n\u05de5\u05db\u05e6\u05de\u05e8\u05da\u05e0\u05e80    2\n\u05df\u05d121\u05de57\u05d9\u05d2\u05d1    3\n6\u05e7\u05e5\u05d20\u05de\u05db7\u05dd\u05d8    4\ndtype: int64>",
+                "self.index": "Index(['3\u05e9\u05e86\u05da1\u05e2\u05d4\u05d1\u05e7', '\u05e1\u05d73\u05e99\u05db\u05e9903', '\u05de5\u05db\u05e6\u05de\u05e8\u05da\u05e0\u05e80', '\u05df\u05d121\u05de57\u05d9\u05d2\u05d1', '6\u05e7\u05e5\u05d20\u05de\u05db7\u05dd\u05d8'], dtype='object')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x117fff680>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x117fff680>",
+                "self.reindex": "<bound method Series.reindex of 3\u05e9\u05e86\u05da1\u05e2\u05d4\u05d1\u05e7    0\n\u05e1\u05d73\u05e99\u05db\u05e9903    1\n\u05de5\u05db\u05e6\u05de\u05e8\u05da\u05e0\u05e80    2\n\u05df\u05d121\u05de57\u05d9\u05d2\u05d1    3\n6\u05e7\u05e5\u05d20\u05de\u05db7\u05dd\u05d8    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806fa90>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806fa90>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[4, 4],\n        [2, 4]],\n\n       [[3, 2],\n        [3, 2]]])",
+                "self._slice": "<bound method Series._slice of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self.index": "DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n               '2000-01-07'],\n              dtype='datetime64[ns]', freq='B')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x117fcf360>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x117fcf360>",
+                "self.reindex": "<bound method Series.reindex of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806fb80>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806fb80>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[3, 3],\n        [1, 3]],\n\n       [[1, 0],\n        [4, 2]]])",
+                "self._slice": "<bound method Series._slice of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>",
+                "self.index": "PeriodIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n             '2000-01-07'],\n            dtype='period[B]', freq='B')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11805cbd0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11805cbd0>",
+                "self.reindex": "<bound method Series.reindex of 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806f950>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806f950>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[3, 2],\n        [4, 0]],\n\n       [[0, 1],\n        [1, 1]]])",
+                "self._slice": "<bound method Series._slice of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>",
+                "self": "1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>",
+                "self.index": "TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806fa40>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806fa40>",
+                "self.reindex": "<bound method Series.reindex of 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11805cef0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11805cef0>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[4, 2],\n        [2, 3]],\n\n       [[3, 2],\n        [0, 3]]])",
+                "self._slice": "<bound method Series._slice of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>",
+                "self": "False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>",
+                "self.index": "Index([False, True, False, False, False], dtype='object')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11800e360>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11800e360>",
+                "self.reindex": "<bound method Series.reindex of False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806f630>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806f630>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[0, 3],\n        [0, 2]],\n\n       [[4, 1],\n        [0, 1]]])",
+                "self._slice": "<bound method Series._slice of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>",
+                "self.index": "RangeIndex(start=0, stop=5, step=1)",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11800e310>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11800e310>",
+                "self.reindex": "<bound method Series.reindex of 0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11806fcc0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11806fcc0>"
+            }
+        ],
+        [
+            {
+                "key": "array([[[3, 0],\n        [2, 1]],\n\n       [[3, 4],\n        [4, 4]]])",
+                "self._slice": "<bound method Series._slice of SjJx    0\nSdhr    1\niYyC    2\nSjJx    3\nSdhr    4\ndtype: int64>",
+                "self": "SjJx    0\nSdhr    1\niYyC    2\nSjJx    3\nSdhr    4\ndtype: int64",
+                "self._get_values_tuple": "<bound method Series._get_values_tuple of SjJx    0\nSdhr    1\niYyC    2\nSjJx    3\nSdhr    4\ndtype: int64>",
+                "self._get_values": "<bound method Series._get_values of SjJx    0\nSdhr    1\niYyC    2\nSjJx    3\nSdhr    4\ndtype: int64>",
+                "self.index": "CategoricalIndex(['SjJx', 'Sdhr', 'iYyC', 'SjJx', 'Sdhr'], categories=['SjJx', 'Sdhr', 'iYyC'], ordered=False, dtype='category')",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x117fffbd0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x117fffbd0>",
+                "self.reindex": "<bound method Series.reindex of SjJx    0\nSdhr    1\niYyC    2\nSjJx    3\nSdhr    4\ndtype: int64>"
+            },
+            {
+                "key_type": "'integer'",
+                "self.loc": "<pandas.core.indexing._LocIndexer object at 0x11800e8b0>",
+                "self.iloc": "<pandas.core.indexing._iLocIndexer object at 0x11800e8b0>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Int64Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Float64Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "DatetimeIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "PeriodIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "TimedeltaIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "Index",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "RangeIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self._slice": "method",
+                "self": "Series",
+                "self._get_values_tuple": "method",
+                "self._get_values": "method",
+                "self.index": "CategoricalIndex",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer",
+                "self.reindex": "method"
+            },
+            {
+                "key_type": "str",
+                "self.loc": "_LocIndexer",
+                "self.iloc": "_iLocIndexer"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

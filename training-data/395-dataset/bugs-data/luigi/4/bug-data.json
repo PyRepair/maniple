@@ -1,0 +1,2075 @@
+{
+    "luigi:4": {
+        "/Volumes/SSD2T/bgp_envs/repos/luigi_4/luigi/contrib/redshift.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "copy",
+                    "function_code": "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    logger.info(\"Inserting file: %s\", f)\n    colnames = ''\n    if len(self.columns) > 0:\n        colnames = \",\".join([x[0] for x in self.columns])\n        colnames = '({})'.format(colnames)\n\n    cursor.execute(\"\"\"\n     COPY {table} {colnames} from '{source}'\n     CREDENTIALS '{creds}'\n     {options}\n     ;\"\"\".format(\n        table=self.table,\n        colnames=colnames,\n        source=f,\n        creds=self._credentials(),\n        options=self.copy_options)\n    )\n",
+                    "decorators": [],
+                    "docstring": "Defines copying from s3 into redshift.\n\nIf both key-based and role-based credentials are provided, role-based will be used.",
+                    "start_line": 348,
+                    "end_line": 370,
+                    "variables": {
+                        "logger.info": [
+                            354
+                        ],
+                        "logger": [
+                            354
+                        ],
+                        "f": [
+                            354,
+                            367
+                        ],
+                        "colnames": [
+                            366,
+                            355,
+                            357,
+                            358
+                        ],
+                        "len": [
+                            356
+                        ],
+                        "self.columns": [
+                            356,
+                            357
+                        ],
+                        "self": [
+                            356,
+                            357,
+                            365,
+                            368,
+                            369
+                        ],
+                        "join": [
+                            357
+                        ],
+                        "x": [
+                            357
+                        ],
+                        "format": [
+                            360,
+                            358
+                        ],
+                        "cursor.execute": [
+                            360
+                        ],
+                        "cursor": [
+                            360
+                        ],
+                        "self.table": [
+                            365
+                        ],
+                        "self._credentials": [
+                            368
+                        ],
+                        "self.copy_options": [
+                            369
+                        ]
+                    },
+                    "filtered_variables": {
+                        "logger.info": [
+                            354
+                        ],
+                        "logger": [
+                            354
+                        ],
+                        "f": [
+                            354,
+                            367
+                        ],
+                        "colnames": [
+                            366,
+                            355,
+                            357,
+                            358
+                        ],
+                        "self.columns": [
+                            356,
+                            357
+                        ],
+                        "self": [
+                            356,
+                            357,
+                            365,
+                            368,
+                            369
+                        ],
+                        "join": [
+                            357
+                        ],
+                        "x": [
+                            357
+                        ],
+                        "cursor.execute": [
+                            360
+                        ],
+                        "cursor": [
+                            360
+                        ],
+                        "self.table": [
+                            365
+                        ],
+                        "self._credentials": [
+                            368
+                        ],
+                        "self.copy_options": [
+                            369
+                        ]
+                    },
+                    "diff_line_number": 356,
+                    "class_data": {
+                        "signature": "class S3CopyToTable(rdbms.CopyToTable, _CredentialsMixin)",
+                        "docstring": "Template task for inserting a data set into Redshift from s3.\n\nUsage:\n\n* Subclass and override the required attributes:\n\n  * `host`,\n  * `database`,\n  * `user`,\n  * `password`,\n  * `table`,\n  * `columns`,\n  * `s3_load_path`.\n\n* You can also override the attributes provided by the\n  CredentialsMixin if they are not supplied by your\n  configuration or environment variables.",
+                        "constructor_docstring": null,
+                        "functions": [
+                            "@abc.abstractmethod\ndef s3_load_path(self):\n    \"\"\"\n    Override to return the load path.\n    \"\"\"\n    return None",
+                            "@abc.abstractproperty\ndef copy_options(self):\n    \"\"\"\n    Add extra copy options, for example:\n\n    * TIMEFORMAT 'auto'\n    * IGNOREHEADER 1\n    * TRUNCATECOLUMNS\n    * IGNOREBLANKLINES\n    * DELIMITER '\t'\n    \"\"\"\n    return ''",
+                            "@property\ndef prune_table(self):\n    \"\"\"\n    Override to set equal to the name of the table which is to be pruned.\n    Intended to be used in conjunction with prune_column and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                            "@property\ndef prune_column(self):\n    \"\"\"\n    Override to set equal to the column of the prune_table which is to be compared\n    Intended to be used in conjunction with prune_table and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                            "@property\ndef prune_date(self):\n    \"\"\"\n    Override to set equal to the date by which prune_column is to be compared\n    Intended to be used in conjunction with prune_table and prune_column\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                            "@property\ndef table_attributes(self):\n    \"\"\"\n    Add extra table attributes, for example:\n\n    DISTSTYLE KEY\n    DISTKEY (MY_FIELD)\n    SORTKEY (MY_FIELD_2, MY_FIELD_3)\n    \"\"\"\n    return ''",
+                            "@property\ndef do_truncate_table(self):\n    \"\"\"\n    Return True if table should be truncated before copying new data in.\n    \"\"\"\n    return False",
+                            "def do_prune(self):\n    \"\"\"\n    Return True if prune_table, prune_column, and prune_date are implemented.\n    If only a subset of prune variables are override, an exception is raised to remind the user to implement all or none.\n    Prune (data newer than prune_date deleted) before copying new data in.\n    \"\"\"\n    if self.prune_table and self.prune_column and self.prune_date:\n        return True\n    elif self.prune_table or self.prune_column or self.prune_date:\n        raise Exception('override zero or all prune variables')\n    else:\n        return False",
+                            "@property\ndef table_type(self):\n    \"\"\"\n    Return table type (i.e. 'temp').\n    \"\"\"\n    return ''",
+                            "@property\ndef queries(self):\n    \"\"\"\n    Override to return a list of queries to be executed in order.\n    \"\"\"\n    return []",
+                            "def truncate_table(self, connection):\n    query = 'truncate %s' % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                            "def prune(self, connection):\n    query = 'delete from %s where %s >= %s' % (self.prune_table, self.prune_column, self.prune_date)\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for name, type in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    elif len(self.columns[0]) == 3:\n        coldefs = ','.join(('{name} {type} ENCODE {encoding}'.format(name=name, type=type, encoding=encoding) for name, type, encoding in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    else:\n        raise ValueError('create_table() found no columns for %r' % self.table)",
+                            "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not self.table:\n        raise Exception('table need to be specified')\n    path = self.s3_load_path()\n    output = self.output()\n    connection = output.connect()\n    cursor = connection.cursor()\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.post_copy(cursor)\n    output.touch(connection)\n    connection.commit()\n    connection.close()",
+                            "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    logger.info('Inserting file: %s', f)\n    colnames = ''\n    if len(self.columns) > 0:\n        colnames = ','.join([x[0] for x in self.columns])\n        colnames = '({})'.format(colnames)\n    cursor.execute(\"\\n         COPY {table} {colnames} from '{source}'\\n         CREDENTIALS '{creds}'\\n         {options}\\n         ;\".format(table=self.table, colnames=colnames, source=f, creds=self._credentials(), options=self.copy_options))",
+                            "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(host=self.host, database=self.database, user=self.user, password=self.password, table=self.table, update_id=self.update_id)",
+                            "def does_table_exist(self, connection):\n    \"\"\"\n    Determine whether the table already exists.\n    \"\"\"\n    if '.' in self.table:\n        query = 'select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1'\n    else:\n        query = 'select 1 as table_exists from pg_table_def where tablename = lower(%s) limit 1'\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query, tuple(self.table.split('.')))\n        result = cursor.fetchone()\n        return bool(result)\n    finally:\n        cursor.close()",
+                            "def init_copy(self, connection):\n    \"\"\"\n    Perform pre-copy sql - such as creating table, truncating, or removing data older than x.\n    \"\"\"\n    if not self.does_table_exist(connection):\n        logger.info('Creating table %s', self.table)\n        connection.reset()\n        self.create_table(connection)\n    if self.do_truncate_table:\n        logger.info('Truncating table %s', self.table)\n        self.truncate_table(connection)\n    if self.do_prune():\n        logger.info('Removing %s older than %s from %s', self.prune_column, self.prune_date, self.prune_table)\n        self.prune(connection)",
+                            "def post_copy(self, cursor):\n    \"\"\"\n    Performs post-copy sql - such as cleansing data, inserting into production table (if copied to temp table), etc.\n    \"\"\"\n    logger.info('Executing post copy queries')\n    for query in self.queries:\n        cursor.execute(query)"
+                        ],
+                        "constructor_variables": [],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "s3_load_path(self)",
+                            "copy_options(self)",
+                            "prune_table(self)",
+                            "prune_column(self)",
+                            "prune_date(self)",
+                            "table_attributes(self)",
+                            "do_truncate_table(self)",
+                            "do_prune(self)",
+                            "table_type(self)",
+                            "queries(self)",
+                            "truncate_table(self, connection)",
+                            "prune(self, connection)",
+                            "create_table(self, connection)",
+                            "run(self)",
+                            "copy(self, cursor, f)",
+                            "output(self)",
+                            "does_table_exist(self, connection)",
+                            "init_copy(self, connection)",
+                            "post_copy(self, cursor)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "logger.info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "logger": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "f": {
+                                    "variable_value": "'s3://bucket/key'",
+                                    "variable_type": "str",
+                                    "variable_shape": "15"
+                                },
+                                "colnames": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.columns": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "DummyS3CopyToTableKey(table=dummy_table, columns=null)",
+                                    "variable_type": "DummyS3CopyToTableKey",
+                                    "variable_shape": null
+                                },
+                                "join": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cursor.execute": {
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4483259888'>",
+                                    "variable_type": "MagicMock",
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4484220432'>"
+                                },
+                                "cursor": {
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4483247504'>",
+                                    "variable_type": "MagicMock",
+                                    "variable_shape": null
+                                },
+                                "self.table": {
+                                    "variable_value": "'dummy_table'",
+                                    "variable_type": "str",
+                                    "variable_shape": "11"
+                                },
+                                "self._credentials": {
+                                    "variable_value": "<bound method _CredentialsMixin._credentials of DummyS3CopyToTableKey(table=dummy_table, columns=null)>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.copy_options": {
+                                    "variable_value": "''",
+                                    "variable_type": "str",
+                                    "variable_shape": "0"
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "logger.info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "logger": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "f": {
+                                    "variable_value": "'s3://bucket/key'",
+                                    "variable_type": "str",
+                                    "variable_shape": "15"
+                                },
+                                "colnames": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.columns": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "DummyS3CopyToTableKey(table=dummy_table, columns=null)",
+                                    "variable_type": "DummyS3CopyToTableKey",
+                                    "variable_shape": null
+                                },
+                                "join": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cursor.execute": {
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4435796992'>",
+                                    "variable_type": "MagicMock",
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4435799584'>"
+                                },
+                                "cursor": {
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4435784656'>",
+                                    "variable_type": "MagicMock",
+                                    "variable_shape": null
+                                },
+                                "self.table": {
+                                    "variable_value": "'dummy_table'",
+                                    "variable_type": "str",
+                                    "variable_shape": "11"
+                                },
+                                "self._credentials": {
+                                    "variable_value": "<bound method _CredentialsMixin._credentials of DummyS3CopyToTableKey(table=dummy_table, columns=null)>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.copy_options": {
+                                    "variable_value": "''",
+                                    "variable_type": "str",
+                                    "variable_shape": "0"
+                                }
+                            },
+                            {
+                                "logger.info": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "logger": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "f": {
+                                    "variable_value": "'s3://bucket/key'",
+                                    "variable_type": "str",
+                                    "variable_shape": "15"
+                                },
+                                "colnames": {
+                                    "variable_value": "''",
+                                    "variable_type": "str",
+                                    "variable_shape": "0"
+                                },
+                                "self.columns": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "DummyS3CopyToTableKey(table=dummy_table, columns=null)",
+                                    "variable_type": "DummyS3CopyToTableKey",
+                                    "variable_shape": null
+                                },
+                                "join": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cursor.execute": {
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4435796992'>",
+                                    "variable_type": "MagicMock",
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4435799584'>"
+                                },
+                                "cursor": {
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4435784656'>",
+                                    "variable_type": "MagicMock",
+                                    "variable_shape": null
+                                },
+                                "self.table": {
+                                    "variable_value": "'dummy_table'",
+                                    "variable_type": "str",
+                                    "variable_shape": "11"
+                                },
+                                "self._credentials": {
+                                    "variable_value": "<bound method _CredentialsMixin._credentials of DummyS3CopyToTableKey(table=dummy_table, columns=null)>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "self.copy_options": {
+                                    "variable_value": "''",
+                                    "variable_type": "str",
+                                    "variable_shape": "0"
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "@property\ndef configuration_section(self):\n    \"\"\"\n    Override to change the configuration section used\n    to obtain default credentials.\n    \"\"\"\n    return 'redshift'",
+                "@property\ndef aws_access_key_id(self):\n    \"\"\"\n    Override to return the key id.\n    \"\"\"\n    return self._get_configuration_attribute('aws_access_key_id')",
+                "@property\ndef aws_secret_access_key(self):\n    \"\"\"\n    Override to return the secret access key.\n    \"\"\"\n    return self._get_configuration_attribute('aws_secret_access_key')",
+                "@property\ndef aws_account_id(self):\n    \"\"\"\n    Override to return the account id.\n    \"\"\"\n    return self._get_configuration_attribute('aws_account_id')",
+                "@property\ndef aws_arn_role_name(self):\n    \"\"\"\n    Override to return the arn role name.\n    \"\"\"\n    return self._get_configuration_attribute('aws_arn_role_name')",
+                "@property\ndef aws_session_token(self):\n    \"\"\"\n    Override to return the session token.\n    \"\"\"\n    return self._get_configuration_attribute('aws_session_token')",
+                "def _get_configuration_attribute(self, attribute):\n    config = luigi.configuration.get_config()\n\n    value = config.get(self.configuration_section, attribute, default=None)\n\n    if not value:\n        value = os.environ.get(attribute.upper(), None)\n\n    return value",
+                "def _credentials(self):\n    \"\"\"\n    Return a credential string for the provided task. If no valid\n    credentials are set, raise a NotImplementedError.\n    \"\"\"\n\n    if self.aws_account_id and self.aws_arn_role_name:\n        return 'aws_iam_role=arn:aws:iam::{id}:role/{role}'.format(\n            id=self.aws_account_id,\n            role=self.aws_arn_role_name\n        )\n    elif self.aws_access_key_id and self.aws_secret_access_key:\n        return 'aws_access_key_id={key};aws_secret_access_key={secret}{opt}'.format(\n            key=self.aws_access_key_id,\n            secret=self.aws_secret_access_key,\n            opt=';token={}'.format(self.aws_session_token) if self.aws_session_token else ''\n        )\n    else:\n        raise NotImplementedError(\"Missing Credentials. \"\n                                  \"Ensure one of the pairs of auth args below are set \"\n                                  \"in a configuration file, environment variables or by \"\n                                  \"being overridden in the task: \"\n                                  \"'aws_access_key_id' AND 'aws_secret_access_key' OR \"\n                                  \"'aws_account_id' AND 'aws_arn_role_name'\")",
+                "@abc.abstractmethod\ndef s3_load_path(self):\n    \"\"\"\n    Override to return the load path.\n    \"\"\"\n    return None",
+                "@abc.abstractproperty\ndef copy_options(self):\n    \"\"\"\n    Add extra copy options, for example:\n\n    * TIMEFORMAT 'auto'\n    * IGNOREHEADER 1\n    * TRUNCATECOLUMNS\n    * IGNOREBLANKLINES\n    * DELIMITER '\\t'\n    \"\"\"\n    return ''",
+                "@property\ndef prune_table(self):\n    \"\"\"\n    Override to set equal to the name of the table which is to be pruned.\n    Intended to be used in conjunction with prune_column and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                "@property\ndef prune_column(self):\n    \"\"\"\n    Override to set equal to the column of the prune_table which is to be compared\n    Intended to be used in conjunction with prune_table and prune_date\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                "@property\ndef prune_date(self):\n    \"\"\"\n    Override to set equal to the date by which prune_column is to be compared\n    Intended to be used in conjunction with prune_table and prune_column\n    i.e. copy to temp table, prune production table to prune_column with a date greater than prune_date, then insert into production table from temp table\n    \"\"\"\n    return None",
+                "@property\ndef table_attributes(self):\n    \"\"\"\n    Add extra table attributes, for example:\n\n    DISTSTYLE KEY\n    DISTKEY (MY_FIELD)\n    SORTKEY (MY_FIELD_2, MY_FIELD_3)\n    \"\"\"\n    return ''",
+                "@property\ndef do_truncate_table(self):\n    \"\"\"\n    Return True if table should be truncated before copying new data in.\n    \"\"\"\n    return False",
+                "def do_prune(self):\n    \"\"\"\n    Return True if prune_table, prune_column, and prune_date are implemented.\n    If only a subset of prune variables are override, an exception is raised to remind the user to implement all or none.\n    Prune (data newer than prune_date deleted) before copying new data in.\n    \"\"\"\n    if self.prune_table and self.prune_column and self.prune_date:\n        return True\n    elif self.prune_table or self.prune_column or self.prune_date:\n        raise Exception('override zero or all prune variables')\n    else:\n        return False",
+                "@property\ndef table_type(self):\n    \"\"\"\n    Return table type (i.e. 'temp').\n    \"\"\"\n    return ''",
+                "@property\ndef queries(self):\n    \"\"\"\n    Override to return a list of queries to be executed in order.\n    \"\"\"\n    return []",
+                "def truncate_table(self, connection):\n    query = \"truncate %s\" % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                "def prune(self, connection):\n    query = \"delete from %s where %s >= %s\" % (self.prune_table, self.prune_column, self.prune_date)\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
+                "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        # only names of columns specified, no types\n        raise NotImplementedError(\"create_table() not implemented \"\n                                  \"for %r and columns types not \"\n                                  \"specified\" % self.table)\n    elif len(self.columns[0]) == 2:\n        # if columns is specified as (name, type) tuples\n        coldefs = ','.join(\n            '{name} {type}'.format(\n                name=name,\n                type=type) for name, type in self.columns\n        )\n        query = (\"CREATE {type} TABLE \"\n                 \"{table} ({coldefs}) \"\n                 \"{table_attributes}\").format(\n            type=self.table_type,\n            table=self.table,\n            coldefs=coldefs,\n            table_attributes=self.table_attributes)\n\n        connection.cursor().execute(query)\n    elif len(self.columns[0]) == 3:\n        # if columns is specified as (name, type, encoding) tuples\n        # possible column encodings: https://docs.aws.amazon.com/redshift/latest/dg/c_Compression_encodings.html\n        coldefs = ','.join(\n            '{name} {type} ENCODE {encoding}'.format(\n                name=name,\n                type=type,\n                encoding=encoding) for name, type, encoding in self.columns\n        )\n        query = (\"CREATE {type} TABLE \"\n                 \"{table} ({coldefs}) \"\n                 \"{table_attributes}\").format(\n            type=self.table_type,\n            table=self.table,\n            coldefs=coldefs,\n            table_attributes=self.table_attributes)\n\n        connection.cursor().execute(query)\n    else:\n        raise ValueError(\"create_table() found no columns for %r\"\n                         % self.table)",
+                "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not (self.table):\n        raise Exception(\"table need to be specified\")\n\n    path = self.s3_load_path()\n    output = self.output()\n    connection = output.connect()\n    cursor = connection.cursor()\n\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.post_copy(cursor)\n\n    # update marker table\n    output.touch(connection)\n    connection.commit()\n\n    # commit and clean up\n    connection.close()",
+                "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    logger.info(\"Inserting file: %s\", f)\n    colnames = ''\n    if len(self.columns) > 0:\n        colnames = \",\".join([x[0] for x in self.columns])\n        colnames = '({})'.format(colnames)\n\n    cursor.execute(\"\"\"\n     COPY {table} {colnames} from '{source}'\n     CREDENTIALS '{creds}'\n     {options}\n     ;\"\"\".format(\n        table=self.table,\n        colnames=colnames,\n        source=f,\n        creds=self._credentials(),\n        options=self.copy_options)\n    )",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.table,\n        update_id=self.update_id)",
+                "def does_table_exist(self, connection):\n    \"\"\"\n    Determine whether the table already exists.\n    \"\"\"\n\n    if '.' in self.table:\n        query = (\"select 1 as table_exists \"\n                 \"from information_schema.tables \"\n                 \"where table_schema = lower(%s) and table_name = lower(%s) limit 1\")\n    else:\n        query = (\"select 1 as table_exists \"\n                 \"from pg_table_def \"\n                 \"where tablename = lower(%s) limit 1\")\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query, tuple(self.table.split('.')))\n        result = cursor.fetchone()\n        return bool(result)\n    finally:\n        cursor.close()",
+                "def init_copy(self, connection):\n    \"\"\"\n    Perform pre-copy sql - such as creating table, truncating, or removing data older than x.\n    \"\"\"\n    if not self.does_table_exist(connection):\n        logger.info(\"Creating table %s\", self.table)\n        connection.reset()\n        self.create_table(connection)\n\n    if self.do_truncate_table:\n        logger.info(\"Truncating table %s\", self.table)\n        self.truncate_table(connection)\n\n    if self.do_prune():\n        logger.info(\"Removing %s older than %s from %s\", self.prune_column, self.prune_date, self.prune_table)\n        self.prune(connection)",
+                "def post_copy(self, cursor):\n    \"\"\"\n    Performs post-copy sql - such as cleansing data, inserting into production table (if copied to temp table), etc.\n    \"\"\"\n    logger.info('Executing post copy queries')\n    for query in self.queries:\n        cursor.execute(query)",
+                "@abc.abstractproperty\ndef jsonpath(self):\n    \"\"\"\n    Override the jsonpath schema location for the table.\n    \"\"\"\n    return ''",
+                "@abc.abstractproperty\ndef copy_json_options(self):\n    \"\"\"\n    Add extra copy options, for example:\n\n    * GZIP\n    * LZOP\n    \"\"\"\n    return ''",
+                "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying JSON from s3 into redshift.\n    \"\"\"\n\n    logger.info(\"Inserting file: %s\", f)\n    cursor.execute(\"\"\"\n     COPY %s from '%s'\n     CREDENTIALS '%s'\n     JSON AS '%s' %s\n     %s\n     ;\"\"\" % (self.table, f, self._credentials(),\n             self.jsonpath, self.copy_json_options, self.copy_options))",
+                "def run(self):\n    entries = []\n    for folder_path in self.folder_paths:\n        s3 = S3Target(folder_path)\n        client = s3.fs\n        for file_name in client.list(s3.path):\n            entries.append({\n                'url': '%s/%s' % (folder_path, file_name),\n                'mandatory': True\n            })\n    manifest = {'entries': entries}\n    target = self.output().open('w')\n    dump = json.dumps(manifest)\n    if not self.text_target:\n        dump = dump.encode('utf8')\n    target.write(dump)\n    target.close()",
+                "@abc.abstractproperty\ndef host(self):\n    return None",
+                "@abc.abstractproperty\ndef database(self):\n    return None",
+                "@abc.abstractproperty\ndef user(self):\n    return None",
+                "@abc.abstractproperty\ndef password(self):\n    return None",
+                "@property\ndef update_id(self):\n    \"\"\"\n    This update id will be a unique identifier\n    for this insert on this table.\n    \"\"\"\n    return self.task_id",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    # uses class name as a meta-table\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.__class__.__name__,\n        update_id=self.update_id)",
+                "def run(self):\n    \"\"\"\n    Kill any open Redshift sessions for the given database.\n    \"\"\"\n    connection = self.output().connect()\n    # kill any sessions other than ours and\n    # internal Redshift sessions (rdsdb)\n    query = (\"select pg_terminate_backend(process) \"\n             \"from STV_SESSIONS \"\n             \"where db_name=%s \"\n             \"and user_name != 'rdsdb' \"\n             \"and process != pg_backend_pid()\")\n    cursor = connection.cursor()\n    logger.info('Killing all open Redshift sessions for database: %s', self.database)\n    try:\n        cursor.execute(query, (self.database,))\n        cursor.close()\n        connection.commit()\n    except psycopg2.DatabaseError as e:\n        if e.message and 'EOF' in e.message:\n            # sometimes this operation kills the current session.\n            # rebuild the connection. Need to pause for 30-60 seconds\n            # before Redshift will allow us back in.\n            connection.close()\n            logger.info('Pausing %s seconds for Redshift to reset connection', self.connection_reset_wait_seconds)\n            time.sleep(self.connection_reset_wait_seconds)\n            logger.info('Reconnecting to Redshift')\n            connection = self.output().connect()\n        else:\n            raise\n\n    try:\n        self.output().touch(connection)\n        connection.commit()\n    finally:\n        connection.close()\n\n    logger.info('Done killing all open Redshift sessions for database: %s', self.database)",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the executed query.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.table,\n        update_id=self.update_id\n    )",
+                "@property\ndef s3_unload_path(self):\n    \"\"\"\n    Override to return the load path.\n    \"\"\"\n    return ''",
+                "@property\ndef unload_options(self):\n    \"\"\"\n    Add extra or override default unload options:\n    \"\"\"\n    return \"DELIMITER '|' ADDQUOTES GZIP ALLOWOVERWRITE PARALLEL ON\"",
+                "@property\ndef unload_query(self):\n    \"\"\"\n    Default UNLOAD command\n    \"\"\"\n    return (\"UNLOAD ( '{query}' ) TO '{s3_unload_path}' \"\n            \"credentials '{credentials}' \"\n            \"{unload_options};\")",
+                "def run(self):\n    connection = self.output().connect()\n    cursor = connection.cursor()\n\n    unload_query = self.unload_query.format(\n        query=self.query().replace(\"'\", r\"\\'\"),\n        s3_unload_path=self.s3_unload_path,\n        unload_options=self.unload_options,\n        credentials=self._credentials())\n\n    logger.info('Executing unload query from task: {name}'.format(name=self.__class__))\n\n    cursor = connection.cursor()\n    cursor.execute(unload_query)\n    logger.info(cursor.statusmessage)\n\n    # Update marker table\n    self.output().touch(connection)\n    # commit and close connection\n    connection.commit()\n    connection.close()",
+                "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the executed query.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(\n        host=self.host,\n        database=self.database,\n        user=self.user,\n        password=self.password,\n        table=self.table,\n        update_id=self.update_id\n    )"
+            ],
+            "inscope_function_signatures": [
+                "configuration_section(self)",
+                "aws_access_key_id(self)",
+                "aws_secret_access_key(self)",
+                "aws_account_id(self)",
+                "aws_arn_role_name(self)",
+                "aws_session_token(self)",
+                "_get_configuration_attribute(self, attribute)",
+                "_credentials(self)",
+                "s3_load_path(self)",
+                "copy_options(self)",
+                "prune_table(self)",
+                "prune_column(self)",
+                "prune_date(self)",
+                "table_attributes(self)",
+                "do_truncate_table(self)",
+                "do_prune(self)",
+                "table_type(self)",
+                "queries(self)",
+                "truncate_table(self, connection)",
+                "prune(self, connection)",
+                "create_table(self, connection)",
+                "run(self)",
+                "copy(self, cursor, f)",
+                "output(self)",
+                "does_table_exist(self, connection)",
+                "init_copy(self, connection)",
+                "post_copy(self, cursor)",
+                "jsonpath(self)",
+                "copy_json_options(self)",
+                "copy(self, cursor, f)",
+                "run(self)",
+                "host(self)",
+                "database(self)",
+                "user(self)",
+                "password(self)",
+                "update_id(self)",
+                "output(self)",
+                "run(self)",
+                "output(self)",
+                "s3_unload_path(self)",
+                "unload_options(self)",
+                "unload_query(self)",
+                "run(self)",
+                "output(self)"
+            ],
+            "variables_in_file": {
+                "logger": [
+                    417,
+                    354,
+                    707,
+                    36,
+                    421,
+                    615,
+                    711,
+                    617,
+                    428,
+                    628,
+                    412,
+                    29,
+                    478,
+                    604
+                ],
+                "logging.getLogger": [
+                    29
+                ],
+                "logging": [
+                    29
+                ],
+                "ImportError": [
+                    35
+                ],
+                "logger.warning": [
+                    36
+                ],
+                "property": [
+                    674,
+                    69,
+                    200,
+                    681,
+                    76,
+                    47,
+                    240,
+                    209,
+                    688,
+                    83,
+                    182,
+                    55,
+                    568,
+                    247,
+                    220,
+                    62,
+                    191
+                ],
+                "self._get_configuration_attribute": [
+                    67,
+                    74,
+                    81,
+                    88,
+                    60
+                ],
+                "self": [
+                    517,
+                    526,
+                    528,
+                    60,
+                    574,
+                    67,
+                    584,
+                    585,
+                    74,
+                    586,
+                    587,
+                    588,
+                    589,
+                    81,
+                    595,
+                    88,
+                    604,
+                    93,
+                    606,
+                    615,
+                    616,
+                    618,
+                    106,
+                    108,
+                    109,
+                    111,
+                    623,
+                    113,
+                    114,
+                    115,
+                    628,
+                    652,
+                    653,
+                    654,
+                    655,
+                    656,
+                    657,
+                    698,
+                    701,
+                    702,
+                    703,
+                    704,
+                    705,
+                    707,
+                    714,
+                    726,
+                    727,
+                    728,
+                    729,
+                    730,
+                    731,
+                    233,
+                    235,
+                    255,
+                    263,
+                    281,
+                    285,
+                    286,
+                    291,
+                    296,
+                    297,
+                    299,
+                    302,
+                    309,
+                    314,
+                    315,
+                    317,
+                    322,
+                    329,
+                    332,
+                    333,
+                    337,
+                    338,
+                    339,
+                    356,
+                    357,
+                    365,
+                    368,
+                    369,
+                    379,
+                    380,
+                    381,
+                    382,
+                    383,
+                    384,
+                    391,
+                    401,
+                    411,
+                    412,
+                    414,
+                    416,
+                    417,
+                    418,
+                    420,
+                    421,
+                    422,
+                    429,
+                    484,
+                    485
+                ],
+                "config": [
+                    91,
+                    93
+                ],
+                "luigi.configuration.get_config": [
+                    91,
+                    133
+                ],
+                "luigi.configuration": [
+                    91,
+                    133
+                ],
+                "luigi": [
+                    512,
+                    133,
+                    550,
+                    534,
+                    91
+                ],
+                "value": [
+                    96,
+                    98,
+                    93,
+                    95
+                ],
+                "config.get": [
+                    93
+                ],
+                "self.configuration_section": [
+                    93
+                ],
+                "attribute": [
+                    96,
+                    93
+                ],
+                "os.environ.get": [
+                    96
+                ],
+                "os.environ": [
+                    96
+                ],
+                "os": [
+                    96
+                ],
+                "attribute.upper": [
+                    96
+                ],
+                "self.aws_account_id": [
+                    106,
+                    108
+                ],
+                "self.aws_arn_role_name": [
+                    106,
+                    109
+                ],
+                "format": [
+                    289,
+                    707,
+                    293,
+                    358,
+                    360,
+                    107,
+                    112,
+                    306,
+                    115,
+                    311
+                ],
+                "self.aws_access_key_id": [
+                    113,
+                    111
+                ],
+                "self.aws_secret_access_key": [
+                    114,
+                    111
+                ],
+                "self.aws_session_token": [
+                    115
+                ],
+                "NotImplementedError": [
+                    283,
+                    118
+                ],
+                "postgres.PostgresTarget": [
+                    126
+                ],
+                "postgres": [
+                    661,
+                    126,
+                    631
+                ],
+                "marker_table": [
+                    133
+                ],
+                "get": [
+                    133
+                ],
+                "use_db_timestamps": [
+                    138
+                ],
+                "rdbms.CopyToTable": [
+                    141
+                ],
+                "rdbms": [
+                    141
+                ],
+                "_CredentialsMixin": [
+                    433,
+                    141,
+                    661
+                ],
+                "abc.abstractmethod": [
+                    162
+                ],
+                "abc": [
+                    162,
+                    456,
+                    169,
+                    552,
+                    556,
+                    463,
+                    560,
+                    564
+                ],
+                "abc.abstractproperty": [
+                    456,
+                    169,
+                    552,
+                    556,
+                    463,
+                    560,
+                    564
+                ],
+                "self.prune_table": [
+                    233,
+                    235,
+                    421,
+                    263
+                ],
+                "self.prune_column": [
+                    233,
+                    235,
+                    421,
+                    263
+                ],
+                "self.prune_date": [
+                    233,
+                    235,
+                    421,
+                    263
+                ],
+                "Exception": [
+                    330,
+                    236
+                ],
+                "query": [
+                    258,
+                    293,
+                    319,
+                    263,
+                    392,
+                    266,
+                    396,
+                    301,
+                    429,
+                    430,
+                    401,
+                    598,
+                    311,
+                    606,
+                    255
+                ],
+                "self.table": [
+                    417,
+                    322,
+                    484,
+                    383,
+                    391,
+                    297,
+                    329,
+                    365,
+                    656,
+                    401,
+                    730,
+                    315,
+                    412,
+                    285,
+                    255
+                ],
+                "cursor": [
+                    256,
+                    258,
+                    260,
+                    264,
+                    266,
+                    268,
+                    399,
+                    401,
+                    402,
+                    405,
+                    430,
+                    699,
+                    709,
+                    710,
+                    711,
+                    335,
+                    338,
+                    339,
+                    603,
+                    606,
+                    607,
+                    479,
+                    360
+                ],
+                "connection.cursor": [
+                    256,
+                    709,
+                    264,
+                    301,
+                    335,
+                    399,
+                    603,
+                    699,
+                    319
+                ],
+                "connection": [
+                    256,
+                    264,
+                    399,
+                    411,
+                    413,
+                    414,
+                    418,
+                    422,
+                    301,
+                    698,
+                    699,
+                    319,
+                    709,
+                    714,
+                    716,
+                    717,
+                    334,
+                    335,
+                    337,
+                    595,
+                    342,
+                    343,
+                    346,
+                    603,
+                    608,
+                    614,
+                    618,
+                    623,
+                    624,
+                    626
+                ],
+                "cursor.execute": [
+                    258,
+                    710,
+                    360,
+                    266,
+                    430,
+                    401,
+                    606,
+                    479
+                ],
+                "cursor.close": [
+                    260,
+                    268,
+                    405,
+                    607
+                ],
+                "len": [
+                    302,
+                    281,
+                    356,
+                    286
+                ],
+                "self.columns": [
+                    291,
+                    356,
+                    357,
+                    302,
+                    309,
+                    281,
+                    286
+                ],
+                "coldefs": [
+                    288,
+                    305,
+                    298,
+                    316
+                ],
+                "join": [
+                    288,
+                    305,
+                    357
+                ],
+                "name": [
+                    307,
+                    290,
+                    291,
+                    309
+                ],
+                "type": [
+                    291,
+                    308,
+                    309
+                ],
+                "self.table_type": [
+                    296,
+                    314
+                ],
+                "self.table_attributes": [
+                    299,
+                    317
+                ],
+                "execute": [
+                    301,
+                    319
+                ],
+                "encoding": [
+                    309
+                ],
+                "ValueError": [
+                    321
+                ],
+                "path": [
+                    338,
+                    332
+                ],
+                "self.s3_load_path": [
+                    332
+                ],
+                "output": [
+                    342,
+                    333,
+                    334
+                ],
+                "self.output": [
+                    618,
+                    714,
+                    333,
+                    526,
+                    623,
+                    595,
+                    698
+                ],
+                "output.connect": [
+                    334
+                ],
+                "self.init_copy": [
+                    337
+                ],
+                "self.copy": [
+                    338
+                ],
+                "self.post_copy": [
+                    339
+                ],
+                "output.touch": [
+                    342
+                ],
+                "connection.commit": [
+                    608,
+                    716,
+                    624,
+                    343
+                ],
+                "connection.close": [
+                    346,
+                    717,
+                    614,
+                    626
+                ],
+                "logger.info": [
+                    417,
+                    354,
+                    707,
+                    421,
+                    615,
+                    711,
+                    617,
+                    428,
+                    628,
+                    412,
+                    478,
+                    604
+                ],
+                "f": [
+                    354,
+                    484,
+                    478,
+                    367
+                ],
+                "colnames": [
+                    366,
+                    355,
+                    357,
+                    358
+                ],
+                "x": [
+                    357
+                ],
+                "self._credentials": [
+                    368,
+                    705,
+                    484
+                ],
+                "self.copy_options": [
+                    369,
+                    485
+                ],
+                "RedshiftTarget": [
+                    378,
+                    651,
+                    725,
+                    583
+                ],
+                "self.host": [
+                    584,
+                    379,
+                    652,
+                    726
+                ],
+                "self.database": [
+                    585,
+                    653,
+                    628,
+                    727,
+                    380,
+                    606,
+                    604
+                ],
+                "self.user": [
+                    728,
+                    586,
+                    381,
+                    654
+                ],
+                "self.password": [
+                    729,
+                    587,
+                    382,
+                    655
+                ],
+                "self.update_id": [
+                    384,
+                    657,
+                    731,
+                    589
+                ],
+                "tuple": [
+                    401
+                ],
+                "self.table.split": [
+                    401
+                ],
+                "result": [
+                    402,
+                    403
+                ],
+                "cursor.fetchone": [
+                    402
+                ],
+                "bool": [
+                    403
+                ],
+                "self.does_table_exist": [
+                    411
+                ],
+                "connection.reset": [
+                    413
+                ],
+                "self.create_table": [
+                    414
+                ],
+                "self.do_truncate_table": [
+                    416
+                ],
+                "self.truncate_table": [
+                    418
+                ],
+                "self.do_prune": [
+                    420
+                ],
+                "self.prune": [
+                    422
+                ],
+                "self.queries": [
+                    429
+                ],
+                "S3CopyToTable": [
+                    433
+                ],
+                "self.jsonpath": [
+                    485
+                ],
+                "self.copy_json_options": [
+                    485
+                ],
+                "S3PathTask": [
+                    488
+                ],
+                "folder_paths": [
+                    512
+                ],
+                "luigi.Parameter": [
+                    512
+                ],
+                "text_target": [
+                    513
+                ],
+                "entries": [
+                    521,
+                    516,
+                    525
+                ],
+                "folder_path": [
+                    522,
+                    517,
+                    518
+                ],
+                "self.folder_paths": [
+                    517
+                ],
+                "s3": [
+                    520,
+                    518,
+                    519
+                ],
+                "S3Target": [
+                    518
+                ],
+                "client": [
+                    520,
+                    519
+                ],
+                "s3.fs": [
+                    519
+                ],
+                "file_name": [
+                    520,
+                    522
+                ],
+                "client.list": [
+                    520
+                ],
+                "s3.path": [
+                    520
+                ],
+                "entries.append": [
+                    521
+                ],
+                "manifest": [
+                    525,
+                    527
+                ],
+                "target": [
+                    530,
+                    531,
+                    526
+                ],
+                "open": [
+                    526
+                ],
+                "dump": [
+                    529,
+                    530,
+                    527
+                ],
+                "json.dumps": [
+                    527
+                ],
+                "json": [
+                    527
+                ],
+                "self.text_target": [
+                    528
+                ],
+                "dump.encode": [
+                    529
+                ],
+                "target.write": [
+                    530
+                ],
+                "target.close": [
+                    531
+                ],
+                "luigi.Task": [
+                    534
+                ],
+                "connection_reset_wait_seconds": [
+                    550
+                ],
+                "luigi.IntParameter": [
+                    550
+                ],
+                "self.task_id": [
+                    574
+                ],
+                "self.__class__.__name__": [
+                    588
+                ],
+                "self.__class__": [
+                    707,
+                    588
+                ],
+                "connect": [
+                    698,
+                    618,
+                    595
+                ],
+                "psycopg2.DatabaseError": [
+                    609
+                ],
+                "psycopg2": [
+                    609
+                ],
+                "e.message": [
+                    610
+                ],
+                "e": [
+                    610
+                ],
+                "self.connection_reset_wait_seconds": [
+                    616,
+                    615
+                ],
+                "time.sleep": [
+                    616
+                ],
+                "time": [
+                    616
+                ],
+                "touch": [
+                    714,
+                    623
+                ],
+                "postgres.PostgresQuery": [
+                    661,
+                    631
+                ],
+                "unload_query": [
+                    701,
+                    710
+                ],
+                "self.unload_query.format": [
+                    701
+                ],
+                "self.unload_query": [
+                    701
+                ],
+                "replace": [
+                    702
+                ],
+                "self.query": [
+                    702
+                ],
+                "self.s3_unload_path": [
+                    703
+                ],
+                "self.unload_options": [
+                    704
+                ],
+                "cursor.statusmessage": [
+                    711
+                ]
+            },
+            "filtered_variables_in_file": {
+                "logger": [
+                    417,
+                    354,
+                    707,
+                    36,
+                    421,
+                    615,
+                    711,
+                    617,
+                    428,
+                    628,
+                    412,
+                    29,
+                    478,
+                    604
+                ],
+                "logging.getLogger": [
+                    29
+                ],
+                "logging": [
+                    29
+                ],
+                "logger.warning": [
+                    36
+                ],
+                "self._get_configuration_attribute": [
+                    67,
+                    74,
+                    81,
+                    88,
+                    60
+                ],
+                "self": [
+                    517,
+                    526,
+                    528,
+                    60,
+                    574,
+                    67,
+                    584,
+                    585,
+                    74,
+                    586,
+                    587,
+                    588,
+                    589,
+                    81,
+                    595,
+                    88,
+                    604,
+                    93,
+                    606,
+                    615,
+                    616,
+                    618,
+                    106,
+                    108,
+                    109,
+                    111,
+                    623,
+                    113,
+                    114,
+                    115,
+                    628,
+                    652,
+                    653,
+                    654,
+                    655,
+                    656,
+                    657,
+                    698,
+                    701,
+                    702,
+                    703,
+                    704,
+                    705,
+                    707,
+                    714,
+                    726,
+                    727,
+                    728,
+                    729,
+                    730,
+                    731,
+                    233,
+                    235,
+                    255,
+                    263,
+                    281,
+                    285,
+                    286,
+                    291,
+                    296,
+                    297,
+                    299,
+                    302,
+                    309,
+                    314,
+                    315,
+                    317,
+                    322,
+                    329,
+                    332,
+                    333,
+                    337,
+                    338,
+                    339,
+                    356,
+                    357,
+                    365,
+                    368,
+                    369,
+                    379,
+                    380,
+                    381,
+                    382,
+                    383,
+                    384,
+                    391,
+                    401,
+                    411,
+                    412,
+                    414,
+                    416,
+                    417,
+                    418,
+                    420,
+                    421,
+                    422,
+                    429,
+                    484,
+                    485
+                ],
+                "config": [
+                    91,
+                    93
+                ],
+                "luigi.configuration.get_config": [
+                    91,
+                    133
+                ],
+                "luigi.configuration": [
+                    91,
+                    133
+                ],
+                "luigi": [
+                    512,
+                    133,
+                    550,
+                    534,
+                    91
+                ],
+                "value": [
+                    96,
+                    98,
+                    93,
+                    95
+                ],
+                "config.get": [
+                    93
+                ],
+                "self.configuration_section": [
+                    93
+                ],
+                "attribute": [
+                    96,
+                    93
+                ],
+                "os.environ.get": [
+                    96
+                ],
+                "os.environ": [
+                    96
+                ],
+                "os": [
+                    96
+                ],
+                "attribute.upper": [
+                    96
+                ],
+                "self.aws_account_id": [
+                    106,
+                    108
+                ],
+                "self.aws_arn_role_name": [
+                    106,
+                    109
+                ],
+                "self.aws_access_key_id": [
+                    113,
+                    111
+                ],
+                "self.aws_secret_access_key": [
+                    114,
+                    111
+                ],
+                "self.aws_session_token": [
+                    115
+                ],
+                "postgres.PostgresTarget": [
+                    126
+                ],
+                "postgres": [
+                    661,
+                    126,
+                    631
+                ],
+                "marker_table": [
+                    133
+                ],
+                "get": [
+                    133
+                ],
+                "use_db_timestamps": [
+                    138
+                ],
+                "rdbms.CopyToTable": [
+                    141
+                ],
+                "rdbms": [
+                    141
+                ],
+                "_CredentialsMixin": [
+                    433,
+                    141,
+                    661
+                ],
+                "abc.abstractmethod": [
+                    162
+                ],
+                "abc": [
+                    162,
+                    456,
+                    169,
+                    552,
+                    556,
+                    463,
+                    560,
+                    564
+                ],
+                "abc.abstractproperty": [
+                    456,
+                    169,
+                    552,
+                    556,
+                    463,
+                    560,
+                    564
+                ],
+                "self.prune_table": [
+                    233,
+                    235,
+                    421,
+                    263
+                ],
+                "self.prune_column": [
+                    233,
+                    235,
+                    421,
+                    263
+                ],
+                "self.prune_date": [
+                    233,
+                    235,
+                    421,
+                    263
+                ],
+                "query": [
+                    258,
+                    293,
+                    319,
+                    263,
+                    392,
+                    266,
+                    396,
+                    301,
+                    429,
+                    430,
+                    401,
+                    598,
+                    311,
+                    606,
+                    255
+                ],
+                "self.table": [
+                    417,
+                    322,
+                    484,
+                    383,
+                    391,
+                    297,
+                    329,
+                    365,
+                    656,
+                    401,
+                    730,
+                    315,
+                    412,
+                    285,
+                    255
+                ],
+                "cursor": [
+                    256,
+                    258,
+                    260,
+                    264,
+                    266,
+                    268,
+                    399,
+                    401,
+                    402,
+                    405,
+                    430,
+                    699,
+                    709,
+                    710,
+                    711,
+                    335,
+                    338,
+                    339,
+                    603,
+                    606,
+                    607,
+                    479,
+                    360
+                ],
+                "connection.cursor": [
+                    256,
+                    709,
+                    264,
+                    301,
+                    335,
+                    399,
+                    603,
+                    699,
+                    319
+                ],
+                "connection": [
+                    256,
+                    264,
+                    399,
+                    411,
+                    413,
+                    414,
+                    418,
+                    422,
+                    301,
+                    698,
+                    699,
+                    319,
+                    709,
+                    714,
+                    716,
+                    717,
+                    334,
+                    335,
+                    337,
+                    595,
+                    342,
+                    343,
+                    346,
+                    603,
+                    608,
+                    614,
+                    618,
+                    623,
+                    624,
+                    626
+                ],
+                "cursor.execute": [
+                    258,
+                    710,
+                    360,
+                    266,
+                    430,
+                    401,
+                    606,
+                    479
+                ],
+                "cursor.close": [
+                    260,
+                    268,
+                    405,
+                    607
+                ],
+                "self.columns": [
+                    291,
+                    356,
+                    357,
+                    302,
+                    309,
+                    281,
+                    286
+                ],
+                "coldefs": [
+                    288,
+                    305,
+                    298,
+                    316
+                ],
+                "join": [
+                    288,
+                    305,
+                    357
+                ],
+                "name": [
+                    307,
+                    290,
+                    291,
+                    309
+                ],
+                "self.table_type": [
+                    296,
+                    314
+                ],
+                "self.table_attributes": [
+                    299,
+                    317
+                ],
+                "execute": [
+                    301,
+                    319
+                ],
+                "encoding": [
+                    309
+                ],
+                "path": [
+                    338,
+                    332
+                ],
+                "self.s3_load_path": [
+                    332
+                ],
+                "output": [
+                    342,
+                    333,
+                    334
+                ],
+                "self.output": [
+                    618,
+                    714,
+                    333,
+                    526,
+                    623,
+                    595,
+                    698
+                ],
+                "output.connect": [
+                    334
+                ],
+                "self.init_copy": [
+                    337
+                ],
+                "self.copy": [
+                    338
+                ],
+                "self.post_copy": [
+                    339
+                ],
+                "output.touch": [
+                    342
+                ],
+                "connection.commit": [
+                    608,
+                    716,
+                    624,
+                    343
+                ],
+                "connection.close": [
+                    346,
+                    717,
+                    614,
+                    626
+                ],
+                "logger.info": [
+                    417,
+                    354,
+                    707,
+                    421,
+                    615,
+                    711,
+                    617,
+                    428,
+                    628,
+                    412,
+                    478,
+                    604
+                ],
+                "f": [
+                    354,
+                    484,
+                    478,
+                    367
+                ],
+                "colnames": [
+                    366,
+                    355,
+                    357,
+                    358
+                ],
+                "x": [
+                    357
+                ],
+                "self._credentials": [
+                    368,
+                    705,
+                    484
+                ],
+                "self.copy_options": [
+                    369,
+                    485
+                ],
+                "RedshiftTarget": [
+                    378,
+                    651,
+                    725,
+                    583
+                ],
+                "self.host": [
+                    584,
+                    379,
+                    652,
+                    726
+                ],
+                "self.database": [
+                    585,
+                    653,
+                    628,
+                    727,
+                    380,
+                    606,
+                    604
+                ],
+                "self.user": [
+                    728,
+                    586,
+                    381,
+                    654
+                ],
+                "self.password": [
+                    729,
+                    587,
+                    382,
+                    655
+                ],
+                "self.update_id": [
+                    384,
+                    657,
+                    731,
+                    589
+                ],
+                "self.table.split": [
+                    401
+                ],
+                "result": [
+                    402,
+                    403
+                ],
+                "cursor.fetchone": [
+                    402
+                ],
+                "self.does_table_exist": [
+                    411
+                ],
+                "connection.reset": [
+                    413
+                ],
+                "self.create_table": [
+                    414
+                ],
+                "self.do_truncate_table": [
+                    416
+                ],
+                "self.truncate_table": [
+                    418
+                ],
+                "self.do_prune": [
+                    420
+                ],
+                "self.prune": [
+                    422
+                ],
+                "self.queries": [
+                    429
+                ],
+                "S3CopyToTable": [
+                    433
+                ],
+                "self.jsonpath": [
+                    485
+                ],
+                "self.copy_json_options": [
+                    485
+                ],
+                "S3PathTask": [
+                    488
+                ],
+                "folder_paths": [
+                    512
+                ],
+                "luigi.Parameter": [
+                    512
+                ],
+                "text_target": [
+                    513
+                ],
+                "entries": [
+                    521,
+                    516,
+                    525
+                ],
+                "folder_path": [
+                    522,
+                    517,
+                    518
+                ],
+                "self.folder_paths": [
+                    517
+                ],
+                "s3": [
+                    520,
+                    518,
+                    519
+                ],
+                "S3Target": [
+                    518
+                ],
+                "client": [
+                    520,
+                    519
+                ],
+                "s3.fs": [
+                    519
+                ],
+                "file_name": [
+                    520,
+                    522
+                ],
+                "client.list": [
+                    520
+                ],
+                "s3.path": [
+                    520
+                ],
+                "entries.append": [
+                    521
+                ],
+                "manifest": [
+                    525,
+                    527
+                ],
+                "target": [
+                    530,
+                    531,
+                    526
+                ],
+                "dump": [
+                    529,
+                    530,
+                    527
+                ],
+                "json.dumps": [
+                    527
+                ],
+                "json": [
+                    527
+                ],
+                "self.text_target": [
+                    528
+                ],
+                "dump.encode": [
+                    529
+                ],
+                "target.write": [
+                    530
+                ],
+                "target.close": [
+                    531
+                ],
+                "luigi.Task": [
+                    534
+                ],
+                "connection_reset_wait_seconds": [
+                    550
+                ],
+                "luigi.IntParameter": [
+                    550
+                ],
+                "self.task_id": [
+                    574
+                ],
+                "self.__class__.__name__": [
+                    588
+                ],
+                "self.__class__": [
+                    707,
+                    588
+                ],
+                "connect": [
+                    698,
+                    618,
+                    595
+                ],
+                "psycopg2.DatabaseError": [
+                    609
+                ],
+                "psycopg2": [
+                    609
+                ],
+                "e.message": [
+                    610
+                ],
+                "e": [
+                    610
+                ],
+                "self.connection_reset_wait_seconds": [
+                    616,
+                    615
+                ],
+                "time.sleep": [
+                    616
+                ],
+                "time": [
+                    616
+                ],
+                "touch": [
+                    714,
+                    623
+                ],
+                "postgres.PostgresQuery": [
+                    661,
+                    631
+                ],
+                "unload_query": [
+                    701,
+                    710
+                ],
+                "self.unload_query.format": [
+                    701
+                ],
+                "self.unload_query": [
+                    701
+                ],
+                "replace": [
+                    702
+                ],
+                "self.query": [
+                    702
+                ],
+                "self.s3_unload_path": [
+                    703
+                ],
+                "self.unload_options": [
+                    704
+                ],
+                "cursor.statusmessage": [
+                    711
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_4/test/contrib/redshift_test.py",
+                "test_function": "test_s3_copy_with_nonetype_columns",
+                "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_once_with(\n            database=task.database,\n            host=task.host,\n            update_id=task.task_id,\n            user=task.user,\n            table=task.table,\n            password=task.password,\n        )\n\n        # To get the proper intendation in the multiline `COPY` statement the\n        # SQL string was copied from redshift.py.\n        mock_cursor.execute.assert_called_with(\"\"\"\n         COPY {table} {colnames} from '{source}'\n         CREDENTIALS '{creds}'\n         {options}\n         ;\"\"\".format(\n            table='dummy_table',\n            colnames='',\n            source='s3://bucket/key',\n            creds='aws_access_key_id=key;aws_secret_access_key=secret',\n            options='')\n        )",
+                "test_error": "TypeError: object of type 'NoneType' has no len()",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4388399232'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4388975424'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "traceback": "luigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4388975424'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "test_function_decorators": [
+                    "mock.patch('luigi.contrib.redshift.RedshiftTarget')"
+                ]
+            }
+        ]
+    }
+}

@@ -33,10 +33,15 @@ def check_for_facts_data(
                                 f"The file {file} in the directory {root} does not have buggy code"
                             )
                         satisfied = False
-                    if (
-                        check_error_message
-                        and "2.1.1" not in data
-                        and "2.1.2" not in data
+                    if check_error_message and (
+                        ("2.1.1" not in data and "2.1.2" not in data)
+                        or (data["2.1.1"] is None and data["2.1.2"] is None)
+                        or (
+                            data["2.1.1"] is not None
+                            and len(data["2.1.1"]) == 0
+                            and data["2.1.2"] is not None
+                            and len(data["2.1.2"]) == 0
+                        )
                     ):
                         if show_errors:
                             print(

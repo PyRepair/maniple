@@ -8,6 +8,7 @@
                     "decorators": [],
                     "docstring": "Return the last row(s) without any NaNs before `where`.\n\nThe last row (for each element in `where`, if list) without any\nNaN is taken.\nIn case of a :class:`~pandas.DataFrame`, the last row without NaN\nconsidering only the subset of columns (if not `None`)\n\nIf there is no good value, NaN is returned for a Series or\na Series of NaN values for a DataFrame\n\nParameters\n----------\nwhere : date or array-like of dates\n    Date(s) before which the last row(s) are returned.\nsubset : str or array-like of str, default `None`\n    For DataFrame, if not `None`, only use these columns to\n    check for NaNs.\n\nReturns\n-------\nscalar, Series, or DataFrame\n\n    The return can be:\n\n    * scalar : when `self` is a Series and `where` is a scalar\n    * Series: when `self` is a Series and `where` is an array-like,\n      or when `self` is a DataFrame and `where` is a scalar\n    * DataFrame : when `self` is a DataFrame and `where` is an\n      array-like\n\n    Return scalar, Series, or DataFrame.\n\nSee Also\n--------\nmerge_asof : Perform an asof merge. Similar to left join.\n\nNotes\n-----\nDates are assumed to be sorted. Raises if this is not the case.\n\nExamples\n--------\nA Series and a scalar `where`.\n\n>>> s = pd.Series([1, 2, np.nan, 4], index=[10, 20, 30, 40])\n>>> s\n10    1.0\n20    2.0\n30    NaN\n40    4.0\ndtype: float64\n\n>>> s.asof(20)\n2.0\n\nFor a sequence `where`, a Series is returned. The first value is\nNaN, because the first element of `where` is before the first\nindex value.\n\n>>> s.asof([5, 20])\n5     NaN\n20    2.0\ndtype: float64\n\nMissing values are not considered. The following is ``2.0``, not\nNaN, even though NaN is at the index location for ``30``.\n\n>>> s.asof(30)\n2.0\n\nTake all columns into consideration\n\n>>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],\n...                    'b': [None, None, None, None, 500]},\n...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',\n...                                           '2018-02-27 09:02:00',\n...                                           '2018-02-27 09:03:00',\n...                                           '2018-02-27 09:04:00',\n...                                           '2018-02-27 09:05:00']))\n>>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',\n...                           '2018-02-27 09:04:30']))\n                      a   b\n2018-02-27 09:03:30 NaN NaN\n2018-02-27 09:04:30 NaN NaN\n\nTake a single column into consideration\n\n>>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',\n...                           '2018-02-27 09:04:30']),\n...         subset=['a'])\n                         a   b\n2018-02-27 09:03:30   30.0 NaN\n2018-02-27 09:04:30   40.0 NaN",
                     "start_line": 6859,
+                    "end_line": 7025,
                     "variables": {
                         "isinstance": [
                             7001,
@@ -658,8 +659,8 @@
                             "def f(x):\n    return matcher.search(ensure_str(x)) is not None"
                         ],
                         "constructor_variables": [
-                            "attrs",
-                            "data"
+                            "data",
+                            "attrs"
                         ],
                         "class_level_variables": [
                             "_internal_names",
@@ -910,12 +911,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": null,
@@ -935,7 +936,7 @@
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1015,7 +1016,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -1045,7 +1046,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x115bf46d0>"
+                                    "variable_shape": "<property object at 0x106baf130>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -1132,12 +1133,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": "False",
@@ -1152,12 +1153,12 @@
                                 "subset": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1202,7 +1203,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x114fd2450>"
+                                    "variable_shape": "<property object at 0x10a4d04f0>"
                                 },
                                 "np.float64": {
                                     "variable_value": null,
@@ -1237,7 +1238,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -1267,7 +1268,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x115bf46d0>"
+                                    "variable_shape": "<property object at 0x106baf130>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -1341,7 +1342,7 @@
                                 "where": {
                                     "variable_value": "DatetimeIndex(['1989-12-31'], dtype='datetime64[ns]', freq=None)",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "Timestamp": {
                                     "variable_value": null,
@@ -1356,12 +1357,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": null,
@@ -1381,7 +1382,7 @@
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1461,7 +1462,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -1491,7 +1492,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x115bf46d0>"
+                                    "variable_shape": "<property object at 0x106baf130>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -1563,7 +1564,7 @@
                                 "where": {
                                     "variable_value": "DatetimeIndex(['1989-12-31'], dtype='datetime64[ns]', freq=None)",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "Timestamp": {
                                     "variable_value": null,
@@ -1578,12 +1579,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": "False",
@@ -1598,12 +1599,12 @@
                                 "subset": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1683,7 +1684,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -1698,7 +1699,7 @@
                                 "nulls": {
                                     "variable_value": "1990-01-01 00:00:00    False\n1990-01-01 00:00:53    False\n1990-01-01 00:01:46    False\n1990-01-01 00:02:39    False\n1990-01-01 00:03:32    False\n1990-01-01 00:04:25    False\n1990-01-01 00:05:18    False\n1990-01-01 00:06:11    False\n1990-01-01 00:07:04    False\n1990-01-01 00:07:57    False\nFreq: 53S, dtype: bool",
                                     "variable_type": "Series",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self.isna": {
                                     "variable_value": "<bound method DataFrame.isna of                      A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9>",
@@ -1713,7 +1714,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x115bf46d0>"
+                                    "variable_shape": "<property object at 0x106baf130>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -1728,7 +1729,7 @@
                                 "locs": {
                                     "variable_value": "array([-1])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "self.index.asof_locs": {
                                     "variable_value": "None",
@@ -1738,17 +1739,17 @@
                                 "nulls.values": {
                                     "variable_value": "array([False, False, False, False, False, False, False, False, False,\n       False])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "missing": {
                                     "variable_value": "array([ True])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "d": {
                                     "variable_value": "                     A  B\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1, 2)"
                                 },
                                 "self.take": {
                                     "variable_value": "<bound method NDFrame.take of                      A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9>",
@@ -1758,7 +1759,7 @@
                                 "data": {
                                     "variable_value": "             A   B\n1989-12-31 NaN NaN",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1, 2)"
                                 },
                                 "d.copy": {
                                     "variable_value": "<bound method NDFrame.copy of                      A  B\n1990-01-01 00:07:57  9  9>",
@@ -1768,15 +1769,15 @@
                                 "data.index": {
                                     "variable_value": "DatetimeIndex(['1989-12-31'], dtype='datetime64[ns]', freq=None)",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "data.loc": {
-                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x122fbf900>",
+                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x11849ce00>",
                                     "variable_type": "_LocIndexer",
                                     "variable_shape": null
                                 },
                                 "data.iloc": {
-                                    "variable_value": "<pandas.core.indexing._iLocIndexer object at 0x122fbf900>",
+                                    "variable_value": "<pandas.core.indexing._iLocIndexer object at 0x11849ce00>",
                                     "variable_type": "_iLocIndexer",
                                     "variable_shape": null
                                 }
@@ -1802,12 +1803,12 @@
                                 "self.index": {
                                     "variable_value": "PeriodIndex(['1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01'],\n            dtype='period[D]', freq='D')",
                                     "variable_type": "PeriodIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "            A  B\n1990-01-01  0  0\n1990-01-01  1  1\n1990-01-01  2  2\n1990-01-01  3  3\n1990-01-01  4  4\n1990-01-01  5  5\n1990-01-01  6  6\n1990-01-01  7  7\n1990-01-01  8  8\n1990-01-01  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": null,
@@ -1827,7 +1828,7 @@
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1907,7 +1908,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -1937,7 +1938,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x115bf46d0>"
+                                    "variable_shape": "<property object at 0x106baf130>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -2024,12 +2025,12 @@
                                 "self.index": {
                                     "variable_value": "PeriodIndex(['1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01'],\n            dtype='period[D]', freq='D')",
                                     "variable_type": "PeriodIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "            A  B\n1990-01-01  0  0\n1990-01-01  1  1\n1990-01-01  2  2\n1990-01-01  3  3\n1990-01-01  4  4\n1990-01-01  5  5\n1990-01-01  6  6\n1990-01-01  7  7\n1990-01-01  8  8\n1990-01-01  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": "False",
@@ -2044,12 +2045,12 @@
                                 "subset": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -2094,7 +2095,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x114fd2450>"
+                                    "variable_shape": "<property object at 0x10a4d04f0>"
                                 },
                                 "np.float64": {
                                     "variable_value": null,
@@ -2129,7 +2130,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -2159,7 +2160,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x115bf46d0>"
+                                    "variable_shape": "<property object at 0x106baf130>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -2250,12 +2251,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": null,
@@ -2275,7 +2276,7 @@
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -2345,7 +2346,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -2375,7 +2376,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1118b9310>"
+                                    "variable_shape": "<property object at 0x103897bd0>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -2462,12 +2463,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": "False",
@@ -2482,12 +2483,12 @@
                                 "subset": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -2522,7 +2523,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110d505e0>"
+                                    "variable_shape": "<property object at 0x107356630>"
                                 },
                                 "np.float64": {
                                     "variable_value": null,
@@ -2557,7 +2558,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -2587,7 +2588,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1118b9310>"
+                                    "variable_shape": "<property object at 0x103897bd0>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -2661,7 +2662,7 @@
                                 "where": {
                                     "variable_value": "DatetimeIndex(['1989-12-31'], dtype='datetime64[ns]', freq=None)",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "Timestamp": {
                                     "variable_value": null,
@@ -2676,12 +2677,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": null,
@@ -2701,7 +2702,7 @@
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -2771,7 +2772,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -2801,7 +2802,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1118b9310>"
+                                    "variable_shape": "<property object at 0x103897bd0>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -2873,7 +2874,7 @@
                                 "where": {
                                     "variable_value": "DatetimeIndex(['1989-12-31'], dtype='datetime64[ns]', freq=None)",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "Timestamp": {
                                     "variable_value": null,
@@ -2888,12 +2889,12 @@
                                 "self.index": {
                                     "variable_value": "DatetimeIndex(['1990-01-01 00:00:00', '1990-01-01 00:00:53',\n               '1990-01-01 00:01:46', '1990-01-01 00:02:39',\n               '1990-01-01 00:03:32', '1990-01-01 00:04:25',\n               '1990-01-01 00:05:18', '1990-01-01 00:06:11',\n               '1990-01-01 00:07:04', '1990-01-01 00:07:57'],\n              dtype='datetime64[ns]', freq='53S')",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "                     A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": "False",
@@ -2908,12 +2909,12 @@
                                 "subset": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -2983,7 +2984,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -2998,7 +2999,7 @@
                                 "nulls": {
                                     "variable_value": "1990-01-01 00:00:00    False\n1990-01-01 00:00:53    False\n1990-01-01 00:01:46    False\n1990-01-01 00:02:39    False\n1990-01-01 00:03:32    False\n1990-01-01 00:04:25    False\n1990-01-01 00:05:18    False\n1990-01-01 00:06:11    False\n1990-01-01 00:07:04    False\n1990-01-01 00:07:57    False\nFreq: 53S, dtype: bool",
                                     "variable_type": "Series",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self.isna": {
                                     "variable_value": "<bound method DataFrame.isna of                      A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9>",
@@ -3013,7 +3014,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1118b9310>"
+                                    "variable_shape": "<property object at 0x103897bd0>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -3028,7 +3029,7 @@
                                 "locs": {
                                     "variable_value": "array([-1])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "self.index.asof_locs": {
                                     "variable_value": "None",
@@ -3038,17 +3039,17 @@
                                 "nulls.values": {
                                     "variable_value": "array([False, False, False, False, False, False, False, False, False,\n       False])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "missing": {
                                     "variable_value": "array([ True])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "d": {
                                     "variable_value": "                     A  B\n1990-01-01 00:07:57  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1, 2)"
                                 },
                                 "self.take": {
                                     "variable_value": "<bound method NDFrame.take of                      A  B\n1990-01-01 00:00:00  0  0\n1990-01-01 00:00:53  1  1\n1990-01-01 00:01:46  2  2\n1990-01-01 00:02:39  3  3\n1990-01-01 00:03:32  4  4\n1990-01-01 00:04:25  5  5\n1990-01-01 00:05:18  6  6\n1990-01-01 00:06:11  7  7\n1990-01-01 00:07:04  8  8\n1990-01-01 00:07:57  9  9>",
@@ -3058,7 +3059,7 @@
                                 "data": {
                                     "variable_value": "             A   B\n1989-12-31 NaN NaN",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1, 2)"
                                 },
                                 "d.copy": {
                                     "variable_value": "<bound method NDFrame.copy of                      A  B\n1990-01-01 00:07:57  9  9>",
@@ -3068,15 +3069,15 @@
                                 "data.index": {
                                     "variable_value": "DatetimeIndex(['1989-12-31'], dtype='datetime64[ns]', freq=None)",
                                     "variable_type": "DatetimeIndex",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1,)"
                                 },
                                 "data.loc": {
-                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x11eda3900>",
+                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x1153e12c0>",
                                     "variable_type": "_LocIndexer",
                                     "variable_shape": null
                                 },
                                 "data.iloc": {
-                                    "variable_value": "<pandas.core.indexing._iLocIndexer object at 0x11eda3900>",
+                                    "variable_value": "<pandas.core.indexing._iLocIndexer object at 0x1153e12c0>",
                                     "variable_type": "_iLocIndexer",
                                     "variable_shape": null
                                 }
@@ -3102,12 +3103,12 @@
                                 "self.index": {
                                     "variable_value": "PeriodIndex(['1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01'],\n            dtype='period[D]', freq='D')",
                                     "variable_type": "PeriodIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "            A  B\n1990-01-01  0  0\n1990-01-01  1  1\n1990-01-01  2  2\n1990-01-01  3  3\n1990-01-01  4  4\n1990-01-01  5  5\n1990-01-01  6  6\n1990-01-01  7  7\n1990-01-01  8  8\n1990-01-01  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": null,
@@ -3127,7 +3128,7 @@
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -3197,7 +3198,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -3227,7 +3228,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1118b9310>"
+                                    "variable_shape": "<property object at 0x103897bd0>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -3314,12 +3315,12 @@
                                 "self.index": {
                                     "variable_value": "PeriodIndex(['1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01', '1990-01-01', '1990-01-01',\n             '1990-01-01', '1990-01-01'],\n            dtype='period[D]', freq='D')",
                                     "variable_type": "PeriodIndex",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10,)"
                                 },
                                 "self": {
                                     "variable_value": "            A  B\n1990-01-01  0  0\n1990-01-01  1  1\n1990-01-01  2  2\n1990-01-01  3  3\n1990-01-01  4  4\n1990-01-01  5  5\n1990-01-01  6  6\n1990-01-01  7  7\n1990-01-01  8  8\n1990-01-01  9  9",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "is_series": {
                                     "variable_value": "False",
@@ -3334,12 +3335,12 @@
                                 "subset": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "self.columns": {
                                     "variable_value": "Index(['A', 'B'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -3374,7 +3375,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110d505e0>"
+                                    "variable_shape": "<property object at 0x107356630>"
                                 },
                                 "np.float64": {
                                     "variable_value": null,
@@ -3409,7 +3410,7 @@
                                 "self._values": {
                                     "variable_value": "array([[0, 0],\n       [1, 1],\n       [2, 2],\n       [3, 3],\n       [4, 4],\n       [5, 5],\n       [6, 6],\n       [7, 7],\n       [8, 8],\n       [9, 9]])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "10"
+                                    "variable_shape": "(10, 2)"
                                 },
                                 "isna": {
                                     "variable_value": null,
@@ -3439,7 +3440,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1118b9310>"
+                                    "variable_shape": "<property object at 0x103897bd0>"
                                 },
                                 "self.name": {
                                     "variable_value": "None",
@@ -19649,6 +19650,7 @@
                     ],
                     "docstring": null,
                     "start_line": 469,
+                    "end_line": 482,
                     "variables": {
                         "isinstance": [
                             472,
@@ -19898,6 +19900,7 @@
                     "decorators": [],
                     "docstring": null,
                     "start_line": 694,
+                    "end_line": 708,
                     "variables": {
                         "self.is_monotonic": [
                             695
@@ -23680,6 +23683,7 @@
                     "decorators": [],
                     "docstring": null,
                     "start_line": 1538,
+                    "end_line": 1599,
                     "variables": {
                         "isinstance": [
                             1539
@@ -24124,18 +24128,18 @@
                             "def _get_period_bins(self, ax):\n    if not isinstance(ax, PeriodIndex):\n        raise TypeError(f'axis must be a PeriodIndex, but got an instance of {type(ax).__name__}')\n    memb = ax.asfreq(self.freq, how=self.convention)\n    nat_count = 0\n    if memb.hasnans:\n        nat_count = np.sum(memb._isnan)\n        memb = memb[~memb._isnan]\n    if not len(memb):\n        binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    freq_mult = self.freq.n\n    start = ax.min().asfreq(self.freq, how=self.convention)\n    end = ax.max().asfreq(self.freq, how='end')\n    bin_shift = 0\n    if self.base:\n        p_start, end = _get_period_range_edges(start, end, self.freq, closed=self.closed, base=self.base)\n        start_offset = Period(start, self.freq) - Period(p_start, self.freq)\n        bin_shift = start_offset.n % freq_mult\n        start = p_start\n    labels = binner = period_range(start=start, end=end, freq=self.freq, name=ax.name)\n    i8 = memb.asi8\n    expected_bins_count = len(binner) * freq_mult\n    i8_extend = expected_bins_count - (i8[-1] - i8[0])\n    rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)\n    rng += freq_mult\n    rng -= bin_shift\n    bins = memb.searchsorted(rng, side='left')\n    if nat_count > 0:\n        bins += nat_count\n        bins = np.insert(bins, 0, nat_count)\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n    return (binner, bins, labels)"
                         ],
                         "constructor_variables": [
-                            "how",
-                            "convention",
-                            "fill_method",
-                            "loffset",
-                            "closed",
+                            "kind",
                             "label",
-                            "freq",
-                            "base",
-                            "rule",
+                            "convention",
                             "limit",
                             "end_types",
-                            "kind"
+                            "fill_method",
+                            "base",
+                            "how",
+                            "freq",
+                            "closed",
+                            "rule",
+                            "loffset"
                         ],
                         "class_level_variables": [
                             "_attributes"
@@ -28753,7 +28757,7 @@
                 "test_function": "test_missing",
                 "test_function_code": "    def test_missing(self, date_range_frame):\n        # GH 15118\n        # no match found - `where` value before earliest date in index\n        N = 10\n        df = date_range_frame.iloc[:N].copy()\n\n        result = df.asof(\"1989-12-31\")\n\n        expected = Series(\n            index=[\"A\", \"B\"], name=Timestamp(\"1989-12-31\"), dtype=np.float64\n        )\n        tm.assert_series_equal(result, expected)\n\n        result = df.asof(to_datetime([\"1989-12-31\"]))\n        expected = DataFrame(\n            index=to_datetime([\"1989-12-31\"]), columns=[\"A\", \"B\"], dtype=\"float64\"\n        )\n        tm.assert_frame_equal(result, expected)\n\n        # Check that we handle PeriodIndex correctly, dont end up with\n        #  period.ordinal for series name\n        df = df.to_period(\"D\")\n        result = df.asof(\"1989-12-31\")\n        assert isinstance(result.name, Period)",
                 "test_error": "assert False  +  where False = isinstance(7304, Period)  +    where 7304 = A   NaN\\nB   NaN\\nName: 7304, dtype: float64.name",
-                "full_test_error": "self = <pandas.tests.frame.methods.test_asof.TestFrameAsof object at 0x117802c70>\ndate_range_frame =                       A   B\n1990-01-01 00:00:00   0   0\n1990-01-01 00:00:53   1   1\n1990-01-01 00:01:46   2   2\n1990-0... 45  45\n1990-01-01 00:40:38  46  46\n1990-01-01 00:41:31  47  47\n1990-01-01 00:42:24  48  48\n1990-01-01 00:43:17  49  49\n\n    def test_missing(self, date_range_frame):\n        # GH 15118\n        # no match found - `where` value before earliest date in index\n        N = 10\n        df = date_range_frame.iloc[:N].copy()\n    \n        result = df.asof(\"1989-12-31\")\n    \n        expected = Series(\n            index=[\"A\", \"B\"], name=Timestamp(\"1989-12-31\"), dtype=np.float64\n        )\n        tm.assert_series_equal(result, expected)\n    \n        result = df.asof(to_datetime([\"1989-12-31\"]))\n        expected = DataFrame(\n            index=to_datetime([\"1989-12-31\"]), columns=[\"A\", \"B\"], dtype=\"float64\"\n        )\n        tm.assert_frame_equal(result, expected)\n    \n        # Check that we handle PeriodIndex correctly, dont end up with\n        #  period.ordinal for series name\n        df = df.to_period(\"D\")\n        result = df.asof(\"1989-12-31\")\n>       assert isinstance(result.name, Period)\nE       assert False\nE        +  where False = isinstance(7304, Period)\nE        +    where 7304 = A   NaN\\nB   NaN\\nName: 7304, dtype: float64.name\n\npandas/tests/frame/methods/test_asof.py:87: AssertionError",
+                "full_test_error": "self = <pandas.tests.frame.methods.test_asof.TestFrameAsof object at 0x1178d0c10>\ndate_range_frame =                       A   B\n1990-01-01 00:00:00   0   0\n1990-01-01 00:00:53   1   1\n1990-01-01 00:01:46   2   2\n1990-0... 45  45\n1990-01-01 00:40:38  46  46\n1990-01-01 00:41:31  47  47\n1990-01-01 00:42:24  48  48\n1990-01-01 00:43:17  49  49\n\n    def test_missing(self, date_range_frame):\n        # GH 15118\n        # no match found - `where` value before earliest date in index\n        N = 10\n        df = date_range_frame.iloc[:N].copy()\n    \n        result = df.asof(\"1989-12-31\")\n    \n        expected = Series(\n            index=[\"A\", \"B\"], name=Timestamp(\"1989-12-31\"), dtype=np.float64\n        )\n        tm.assert_series_equal(result, expected)\n    \n        result = df.asof(to_datetime([\"1989-12-31\"]))\n        expected = DataFrame(\n            index=to_datetime([\"1989-12-31\"]), columns=[\"A\", \"B\"], dtype=\"float64\"\n        )\n        tm.assert_frame_equal(result, expected)\n    \n        # Check that we handle PeriodIndex correctly, dont end up with\n        #  period.ordinal for series name\n        df = df.to_period(\"D\")\n        result = df.asof(\"1989-12-31\")\n>       assert isinstance(result.name, Period)\nE       assert False\nE        +  where False = isinstance(7304, Period)\nE        +    where 7304 = A   NaN\\nB   NaN\\nName: 7304, dtype: float64.name\n\npandas/tests/frame/methods/test_asof.py:87: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

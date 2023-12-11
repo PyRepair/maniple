@@ -1,0 +1,188 @@
+{
+    "1.1.1": "def _get_merge_keys(self):\n    \n    left_keys = []\n    right_keys = []\n    join_names = []\n    right_drop = []\n    left_drop = []\n\n    left, right = self.left, self.right\n\n    is_lkey = lambda x: is_array_like(x) and len(x) == len(left)\n    is_rkey = lambda x: is_array_like(x) and len(x) == len(right)\n\n    # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A\n    # user could, for example, request 'left_index' and 'left_by'. In a\n    # regular pd.merge(), users cannot specify both 'left_index' and\n    # 'left_on'. (Instead, users have a MultiIndex). That means the\n    # self.left_on in this function is always empty in a pd.merge(), but\n    # a pd.merge_asof(left_index=True, left_by=...) will result in a\n    # self.left_on array with a None in the middle of it. This requires\n    # a work-around as designated in the code below.\n    # See _validate_specification() for where this happens.\n\n    # ugh, spaghetti re #733\n    if _any(self.left_on) and _any(self.right_on):\n        for lk, rk in zip(self.left_on, self.right_on):\n            if is_lkey(lk):\n                left_keys.append(lk)\n                if is_rkey(rk):\n                    right_keys.append(rk)\n                    join_names.append(None)  # what to do?\n                else:\n                    if rk is not None:\n                        right_keys.append(right._get_label_or_level_values(rk))\n                        join_names.append(rk)\n                    else:\n                        # work-around for merge_asof(right_index=True)\n                        right_keys.append(right.index)\n                        join_names.append(right.index.name)\n            else:\n                if not is_rkey(rk):\n                    if rk is not None:\n                        right_keys.append(right._get_label_or_level_values(rk))\n                    else:\n                        # work-around for merge_asof(right_index=True)\n                        right_keys.append(right.index)\n                    if lk is not None and lk == rk:\n                        # avoid key upcast in corner case (length-0)\n                        if len(left) > 0:\n                            right_drop.append(rk)\n                        else:\n                            left_drop.append(lk)\n                else:\n                    right_keys.append(rk)\n                if lk is not None:\n                    left_keys.append(left._get_label_or_level_values(lk))\n                    join_names.append(lk)\n                else:\n                    # work-around for merge_asof(left_index=True)\n                    left_keys.append(left.index)\n                    join_names.append(left.index.name)\n    elif _any(self.left_on):\n        for k in self.left_on:\n            if is_lkey(k):\n                left_keys.append(k)\n                join_names.append(None)\n            else:\n                left_keys.append(left._get_label_or_level_values(k))\n                join_names.append(k)\n        if isinstance(self.right.index, MultiIndex):\n            right_keys = [\n                lev._values.take(lev_codes)\n                for lev, lev_codes in zip(\n                    self.right.index.levels, self.right.index.codes\n                )\n            ]\n        else:\n            right_keys = [self.right.index._values]\n    elif _any(self.right_on):\n        for k in self.right_on:\n            if is_rkey(k):\n                right_keys.append(k)\n                join_names.append(None)\n            else:\n                right_keys.append(right._get_label_or_level_values(k))\n                join_names.append(k)\n        if isinstance(self.left.index, MultiIndex):\n            left_keys = [\n                lev._values.take(lev_codes)\n                for lev, lev_codes in zip(\n                    self.left.index.levels, self.left.index.codes\n                )\n            ]\n        else:\n            left_keys = [self.left.index.values]\n\n    if left_drop:\n        self.left = self.left._drop_labels_or_levels(left_drop)\n\n    if right_drop:\n        self.right = self.right._drop_labels_or_levels(right_drop)\n\n    return left_keys, right_keys, join_names\n",
+    "1.1.2": "Note: has side effects (copy/delete key columns)\n\nParameters\n----------\nleft\nright\non\n\nReturns\n-------\nleft_keys, right_keys",
+    "1.2.1": "class _MergeOperation()",
+    "1.2.2": "Perform a database (SQL) merge operation between two DataFrame or Series\nobjects using either columns as keys or their row indexes",
+    "1.2.3": null,
+    "1.3.1": "/Volumes/JerrySSD/bgp_envs/repos/pandas_116/pandas/core/reshape/merge.py",
+    "1.3.2": [
+        "_any(x) -> bool"
+    ],
+    "1.4.1": [
+        "    def test_merge_index_column_tz(self):\n        # GH 29864\n        index = pd.date_range(\"2019-10-01\", freq=\"30min\", periods=5, tz=\"UTC\")\n        left = pd.DataFrame([0.9, 0.8, 0.7, 0.6], columns=[\"xyz\"], index=index[1:])\n        right = pd.DataFrame({\"from_date\": index, \"abc\": [2.46] * 4 + [2.19]})\n        result = pd.merge_asof(\n            left=left, right=right, left_index=True, right_on=[\"from_date\"]\n        )\n        expected = pd.DataFrame(\n            {\n                \"xyz\": [0.9, 0.8, 0.7, 0.6],\n                \"from_date\": index[1:],\n                \"abc\": [2.46] * 3 + [2.19],\n            },\n            index=pd.Index([1, 2, 3, 4]),\n        )\n        tm.assert_frame_equal(result, expected)\n\n        result = pd.merge_asof(\n            left=right, right=left, right_index=True, left_on=[\"from_date\"]\n        )\n        expected = pd.DataFrame(\n            {\n                \"from_date\": index,\n                \"abc\": [2.46] * 4 + [2.19],\n                \"xyz\": [np.nan, 0.9, 0.8, 0.7, 0.6],\n            },\n            index=pd.Index([0, 1, 2, 3, 4]),\n        )\n        tm.assert_frame_equal(result, expected)"
+    ],
+    "1.4.2": [
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_116/pandas/tests/reshape/merge/test_merge_asof.py"
+    ],
+    "2.1.1": [
+        [
+            "E               pandas.errors.MergeError: incompatible merge keys [0] dtype('<M8[ns]') and datetime64[ns, UTC], must be the same type"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.reshape.merge.test_merge_asof.TestAsOfMerge object at 0x1228a5a30>\n\n    def test_merge_index_column_tz(self):\n        # GH 29864\n        index = pd.date_range(\"2019-10-01\", freq=\"30min\", periods=5, tz=\"UTC\")\n        left = pd.DataFrame([0.9, 0.8, 0.7, 0.6], columns=[\"xyz\"], index=index[1:])\n        right = pd.DataFrame({\"from_date\": index, \"abc\": [2.46] * 4 + [2.19]})\n>       result = pd.merge_asof(\n            left=left, right=right, left_index=True, right_on=[\"from_date\"]\n        )\n\npandas/tests/reshape/merge/test_merge_asof.py:1312: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/merge.py:519: in merge_asof\n    op = _AsOfMerge(\npandas/core/reshape/merge.py:1552: in __init__\n    _OrderedMerge.__init__(\npandas/core/reshape/merge.py:1442: in __init__\n    _MergeOperation.__init__(\npandas/core/reshape/merge.py:622: in __init__\n    ) = self._get_merge_keys()\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.core.reshape.merge._AsOfMerge object at 0x12294dcd0>\n\n    def _get_merge_keys(self):\n    \n        # note this function has side effects\n        (left_join_keys, right_join_keys, join_names) = super()._get_merge_keys()\n    \n        # validate index types are the same\n        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):\n            if not is_dtype_equal(lk.dtype, rk.dtype):\n                if is_categorical_dtype(lk.dtype) and is_categorical_dtype(rk.dtype):\n                    # The generic error message is confusing for categoricals.\n                    #\n                    # In this function, the join keys include both the original\n                    # ones of the merge_asof() call, and also the keys passed\n                    # to its by= argument. Unordered but equal categories\n                    # are not supported for the former, but will fail\n                    # later with a ValueError, so we don't *need* to check\n                    # for them here.\n                    msg = (\n                        \"incompatible merge keys [{i}] {lkdtype} and \"\n                        \"{rkdtype}, both sides category, but not equal ones\".format(\n                            i=i, lkdtype=repr(lk.dtype), rkdtype=repr(rk.dtype)\n                        )\n                    )\n                else:\n                    msg = (\n                        \"incompatible merge keys [{i}] {lkdtype} and \"\n                        \"{rkdtype}, must be the same type\".format(\n                            i=i, lkdtype=repr(lk.dtype), rkdtype=repr(rk.dtype)\n                        )\n                    )\n>               raise MergeError(msg)",
+            "\npandas/core/reshape/merge.py:1648: MergeError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "self.left": "                           xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6",
+                "self": "<pandas.core.reshape.merge._AsOfMerge object at 0x1191212e0>",
+                "self.right": "                  from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19",
+                "self.left_on": "[None]",
+                "self.right_on": "['from_date']"
+            },
+            {
+                "left_keys": "[array(['2019-10-01T00:30:00.000000000', '2019-10-01T01:00:00.000000000',\n       '2019-10-01T01:30:00.000000000', '2019-10-01T02:00:00.000000000'],\n      dtype='datetime64[ns]')]",
+                "right_keys": "[<DatetimeArray>\n['2019-10-01 00:00:00+00:00', '2019-10-01 00:30:00+00:00',\n '2019-10-01 01:00:00+00:00', '2019-10-01 01:30:00+00:00',\n '2019-10-01 02:00:00+00:00']\nLength: 5, dtype: datetime64[ns, UTC]]",
+                "join_names": "['from_date']",
+                "right_drop": "[]",
+                "left_drop": "[]",
+                "left": "                           xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6",
+                "right": "                  from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19",
+                "is_lkey": "<function _MergeOperation._get_merge_keys.<locals>.<lambda> at 0x119140280>",
+                "is_rkey": "<function _MergeOperation._get_merge_keys.<locals>.<lambda> at 0x119140310>",
+                "right._get_label_or_level_values": "<bound method NDFrame._get_label_or_level_values of                   from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19>",
+                "right.index": "RangeIndex(start=0, stop=5, step=1)",
+                "left._get_label_or_level_values": "<bound method NDFrame._get_label_or_level_values of                            xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6>",
+                "left.index": "DatetimeIndex(['2019-10-01 00:30:00+00:00', '2019-10-01 01:00:00+00:00',\n               '2019-10-01 01:30:00+00:00', '2019-10-01 02:00:00+00:00'],\n              dtype='datetime64[ns, UTC]', freq='30T')",
+                "k": "'from_date'"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "self.left": "DataFrame",
+                "self": "_AsOfMerge",
+                "self.right": "DataFrame",
+                "self.left_on": "list",
+                "self.right_on": "list"
+            },
+            {
+                "left_keys": "list",
+                "right_keys": "list",
+                "join_names": "list",
+                "right_drop": "list",
+                "left_drop": "list",
+                "left": "DataFrame",
+                "right": "DataFrame",
+                "is_lkey": "function",
+                "is_rkey": "function",
+                "right._get_label_or_level_values": "method",
+                "right.index": "RangeIndex",
+                "left._get_label_or_level_values": "method",
+                "left.index": "DatetimeIndex",
+                "k": "str"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "self.left": "                           xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6",
+                "self": "<pandas.core.reshape.merge._AsOfMerge object at 0x122316a60>",
+                "self.right": "                  from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19",
+                "self.left_on": "[None]",
+                "self.right_on": "['from_date']"
+            },
+            {
+                "left_keys": "[<DatetimeArray>\n['2019-10-01 00:30:00+00:00', '2019-10-01 01:00:00+00:00',\n '2019-10-01 01:30:00+00:00', '2019-10-01 02:00:00+00:00']\nLength: 4, dtype: datetime64[ns, UTC]]",
+                "right_keys": "[<DatetimeArray>\n['2019-10-01 00:00:00+00:00', '2019-10-01 00:30:00+00:00',\n '2019-10-01 01:00:00+00:00', '2019-10-01 01:30:00+00:00',\n '2019-10-01 02:00:00+00:00']\nLength: 5, dtype: datetime64[ns, UTC]]",
+                "join_names": "['from_date']",
+                "right_drop": "[]",
+                "left_drop": "[]",
+                "left": "                           xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6",
+                "right": "                  from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19",
+                "is_lkey": "<function _MergeOperation._get_merge_keys.<locals>.<lambda> at 0x122136f70>",
+                "is_rkey": "<function _MergeOperation._get_merge_keys.<locals>.<lambda> at 0x122136e50>",
+                "right._get_label_or_level_values": "<bound method NDFrame._get_label_or_level_values of                   from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19>",
+                "right.index": "RangeIndex(start=0, stop=5, step=1)",
+                "left._get_label_or_level_values": "<bound method NDFrame._get_label_or_level_values of                            xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6>",
+                "left.index": "DatetimeIndex(['2019-10-01 00:30:00+00:00', '2019-10-01 01:00:00+00:00',\n               '2019-10-01 01:30:00+00:00', '2019-10-01 02:00:00+00:00'],\n              dtype='datetime64[ns, UTC]', freq='30T')",
+                "k": "'from_date'"
+            }
+        ],
+        [
+            {
+                "self.left": "                  from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19",
+                "self": "<pandas.core.reshape.merge._AsOfMerge object at 0x12200d070>",
+                "self.right": "                           xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6",
+                "self.left_on": "['from_date']",
+                "self.right_on": "[None]"
+            },
+            {
+                "left_keys": "[<DatetimeArray>\n['2019-10-01 00:00:00+00:00', '2019-10-01 00:30:00+00:00',\n '2019-10-01 01:00:00+00:00', '2019-10-01 01:30:00+00:00',\n '2019-10-01 02:00:00+00:00']\nLength: 5, dtype: datetime64[ns, UTC]]",
+                "right_keys": "[<DatetimeArray>\n['2019-10-01 00:30:00+00:00', '2019-10-01 01:00:00+00:00',\n '2019-10-01 01:30:00+00:00', '2019-10-01 02:00:00+00:00']\nLength: 4, dtype: datetime64[ns, UTC]]",
+                "join_names": "['from_date']",
+                "right_drop": "[]",
+                "left_drop": "[]",
+                "left": "                  from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19",
+                "right": "                           xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6",
+                "is_lkey": "<function _MergeOperation._get_merge_keys.<locals>.<lambda> at 0x12231d820>",
+                "is_rkey": "<function _MergeOperation._get_merge_keys.<locals>.<lambda> at 0x12231d4c0>",
+                "right._get_label_or_level_values": "<bound method NDFrame._get_label_or_level_values of                            xyz\n2019-10-01 00:30:00+00:00  0.9\n2019-10-01 01:00:00+00:00  0.8\n2019-10-01 01:30:00+00:00  0.7\n2019-10-01 02:00:00+00:00  0.6>",
+                "right.index": "DatetimeIndex(['2019-10-01 00:30:00+00:00', '2019-10-01 01:00:00+00:00',\n               '2019-10-01 01:30:00+00:00', '2019-10-01 02:00:00+00:00'],\n              dtype='datetime64[ns, UTC]', freq='30T')",
+                "left._get_label_or_level_values": "<bound method NDFrame._get_label_or_level_values of                   from_date   abc\n0 2019-10-01 00:00:00+00:00  2.46\n1 2019-10-01 00:30:00+00:00  2.46\n2 2019-10-01 01:00:00+00:00  2.46\n3 2019-10-01 01:30:00+00:00  2.46\n4 2019-10-01 02:00:00+00:00  2.19>",
+                "left.index": "RangeIndex(start=0, stop=5, step=1)",
+                "k": "'from_date'"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "self.left": "DataFrame",
+                "self": "_AsOfMerge",
+                "self.right": "DataFrame",
+                "self.left_on": "list",
+                "self.right_on": "list"
+            },
+            {
+                "left_keys": "list",
+                "right_keys": "list",
+                "join_names": "list",
+                "right_drop": "list",
+                "left_drop": "list",
+                "left": "DataFrame",
+                "right": "DataFrame",
+                "is_lkey": "function",
+                "is_rkey": "function",
+                "right._get_label_or_level_values": "method",
+                "right.index": "RangeIndex",
+                "left._get_label_or_level_values": "method",
+                "left.index": "DatetimeIndex",
+                "k": "str"
+            }
+        ],
+        [
+            {
+                "self.left": "DataFrame",
+                "self": "_AsOfMerge",
+                "self.right": "DataFrame",
+                "self.left_on": "list",
+                "self.right_on": "list"
+            },
+            {
+                "left_keys": "list",
+                "right_keys": "list",
+                "join_names": "list",
+                "right_drop": "list",
+                "left_drop": "list",
+                "left": "DataFrame",
+                "right": "DataFrame",
+                "is_lkey": "function",
+                "is_rkey": "function",
+                "right._get_label_or_level_values": "method",
+                "right.index": "DatetimeIndex",
+                "left._get_label_or_level_values": "method",
+                "left.index": "RangeIndex",
+                "k": "str"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

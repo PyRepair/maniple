@@ -4,7 +4,7 @@
     "1.2.1": null,
     "1.2.2": null,
     "1.2.3": null,
-    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/fastapi/routing.py",
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/fastapi/routing.py",
     "1.3.2": null,
     "1.4.1": [
         "def test_valid():\n    response = client.get(\"/items/valid\")\n    response.raise_for_status()\n    assert response.json() == {\"aliased_name\": \"valid\", \"price\": 1.0, \"owner_ids\": None}",
@@ -17,14 +17,14 @@
         "def test_validdict_exclude_unset():\n    response = client.get(\"/items/validdict-exclude-unset\")\n    response.raise_for_status()\n    assert response.json() == {\n        \"k1\": {\"aliased_name\": \"foo\"},\n        \"k2\": {\"aliased_name\": \"bar\", \"price\": 1.0},\n        \"k3\": {\"aliased_name\": \"baz\", \"price\": 2.0, \"owner_ids\": [1, 2, 3]},\n    }"
     ],
     "1.4.2": [
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py",
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py",
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py",
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py",
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py",
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py",
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py",
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/fastapi_3/tests/test_serialize_response_model.py"
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py",
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py",
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py",
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py",
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py",
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py",
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py",
+        "/Volumes/SSD2T/bgp_envs/repos/fastapi_3/tests/test_serialize_response_model.py"
     ],
     "2.1.1": [
         [
@@ -91,9 +91,11 @@
     "2.1.5": null,
     "2.1.6": null,
     "3.1.1": [
-        "\n"
+        "Returning List[response_model] doesn't respect response_model_exclude_unset\n",
+        "Cannot return response containing pydantic model that includes aliases since FastAPI 0.47.1\n"
     ],
     "3.1.2": [
-        "\n"
+        "Describe the bug\nNot sure if this should be a Feature request or a bug.\n\nWhen returning a List of models, the response includes \"unset\" key/values when response_model_exclude_unset is set to True.\n\nTo Reproduce\nCreate a file with:\nimport pydantic\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\nclass Item(pydantic.BaseModel):\n    foobar: str = \"foobar\"\n    foo: str\n    bar: str = None\n\nALL_ITEMS = [Item(foo=\"foo0\"), Item(foo=\"foo1\"), Item(foo=\"foo2\")]\n\n@app .get(\"/items\", response_model=List[Item], response_model_exclude_unset=True)\ndef get_all_items():\n    return ALL_ITEMS\n\n@app .get(\"/items/{item_index}\", response_model=Item, response_model_exclude_unset=True)\ndef get_item(item_index: int):\n    return ALL_ITEMS[item_index]\nOpen the browser and call the endpoint /items.\nIt returns a JSON with...\n[\n  {\n    \"foobar\": \"foobar\",\n    \"foo\": \"foo0\",\n    \"bar\": null\n  },\n  {\n    \"foobar\": \"foobar\",\n    \"foo\": \"foo1\",\n    \"bar\": null\n  },\n  {\n    \"foobar\": \"foobar\",\n    \"foo\": \"foo2\",\n    \"bar\": null\n  }\n]\nBut I expected it to return...\n[\n  {\n    \"foo\": \"foo0\"\n  },\n  {\n    \"foo\": \"foo1\"\n  },\n  {\n    \"foo\": \"foo2\"\n  }\n]\nExpected behavior\nI would expect /items and /items/{item_index} to return the same representation of an item.\n\nEnvironment\nOS: Windows and MacOS\nFastAPI Version: 0.47.1\nPython version: 3.7.3\nAdditional context\nThe main thing I'm trying to achieve here is to exclude nulls when using List[MyModel]. Currently, the only workaround that I know of is to do one of the following.\n\ncreate a new response AllItems model and overload dict()\ncreate a middleware that strips response nulls.\nuse an arbitrary dict (I don't want to do this)\nHowever, given the prevalence of API's that have a /<all_items>, /<single_item> I would think that using response_model_exclude_unset or exclude_none is the more intuitive way to achieve this.\n",
+        "Starting in 0.47.1, responses fail validation if they include any pydantic model objects that contain field aliases\nYou can work around this by explicitly calling .dict(by_alias=True) on the top-level response model object before returning it from the path operation function (see the example below). However, this is super unintuitive and makes the use of field aliases painful. In our codebase we use aliases extensively (via Config.alias_generator) to expose camelCase in our public APIs while keeping our internal field names snake_case, and this issue is a real hassle.\n\nTo Reproduce\nCreate a test.py file with:\nimport fastapi\nimport pydantic\nimport starlette.testclient\nfrom typing import List\n\napp = fastapi.FastAPI()\n\nclass Item(pydantic.BaseModel):\n    my_value: int = pydantic.Field(..., alias='myValue')\n\nclass RootResponse(pydantic.BaseModel):\n    items: List[Item] = pydantic.Field(...)\n\n@app.get('/broken_1', response_model=RootResponse)\nasync def broken_1():\n    # embedded models don't work if they have aliased fields\n    return {'items': [Item(myValue=5), Item(myValue=10)]}\n\n@app.get('/broken_2', response_model=RootResponse)\nasync def broken_2():\n    # making the top-level response a model instance doesn't help\n    return RootResponse(items=[Item(myValue=5), Item(myValue=10)])\n\n@app.get('/workaround', response_model=RootResponse)\nasync def workaround():\n    # workaround is to build a top-level model and then dict(by_alias=True)\n    return RootResponse(items=[Item(myValue=5), Item(myValue=10)]).dict(by_alias=True)\n\nwith starlette.testclient.TestClient(app) as test_client:\n    for path in ['/broken_1', '/broken_2', '/workaround']:\n        try:\n            print('-------------------------------------------')\n            print(path)\n            response = test_client.get(path)\n        except Exception as exc:\n            print(exc)\n        else:\n            print('succeeded')\nRun python3 test.py with FastAPI 0.47.0. All 3 cases succeed.\nRun python3 test.py with FastAPI 0.49.0. Only the \"workaround\" case succeeds.\nExpected behavior\nModel classes that include aliased fields (whether the alias is directly specified on the field as in the above example, or using a pydantic Config.alias_generator) should be usable with the context of a response model.\n\nEnvironment\nOS: Linux (Ubuntu 18.04)\nFastAPI Version: 0.47.1 and above\nPython version: 3.7, 3.8\n"
     ]
 }

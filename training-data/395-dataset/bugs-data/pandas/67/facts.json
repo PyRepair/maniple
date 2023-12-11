@@ -28,9 +28,9 @@
     "2.1.5": null,
     "2.1.6": null,
     "3.1.1": [
-        "\n"
+        "to_datetime returning numpy.datetime64\n"
     ],
     "3.1.2": [
-        "\n"
+        "Code Sample, a copy-pastable example if possible\nThis code:\n\n>>> df = pd.DataFrame({'date': ['Aug2020', 'November 2020']})\n>>> df['parsed'] = df['date'].apply(pd.to_datetime)\n>>> end = df.loc[df['parsed'].idxmax()]\n>>> end['parsed'].replace(day=2)\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nAttributeError: 'numpy.datetime64' object has no attribute 'replace'\nworked in Pandas 0.25.3, but raises since 1.0.0.\n\nI think there might be an issue with unboxing values when there are mixed types in the dataframe:\n\n>>> df = pd.DataFrame({'date': ['Aug2020', 'November 2020']})\n>>> new = (\n...     df\n...     .assign(\n...         parsed=lambda x: x['date'].apply(pd.to_datetime),\n...         parsed2 = lambda x: x['date'].apply(pd.to_datetime)\n...     )\n... )\n>>> new['parsed'].iloc[0]\nTimestamp('2020-08-01 00:00:00')\n>>> new.iloc[0]['parsed']\nnumpy.datetime64('2020-08-01T00:00:00.000000000') # unboxed type\n>>> new2 = new.drop(columns=['date'])\n>>> new2['parsed'].iloc[0]\nTimestamp('2020-08-01 00:00:00')\n>>> new2.iloc[0]['parsed']\nTimestamp('2020-08-01 00:00:00') # boxed type now that we've dropped the string column\nProblem description\nto_datetime can \"sometimes\" result in a np.datetime64 return type.\n\nnp.datetime64 is not a valid return type for to_datetime (https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.to_datetime.html), it should always be a datetimelike.\n\nExpected Output\nAs in previous versions of Pandas:\n\n>>> df = pd.DataFrame({'date': ['Aug2020', 'November 2020']})\n>>> df['parsed'] = df['date'].apply(pd.to_datetime)\n>>> end = df.loc[df['parsed'].idxmax()]\n>>> end['parsed'].replace(day=2)\nTimestamp('2020-11-02 00:00:00')\n"
     ]
 }

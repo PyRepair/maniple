@@ -10,6 +10,7 @@
                     ],
                     "docstring": "Fill NA/NaN values using the specified method.\n\nParameters\n----------\nvalue : scalar, dict, Series\n    If a scalar value is passed it is used to fill all missing values.\n    Alternatively, a Series or dict can be used to fill in different\n    values for each index. The value should not be a list. The\n    value(s) passed should either be in the categories or should be\n    NaN.\nmethod : {'backfill', 'bfill', 'pad', 'ffill', None}, default None\n    Method to use for filling holes in reindexed Series\n    pad / ffill: propagate last valid observation forward to next valid\n    backfill / bfill: use NEXT valid observation to fill gap\nlimit : int, default None\n    (Not implemented yet for Categorical!)\n    If method is specified, this is the maximum number of consecutive\n    NaN values to forward/backward fill. In other words, if there is\n    a gap with more than this number of consecutive NaNs, it will only\n    be partially filled. If method is not specified, this is the\n    maximum number of entries along the entire axis where NaNs will be\n    filled.\n\nReturns\n-------\nfilled : Categorical with NA/NaN filled",
                     "start_line": 1782,
+                    "end_line": 1866,
                     "variables": {
                         "value": [
                             1857,
@@ -414,14 +415,14 @@
                             "def isin(self, values):\n    \"\"\"\n    Check whether `values` are contained in Categorical.\n\n    Return a boolean NumPy Array showing whether each element in\n    the Categorical matches an element in the passed sequence of\n    `values` exactly.\n\n    Parameters\n    ----------\n    values : set or list-like\n        The sequence of values to test. Passing in a single string will\n        raise a ``TypeError``. Instead, turn a single string into a\n        list of one element.\n\n    Returns\n    -------\n    isin : numpy.ndarray (bool dtype)\n\n    Raises\n    ------\n    TypeError\n      * If `values` is not a set or list-like\n\n    See Also\n    --------\n    pandas.Series.isin : Equivalent method on Series.\n\n    Examples\n    --------\n\n    >>> s = pd.Categorical(['lama', 'cow', 'lama', 'beetle', 'lama',\n    ...                'hippo'])\n    >>> s.isin(['cow', 'lama'])\n    array([ True,  True,  True, False,  True, False])\n\n    Passing a single string as ``s.isin('lama')`` will raise an error. Use\n    a list of one element instead:\n\n    >>> s.isin(['lama'])\n    array([ True, False,  True, False,  True, False])\n    \"\"\"\n    if not is_list_like(values):\n        raise TypeError('only list-like objects are allowed to be passed to isin(), you passed a [{values_type}]'.format(values_type=type(values).__name__))\n    values = sanitize_array(values, None, None)\n    null_mask = np.asarray(isna(values))\n    code_values = self.categories.get_indexer(values)\n    code_values = code_values[null_mask | (code_values >= 0)]\n    return algorithms.isin(self.codes, code_values)"
                         ],
                         "constructor_variables": [
+                            "_dtype",
+                            "sanitize_dtype",
+                            "_codes",
+                            "full_codes",
+                            "null_mask",
                             "codes",
                             "old_codes",
-                            "sanitize_dtype",
-                            "null_mask",
                             "dtype",
-                            "full_codes",
-                            "_codes",
-                            "_dtype",
                             "values"
                         ],
                         "class_level_variables": [
@@ -535,7 +536,7 @@
                                 "value": {
                                     "variable_value": "0    a\n1    b\n2    c\n3    d\n4    e\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -570,12 +571,12 @@
                                 "self._codes": {
                                     "variable_value": "array([ 0, -1,  1, -1, -1], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, NaN, b, NaN, NaN]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -610,7 +611,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -675,7 +676,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1080784f0>"
+                                    "variable_shape": "<property object at 0x11363b4a0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -692,7 +693,7 @@
                                 "value": {
                                     "variable_value": "0    a\n1    b\n2    c\n3    d\n4    e\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -722,17 +723,17 @@
                                 "codes": {
                                     "variable_value": "array([0, 1, 2, 3, 4], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self._codes": {
                                     "variable_value": "array([0, 1, 2, 3, 4], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, b, c, d, e]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -767,7 +768,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -792,7 +793,7 @@
                                 "values_codes": {
                                     "variable_value": "array([0, 1, 2, 3, 4], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "indexer": {
                                     "variable_value": "(array([0, 1, 2, 3, 4]),)",
@@ -820,7 +821,7 @@
                                     "variable_shape": null
                                 },
                                 "codes.copy": {
-                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x111274210>",
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x12113d940>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -832,7 +833,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1080784f0>"
+                                    "variable_shape": "<property object at 0x11363b4a0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -851,7 +852,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -886,12 +887,12 @@
                                 "self._codes": {
                                     "variable_value": "array([ 0, -1,  1, -1, -1], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, NaN, b, NaN, NaN]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -926,7 +927,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -991,7 +992,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1080784f0>"
+                                    "variable_shape": "<property object at 0x11363b4a0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -1008,7 +1009,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -1038,17 +1039,17 @@
                                 "codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self._codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[b, d, a, d, a]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -1083,7 +1084,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -1108,7 +1109,7 @@
                                 "values_codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "indexer": {
                                     "variable_value": "(array([0, 1, 2, 3, 4]),)",
@@ -1136,7 +1137,7 @@
                                     "variable_shape": null
                                 },
                                 "codes.copy": {
-                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11647c4e0>",
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x1211252b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1148,7 +1149,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1080784f0>"
+                                    "variable_shape": "<property object at 0x11363b4a0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -1167,7 +1168,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: category\nCategories (5, object): [b, c, d, e, a]",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -1202,12 +1203,12 @@
                                 "self._codes": {
                                     "variable_value": "array([ 0, -1,  1, -1, -1], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, NaN, b, NaN, NaN]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -1242,7 +1243,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -1307,7 +1308,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1080784f0>"
+                                    "variable_shape": "<property object at 0x11363b4a0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -1324,7 +1325,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: category\nCategories (5, object): [b, c, d, e, a]",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -1354,17 +1355,17 @@
                                 "codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self._codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[b, d, a, d, a]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -1399,7 +1400,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -1424,7 +1425,7 @@
                                 "values_codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "indexer": {
                                     "variable_value": "(array([0, 1, 2, 3, 4]),)",
@@ -1452,7 +1453,7 @@
                                     "variable_shape": null
                                 },
                                 "codes.copy": {
-                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x1164bb800>",
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x12113d440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1464,7 +1465,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1080784f0>"
+                                    "variable_shape": "<property object at 0x11363b4a0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -1485,7 +1486,7 @@
                                 "value": {
                                     "variable_value": "0    a\n1    b\n2    c\n3    d\n4    e\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -1520,12 +1521,12 @@
                                 "self._codes": {
                                     "variable_value": "array([ 0, -1,  1, -1, -1], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, NaN, b, NaN, NaN]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -1560,7 +1561,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -1625,7 +1626,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110e53540>"
+                                    "variable_shape": "<property object at 0x10fa935e0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -1642,7 +1643,7 @@
                                 "value": {
                                     "variable_value": "0    a\n1    b\n2    c\n3    d\n4    e\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -1672,17 +1673,17 @@
                                 "codes": {
                                     "variable_value": "array([0, 1, 1, 3, 4], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self._codes": {
                                     "variable_value": "array([0, 1, 1, 3, 4], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, b, b, d, e]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -1717,7 +1718,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -1742,7 +1743,7 @@
                                 "values_codes": {
                                     "variable_value": "array([0, 1, 2, 3, 4], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "indexer": {
                                     "variable_value": "(array([1, 3, 4]),)",
@@ -1770,7 +1771,7 @@
                                     "variable_shape": null
                                 },
                                 "codes.copy": {
-                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11f4066c0>",
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11d6dfad0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1782,7 +1783,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110e53540>"
+                                    "variable_shape": "<property object at 0x10fa935e0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -1801,7 +1802,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -1836,12 +1837,12 @@
                                 "self._codes": {
                                     "variable_value": "array([ 0, -1,  1, -1, -1], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, NaN, b, NaN, NaN]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -1876,7 +1877,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -1941,7 +1942,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110e53540>"
+                                    "variable_shape": "<property object at 0x10fa935e0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -1958,7 +1959,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: object",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -1988,17 +1989,17 @@
                                 "codes": {
                                     "variable_value": "array([0, 3, 1, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self._codes": {
                                     "variable_value": "array([0, 3, 1, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, d, b, d, a]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -2033,7 +2034,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -2058,7 +2059,7 @@
                                 "values_codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "indexer": {
                                     "variable_value": "(array([1, 3, 4]),)",
@@ -2086,7 +2087,7 @@
                                     "variable_shape": null
                                 },
                                 "codes.copy": {
-                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11f357990>",
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11d655d00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2098,7 +2099,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110e53540>"
+                                    "variable_shape": "<property object at 0x10fa935e0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -2117,7 +2118,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: category\nCategories (5, object): [b, c, d, e, a]",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -2152,12 +2153,12 @@
                                 "self._codes": {
                                     "variable_value": "array([ 0, -1,  1, -1, -1], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, NaN, b, NaN, NaN]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -2192,7 +2193,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -2257,7 +2258,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110e53540>"
+                                    "variable_shape": "<property object at 0x10fa935e0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -2274,7 +2275,7 @@
                                 "value": {
                                     "variable_value": "0    b\n1    d\n2    a\n3    d\n4    a\ndtype: category\nCategories (5, object): [b, c, d, e, a]",
                                     "variable_type": "Series",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "method": {
                                     "variable_value": "None",
@@ -2304,17 +2305,17 @@
                                 "codes": {
                                     "variable_value": "array([0, 3, 1, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self._codes": {
                                     "variable_value": "array([0, 3, 1, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "self": {
                                     "variable_value": "[a, d, b, d, a]\nCategories (5, object): [a, b, c, d, e]",
                                     "variable_type": "Categorical",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "values": {
                                     "variable_value": null,
@@ -2349,7 +2350,7 @@
                                 "self.categories": {
                                     "variable_value": "Index(['a', 'b', 'c', 'd', 'e'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "_get_codes_for_values": {
                                     "variable_value": null,
@@ -2374,7 +2375,7 @@
                                 "values_codes": {
                                     "variable_value": "array([1, 3, 0, 3, 0], dtype=int8)",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "5"
+                                    "variable_shape": "(5,)"
                                 },
                                 "indexer": {
                                     "variable_value": "(array([1, 3, 4]),)",
@@ -2402,7 +2403,7 @@
                                     "variable_shape": null
                                 },
                                 "codes.copy": {
-                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11f357c60>",
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11d6464e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2414,7 +2415,7 @@
                                 "self._constructor": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110e53540>"
+                                    "variable_shape": "<property object at 0x10fa935e0>"
                                 },
                                 "self.dtype": {
                                     "variable_value": "CategoricalDtype(categories=['a', 'b', 'c', 'd', 'e'], ordered=False)",
@@ -8293,7 +8294,7 @@
                 "test_function": "test_fillna_categorical_with_new_categories",
                 "test_function_code": "    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        tm.assert_series_equal(s.fillna(fill_value), exp)",
                 "test_error": "AssertionError: Series are different  Series values are different (20.0 %) [left]:  [a, b, c, d, e] [right]: [a, b, b, d, e]",
-                "full_test_error": "self = <pandas.tests.series.test_missing.TestSeriesMissingData object at 0x122f05c70>\nfill_value = 0    a\n1    b\n2    c\n3    d\n4    e\ndtype: object\nexpected_output = ['a', 'b', 'b', 'd', 'e']\n\n    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n>       tm.assert_series_equal(s.fillna(fill_value), exp)\n\npandas/tests/series/test_missing.py:601: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (20.0 %)\nE   [left]:  [a, b, c, d, e]\nE   [right]: [a, b, b, d, e]\n\npandas/_libs/testing.pyx:178: AssertionError",
+                "full_test_error": "self = <pandas.tests.series.test_missing.TestSeriesMissingData object at 0x11a327850>\nfill_value = 0    a\n1    b\n2    c\n3    d\n4    e\ndtype: object\nexpected_output = ['a', 'b', 'b', 'd', 'e']\n\n    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n>       tm.assert_series_equal(s.fillna(fill_value), exp)\n\npandas/tests/series/test_missing.py:601: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (20.0 %)\nE   [left]:  [a, b, c, d, e]\nE   [right]: [a, b, b, d, e]\n\npandas/_libs/testing.pyx:178: AssertionError",
                 "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (20.0 %)\nE   [left]:  [a, b, c, d, e]\nE   [right]: [a, b, b, d, e]\n\npandas/_libs/testing.pyx:178: AssertionError",
                 "test_function_decorators": [
@@ -8305,7 +8306,7 @@
                 "test_function": "test_fillna_categorical_with_new_categories",
                 "test_function_code": "    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        tm.assert_series_equal(s.fillna(fill_value), exp)",
                 "test_error": "AssertionError: Series are different  Series values are different (40.0 %) [left]:  [b, d, a, d, a] [right]: [a, d, b, d, a]",
-                "full_test_error": "self = <pandas.tests.series.test_missing.TestSeriesMissingData object at 0x12314b0a0>\nfill_value = 0    b\n1    d\n2    a\n3    d\n4    a\ndtype: object\nexpected_output = ['a', 'd', 'b', 'd', 'a']\n\n    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n>       tm.assert_series_equal(s.fillna(fill_value), exp)\n\npandas/tests/series/test_missing.py:601: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (40.0 %)\nE   [left]:  [b, d, a, d, a]\nE   [right]: [a, d, b, d, a]\n\npandas/_libs/testing.pyx:178: AssertionError",
+                "full_test_error": "self = <pandas.tests.series.test_missing.TestSeriesMissingData object at 0x11a310100>\nfill_value = 0    b\n1    d\n2    a\n3    d\n4    a\ndtype: object\nexpected_output = ['a', 'd', 'b', 'd', 'a']\n\n    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n>       tm.assert_series_equal(s.fillna(fill_value), exp)\n\npandas/tests/series/test_missing.py:601: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (40.0 %)\nE   [left]:  [b, d, a, d, a]\nE   [right]: [a, d, b, d, a]\n\npandas/_libs/testing.pyx:178: AssertionError",
                 "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (40.0 %)\nE   [left]:  [b, d, a, d, a]\nE   [right]: [a, d, b, d, a]\n\npandas/_libs/testing.pyx:178: AssertionError",
                 "test_function_decorators": [
@@ -8317,7 +8318,7 @@
                 "test_function": "test_fillna_categorical_with_new_categories",
                 "test_function_code": "    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        tm.assert_series_equal(s.fillna(fill_value), exp)",
                 "test_error": "AssertionError: Series are different  Series values are different (40.0 %) [left]:  [b, d, a, d, a] [right]: [a, d, b, d, a]",
-                "full_test_error": "self = <pandas.tests.series.test_missing.TestSeriesMissingData object at 0x1230e31f0>\nfill_value = 0    b\n1    d\n2    a\n3    d\n4    a\ndtype: category\nCategories (5, object): [b, c, d, e, a]\nexpected_output = ['a', 'd', 'b', 'd', 'a']\n\n    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n>       tm.assert_series_equal(s.fillna(fill_value), exp)\n\npandas/tests/series/test_missing.py:601: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (40.0 %)\nE   [left]:  [b, d, a, d, a]\nE   [right]: [a, d, b, d, a]\n\npandas/_libs/testing.pyx:178: AssertionError",
+                "full_test_error": "self = <pandas.tests.series.test_missing.TestSeriesMissingData object at 0x11a29f8b0>\nfill_value = 0    b\n1    d\n2    a\n3    d\n4    a\ndtype: category\nCategories (5, object): [b, c, d, e, a]\nexpected_output = ['a', 'd', 'b', 'd', 'a']\n\n    @pytest.mark.parametrize(\n        \"fill_value, expected_output\",\n        [\n            (Series([\"a\", \"b\", \"c\", \"d\", \"e\"]), [\"a\", \"b\", \"b\", \"d\", \"e\"]),\n            (Series([\"b\", \"d\", \"a\", \"d\", \"a\"]), [\"a\", \"d\", \"b\", \"d\", \"a\"]),\n            (\n                Series(\n                    Categorical(\n                        [\"b\", \"d\", \"a\", \"d\", \"a\"], categories=[\"b\", \"c\", \"d\", \"e\", \"a\"]\n                    )\n                ),\n                [\"a\", \"d\", \"b\", \"d\", \"a\"],\n            ),\n        ],\n    )\n    def test_fillna_categorical_with_new_categories(self, fill_value, expected_output):\n        # GH 26215\n        data = [\"a\", np.nan, \"b\", np.nan, np.nan]\n        s = Series(Categorical(data, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n        exp = Series(Categorical(expected_output, categories=[\"a\", \"b\", \"c\", \"d\", \"e\"]))\n>       tm.assert_series_equal(s.fillna(fill_value), exp)\n\npandas/tests/series/test_missing.py:601: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (40.0 %)\nE   [left]:  [b, d, a, d, a]\nE   [right]: [a, d, b, d, a]\n\npandas/_libs/testing.pyx:178: AssertionError",
                 "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (40.0 %)\nE   [left]:  [b, d, a, d, a]\nE   [right]: [a, d, b, d, a]\n\npandas/_libs/testing.pyx:178: AssertionError",
                 "test_function_decorators": [

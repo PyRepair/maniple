@@ -8,6 +8,7 @@
                     "decorators": [],
                     "docstring": "Require they keys to be the same type as the index. (so we don't\nfallback)",
                     "start_line": 2081,
+                    "end_line": 2104,
                     "variables": {
                         "bool": [
                             2081
@@ -155,10 +156,10 @@
                                 "self.obj": {
                                     "variable_value": "a    1\nb    2\nc    3\ndtype: int64",
                                     "variable_type": "Series",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x1114a0680>",
+                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x1177a6680>",
                                     "variable_type": "_AtIndexer",
                                     "variable_shape": null
                                 },
@@ -197,7 +198,7 @@
                                 "ax": {
                                     "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "i": {
                                     "variable_value": "'a'",
@@ -212,10 +213,10 @@
                                 "self.obj": {
                                     "variable_value": "a    1\nb    2\nc    3\ndtype: int64",
                                     "variable_type": "Series",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x1114a0680>",
+                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x1177a6680>",
                                     "variable_type": "_AtIndexer",
                                     "variable_shape": null
                                 },
@@ -283,10 +284,10 @@
                                 "self.obj": {
                                     "variable_value": "a    1\nb    2\nc    3\ndtype: int64",
                                     "variable_type": "Series",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x11264c0e0>",
+                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x1145f60e0>",
                                     "variable_type": "_AtIndexer",
                                     "variable_shape": null
                                 },
@@ -320,7 +321,7 @@
                                 "ax": {
                                     "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "i": {
                                     "variable_value": "'a'",
@@ -335,10 +336,10 @@
                                 "self.obj": {
                                     "variable_value": "a    1\nb    2\nc    3\ndtype: int64",
                                     "variable_type": "Series",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x11264c0e0>",
+                                    "variable_value": "<pandas.core.indexing._AtIndexer object at 0x1145f60e0>",
                                     "variable_type": "_AtIndexer",
                                     "variable_shape": null
                                 },
@@ -6059,9 +6060,9 @@
                 "test_function": "test_series_at_raises_type_error",
                 "test_function_code": "    def test_series_at_raises_type_error(self):\n        # at should not fallback\n        # GH 7814\n        # GH#31724 .at should match .loc\n        ser = Series([1, 2, 3], index=list(\"abc\"))\n        result = ser.at[\"a\"]\n        assert result == 1\n        result = ser.loc[\"a\"]\n        assert result == 1\n\n        msg = (\n            \"cannot do label indexing on <class 'pandas.core.indexes.base.Index'> \"\n            r\"with these indexers \\[0\\] of <class 'int'>\"\n        )\n        with pytest.raises(TypeError, match=msg):\n            ser.at[0]\n        with pytest.raises(TypeError, match=msg):\n            ser.loc[0]",
                 "test_error": "ValueError: At based indexing on an non-integer index can only have non-integer indexers",
-                "full_test_error": "self = <pandas.tests.indexing.test_scalar.TestScalar2 object at 0x115df5d00>\n\n    def test_series_at_raises_type_error(self):\n        # at should not fallback\n        # GH 7814\n        # GH#31724 .at should match .loc\n        ser = Series([1, 2, 3], index=list(\"abc\"))\n        result = ser.at[\"a\"]\n        assert result == 1\n        result = ser.loc[\"a\"]\n        assert result == 1\n    \n        msg = (\n            \"cannot do label indexing on <class 'pandas.core.indexes.base.Index'> \"\n            r\"with these indexers \\[0\\] of <class 'int'>\"\n        )\n        with pytest.raises(TypeError, match=msg):\n>           ser.at[0]\n\npandas/tests/indexing/test_scalar.py:147: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/indexing.py:2059: in __getitem__\n    key = self._convert_key(key)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.core.indexing._AtIndexer object at 0x115edb630>, key = (0,)\nis_setter = False\n\n    def _convert_key(self, key, is_setter: bool = False):\n        \"\"\"\n        Require they keys to be the same type as the index. (so we don't\n        fallback)\n        \"\"\"\n        # allow arbitrary setting\n        if is_setter:\n            return list(key)\n    \n        for ax, i in zip(self.obj.axes, key):\n            if ax.is_integer():\n                if not is_integer(i):\n                    raise ValueError(\n                        \"At based indexing on an integer index \"\n                        \"can only have integer indexers\"\n                    )\n            else:\n                if is_integer(i) and not (ax.holds_integer() or ax.is_floating()):\n>                   raise ValueError(\n                        \"At based indexing on an non-integer \"\n                        \"index can only have non-integer \"\n                        \"indexers\"\n                    )\nE                   ValueError: At based indexing on an non-integer index can only have non-integer indexers\n\npandas/core/indexing.py:2099: ValueError",
+                "full_test_error": "self = <pandas.tests.indexing.test_scalar.TestScalar2 object at 0x110064370>\n\n    def test_series_at_raises_type_error(self):\n        # at should not fallback\n        # GH 7814\n        # GH#31724 .at should match .loc\n        ser = Series([1, 2, 3], index=list(\"abc\"))\n        result = ser.at[\"a\"]\n        assert result == 1\n        result = ser.loc[\"a\"]\n        assert result == 1\n    \n        msg = (\n            \"cannot do label indexing on <class 'pandas.core.indexes.base.Index'> \"\n            r\"with these indexers \\[0\\] of <class 'int'>\"\n        )\n        with pytest.raises(TypeError, match=msg):\n>           ser.at[0]\n\npandas/tests/indexing/test_scalar.py:147: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/indexing.py:2059: in __getitem__\n    key = self._convert_key(key)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.core.indexing._AtIndexer object at 0x11014a720>, key = (0,)\nis_setter = False\n\n    def _convert_key(self, key, is_setter: bool = False):\n        \"\"\"\n        Require they keys to be the same type as the index. (so we don't\n        fallback)\n        \"\"\"\n        # allow arbitrary setting\n        if is_setter:\n            return list(key)\n    \n        for ax, i in zip(self.obj.axes, key):\n            if ax.is_integer():\n                if not is_integer(i):\n                    raise ValueError(\n                        \"At based indexing on an integer index \"\n                        \"can only have integer indexers\"\n                    )\n            else:\n                if is_integer(i) and not (ax.holds_integer() or ax.is_floating()):\n>                   raise ValueError(\n                        \"At based indexing on an non-integer \"\n                        \"index can only have non-integer \"\n                        \"indexers\"\n                    )\nE                   ValueError: At based indexing on an non-integer index can only have non-integer indexers\n\npandas/core/indexing.py:2099: ValueError",
                 "traceback": "pandas/core/indexing.py:2059: in __getitem__\n    key = self._convert_key(key)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.core.indexing._AtIndexer object at 0x115edb630>, key = (0,)\nis_setter = False\n\n    def _convert_key(self, key, is_setter: bool = False):\n        \"\"\"\n        Require they keys to be the same type as the index. (so we don't\n        fallback)\n        \"\"\"\n        # allow arbitrary setting\n        if is_setter:\n            return list(key)\n    \n        for ax, i in zip(self.obj.axes, key):\n            if ax.is_integer():\n                if not is_integer(i):\n                    raise ValueError(\n                        \"At based indexing on an integer index \"\n                        \"can only have integer indexers\"\n                    )\n            else:\n                if is_integer(i) and not (ax.holds_integer() or ax.is_floating()):\n>                   raise ValueError(\n                        \"At based indexing on an non-integer \"\n                        \"index can only have non-integer \"\n                        \"indexers\"\n                    )\nE                   ValueError: At based indexing on an non-integer index can only have non-integer indexers\n\npandas/core/indexing.py:2099: ValueError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.core.indexing._AtIndexer object at 0x11014a720>, key = (0,)\nis_setter = False\n\n    def _convert_key(self, key, is_setter: bool = False):\n        \"\"\"\n        Require they keys to be the same type as the index. (so we don't\n        fallback)\n        \"\"\"\n        # allow arbitrary setting\n        if is_setter:\n            return list(key)\n    \n        for ax, i in zip(self.obj.axes, key):\n            if ax.is_integer():\n                if not is_integer(i):\n                    raise ValueError(\n                        \"At based indexing on an integer index \"\n                        \"can only have integer indexers\"\n                    )\n            else:\n                if is_integer(i) and not (ax.holds_integer() or ax.is_floating()):\n>                   raise ValueError(\n                        \"At based indexing on an non-integer \"\n                        \"index can only have non-integer \"\n                        \"indexers\"\n                    )\nE                   ValueError: At based indexing on an non-integer index can only have non-integer indexers\n\npandas/core/indexing.py:2099: ValueError",
                 "test_function_decorators": []
             }
         ]

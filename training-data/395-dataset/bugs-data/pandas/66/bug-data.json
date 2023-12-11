@@ -8,6 +8,7 @@
                     "decorators": [],
                     "docstring": "Return cross-section from the Series/DataFrame.\n\nThis method takes a `key` argument to select data at a particular\nlevel of a MultiIndex.\n\nParameters\n----------\nkey : label or tuple of label\n    Label contained in the index, or partially in a MultiIndex.\naxis : {0 or 'index', 1 or 'columns'}, default 0\n    Axis to retrieve cross-section on.\nlevel : object, defaults to first n levels (n=1 or len(key))\n    In case of a key partially contained in a MultiIndex, indicate\n    which levels are used. Levels can be referred by label or position.\ndrop_level : bool, default True\n    If False, returns object with same levels as self.\n\nReturns\n-------\nSeries or DataFrame\n    Cross-section from the original Series or DataFrame\n    corresponding to the selected index levels.\n\nSee Also\n--------\nDataFrame.loc : Access a group of rows and columns\n    by label(s) or a boolean array.\nDataFrame.iloc : Purely integer-location based indexing\n    for selection by position.\n\nNotes\n-----\n`xs` can not be used to set values.\n\nMultiIndex Slicers is a generic way to get/set values on\nany level or levels.\nIt is a superset of `xs` functionality, see\n:ref:`MultiIndex Slicers <advanced.mi_slicers>`.\n\nExamples\n--------\n>>> d = {'num_legs': [4, 4, 2, 2],\n...      'num_wings': [0, 0, 2, 2],\n...      'class': ['mammal', 'mammal', 'mammal', 'bird'],\n...      'animal': ['cat', 'dog', 'bat', 'penguin'],\n...      'locomotion': ['walks', 'walks', 'flies', 'walks']}\n>>> df = pd.DataFrame(data=d)\n>>> df = df.set_index(['class', 'animal', 'locomotion'])\n>>> df\n                           num_legs  num_wings\nclass  animal  locomotion\nmammal cat     walks              4          0\n       dog     walks              4          0\n       bat     flies              2          2\nbird   penguin walks              2          2\n\nGet values at specified index\n\n>>> df.xs('mammal')\n                   num_legs  num_wings\nanimal locomotion\ncat    walks              4          0\ndog    walks              4          0\nbat    flies              2          2\n\nGet values at several indexes\n\n>>> df.xs(('mammal', 'dog'))\n            num_legs  num_wings\nlocomotion\nwalks              4          0\n\nGet values at specified index and level\n\n>>> df.xs('cat', level=1)\n                   num_legs  num_wings\nclass  locomotion\nmammal walks              4          0\n\nGet values at several indexes and levels\n\n>>> df.xs(('bird', 'walks'),\n...       level=[0, 'locomotion'])\n         num_legs  num_wings\nanimal\npenguin         2          2\n\nGet values at specified column and axis\n\n>>> df.xs('num_wings', axis=1)\nclass   animal   locomotion\nmammal  cat      walks         0\n        dog      walks         0\n        bat      flies         2\nbird    penguin  walks         2\nName: num_wings, dtype: int64",
                     "start_line": 3310,
+                    "end_line": 3469,
                     "variables": {
                         "bool_t": [
                             3310
@@ -638,8 +639,8 @@
                             "def f(x):\n    return matcher.search(ensure_str(x)) is not None"
                         ],
                         "constructor_variables": [
-                            "data",
-                            "attrs"
+                            "attrs",
+                            "data"
                         ],
                         "class_level_variables": [
                             "_internal_names",
@@ -16684,6 +16685,7 @@
                     "decorators": [],
                     "docstring": "fast path for getting a cross-section\nreturn a view of the data",
                     "start_line": 1563,
+                    "end_line": 1568,
                     "variables": {
                         "self._block.values": [
                             1568
@@ -16742,11 +16744,11 @@
                             "def concat(self, to_concat, new_axis) -> 'SingleBlockManager':\n    \"\"\"\n    Concatenate a list of SingleBlockManagers into a single\n    SingleBlockManager.\n\n    Used for pd.concat of Series objects with axis=0.\n\n    Parameters\n    ----------\n    to_concat : list of SingleBlockManagers\n    new_axis : Index of the result\n\n    Returns\n    -------\n    SingleBlockManager\n    \"\"\"\n    non_empties = [x for x in to_concat if len(x) > 0]\n    if len(non_empties) > 0:\n        blocks = [obj.blocks[0] for obj in non_empties]\n        if len({b.dtype for b in blocks}) == 1:\n            new_block = blocks[0].concat_same_type(blocks)\n        else:\n            values = [x.values for x in blocks]\n            values = concat_compat(values)\n            new_block = make_block(values, placement=slice(0, len(values), 1))\n    else:\n        values = [x._block.values for x in to_concat]\n        values = concat_compat(values)\n        new_block = make_block(values, placement=slice(0, len(values), 1))\n    mgr = SingleBlockManager(new_block, new_axis)\n    return mgr"
                         ],
                         "constructor_variables": [
+                            "dtype",
                             "blocks",
                             "axis",
-                            "block",
-                            "dtype",
-                            "axes"
+                            "axes",
+                            "block"
                         ],
                         "class_level_variables": [
                             "ndim",
@@ -16791,12 +16793,12 @@
                                 "self._block": {
                                     "variable_value": "ObjectBlock: 3 dtype: object",
                                     "variable_type": "ObjectBlock",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "self": {
                                     "variable_value": "SingleBlockManager\nItems: RangeIndex(start=0, stop=3, step=1)\nObjectBlock: 3 dtype: object",
                                     "variable_type": "SingleBlockManager",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "loc": {
                                     "variable_value": "0",
@@ -16813,12 +16815,12 @@
                                 "self._block": {
                                     "variable_value": "ObjectBlock: 3 dtype: object",
                                     "variable_type": "ObjectBlock",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "self": {
                                     "variable_value": "SingleBlockManager\nItems: RangeIndex(start=0, stop=3, step=1)\nObjectBlock: 3 dtype: object",
                                     "variable_type": "SingleBlockManager",
-                                    "variable_shape": "3"
+                                    "variable_shape": "(3,)"
                                 },
                                 "loc": {
                                     "variable_value": "0",

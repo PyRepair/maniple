@@ -8,7 +8,7 @@ from typing import Dict, Optional
 
 IGNORED_BUGS = [
     "spacy:2", "spacy:3", "spacy:5", "scrapy:11", # 106
-    "keras:26" # 395
+    "keras:26", "black:21" # 395
 ]
 
 

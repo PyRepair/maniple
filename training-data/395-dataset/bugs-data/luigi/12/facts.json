@@ -4,17 +4,17 @@
     "1.2.1": null,
     "1.2.2": null,
     "1.2.3": null,
-    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_12/luigi/contrib/hdfs/clients.py",
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/luigi_12/luigi/contrib/hdfs/clients.py",
     "1.3.2": null,
     "1.4.1": [
         "    def test_get_autoconfig_client_cached(self):\n        original_client = get_autoconfig_client()\n        for _ in range(100):\n            self.assertIs(original_client, get_autoconfig_client())"
     ],
     "1.4.2": [
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/luigi_12/test/hdfs_client_test.py"
+        "/Volumes/SSD2T/bgp_envs/repos/luigi_12/test/hdfs_client_test.py"
     ],
     "2.1.1": [
         [
-            "E           AssertionError: <luigi.contrib.hdfs.hadoopcli_clients.HdfsClient object at 0x10448f0a0> is not <luigi.contrib.hdfs.hadoopcli_clients.HdfsClient object at 0x104496490>"
+            "E           AssertionError: <luigi.contrib.hdfs.hadoopcli_clients.HdfsClient object at 0x10b145070> is not <luigi.contrib.hdfs.hadoopcli_clients.HdfsClient object at 0x10b14d460>"
         ]
     ],
     "2.1.2": [
@@ -42,14 +42,14 @@
     "2.1.5": [
         [
             {
-                "client_cache": "<_thread._local object at 0x10b9ae090>"
+                "client_cache": "<_thread._local object at 0x11046d040>"
             },
             {}
         ],
         [
             {
-                "client_cache.client": "<luigi.contrib.hdfs.hadoopcli_clients.HdfsClient object at 0x10b99ff40>",
-                "client_cache": "<_thread._local object at 0x10b9ae090>"
+                "client_cache.client": "<luigi.contrib.hdfs.hadoopcli_clients.HdfsClient object at 0x10fd83d90>",
+                "client_cache": "<_thread._local object at 0x11046d040>"
             },
             {}
         ]
@@ -70,9 +70,9 @@
         ]
     ],
     "3.1.1": [
-        "\n"
+        "HdfsTarget commands fail when many targets are instantiated\n"
     ],
     "3.1.2": [
-        "\n"
+        "I've recently added an existence check to a large mapreduce task for which some input files may be missing. With a large enough set of inputs, it will fail every time. I've simplified it to the following code:\n\nfrom luigi.contrib.hdfs import HdfsTarget\n\nmany_targets = [HdfsTarget('/') for _ in range(2000)]\nall(target.exists() for target in many_targets)\nThis will break if I use any past 1000 or so. Here the client uses snakebite. For a more direct triggering, we can also do\n\nfrom snakebite.client import AutoConfigClient\n\nclients = [AutoConfigClient() for _ in range(10000)]\nall(client.test('/', exists=True) for client in clients)\nIn either case, the bug goes away if I use a generator expression rather than a list comprehension. The problem is that when I'm dealing with objects coming out of luigi calls like input_hadoop, it's too late for me to decide between lists and iterators. I can code around this by instantiating all of my HdfsTargets with the same client, but I'm not sure this is safe. It could also be fixed in luigi if we had get_autoconfig_client return the same object each time. Is there any reason this wouldn't work?\n"
     ]
 }

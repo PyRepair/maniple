@@ -10,6 +10,7 @@
                     ],
                     "docstring": "Make a Categorical type from codes and categories or dtype.\n\nThis constructor is useful if you already have codes and\ncategories/dtype and so do not need the (computation intensive)\nfactorization step, which is usually done on the constructor.\n\nIf your data does not follow this convention, please use the normal\nconstructor.\n\nParameters\n----------\ncodes : array-like of int\n    An integer array, where each integer points to a category in\n    categories or dtype.categories, or else is -1 for NaN.\ncategories : index-like, optional\n    The categories for the categorical. Items need to be unique.\n    If the categories are not given here, then they must be provided\n    in `dtype`.\nordered : bool, optional\n    Whether or not this categorical is treated as an ordered\n    categorical. If not given here or in `dtype`, the resulting\n    categorical will be unordered.\ndtype : CategoricalDtype or \"category\", optional\n    If :class:`CategoricalDtype`, cannot be used together with\n    `categories` or `ordered`.\n\n    .. versionadded:: 0.24.0\n\n       When `dtype` is provided, neither `categories` nor `ordered`\n       should be provided.\n\nReturns\n-------\nCategorical\n\nExamples\n--------\n>>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)\n>>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)\n[a, b, a, b]\nCategories (2, object): [a < b]",
                     "start_line": 592,
+                    "end_line": 654,
                     "variables": {
                         "dtype": [
                             640,
@@ -219,13 +220,13 @@
                             "def replace(self, to_replace, value, inplace: bool=False):\n    \"\"\"\n    Replaces all instances of one value with another\n\n    Parameters\n    ----------\n    to_replace: object\n        The value to be replaced\n\n    value: object\n        The value to replace it with\n\n    inplace: bool\n        Whether the operation is done in-place\n\n    Returns\n    -------\n    None if inplace is True, otherwise the new Categorical after replacement\n\n\n    Examples\n    --------\n    >>> s = pd.Categorical([1, 2, 1, 3])\n    >>> s.replace(1, 3)\n    [3, 3, 2, 3]\n    Categories (2, int64): [2, 3]\n    \"\"\"\n    inplace = validate_bool_kwarg(inplace, 'inplace')\n    cat = self if inplace else self.copy()\n    if to_replace in cat.categories:\n        if isna(value):\n            cat.remove_categories(to_replace, inplace=True)\n        else:\n            categories = cat.categories.tolist()\n            index = categories.index(to_replace)\n            if value in cat.categories:\n                value_index = categories.index(value)\n                cat._codes[cat._codes == index] = value_index\n                cat.remove_categories(to_replace, inplace=True)\n            else:\n                categories[index] = value\n                cat.rename_categories(categories, inplace=True)\n    if not inplace:\n        return cat"
                         ],
                         "constructor_variables": [
-                            "_codes",
+                            "full_codes",
+                            "sanitize_dtype",
+                            "_dtype",
+                            "dtype",
                             "old_codes",
                             "codes",
-                            "_dtype",
-                            "full_codes",
-                            "dtype",
-                            "sanitize_dtype",
+                            "_codes",
                             "values",
                             "null_mask"
                         ],
@@ -373,7 +374,7 @@
                                 "codes": {
                                     "variable_value": "<IntegerArray>\n[0, <NA>]\nLength: 2, dtype: Int64",
                                     "variable_type": "IntegerArray",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "np.asarray": {
                                     "variable_value": null,
@@ -403,7 +404,7 @@
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1093a5ef0>"
+                                    "variable_shape": "<property object at 0x10cf2ed60>"
                                 }
                             },
                             {}
@@ -455,7 +456,7 @@
                                 "codes": {
                                     "variable_value": "<IntegerArray>\n[0, 1]\nLength: 2, dtype: Int64",
                                     "variable_type": "IntegerArray",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_integer_dtype": {
                                     "variable_value": null,
@@ -500,7 +501,7 @@
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10b7d8ef0>"
+                                    "variable_shape": "<property object at 0x111838ef0>"
                                 }
                             },
                             {
@@ -532,7 +533,7 @@
                                 "dtype.categories": {
                                     "variable_value": "Index(['a', 'b'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "msg": {
                                     "variable_value": null,
@@ -547,7 +548,7 @@
                                 "codes": {
                                     "variable_value": "array([0, 1])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_integer_dtype": {
                                     "variable_value": null,
@@ -580,19 +581,19 @@
                                     "variable_shape": null
                                 },
                                 "codes.max": {
-                                    "variable_value": "<built-in method max of numpy.ndarray object at 0x119242760>",
+                                    "variable_value": "<built-in method max of numpy.ndarray object at 0x11f2c4800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "codes.min": {
-                                    "variable_value": "<built-in method min of numpy.ndarray object at 0x119242760>",
+                                    "variable_value": "<built-in method min of numpy.ndarray object at 0x11f2c4800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10b7d8ef0>"
+                                    "variable_shape": "<property object at 0x111838ef0>"
                                 }
                             }
                         ],
@@ -641,7 +642,7 @@
                                 "codes": {
                                     "variable_value": "array([0, 1])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_integer_dtype": {
                                     "variable_value": null,
@@ -674,19 +675,19 @@
                                     "variable_shape": null
                                 },
                                 "codes.max": {
-                                    "variable_value": "<built-in method max of numpy.ndarray object at 0x119242760>",
+                                    "variable_value": "<built-in method max of numpy.ndarray object at 0x11f2c4800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "codes.min": {
-                                    "variable_value": "<built-in method min of numpy.ndarray object at 0x119242760>",
+                                    "variable_value": "<built-in method min of numpy.ndarray object at 0x11f2c4800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10b7d8ef0>"
+                                    "variable_shape": "<property object at 0x111838ef0>"
                                 }
                             },
                             {
@@ -718,7 +719,7 @@
                                 "dtype.categories": {
                                     "variable_value": "Index(['a', 'b'], dtype='object')",
                                     "variable_type": "Index",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "msg": {
                                     "variable_value": null,
@@ -733,7 +734,7 @@
                                 "codes": {
                                     "variable_value": "array([0, 1])",
                                     "variable_type": "ndarray",
-                                    "variable_shape": "2"
+                                    "variable_shape": "(2,)"
                                 },
                                 "is_integer_dtype": {
                                     "variable_value": null,
@@ -766,19 +767,19 @@
                                     "variable_shape": null
                                 },
                                 "codes.max": {
-                                    "variable_value": "<built-in method max of numpy.ndarray object at 0x119242760>",
+                                    "variable_value": "<built-in method max of numpy.ndarray object at 0x11f2c4800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "codes.min": {
-                                    "variable_value": "<built-in method min of numpy.ndarray object at 0x119242760>",
+                                    "variable_value": "<built-in method min of numpy.ndarray object at 0x11f2c4800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.arrays.categorical.Categorical'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10b7d8ef0>"
+                                    "variable_shape": "<property object at 0x111838ef0>"
                                 }
                             }
                         ]
@@ -6734,7 +6735,7 @@
                 "test_function": "test_from_codes_with_nullable_int",
                 "test_function_code": "    def test_from_codes_with_nullable_int(self):\n        codes = pd.array([0, 1], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n\n        result = Categorical.from_codes(codes, categories=categories)\n        expected = Categorical.from_codes(codes.to_numpy(int), categories=categories)\n\n        tm.assert_categorical_equal(result, expected)",
                 "test_error": "ValueError: codes need to be array-like integers",
-                "full_test_error": "self = <pandas.tests.arrays.categorical.test_constructors.TestCategoricalConstructors object at 0x1194b23a0>\n\n    def test_from_codes_with_nullable_int(self):\n        codes = pd.array([0, 1], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n    \n>       result = Categorical.from_codes(codes, categories=categories)\n\npandas/tests/arrays/categorical/test_constructors.py:567: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncls = <class 'pandas.core.arrays.categorical.Categorical'>\ncodes = array([0, 1], dtype=object), categories = ['a', 'b'], ordered = None\ndtype = CategoricalDtype(categories=['a', 'b'], ordered=None)\n\n    @classmethod\n    def from_codes(cls, codes, categories=None, ordered=None, dtype=None):\n        \"\"\"\n        Make a Categorical type from codes and categories or dtype.\n    \n        This constructor is useful if you already have codes and\n        categories/dtype and so do not need the (computation intensive)\n        factorization step, which is usually done on the constructor.\n    \n        If your data does not follow this convention, please use the normal\n        constructor.\n    \n        Parameters\n        ----------\n        codes : array-like of int\n            An integer array, where each integer points to a category in\n            categories or dtype.categories, or else is -1 for NaN.\n        categories : index-like, optional\n            The categories for the categorical. Items need to be unique.\n            If the categories are not given here, then they must be provided\n            in `dtype`.\n        ordered : bool, optional\n            Whether or not this categorical is treated as an ordered\n            categorical. If not given here or in `dtype`, the resulting\n            categorical will be unordered.\n        dtype : CategoricalDtype or \"category\", optional\n            If :class:`CategoricalDtype`, cannot be used together with\n            `categories` or `ordered`.\n    \n            .. versionadded:: 0.24.0\n    \n               When `dtype` is provided, neither `categories` nor `ordered`\n               should be provided.\n    \n        Returns\n        -------\n        Categorical\n    \n        Examples\n        --------\n        >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)\n        >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)\n        [a, b, a, b]\n        Categories (2, object): [a < b]\n        \"\"\"\n        dtype = CategoricalDtype._from_values_or_dtype(\n            categories=categories, ordered=ordered, dtype=dtype\n        )\n        if dtype.categories is None:\n            msg = (\n                \"The categories must be provided in 'categories' or \"\n                \"'dtype'. Both were None.\"\n            )\n            raise ValueError(msg)\n    \n        codes = np.asarray(codes)  # #21767\n        if len(codes) and not is_integer_dtype(codes):\n>           raise ValueError(\"codes need to be array-like integers\")\nE           ValueError: codes need to be array-like integers\n\npandas/core/arrays/categorical.py:649: ValueError",
+                "full_test_error": "self = <pandas.tests.arrays.categorical.test_constructors.TestCategoricalConstructors object at 0x11cffc4c0>\n\n    def test_from_codes_with_nullable_int(self):\n        codes = pd.array([0, 1], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n    \n>       result = Categorical.from_codes(codes, categories=categories)\n\npandas/tests/arrays/categorical/test_constructors.py:567: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncls = <class 'pandas.core.arrays.categorical.Categorical'>\ncodes = array([0, 1], dtype=object), categories = ['a', 'b'], ordered = None\ndtype = CategoricalDtype(categories=['a', 'b'], ordered=None)\n\n    @classmethod\n    def from_codes(cls, codes, categories=None, ordered=None, dtype=None):\n        \"\"\"\n        Make a Categorical type from codes and categories or dtype.\n    \n        This constructor is useful if you already have codes and\n        categories/dtype and so do not need the (computation intensive)\n        factorization step, which is usually done on the constructor.\n    \n        If your data does not follow this convention, please use the normal\n        constructor.\n    \n        Parameters\n        ----------\n        codes : array-like of int\n            An integer array, where each integer points to a category in\n            categories or dtype.categories, or else is -1 for NaN.\n        categories : index-like, optional\n            The categories for the categorical. Items need to be unique.\n            If the categories are not given here, then they must be provided\n            in `dtype`.\n        ordered : bool, optional\n            Whether or not this categorical is treated as an ordered\n            categorical. If not given here or in `dtype`, the resulting\n            categorical will be unordered.\n        dtype : CategoricalDtype or \"category\", optional\n            If :class:`CategoricalDtype`, cannot be used together with\n            `categories` or `ordered`.\n    \n            .. versionadded:: 0.24.0\n    \n               When `dtype` is provided, neither `categories` nor `ordered`\n               should be provided.\n    \n        Returns\n        -------\n        Categorical\n    \n        Examples\n        --------\n        >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)\n        >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)\n        [a, b, a, b]\n        Categories (2, object): [a < b]\n        \"\"\"\n        dtype = CategoricalDtype._from_values_or_dtype(\n            categories=categories, ordered=ordered, dtype=dtype\n        )\n        if dtype.categories is None:\n            msg = (\n                \"The categories must be provided in 'categories' or \"\n                \"'dtype'. Both were None.\"\n            )\n            raise ValueError(msg)\n    \n        codes = np.asarray(codes)  # #21767\n        if len(codes) and not is_integer_dtype(codes):\n>           raise ValueError(\"codes need to be array-like integers\")\nE           ValueError: codes need to be array-like integers\n\npandas/core/arrays/categorical.py:649: ValueError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []
@@ -6744,7 +6745,7 @@
                 "test_function": "test_from_codes_with_nullable_int_na_raises",
                 "test_function_code": "    def test_from_codes_with_nullable_int_na_raises(self):\n        codes = pd.array([0, None], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n\n        msg = \"codes cannot contain NA values\"\n        with pytest.raises(ValueError, match=msg):\n            Categorical.from_codes(codes, categories=categories)",
                 "test_error": "AssertionError: Pattern 'codes cannot contain NA values' does not match 'codes need to be array-like integers'",
-                "full_test_error": "self = <pandas.tests.arrays.categorical.test_constructors.TestCategoricalConstructors object at 0x1195fdd90>\n\n    def test_from_codes_with_nullable_int_na_raises(self):\n        codes = pd.array([0, None], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n    \n        msg = \"codes cannot contain NA values\"\n        with pytest.raises(ValueError, match=msg):\n>           Categorical.from_codes(codes, categories=categories)\n\npandas/tests/arrays/categorical/test_constructors.py:578: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncls = <class 'pandas.core.arrays.categorical.Categorical'>\ncodes = array([0, <NA>], dtype=object), categories = ['a', 'b'], ordered = None\ndtype = CategoricalDtype(categories=['a', 'b'], ordered=None)\n\n    @classmethod\n    def from_codes(cls, codes, categories=None, ordered=None, dtype=None):\n        \"\"\"\n        Make a Categorical type from codes and categories or dtype.\n    \n        This constructor is useful if you already have codes and\n        categories/dtype and so do not need the (computation intensive)\n        factorization step, which is usually done on the constructor.\n    \n        If your data does not follow this convention, please use the normal\n        constructor.\n    \n        Parameters\n        ----------\n        codes : array-like of int\n            An integer array, where each integer points to a category in\n            categories or dtype.categories, or else is -1 for NaN.\n        categories : index-like, optional\n            The categories for the categorical. Items need to be unique.\n            If the categories are not given here, then they must be provided\n            in `dtype`.\n        ordered : bool, optional\n            Whether or not this categorical is treated as an ordered\n            categorical. If not given here or in `dtype`, the resulting\n            categorical will be unordered.\n        dtype : CategoricalDtype or \"category\", optional\n            If :class:`CategoricalDtype`, cannot be used together with\n            `categories` or `ordered`.\n    \n            .. versionadded:: 0.24.0\n    \n               When `dtype` is provided, neither `categories` nor `ordered`\n               should be provided.\n    \n        Returns\n        -------\n        Categorical\n    \n        Examples\n        --------\n        >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)\n        >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)\n        [a, b, a, b]\n        Categories (2, object): [a < b]\n        \"\"\"\n        dtype = CategoricalDtype._from_values_or_dtype(\n            categories=categories, ordered=ordered, dtype=dtype\n        )\n        if dtype.categories is None:\n            msg = (\n                \"The categories must be provided in 'categories' or \"\n                \"'dtype'. Both were None.\"\n            )\n            raise ValueError(msg)\n    \n        codes = np.asarray(codes)  # #21767\n        if len(codes) and not is_integer_dtype(codes):\n>           raise ValueError(\"codes need to be array-like integers\")\nE           ValueError: codes need to be array-like integers\n\npandas/core/arrays/categorical.py:649: ValueError\n\nDuring handling of the above exception, another exception occurred:\n\nself = <pandas.tests.arrays.categorical.test_constructors.TestCategoricalConstructors object at 0x1195fdd90>\n\n    def test_from_codes_with_nullable_int_na_raises(self):\n        codes = pd.array([0, None], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n    \n        msg = \"codes cannot contain NA values\"\n        with pytest.raises(ValueError, match=msg):\n>           Categorical.from_codes(codes, categories=categories)\nE           AssertionError: Pattern 'codes cannot contain NA values' does not match 'codes need to be array-like integers'\n\npandas/tests/arrays/categorical/test_constructors.py:578: AssertionError",
+                "full_test_error": "self = <pandas.tests.arrays.categorical.test_constructors.TestCategoricalConstructors object at 0x11d054a30>\n\n    def test_from_codes_with_nullable_int_na_raises(self):\n        codes = pd.array([0, None], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n    \n        msg = \"codes cannot contain NA values\"\n        with pytest.raises(ValueError, match=msg):\n>           Categorical.from_codes(codes, categories=categories)\n\npandas/tests/arrays/categorical/test_constructors.py:578: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ncls = <class 'pandas.core.arrays.categorical.Categorical'>\ncodes = array([0, <NA>], dtype=object), categories = ['a', 'b'], ordered = None\ndtype = CategoricalDtype(categories=['a', 'b'], ordered=None)\n\n    @classmethod\n    def from_codes(cls, codes, categories=None, ordered=None, dtype=None):\n        \"\"\"\n        Make a Categorical type from codes and categories or dtype.\n    \n        This constructor is useful if you already have codes and\n        categories/dtype and so do not need the (computation intensive)\n        factorization step, which is usually done on the constructor.\n    \n        If your data does not follow this convention, please use the normal\n        constructor.\n    \n        Parameters\n        ----------\n        codes : array-like of int\n            An integer array, where each integer points to a category in\n            categories or dtype.categories, or else is -1 for NaN.\n        categories : index-like, optional\n            The categories for the categorical. Items need to be unique.\n            If the categories are not given here, then they must be provided\n            in `dtype`.\n        ordered : bool, optional\n            Whether or not this categorical is treated as an ordered\n            categorical. If not given here or in `dtype`, the resulting\n            categorical will be unordered.\n        dtype : CategoricalDtype or \"category\", optional\n            If :class:`CategoricalDtype`, cannot be used together with\n            `categories` or `ordered`.\n    \n            .. versionadded:: 0.24.0\n    \n               When `dtype` is provided, neither `categories` nor `ordered`\n               should be provided.\n    \n        Returns\n        -------\n        Categorical\n    \n        Examples\n        --------\n        >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)\n        >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)\n        [a, b, a, b]\n        Categories (2, object): [a < b]\n        \"\"\"\n        dtype = CategoricalDtype._from_values_or_dtype(\n            categories=categories, ordered=ordered, dtype=dtype\n        )\n        if dtype.categories is None:\n            msg = (\n                \"The categories must be provided in 'categories' or \"\n                \"'dtype'. Both were None.\"\n            )\n            raise ValueError(msg)\n    \n        codes = np.asarray(codes)  # #21767\n        if len(codes) and not is_integer_dtype(codes):\n>           raise ValueError(\"codes need to be array-like integers\")\nE           ValueError: codes need to be array-like integers\n\npandas/core/arrays/categorical.py:649: ValueError\n\nDuring handling of the above exception, another exception occurred:\n\nself = <pandas.tests.arrays.categorical.test_constructors.TestCategoricalConstructors object at 0x11d054a30>\n\n    def test_from_codes_with_nullable_int_na_raises(self):\n        codes = pd.array([0, None], dtype=\"Int64\")\n        categories = [\"a\", \"b\"]\n    \n        msg = \"codes cannot contain NA values\"\n        with pytest.raises(ValueError, match=msg):\n>           Categorical.from_codes(codes, categories=categories)\nE           AssertionError: Pattern 'codes cannot contain NA values' does not match 'codes need to be array-like integers'\n\npandas/tests/arrays/categorical/test_constructors.py:578: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

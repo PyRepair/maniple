@@ -1,0 +1,181 @@
+{
+    "1.1.1": "def add_special_arithmetic_methods(cls):\n    \n    _, _, arith_method, comp_method, bool_method = _get_method_wrappers(cls)\n    new_methods = _create_methods(\n        cls, arith_method, comp_method, bool_method, special=True\n    )\n    # inplace operators (I feel like these should get passed an `inplace=True`\n    # or just be removed\n\n    def _wrap_inplace_method(method):\n        \n\n        def f(self, other):\n            result = method(self, other)\n\n            # this makes sure that we are aligned like the input\n            # we are updating inplace so we want to ignore is_copy\n            self._update_inplace(\n                result.reindex_like(self, copy=False)._data, verify_is_copy=False\n            )\n\n            return self\n\n        name = method.__name__.strip(\"__\")\n        f.__name__ = f\"__i{name}__\"\n        return f\n\n    new_methods.update(\n        dict(\n            __iadd__=_wrap_inplace_method(new_methods[\"__add__\"]),\n            __isub__=_wrap_inplace_method(new_methods[\"__sub__\"]),\n            __imul__=_wrap_inplace_method(new_methods[\"__mul__\"]),\n            __itruediv__=_wrap_inplace_method(new_methods[\"__truediv__\"]),\n            __ifloordiv__=_wrap_inplace_method(new_methods[\"__floordiv__\"]),\n            __imod__=_wrap_inplace_method(new_methods[\"__mod__\"]),\n            __ipow__=_wrap_inplace_method(new_methods[\"__pow__\"]),\n        )\n    )\n\n    new_methods.update(\n        dict(\n            __iand__=_wrap_inplace_method(new_methods[\"__and__\"]),\n            __ior__=_wrap_inplace_method(new_methods[\"__or__\"]),\n            __ixor__=_wrap_inplace_method(new_methods[\"__xor__\"]),\n        )\n    )\n\n    _add_methods(cls, new_methods=new_methods)\n",
+    "1.1.2": "Adds the full suite of special arithmetic methods (``__add__``,\n``__sub__``, etc.) to the class.\n\nParameters\n----------\ncls : class\n    special methods will be defined and pinned to this class",
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/JerrySSD/bgp_envs/repos/pandas_39/pandas/core/ops/methods.py",
+    "1.3.2": [
+        "_get_method_wrappers(cls)",
+        "_create_methods(cls, arith_method, comp_method, bool_method, special)",
+        "_add_methods(cls, new_methods)",
+        "_wrap_inplace_method(method)",
+        "f(self, other)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n\n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n\n            # Perform operation and check result\n            getattr(y, operation)(1)\n            tm.assert_frame_equal(df, expected)",
+        "    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n\n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n\n            # Perform operation and check result\n            getattr(y, operation)(1)\n            tm.assert_frame_equal(df, expected)",
+        "    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n\n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n\n            # Perform operation and check result\n            getattr(y, operation)(1)\n            tm.assert_frame_equal(df, expected)",
+        "    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n\n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n\n            # Perform operation and check result\n            getattr(y, operation)(1)\n            tm.assert_frame_equal(df, expected)"
+    ],
+    "1.4.2": [
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_39/pandas/tests/frame/test_axis_select_reindex.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_39/pandas/tests/frame/test_axis_select_reindex.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_39/pandas/tests/frame/test_axis_select_reindex.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_39/pandas/tests/frame/test_axis_select_reindex.py"
+    ],
+    "2.1.1": [
+        [
+            "E           AssertionError: DataFrame are different\nE           \nE           DataFrame shape mismatch\nE           [left]:  (5, 2)\nE           [right]: (5, 1)"
+        ],
+        [
+            "E           AssertionError: DataFrame are different\nE           \nE           DataFrame shape mismatch\nE           [left]:  (5, 2)\nE           [right]: (5, 1)"
+        ],
+        [
+            "E           AssertionError: DataFrame are different\nE           \nE           DataFrame shape mismatch\nE           [left]:  (5, 2)\nE           [right]: (5, 1)"
+        ],
+        [
+            "E           AssertionError: DataFrame are different\nE           \nE           DataFrame shape mismatch\nE           [left]:  (5, 2)\nE           [right]: (5, 1)"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.frame.test_axis_select_reindex.TestDataFrameSelectReindex object at 0x10f6ac220>\noperation = '__iadd__', inplace = True\n\n    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n    \n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n    \n            # Perform operation and check result\n            getattr(y, operation)(1)\n>           tm.assert_frame_equal(df, expected)",
+            "\npandas/tests/frame/test_axis_select_reindex.py:739: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.frame.test_axis_select_reindex.TestDataFrameSelectReindex object at 0x10f6b7f10>\noperation = '__isub__', inplace = True\n\n    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n    \n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n    \n            # Perform operation and check result\n            getattr(y, operation)(1)\n>           tm.assert_frame_equal(df, expected)",
+            "\npandas/tests/frame/test_axis_select_reindex.py:739: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.frame.test_axis_select_reindex.TestDataFrameSelectReindex object at 0x10f637070>\noperation = '__imul__', inplace = True\n\n    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n    \n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n    \n            # Perform operation and check result\n            getattr(y, operation)(1)\n>           tm.assert_frame_equal(df, expected)",
+            "\npandas/tests/frame/test_axis_select_reindex.py:739: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.frame.test_axis_select_reindex.TestDataFrameSelectReindex object at 0x10f55c550>\noperation = '__ipow__', inplace = True\n\n    @pytest.mark.parametrize(\n        \"operation\", [\"__iadd__\", \"__isub__\", \"__imul__\", \"__ipow__\"]\n    )\n    @pytest.mark.parametrize(\"inplace\", [False, True])\n    def test_inplace_drop_and_operation(self, operation, inplace):\n        # GH 30484\n        df = pd.DataFrame({\"x\": range(5)})\n        expected = df.copy()\n        df[\"y\"] = range(5)\n        y = df[\"y\"]\n    \n        with tm.assert_produces_warning(None):\n            if inplace:\n                df.drop(\"y\", axis=1, inplace=inplace)\n            else:\n                df = df.drop(\"y\", axis=1, inplace=inplace)\n    \n            # Perform operation and check result\n            getattr(y, operation)(1)\n>           tm.assert_frame_equal(df, expected)",
+            "\npandas/tests/frame/test_axis_select_reindex.py:739: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "cls": "<class 'pandas.core.series.Series'>"
+            },
+            {
+                "new_methods": "array of shape 30",
+                "method": "<function _arith_method_SERIES.<locals>.wrapper at 0x10aa2d160>",
+                "name": "'add'",
+                "method.__name__": "'__add__'",
+                "f.__name__": "'__iadd__'",
+                "f": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method.<locals>.f at 0x10aa7b0d0>",
+                "_wrap_inplace_method": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method at 0x10aa2d040>"
+            }
+        ],
+        [
+            {
+                "cls": "<class 'pandas.core.frame.DataFrame'>"
+            },
+            {
+                "new_methods": "array of shape 28",
+                "method": "<function _arith_method_FRAME.<locals>.f at 0x10aa93c10>",
+                "name": "'add'",
+                "method.__name__": "'__add__'",
+                "f.__name__": "'__iadd__'",
+                "f": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method.<locals>.f at 0x10aaa2670>",
+                "_wrap_inplace_method": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method at 0x10aaa25e0>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "cls": "type"
+            },
+            {
+                "new_methods": "dict",
+                "method": "function",
+                "name": "str",
+                "method.__name__": "str",
+                "f.__name__": "str",
+                "f": "function",
+                "_wrap_inplace_method": "function"
+            }
+        ],
+        [
+            {
+                "cls": "type"
+            },
+            {
+                "new_methods": "dict",
+                "method": "function",
+                "name": "str",
+                "method.__name__": "str",
+                "f.__name__": "str",
+                "f": "function",
+                "_wrap_inplace_method": "function"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "cls": "<class 'pandas.core.series.Series'>"
+            },
+            {
+                "new_methods": "array of shape 30",
+                "method": "<function _arith_method_SERIES.<locals>.wrapper at 0x107d791f0>",
+                "name": "'add'",
+                "method.__name__": "'__add__'",
+                "f.__name__": "'__iadd__'",
+                "f": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method.<locals>.f at 0x107fef160>",
+                "_wrap_inplace_method": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method at 0x107d790d0>"
+            }
+        ],
+        [
+            {
+                "cls": "<class 'pandas.core.frame.DataFrame'>"
+            },
+            {
+                "new_methods": "array of shape 28",
+                "method": "<function _arith_method_FRAME.<locals>.f at 0x108008ca0>",
+                "name": "'add'",
+                "method.__name__": "'__add__'",
+                "f.__name__": "'__iadd__'",
+                "f": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method.<locals>.f at 0x108016700>",
+                "_wrap_inplace_method": "<function add_special_arithmetic_methods.<locals>._wrap_inplace_method at 0x108016670>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "cls": "type"
+            },
+            {
+                "new_methods": "dict",
+                "method": "function",
+                "name": "str",
+                "method.__name__": "str",
+                "f.__name__": "str",
+                "f": "function",
+                "_wrap_inplace_method": "function"
+            }
+        ],
+        [
+            {
+                "cls": "type"
+            },
+            {
+                "new_methods": "dict",
+                "method": "function",
+                "name": "str",
+                "method.__name__": "str",
+                "f.__name__": "str",
+                "f": "function",
+                "_wrap_inplace_method": "function"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}
