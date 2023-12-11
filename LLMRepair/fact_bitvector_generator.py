@@ -86,11 +86,11 @@ else:
     codes = generate_binary_codes(n)
 
     for code in codes:
-        bitvector = strata_bitvector
+        bitvector = strata_bitvector.copy()
         for index in range(len(code)):
-            facts: dict = bitvector[str(index + 1)]
-            for fact in facts.keys():
-                facts[fact] = code[index]
+            strata: dict = bitvector[str(index + 2)]
+            for fact in strata.keys():
+                strata[fact] = code[index]
 
         code_str = ''.join(map(str, code))
         save_bitvector(os.path.join(database_path, f"{code_str}_bitvector.json"),
