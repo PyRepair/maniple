@@ -467,7 +467,7 @@ class PromptGenerator:
             ]
 
             while (estimate_function_code_length(fix_patch) < 0.6 * buggy_function_length
-                   and extract_function_from_code_block(fix_patch, self.buggy_function_name) is not None
+                   and extract_function_from_code_block(fix_patch, self.buggy_function_name) is None
                    and self.max_conversation_count > 0):
                 # if the fix patch is omitted
 
