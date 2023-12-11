@@ -7,7 +7,7 @@
         "layers(self)",
         "build(self, input_shape=None)"
     ],
-    "1.3.1": "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_23/keras/engine/sequential.py",
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/keras_23/keras/engine/sequential.py",
     "1.3.2": [
         "layers(self)",
         "build(self, input_shape=None)"
@@ -16,7 +16,7 @@
         "@keras_test\ndef test_nested_sequential_deferred_build():\n    inner_model = keras.models.Sequential()\n    inner_model.add(keras.layers.Dense(3))\n    inner_model.add(keras.layers.Dense(3))\n\n    model = keras.models.Sequential()\n    model.add(inner_model)\n    model.add(keras.layers.Dense(5))\n    model.compile('sgd', 'mse')\n\n    assert inner_model.built is False\n    assert len(inner_model.layers) == 2\n    assert len(inner_model.weights) == 0\n    assert model.built is False\n    assert len(model.layers) == 2\n    assert len(model.weights) == 0\n\n    model.train_on_batch(\n        np.random.random((2, 4)), np.random.random((2, 5)))\n\n    assert inner_model.built is True\n    assert len(inner_model.layers) == 2\n    assert len(inner_model.weights) == 4\n    assert model.built is True\n    assert len(model.layers) == 2\n    assert len(model.weights) == 6\n\n    config = model.get_config()\n    new_model = keras.models.Sequential.from_config(config)\n    assert new_model.built is True\n    assert len(new_model.layers) == 2\n    assert len(new_model.weights) == 6\n\n    new_inner_model = new_model.layers[0]\n    assert new_inner_model.built is True\n    assert len(new_inner_model.layers) == 2\n    assert len(new_inner_model.weights) == 4"
     ],
     "1.4.2": [
-        "/Volumes/SSD2T/bgp_envs_non_pandas/repos/keras_23/tests/keras/test_sequential_model.py"
+        "/Volumes/SSD2T/bgp_envs/repos/keras_23/tests/keras/test_sequential_model.py"
     ],
     "2.1.1": [
         [
@@ -25,14 +25,358 @@
     ],
     "2.1.2": [
         [
-            "@keras_test\n    def test_nested_sequential_deferred_build():\n        inner_model = keras.models.Sequential()\n        inner_model.add(keras.layers.Dense(3))\n        inner_model.add(keras.layers.Dense(3))\n    \n        model = keras.models.Sequential()\n>       model.add(inner_model)\n\ntests/keras/test_sequential_model.py:432: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <keras.engine.sequential.Sequential object at 0x12e837c50>\nlayer = <keras.engine.sequential.Sequential object at 0x12e81ea90>\n\n    def add(self, layer):\n        \"\"\"Adds a layer instance on top of the layer stack.\n    \n        # Arguments\n            layer: layer instance.\n    \n        # Raises\n            TypeError: If `layer` is not a layer instance.\n            ValueError: In case the `layer` argument does not\n                know its input shape.\n            ValueError: In case the `layer` argument has\n                multiple output tensors, or is already connected\n                somewhere else (forbidden in `Sequential` models).\n        \"\"\"\n        if not isinstance(layer, Layer):\n            raise TypeError('The added layer must be '\n                            'an instance of class Layer. '\n                            'Found: ' + str(layer))\n        self.built = False\n        if not self._layers:\n            set_inputs = False\n            # First layer in model: check that it is an input layer.\n            if not isinstance(layer, InputLayer):\n                # Create an input tensor and call `layer` on the input tensor.\n                # First, we need to infer the expected input shape and dtype.\n                first_layer = layer\n                if isinstance(layer, (Model, Sequential)):\n                    # We were passed a model as first layer.\n                    # This requires a specific way to figure out the\n                    # input shape and dtype.\n                    if not layer.layers:\n                        raise ValueError('Cannot add an empty model '\n                                         'to a `Sequential` model.')\n                    # In case of nested models: recover the first layer\n                    # of the deepest model to infer input shape and dtype.\n                    first_layer = layer.layers[0]\n                    while isinstance(first_layer, (Model, Sequential)):\n                        first_layer = first_layer.layers[0]\n>                   batch_shape = first_layer.batch_input_shape",
+            "@keras_test\n    def test_nested_sequential_deferred_build():\n        inner_model = keras.models.Sequential()\n        inner_model.add(keras.layers.Dense(3))\n        inner_model.add(keras.layers.Dense(3))\n    \n        model = keras.models.Sequential()\n>       model.add(inner_model)\n\ntests/keras/test_sequential_model.py:432: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <keras.engine.sequential.Sequential object at 0x128430e10>\nlayer = <keras.engine.sequential.Sequential object at 0x128410d50>\n\n    def add(self, layer):\n        \"\"\"Adds a layer instance on top of the layer stack.\n    \n        # Arguments\n            layer: layer instance.\n    \n        # Raises\n            TypeError: If `layer` is not a layer instance.\n            ValueError: In case the `layer` argument does not\n                know its input shape.\n            ValueError: In case the `layer` argument has\n                multiple output tensors, or is already connected\n                somewhere else (forbidden in `Sequential` models).\n        \"\"\"\n        if not isinstance(layer, Layer):\n            raise TypeError('The added layer must be '\n                            'an instance of class Layer. '\n                            'Found: ' + str(layer))\n        self.built = False\n        if not self._layers:\n            set_inputs = False\n            # First layer in model: check that it is an input layer.\n            if not isinstance(layer, InputLayer):\n                # Create an input tensor and call `layer` on the input tensor.\n                # First, we need to infer the expected input shape and dtype.\n                first_layer = layer\n                if isinstance(layer, (Model, Sequential)):\n                    # We were passed a model as first layer.\n                    # This requires a specific way to figure out the\n                    # input shape and dtype.\n                    if not layer.layers:\n                        raise ValueError('Cannot add an empty model '\n                                         'to a `Sequential` model.')\n                    # In case of nested models: recover the first layer\n                    # of the deepest model to infer input shape and dtype.\n                    first_layer = layer.layers[0]\n                    while isinstance(first_layer, (Model, Sequential)):\n                        first_layer = first_layer.layers[0]\n>                   batch_shape = first_layer.batch_input_shape",
             "\nkeras/engine/sequential.py:152: AttributeError"
         ]
     ],
-    "2.1.3": null,
-    "2.1.4": null,
-    "2.1.5": null,
-    "2.1.6": null,
+    "2.1.3": [
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x11f60ec10>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x11f60e2d0>",
+                "self._layers": "[]",
+                "layer.name": "'dense_1'",
+                "layer._inbound_nodes": "[]"
+            },
+            {
+                "self._layers": "[<keras.layers.core.Dense object at 0x11f60ec10>]",
+                "set_inputs": "False",
+                "first_layer": "<keras.layers.core.Dense object at 0x11f60ec10>"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x11f60ee10>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x11f60e2d0>",
+                "self._layers": "[<keras.layers.core.Dense object at 0x11f60ec10>]",
+                "layer.name": "'dense_2'",
+                "layer._inbound_nodes": "[]"
+            },
+            {
+                "self._layers": "[<keras.layers.core.Dense object at 0x11f60ec10>, <keras.layers.core.Dense object at 0x11f60ee10>]"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self._layers": "list",
+                "set_inputs": "bool",
+                "first_layer": "Dense"
+            }
+        ],
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self._layers": "list"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x12c02eed0>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c02e150>",
+                "self._layers": "[]",
+                "layer.name": "'dense_1'",
+                "layer._inbound_nodes": "[]"
+            },
+            {
+                "self._layers": "[<keras.layers.core.Dense object at 0x12c02eed0>]",
+                "set_inputs": "False",
+                "first_layer": "<keras.layers.core.Dense object at 0x12c02eed0>"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x12c03efd0>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c02e150>",
+                "self._layers": "[<keras.layers.core.Dense object at 0x12c02eed0>]",
+                "layer.name": "'dense_2'",
+                "layer._inbound_nodes": "[]"
+            },
+            {
+                "self._layers": "[<keras.layers.core.Dense object at 0x12c02eed0>, <keras.layers.core.Dense object at 0x12c03efd0>]"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.engine.sequential.Sequential object at 0x12c02e150>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c23a750>",
+                "self._layers": "[]",
+                "layer.layers": "[<keras.layers.core.Dense object at 0x12c02eed0>, <keras.layers.core.Dense object at 0x12c03efd0>]",
+                "layer.name": "'sequential_1'",
+                "layer._inbound_nodes": "[]"
+            },
+            {
+                "self._layers": "[<keras.engine.sequential.Sequential object at 0x12c02e150>]",
+                "set_inputs": "False",
+                "first_layer": "<keras.layers.core.Dense object at 0x12c02eed0>"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x12c044b50>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c23a750>",
+                "self._layers": "[<keras.engine.sequential.Sequential object at 0x12c02e150>]",
+                "layer.name": "'dense_3'",
+                "layer._inbound_nodes": "[]"
+            },
+            {
+                "self._layers": "[<keras.engine.sequential.Sequential object at 0x12c02e150>, <keras.layers.core.Dense object at 0x12c044b50>]"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x12c349790>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c2de790>",
+                "self._layers": "[]",
+                "layer.name": "'dense_1'",
+                "layer._inbound_nodes": "[]"
+            },
+            {
+                "self.built": "True",
+                "self._layers": "[<keras.engine.input_layer.InputLayer object at 0x12c3a2f50>, <keras.layers.core.Dense object at 0x12c349790>]",
+                "set_inputs": "True",
+                "first_layer": "<keras.layers.core.Dense object at 0x12c349790>",
+                "batch_shape": "(None, 4)",
+                "first_layer.batch_input_shape": "(None, 4)",
+                "dtype": "'float32'",
+                "first_layer.dtype": "'float32'",
+                "x": "<tf.Tensor 'dense_1_input:0' shape=(?, 4) dtype=float32>",
+                "layer._inbound_nodes": "[<keras.engine.base_layer.Node object at 0x12c380910>]",
+                "self.outputs": "[<tf.Tensor 'dense_1/BiasAdd:0' shape=(?, 3) dtype=float32>]",
+                "self.inputs": "[<tf.Tensor 'dense_1_input:0' shape=(?, 4) dtype=float32>]"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x12c3bad10>",
+                "self.built": "True",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c2de790>",
+                "self._layers": "[<keras.engine.input_layer.InputLayer object at 0x12c3a2f50>, <keras.layers.core.Dense object at 0x12c349790>]",
+                "layer.name": "'dense_2'",
+                "layer._inbound_nodes": "[]",
+                "self.outputs": "[<tf.Tensor 'dense_1/BiasAdd:0' shape=(?, 3) dtype=float32>]",
+                "self.inputs": "[<tf.Tensor 'dense_1_input:0' shape=(?, 4) dtype=float32>]"
+            },
+            {
+                "self._layers": "[<keras.engine.input_layer.InputLayer object at 0x12c3a2f50>, <keras.layers.core.Dense object at 0x12c349790>, <keras.layers.core.Dense object at 0x12c3bad10>]",
+                "layer._inbound_nodes": "[<keras.engine.base_layer.Node object at 0x12b820e10>]",
+                "self.outputs": "[<tf.Tensor 'dense_2/BiasAdd:0' shape=(?, 3) dtype=float32>]",
+                "output_tensor": "<tf.Tensor 'dense_2/BiasAdd:0' shape=(?, 3) dtype=float32>"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.engine.sequential.Sequential object at 0x12c2de790>",
+                "self.built": "False",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c0e2ed0>",
+                "self._layers": "[]",
+                "layer.layers": "[<keras.layers.core.Dense object at 0x12c349790>, <keras.layers.core.Dense object at 0x12c3bad10>]",
+                "layer.name": "'sequential_4'",
+                "layer._inbound_nodes": "[<keras.engine.base_layer.Node object at 0x12c3d4b10>]"
+            },
+            {
+                "self.built": "True",
+                "self._layers": "[<keras.engine.input_layer.InputLayer object at 0x12c8ff290>, <keras.engine.sequential.Sequential object at 0x12c2de790>]",
+                "set_inputs": "True",
+                "first_layer": "<keras.layers.core.Dense object at 0x12c349790>",
+                "batch_shape": "(None, 4)",
+                "first_layer.batch_input_shape": "(None, 4)",
+                "dtype": "'float32'",
+                "first_layer.dtype": "'float32'",
+                "x": "<tf.Tensor 'sequential_4_input:0' shape=(?, 4) dtype=float32>",
+                "layer._inbound_nodes": "[<keras.engine.base_layer.Node object at 0x12c3d4b10>, <keras.engine.base_layer.Node object at 0x12c349f50>]",
+                "self.outputs": "[<tf.Tensor 'sequential_4/dense_2/BiasAdd:0' shape=(?, 3) dtype=float32>]",
+                "self.inputs": "[<tf.Tensor 'sequential_4_input:0' shape=(?, 4) dtype=float32>]"
+            }
+        ],
+        [
+            {
+                "layer": "<keras.layers.core.Dense object at 0x12c2c0610>",
+                "self.built": "True",
+                "self": "<keras.engine.sequential.Sequential object at 0x12c0e2ed0>",
+                "self._layers": "[<keras.engine.input_layer.InputLayer object at 0x12c8ff290>, <keras.engine.sequential.Sequential object at 0x12c2de790>]",
+                "layer.name": "'dense_3'",
+                "layer._inbound_nodes": "[]",
+                "self.outputs": "[<tf.Tensor 'sequential_4/dense_2/BiasAdd:0' shape=(?, 3) dtype=float32>]",
+                "self.inputs": "[<tf.Tensor 'sequential_4_input:0' shape=(?, 4) dtype=float32>]"
+            },
+            {
+                "self._layers": "[<keras.engine.input_layer.InputLayer object at 0x12c8ff290>, <keras.engine.sequential.Sequential object at 0x12c2de790>, <keras.layers.core.Dense object at 0x12c2c0610>]",
+                "layer._inbound_nodes": "[<keras.engine.base_layer.Node object at 0x12c3d4810>]",
+                "self.outputs": "[<tf.Tensor 'dense_3_1/BiasAdd:0' shape=(?, 5) dtype=float32>]",
+                "output_tensor": "<tf.Tensor 'dense_3_1/BiasAdd:0' shape=(?, 5) dtype=float32>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self._layers": "list",
+                "set_inputs": "bool",
+                "first_layer": "Dense"
+            }
+        ],
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self._layers": "list"
+            }
+        ],
+        [
+            {
+                "layer": "Sequential",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self._layers": "list",
+                "set_inputs": "bool",
+                "first_layer": "Dense"
+            }
+        ],
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self._layers": "list"
+            }
+        ],
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self.built": "bool",
+                "self._layers": "list",
+                "set_inputs": "bool",
+                "first_layer": "Dense",
+                "batch_shape": "tuple",
+                "first_layer.batch_input_shape": "tuple",
+                "dtype": "str",
+                "first_layer.dtype": "str",
+                "x": "Tensor",
+                "layer._inbound_nodes": "list",
+                "self.outputs": "list",
+                "self.inputs": "list"
+            }
+        ],
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list",
+                "self.outputs": "list",
+                "self.inputs": "list"
+            },
+            {
+                "self._layers": "list",
+                "layer._inbound_nodes": "list",
+                "self.outputs": "list",
+                "output_tensor": "Tensor"
+            }
+        ],
+        [
+            {
+                "layer": "Sequential",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list"
+            },
+            {
+                "self.built": "bool",
+                "self._layers": "list",
+                "set_inputs": "bool",
+                "first_layer": "Dense",
+                "batch_shape": "tuple",
+                "first_layer.batch_input_shape": "tuple",
+                "dtype": "str",
+                "first_layer.dtype": "str",
+                "x": "Tensor",
+                "layer._inbound_nodes": "list",
+                "self.outputs": "list",
+                "self.inputs": "list"
+            }
+        ],
+        [
+            {
+                "layer": "Dense",
+                "self.built": "bool",
+                "self": "Sequential",
+                "self._layers": "list",
+                "layer.name": "str",
+                "layer._inbound_nodes": "list",
+                "self.outputs": "list",
+                "self.inputs": "list"
+            },
+            {
+                "self._layers": "list",
+                "layer._inbound_nodes": "list",
+                "self.outputs": "list",
+                "output_tensor": "Tensor"
+            }
+        ]
+    ],
     "3.1.1": null,
     "3.1.2": null
 }

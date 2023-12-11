@@ -1,6 +1,6 @@
 {
     "pandas:128": {
-        "/Volumes/JerrySSD/bgp_envs/repos/pandas_128/pandas/io/json/_json.py": {
+        "/Volumes/SSD2T/bgp_envs/repos/pandas_128/pandas/io/json/_json.py": {
             "buggy_functions": [
                 {
                     "function_name": "read_json",
@@ -8,6 +8,7 @@
                     "decorators": [],
                     "docstring": "Convert a JSON string to pandas object.\n\nParameters\n----------\npath_or_buf : a valid JSON str, path object or file-like object\n    Any valid string path is acceptable. The string could be a URL. Valid\n    URL schemes include http, ftp, s3, and file. For file URLs, a host is\n    expected. A local file could be:\n    ``file://localhost/path/to/table.json``.\n\n    If you want to pass in a path object, pandas accepts any\n    ``os.PathLike``.\n\n    By file-like object, we refer to objects with a ``read()`` method,\n    such as a file handler (e.g. via builtin ``open`` function)\n    or ``StringIO``.\norient : str\n    Indication of expected JSON string format.\n    Compatible JSON strings can be produced by ``to_json()`` with a\n    corresponding orient value.\n    The set of possible orients is:\n\n    - ``'split'`` : dict like\n      ``{index -> [index], columns -> [columns], data -> [values]}``\n    - ``'records'`` : list like\n      ``[{column -> value}, ... , {column -> value}]``\n    - ``'index'`` : dict like ``{index -> {column -> value}}``\n    - ``'columns'`` : dict like ``{column -> {index -> value}}``\n    - ``'values'`` : just the values array\n\n    The allowed and default values depend on the value\n    of the `typ` parameter.\n\n    * when ``typ == 'series'``,\n\n      - allowed orients are ``{'split','records','index'}``\n      - default is ``'index'``\n      - The Series index must be unique for orient ``'index'``.\n\n    * when ``typ == 'frame'``,\n\n      - allowed orients are ``{'split','records','index',\n        'columns','values', 'table'}``\n      - default is ``'columns'``\n      - The DataFrame index must be unique for orients ``'index'`` and\n        ``'columns'``.\n      - The DataFrame columns must be unique for orients ``'index'``,\n        ``'columns'``, and ``'records'``.\n\n    .. versionadded:: 0.23.0\n       'table' as an allowed value for the ``orient`` argument\n\ntyp : {'frame', 'series'}, default 'frame'\n    The type of object to recover.\n\ndtype : bool or dict, default None\n    If True, infer dtypes; if a dict of column to dtype, then use those;\n    if False, then don't infer dtypes at all, applies only to the data.\n\n    For all ``orient`` values except ``'table'``, default is True.\n\n    .. versionchanged:: 0.25.0\n\n       Not applicable for ``orient='table'``.\n\nconvert_axes : bool, default None\n    Try to convert the axes to the proper dtypes.\n\n    For all ``orient`` values except ``'table'``, default is True.\n\n    .. versionchanged:: 0.25.0\n\n       Not applicable for ``orient='table'``.\n\nconvert_dates : bool or list of str, default True\n    List of columns to parse for dates. If True, then try to parse\n    datelike columns. A column label is datelike if\n\n    * it ends with ``'_at'``,\n\n    * it ends with ``'_time'``,\n\n    * it begins with ``'timestamp'``,\n\n    * it is ``'modified'``, or\n\n    * it is ``'date'``.\n\nkeep_default_dates : bool, default True\n    If parsing dates, then parse the default datelike columns.\n\nnumpy : bool, default False\n    Direct decoding to numpy arrays. Supports numeric data only, but\n    non-numeric column and index labels are supported. Note also that the\n    JSON ordering MUST be the same for each term if numpy=True.\n\nprecise_float : bool, default False\n    Set to enable usage of higher precision (strtod) function when\n    decoding string to double values. Default (False) is to use fast but\n    less precise builtin functionality.\n\ndate_unit : str, default None\n    The timestamp unit to detect if converting dates. The default behaviour\n    is to try and detect the correct precision, but if this is not desired\n    then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds,\n    milliseconds, microseconds or nanoseconds respectively.\n\nencoding : str, default is 'utf-8'\n    The encoding to use to decode py3 bytes.\n\nlines : bool, default False\n    Read the file as a json object per line.\n\nchunksize : int, optional\n    Return JsonReader object for iteration.\n    See the `line-delimited json docs\n    <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_\n    for more information on ``chunksize``.\n    This can only be passed if `lines=True`.\n    If this is None, the file will be read into memory all at once.\n\n    .. versionadded:: 0.21.0\n\ncompression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'\n    For on-the-fly decompression of on-disk data. If 'infer', then use\n    gzip, bz2, zip or xz if path_or_buf is a string ending in\n    '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression\n    otherwise. If using 'zip', the ZIP file must contain only one data\n    file to be read in. Set to None for no decompression.\n\n    .. versionadded:: 0.21.0\n\nReturns\n-------\nSeries or DataFrame\n    The type returned depends on the value of `typ`.\n\nSee Also\n--------\nDataFrame.to_json : Convert a DataFrame to a JSON string.\nSeries.to_json : Convert a Series to a JSON string.\n\nNotes\n-----\nSpecific to ``orient='table'``, if a :class:`DataFrame` with a literal\n:class:`Index` name of `index` gets written with :func:`to_json`, the\nsubsequent read operation will incorrectly set the :class:`Index` name to\n``None``. This is because `index` is also used by :func:`DataFrame.to_json`\nto denote a missing :class:`Index` name, and the subsequent\n:func:`read_json` operation cannot distinguish between the two. The same\nlimitation is encountered with a :class:`MultiIndex` and any names\nbeginning with ``'level_'``.\n\nExamples\n--------\n\n>>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],\n...                   index=['row 1', 'row 2'],\n...                   columns=['col 1', 'col 2'])\n\nEncoding/decoding a Dataframe using ``'split'`` formatted JSON:\n\n>>> df.to_json(orient='split')\n'{\"columns\":[\"col 1\",\"col 2\"],\n  \"index\":[\"row 1\",\"row 2\"],\n  \"data\":[[\"a\",\"b\"],[\"c\",\"d\"]]}'\n>>> pd.read_json(_, orient='split')\n      col 1 col 2\nrow 1     a     b\nrow 2     c     d\n\nEncoding/decoding a Dataframe using ``'index'`` formatted JSON:\n\n>>> df.to_json(orient='index')\n'{\"row 1\":{\"col 1\":\"a\",\"col 2\":\"b\"},\"row 2\":{\"col 1\":\"c\",\"col 2\":\"d\"}}'\n>>> pd.read_json(_, orient='index')\n      col 1 col 2\nrow 1     a     b\nrow 2     c     d\n\nEncoding/decoding a Dataframe using ``'records'`` formatted JSON.\nNote that index labels are not preserved with this encoding.\n\n>>> df.to_json(orient='records')\n'[{\"col 1\":\"a\",\"col 2\":\"b\"},{\"col 1\":\"c\",\"col 2\":\"d\"}]'\n>>> pd.read_json(_, orient='records')\n  col 1 col 2\n0     a     b\n1     c     d\n\nEncoding with Table Schema\n\n>>> df.to_json(orient='table')\n'{\"schema\": {\"fields\": [{\"name\": \"index\", \"type\": \"string\"},\n                        {\"name\": \"col 1\", \"type\": \"string\"},\n                        {\"name\": \"col 2\", \"type\": \"string\"}],\n                \"primaryKey\": \"index\",\n                \"pandas_version\": \"0.20.0\"},\n    \"data\": [{\"index\": \"row 1\", \"col 1\": \"a\", \"col 2\": \"b\"},\n            {\"index\": \"row 2\", \"col 1\": \"c\", \"col 2\": \"d\"}]}'",
                     "start_line": 352,
+                    "end_line": 610,
                     "variables": {
                         "orient": [
                             576,
@@ -235,7 +236,7 @@
                                     "variable_shape": null
                                 },
                                 "path_or_buf": {
-                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpnovydusstest.json'",
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp167mvk8_test.json'",
                                     "variable_type": "str",
                                     "variable_shape": "69"
                                 },
@@ -357,12 +358,12 @@
                                     "variable_shape": null
                                 },
                                 "path_or_buf": {
-                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpnovydusstest.json'",
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp167mvk8_test.json'",
                                     "variable_type": "str",
                                     "variable_shape": "69"
                                 },
                                 "filepath_or_buffer": {
-                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpnovydusstest.json'",
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp167mvk8_test.json'",
                                     "variable_type": "str",
                                     "variable_shape": "69"
                                 },
@@ -387,7 +388,7 @@
                                     "variable_shape": null
                                 },
                                 "json_reader": {
-                                    "variable_value": "<pandas.io.json._json.JsonReader object at 0x1208ae310>",
+                                    "variable_value": "<pandas.io.json._json.JsonReader object at 0x11e4412e0>",
                                     "variable_type": "JsonReader",
                                     "variable_shape": null
                                 },
@@ -439,10 +440,10 @@
                                 "result": {
                                     "variable_value": "    \uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc\n0  \ufffd\uba12\ubaf0\ubbcc\ubcc2\ubda0\uac86\uadc8\uaf65\ub113\ub2ff\ufffd\ufffd",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1, 1)"
                                 },
                                 "json_reader.read": {
-                                    "variable_value": "<bound method JsonReader.read of <pandas.io.json._json.JsonReader object at 0x1208ae310>>",
+                                    "variable_value": "<bound method JsonReader.read of <pandas.io.json._json.JsonReader object at 0x11e4412e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -488,7 +489,7 @@
                                     "variable_shape": null
                                 },
                                 "path_or_buf": {
-                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp2at5g5rwtest.json'",
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpuzolr1gntest.json'",
                                     "variable_type": "str",
                                     "variable_shape": "69"
                                 },
@@ -610,12 +611,12 @@
                                     "variable_shape": null
                                 },
                                 "path_or_buf": {
-                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp2at5g5rwtest.json'",
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpuzolr1gntest.json'",
                                     "variable_type": "str",
                                     "variable_shape": "69"
                                 },
                                 "filepath_or_buffer": {
-                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmp2at5g5rwtest.json'",
+                                    "variable_value": "'/var/folders/ng/72llsm517x12c2p18htksyjc0000gn/T/tmpuzolr1gntest.json'",
                                     "variable_type": "str",
                                     "variable_shape": "69"
                                 },
@@ -635,7 +636,7 @@
                                     "variable_shape": null
                                 },
                                 "json_reader": {
-                                    "variable_value": "<pandas.io.json._json.JsonReader object at 0x113d53070>",
+                                    "variable_value": "<pandas.io.json._json.JsonReader object at 0x113d32070>",
                                     "variable_type": "JsonReader",
                                     "variable_shape": null
                                 },
@@ -687,10 +688,10 @@
                                 "result": {
                                     "variable_value": "   \u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\n0  \u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00",
                                     "variable_type": "DataFrame",
-                                    "variable_shape": "1"
+                                    "variable_shape": "(1, 1)"
                                 },
                                 "json_reader.read": {
-                                    "variable_value": "<bound method JsonReader.read of <pandas.io.json._json.JsonReader object at 0x113d53070>>",
+                                    "variable_value": "<bound method JsonReader.read of <pandas.io.json._json.JsonReader object at 0x113d32070>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3878,11 +3879,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_128/pandas/tests/io/json/test_readlines.py",
+                "test_path": "/Volumes/SSD2T/bgp_envs/repos/pandas_128/pandas/tests/io/json/test_readlines.py",
                 "test_function": "test_readjson_unicode",
                 "test_function_code": "def test_readjson_unicode(monkeypatch):\n    with tm.ensure_clean(\"test.json\") as path:\n        monkeypatch.setattr(\"_bootlocale.getpreferredencoding\", lambda l: \"cp949\")\n        with open(path, \"w\", encoding=\"utf-8\") as f:\n            f.write('{\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\":[\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]}')\n\n        result = read_json(path)\n        expected = pd.DataFrame({\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\": [\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]})\n        tm.assert_frame_equal(result, expected)",
                 "test_error": "AssertionError: DataFrame.columns are different  DataFrame.columns values are different (100.0 %) [left]:  Index(['\uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc'], dtype='object') [right]: Index(['\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff'], dtype='object')",
-                "full_test_error": "monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x117f843d0>\n\n    def test_readjson_unicode(monkeypatch):\n        with tm.ensure_clean(\"test.json\") as path:\n            monkeypatch.setattr(\"_bootlocale.getpreferredencoding\", lambda l: \"cp949\")\n            with open(path, \"w\", encoding=\"utf-8\") as f:\n                f.write('{\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\":[\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]}')\n    \n            result = read_json(path)\n            expected = pd.DataFrame({\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\": [\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]})\n>           tm.assert_frame_equal(result, expected)\n\npandas/tests/io/json/test_readlines.py:186: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: DataFrame.columns are different\nE   \nE   DataFrame.columns values are different (100.0 %)\nE   [left]:  Index(['\uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc'], dtype='object')\nE   [right]: Index(['\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff'], dtype='object')\n\npandas/_libs/testing.pyx:174: AssertionError",
+                "full_test_error": "monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11f037f10>\n\n    def test_readjson_unicode(monkeypatch):\n        with tm.ensure_clean(\"test.json\") as path:\n            monkeypatch.setattr(\"_bootlocale.getpreferredencoding\", lambda l: \"cp949\")\n            with open(path, \"w\", encoding=\"utf-8\") as f:\n                f.write('{\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\":[\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]}')\n    \n            result = read_json(path)\n            expected = pd.DataFrame({\"\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff\": [\"\u0410\u0411\u0412\u0413\u0414\u0430\u0431\u0432\u0433\u0434\uac00\"]})\n>           tm.assert_frame_equal(result, expected)\n\npandas/tests/io/json/test_readlines.py:186: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: DataFrame.columns are different\nE   \nE   DataFrame.columns values are different (100.0 %)\nE   [left]:  Index(['\uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc'], dtype='object')\nE   [right]: Index(['\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff'], dtype='object')\n\npandas/_libs/testing.pyx:174: AssertionError",
                 "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: DataFrame.columns are different\nE   \nE   DataFrame.columns values are different (100.0 %)\nE   [left]:  Index(['\uc9d9\uc9e4\uca09\ufffd\ufffd\ud688\ud69c\ud6a7\ud6a9\ucc55\ucca0\uccbc'], dtype='object')\nE   [right]: Index(['\u00a3\u00a9\u00b5\u00c0\u00c6\u00d6\u00de\u00df\u00e9\u00f6\u00ff'], dtype='object')\n\npandas/_libs/testing.pyx:174: AssertionError",
                 "test_function_decorators": []
