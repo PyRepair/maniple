@@ -480,7 +480,7 @@ class PromptGenerator:
                             "available_strata": self.actual_strata_bitvector,
                             "start_line": self.buggy_function_start_line,
                             "file_name": self.buggy_location_file_name,
-                            "replace_code": extract_function_from_code_block(response, self.buggy_function_name),
+                            "replace_code": extract_function_from_code_block(fix_patch, self.buggy_function_name),
                         }
                     ]
                 }
