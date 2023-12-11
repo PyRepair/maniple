@@ -589,13 +589,12 @@ def collect_facts(
         print_in_yellow(f"WARNING: {bugid} is ignored")
         return
 
-    if not ensure_clone_and_prep_complete(
+    ensure_clone_and_prep_complete(
         bugid,
         envs_dir,
         use_docker=use_docker,
         overwrite=False,
-    ):
-        return
+    )
 
     bug_json_file = os.path.join(bwd, "bug-data.json")
     if not run_extract_features_command(
