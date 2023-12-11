@@ -6,7 +6,7 @@ import re
 from typing import Dict, Optional
 
 
-IGNORED_BUGS = ["spacy:2"]
+IGNORED_BUGS = ["spacy:2", "spacy:3", "spacy:5"]
 
 
 class NotSupportedError(Exception):
