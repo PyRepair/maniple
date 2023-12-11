@@ -23,7 +23,11 @@ def check_for_facts_data(
                 with open(os.path.join(root, file), "r") as f:
                     data = json.load(f)
                     satisfied = True
-                    if check_source and "1.1.1" not in data:
+                    if check_source and (
+                        "1.1.1" not in data
+                        or data["1.1.1"] is None
+                        or data["1.1.1"] == ""
+                    ):
                         if show_errors:
                             print(
                                 f"The file {file} in the directory {root} does not have buggy code"
