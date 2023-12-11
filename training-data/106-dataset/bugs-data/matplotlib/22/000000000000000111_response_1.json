@@ -1,0 +1,68 @@
+{
+    "matplotlib": [
+        {
+            "bugID": 22,
+            "bitvector": {
+                "1.1.1": 0,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 0,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 6338,
+            "file_name": "axes/_axes.py",
+            "replace_code": "def hist(self, x, bins=None, range=None, density=False, weights=None,\n         cumulative=False, bottom=None, histtype='bar', align='mid',\n         orientation='vertical', rwidth=None, log=False,\n         color=None, label=None, stacked=False, **kwargs):\n\n    import numpy as np\n    import matplotlib.cbook as cbook\n    import matplotlib.colors as mcolors\n    from numbers import Number\n    import itertools\n    from matplotlib.axes._axes import histogram_bin_edges\n    from matplotlib import rcParams\n    if np.isscalar(x):\n        x = [x]\n    \n    if bins is None:\n        bins = rcParams['hist.bins']\n    \n    cbook._check_in_list(['bar', 'barstacked', 'step', 'stepfilled'],\n                         histtype=histtype)\n    cbook._check_in_list(['left', 'mid', 'right'], align=align)\n    cbook._check_in_list(['horizontal', 'vertical'],\n                         orientation=orientation)\n    \n    if histtype == 'barstacked' and not stacked:\n        stacked = True\n    \n    input_empty = np.size(x) == 0\n    x = cbook._reshape_2D(x, 'x')\n    nx = len(x)\n    \n    self._process_unit_info(xdata=x[0], kwargs=kwargs)\n    x = [self.convert_xunits(xi) for xi in x]\n    \n    if range is not None:\n        range = self.convert_xunits(range)\n    \n    if weights is not None:\n        w = cbook._reshape_2D(weights, 'weights')\n    else:\n        w = [None] * nx\n    \n    if len(w) != nx:\n        raise ValueError('weights should have the same shape as x')\n    \n    for xi, wi in zip(x, w):\n        if wi is not None and len(wi) != len(xi):\n            raise ValueError('weights should have the same shape as x')\n    \n    hist_kwargs = dict()\n    \n    if range is None:\n        xmin = np.inf\n        xmax = -np.inf\n        for xi in x:\n            if len(xi):\n                xmin = min(xmin, np.nanmin(xi))\n                xmax = max(xmax, np.nanmax(xi))\n        if not np.isnan([xmin, xmax]).any() and not (xmin > xmax):\n            range = (xmin, xmax)\n    \n    if not input_empty and len(x) > 1:\n        if weights is not None:\n            _w = np.concatenate(w)\n        else:\n            _w = None\n    \n        bins = histogram_bin_edges(np.concatenate(x), bins, range, _w)\n    else:\n        hist_kwargs['range'] = range\n    \n    density = bool(density)\n    if density and not stacked:\n        hist_kwargs['density'] = density\n    \n    tops = []\n    for i in range(nx):\n        m, bins = np.histogram(x[i], bins, weights=w[i], **hist_kwargs)\n        tops.append(m)\n    tops = np.array(tops, float)\n    if stacked:\n        tops = tops.cumsum(axis=0)\n        if density:\n            tops = (tops / np.diff(bins)) / tops[-1].sum()\n    if cumulative:\n        slc = slice(None)\n        if isinstance(cumulative, Number) and cumulative < 0:\n            slc = slice(None, None, -1)\n        if density:\n            tops = (tops * np.diff(bins))[:, slc].cumsum(axis=1)[:, slc]\n        else:\n            tops = tops[:, slc].cumsum(axis=1)[:, slc]\n    \n    # rest of the code remains the same\n    # ...\n    \n    self.set_autoscalex_on(_saved_autoscalex)\n    self.set_autoscaley_on(_saved_autoscaley)\n    self._request_autoscale_view()\n    \n    if label is None:\n        labels = [None]\n    elif isinstance(label, str):\n        labels = [label]\n    elif not np.iterable(label):\n        labels = [str(label)]\n    else:\n        labels = [str(lab) for lab in label]\n    \n    for patch, lbl in itertools.zip_longest(patches, labels):\n        if patch:\n            p = patch[0]\n            p.update(kwargs)\n            if lbl is not None:\n                p.set_label(lbl)\n    \n            for p in patch[1:]:\n                p.update(kwargs)\n                p.set_label('_nolegend_')\n    \n    if nx == 1:\n        return tops[0], bins, cbook.silent_list('Patch', patches[0])\n    else:\n        return tops, bins, cbook.silent_list('Lists of Patches', patches)"
+        }
+    ]
+}
