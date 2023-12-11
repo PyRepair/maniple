@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from utils import print_in_yellow
+from utils import print_in_yellow, IGNORED_BUGS
 from cleaner import (
     clear_features,
     clear_logs,
@@ -67,6 +67,7 @@ def resolve_cli_args():
         help="specify directory to store prompt and result files",
         default=os.getcwd(),
     )
+
     args_parser.add_argument(
         "--envs-dir",
         type=str,
@@ -78,6 +79,13 @@ def resolve_cli_args():
         "--test-mode",
         action="store_true",
         help="Take only 1 bug from each project",
+        default=False,
+    )
+
+    args_parser.add_argument(
+        "--use-supported",
+        action="store_true",
+        help="Take only supported projects",
         default=False,
     )
 
@@ -104,6 +112,14 @@ def resolve_cli_args():
     return args
 
 
+def remove_unsupported_bug_dirs(output_dir: str):
+    for bugid in IGNORED_BUGS:
+        print_in_yellow(f"{bugid} is not supported, removing...")
+        bwd = os.path.join(output_dir, *bugid.split(":"))
+        if os.path.exists(bwd):
+            os.removedirs(bwd)
+
+
 def main(args):
     if len(args.bugids) > 0:
         bugids = args.bugids
@@ -113,12 +129,14 @@ def main(args):
             "106subset",
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
+            use_supported=args.use_supported,
             test_mode=args.test_mode,
         )
         s2 = load_bugids_from_dataset(
             "395subset",
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
+            use_supported=args.use_supported,
             test_mode=args.test_mode,
         )
         bugids = s1 + s2
@@ -128,8 +146,12 @@ def main(args):
             args.dataset,
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
+            use_supported=args.use_supported,
             test_mode=args.test_mode,
         )
+
+    if args.use_supported:
+        remove_unsupported_bug_dirs(args.output_dir)
 
     print(f"Use bugids: {','.join(bugids)}")
 
