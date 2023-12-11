@@ -564,7 +564,7 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    database_path = os.path.join("..", "training-data", "106-dataset", "bugs-data")
+    database_path = os.path.join("..", "training-data", "395-dataset", "bugs-data")
 
     projects = os.listdir(database_path)
 
@@ -578,8 +578,15 @@ if __name__ == "__main__":
 
     for bitvector_strata in strata_bitvectors:
         for project in projects:
-            bug_ids = os.listdir(os.path.join(database_path, project))
+            project_folder_path = os.path.join(database_path, project)
+            if not os.path.isdir(project_folder_path):
+                continue
+
+            bug_ids = os.listdir(project_folder_path)
             for bid in bug_ids:
+                bug_dir_path = os.path.join(project_folder_path, bid)
+                if not os.path.isdir(bug_dir_path):
+                    continue
 
                 if f"{project}:{bid}" in IGNORED_BUGS:
                     continue
