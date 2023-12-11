@@ -556,7 +556,7 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    database_path = os.path.join("..", "training-data", "106-dataset", "bugs-data")
+    database_path = os.path.join("..", "training-data", "395-dataset", "bugs-data")
 
     projects = os.listdir(database_path)
 
@@ -578,9 +578,6 @@ if __name__ == "__main__":
             for bid in bug_ids:
                 bug_dir_path = os.path.join(project_folder_path, bid)
                 if not os.path.isdir(bug_dir_path):
-                    continue
-
-                if project != "pandas" and bid != "6":
                     continue
 
                 try:
