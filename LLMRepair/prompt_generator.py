@@ -438,8 +438,10 @@ class PromptGenerator:
 
         response_md_file_name = bitvector_flatten + "_response_" + str(count_number) + ".md"
         response_json_file_name = bitvector_flatten + "_response_" + str(count_number) + ".json"
+        response_md_file_path = os.path.join(self.output_dir, response_md_file_name)
+        response_json_file_path = os.path.join(self.output_dir, response_json_file_name)
 
-        if os.path.exists(os.path.join(self.output_dir, response_md_file_name)):
+        if os.path.exists(response_md_file_path) and os.path.exists(response_json_file_path):
             print(f"{response_md_file_name} already exists in directory {self.output_dir}")
             return
 
@@ -466,10 +468,13 @@ class PromptGenerator:
                 conversation_response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
                 self.max_conversation_count -= 1
 
-            with open(os.path.join(self.output_dir, response_md_file_name), "w", encoding='utf-8') as md_file:
+            if self.max_conversation_count == 0:
+                raise QueryException("exceed max generation count")
+
+            with open(response_md_file_path, "w", encoding='utf-8') as md_file:
                 md_file.write(conversation_response)
 
-            with open(os.path.join(self.output_dir, response_json_file_name), "w", encoding='utf-8') as json_file:
+            with open(response_json_file_path, "w", encoding='utf-8') as json_file:
                 test_input_data = {
                     self.project_name: [
                         {
@@ -486,22 +491,39 @@ class PromptGenerator:
                 }
                 json.dump(test_input_data, json_file, indent=4)
 
-            if self.max_conversation_count == 0:
-                print_in_yellow(f"{self.output_dir}/{response_md_file_name} exceed max conversation count")
-            else:
-                print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
+            print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
 
         except Exception as error:
             error_str = ""
             if self.max_generation_count == 0:
                 print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} "
                                       f"exceed max generation count"))
+            elif self.max_conversation_count == 0:
+                print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} "
+                                      f"exceed max conversation count"))
             else:
                 error_str = str(error)
                 print_in_red(error_str)
 
-            with open(os.path.join(self.output_dir, response_md_file_name), "w", encoding='utf-8') as md_file:
+            with open(response_md_file_path, "w", encoding='utf-8') as md_file:
                 md_file.write(error_str)
+
+            with open(response_json_file_path, "w", encoding='utf-8') as json_file:
+                test_input_data = {
+                    self.project_name: [
+                        {
+                            "bugID": int(self.bug_id),
+                            "bitvector": self.bitvector,
+                            "strata": self.strata_bitvector,
+                            "available_bitvector": self.actual_bitvector,
+                            "available_strata": self.actual_strata_bitvector,
+                            "start_line": self.buggy_function_start_line,
+                            "file_name": self.buggy_location_file_name,
+                            "replace_code": None,
+                        }
+                    ]
+                }
+                json.dump(test_input_data, json_file, indent=4)
 
             print(f"write response error to file {self.output_dir}/{response_md_file_name}")
 
