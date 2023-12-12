@@ -109,6 +109,14 @@ class PromptGenerator:
         self.max_generation_count = 10
         self.max_conversation_count = 5
 
+        self.strata_1_content = ""
+        self.strata_2_content = ""
+        self.strata_3_content = ""
+        self.strata_4_content = ""
+        self.strata_5_content = ""
+        self.strata_6_content = ""
+        self.strata_7_content = ""
+
     def get_actual_strata(self, strata_bitvector: dict) -> dict:
         bitvector = {
             "1": 0,
@@ -138,11 +146,13 @@ class PromptGenerator:
 
         if self.actual_bitvector["2.1.5"] != 0 and self.actual_bitvector["2.1.6"] != 0:
             self.generate_variable_runtime_info()
-            self.add_newline_between_sections()
+            self.strata_5_content = self.strata_5_content + "\n\n"
 
         if self.actual_bitvector["2.1.3"] != 0 and self.actual_bitvector["2.1.4"] != 0:
             self.generate_variable_angelic_info()
-            self.add_newline_between_sections()
+            self.strata_5_content = self.strata_5_content + "\n\n"
+
+        self.prompt = self.prompt + self.strata_5_content
 
         self.generate_test_related_section()
         self.add_newline_between_sections()
@@ -167,15 +177,15 @@ class PromptGenerator:
         elif self.actual_bitvector["2.1.6"] == 1:
             place_holder = "type"
 
-        self.prompt = self.prompt + f"# Variable runtime {place_holder} inside buggy function\n"
+        self.strata_5_content = self.strata_5_content + f"# Variable runtime {place_holder} inside buggy function\n"
 
         for test_case_index in range(len(variable_runtime_value_test_cases)):
-            self.prompt = self.prompt + f"## Buggy case {test_case_index + 1}\n"
+            self.strata_5_content = self.strata_5_content + f"## Buggy case {test_case_index + 1}\n"
 
             runtime_values: list = variable_runtime_value_test_cases[test_case_index]
             runtime_types: list = variable_runtime_type_test_cases[test_case_index]
 
-            self.prompt = self.prompt + f"### input parameter runtime {place_holder} for buggy function\n"
+            self.strata_5_content = self.strata_5_content + f"### input parameter runtime {place_holder} for buggy function\n"
 
             input_parameter_values: dict = runtime_values[0]
             input_parameter_types: dict = runtime_types[0]
@@ -183,16 +193,16 @@ class PromptGenerator:
                 variable_value = input_parameter_values[variable]
                 variable_type = input_parameter_types[variable]
 
-                self.prompt = self.prompt + f"{variable}, "
+                self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                 if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
-                    self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`, type: `{variable_type}`"
                 elif self.actual_bitvector["2.1.5"] == 1:
-                    self.prompt = self.prompt + f"value: `{variable_value}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`"
                 elif self.actual_bitvector["2.1.6"] == 1:
-                    self.prompt = self.prompt + f"type: `{variable_type}`"
+                    self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
 
-                self.prompt = self.prompt + "\n\n"
+                self.strata_5_content = self.strata_5_content + "\n\n"
 
             variable_values_before_return: dict = runtime_values[1]
             variable_types_before_return: dict = runtime_types[1]
@@ -201,22 +211,22 @@ class PromptGenerator:
                 continue
 
             else:
-                self.prompt = self.prompt + f"### variable runtime {place_holder} before buggy function return\n"
+                self.strata_5_content = self.strata_5_content + f"### variable runtime {place_holder} before buggy function return\n"
 
                 for variable in variable_values_before_return.keys():
                     variable_value = variable_values_before_return[variable]
                     variable_type = variable_types_before_return[variable]
 
-                    self.prompt = self.prompt + f"{variable}, "
+                    self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                     if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
-                        self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
+                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`, type: `{variable_type}`"
                     elif self.actual_bitvector["2.1.5"] == 1:
-                        self.prompt = self.prompt + f"value: `{variable_value}`"
+                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`"
                     elif self.actual_bitvector["2.1.6"] == 1:
-                        self.prompt = self.prompt + f"type: `{variable_type}`"
+                        self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
 
-                    self.prompt = self.prompt + "\n\n"
+                    self.strata_5_content = self.strata_5_content + "\n\n"
 
     def generate_variable_angelic_info(self):
         variable_angelic_value_test_cases: list = self.facts["2.1.3"]
@@ -230,15 +240,15 @@ class PromptGenerator:
         elif self.actual_bitvector["2.1.4"] == 1:
             place_holder = "type"
 
-        self.prompt = self.prompt + f"# Expected variable {place_holder} in tests\n"
+        self.strata_5_content = self.strata_5_content + f"# Expected variable {place_holder} in tests\n"
 
         for test_case_index in range(len(variable_angelic_value_test_cases)):
-            self.prompt = self.prompt + f"## Expected case {test_case_index + 1}\n"
+            self.strata_5_content = self.strata_5_content + f"## Expected case {test_case_index + 1}\n"
 
             angelic_values: list = variable_angelic_value_test_cases[test_case_index]
             angelic_types: list = variable_angelic_type_test_cases[test_case_index]
 
-            self.prompt = self.prompt + f"### Input parameter {place_holder}\n"
+            self.strata_5_content = self.strata_5_content + f"### Input parameter {place_holder}\n"
 
             input_parameter_values: dict = angelic_values[0]
             input_parameter_types: dict = angelic_types[0]
@@ -246,16 +256,16 @@ class PromptGenerator:
                 variable_value = input_parameter_values[variable]
                 variable_type = input_parameter_types[variable]
 
-                self.prompt = self.prompt + f"{variable}, "
+                self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                 if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
-                    self.prompt = self.prompt + f"value: `{variable_value}`, type: `{variable_type}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`, type: `{variable_type}`"
                 elif self.actual_bitvector["2.1.3"] == 1:
-                    self.prompt = self.prompt + f"value: `{variable_value}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`"
                 elif self.actual_bitvector["2.1.4"] == 1:
-                    self.prompt = self.prompt + f"type: `{variable_type}`"
+                    self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
 
-                self.prompt = self.prompt + "\n\n"
+                self.strata_5_content = self.strata_5_content + "\n\n"
 
             variable_values_before_return: dict = angelic_values[1]
             variable_types_before_return: dict = angelic_types[1]
@@ -264,26 +274,28 @@ class PromptGenerator:
                 continue
 
             else:
-                self.prompt = self.prompt + f"### Expected variable {place_holder} before function return\n"
+                self.strata_5_content = self.strata_5_content + f"### Expected variable {place_holder} before function return\n"
 
                 for variable in variable_values_before_return.keys():
                     variable_value = variable_values_before_return[variable]
                     variable_type = variable_types_before_return[variable]
 
-                    self.prompt = self.prompt + f"{variable}, "
+                    self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                     if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
-                        self.prompt = self.prompt + f"expected value: `{variable_value}`, type: `{variable_type}`"
+                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`, type: `{variable_type}`"
                     elif self.actual_bitvector["2.1.3"] == 1:
-                        self.prompt = self.prompt + f"expected value: `{variable_value}`"
+                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`"
                     elif self.actual_bitvector["2.1.4"] == 1:
-                        self.prompt = self.prompt + f"expected type: `{variable_type}`"
+                        self.strata_5_content = self.strata_5_content + f"expected type: `{variable_type}`"
 
-                    self.prompt = self.prompt + "\n\n"
+                    self.strata_5_content = self.strata_5_content + "\n\n"
 
     def generate_cot(self):
         if self.actual_bitvector["cot"] == 1:
-            self.prompt = self.prompt + self.template["cot"]
+            self.strata_7_content = self.strata_7_content + self.template["cot"]
+
+        self.prompt = self.prompt + self.strata_7_content
 
     def generate_issue_section(self):
         issue_titles = self.facts["3.1.1"]
@@ -296,27 +308,29 @@ class PromptGenerator:
 
         for issue_index in range(issue_length):
             if self.actual_bitvector["3.1.1"] == 1:
-                self.prompt = self.prompt + self.template["3.1.1"] + "```text\n"
-                self.prompt = self.prompt + issue_titles[issue_index] + "```"
-                self.add_newline_between_sections()
+                self.strata_6_content = self.strata_6_content + self.template["3.1.1"] + "```text\n"
+                self.strata_6_content = self.strata_6_content + issue_titles[issue_index] + "```"
+                self.strata_6_content = self.strata_6_content + "\n\n"
 
             if self.actual_bitvector["3.1.2"] == 1:
-                self.prompt = self.prompt + self.template["3.1.2"] + "```text\n"
-                self.prompt = self.prompt + issue_descriptions[issue_index] + "```\n"
+                self.strata_6_content = self.strata_6_content + self.template["3.1.2"] + "```text\n"
+                self.strata_6_content = self.strata_6_content + issue_descriptions[issue_index] + "```\n"
 
-            self.prompt = self.prompt + "\n"
+            self.strata_6_content = self.strata_6_content + "\n"
+
+        self.prompt = self.prompt + self.strata_6_content
 
     def generate_test_related_section(self):
         for test_index in range(len(self.facts["1.4.1"])):
             if self.actual_bitvector["1.4.1"] == 1:
-                self.prompt = self.prompt + self.template["1.4.1"] + "```python\n"
+                self.strata_4_content = self.strata_4_content + self.template["1.4.1"] + "```python\n"
 
                 if self.actual_bitvector["1.4.2"] == 1:
-                    self.prompt = self.prompt + self.template["1.4.2"] + self.facts["1.4.2"][test_index]
-                    self.add_newline_between_sections()
+                    self.strata_4_content = self.strata_4_content + self.template["1.4.2"] + self.facts["1.4.2"][test_index]
+                    self.strata_4_content = self.strata_4_content + "\n\n"
 
-                self.prompt = self.prompt + self.facts["1.4.1"][test_index] + "\n```"
-                self.add_newline_between_sections()
+                self.strata_4_content = self.strata_4_content + self.facts["1.4.1"][test_index] + "\n```"
+                self.strata_4_content = self.strata_4_content + "\n\n"
 
             if (self.actual_bitvector["2.1.1"] == 1 and self.actual_bitvector["2.1.2"] == 1 and
                     (self.facts["2.1.1"] is not None and self.facts["2.1.2"] is not None)):
@@ -324,36 +338,38 @@ class PromptGenerator:
                 error_messages = self.facts["2.1.1"][test_index]
                 stack_traces = self.facts["2.1.2"][test_index]
 
-                self.prompt = self.prompt + self.template["2.1.1"] + "```text\n"
+                self.strata_4_content = self.strata_4_content + self.template["2.1.1"] + "```text\n"
                 for error_index in range(len(stack_traces)):
-                    self.prompt = self.prompt + stack_traces[error_index] + "\n"
+                    self.strata_4_content = self.strata_4_content + stack_traces[error_index] + "\n"
                     if error_index < len(error_messages):
-                        self.prompt = self.prompt + error_messages[error_index] + "\n"
+                        self.strata_4_content = self.strata_4_content + error_messages[error_index] + "\n"
 
-                self.prompt = self.prompt + "\n```"
+                self.strata_4_content = self.strata_4_content + "\n```"
 
             else:
                 if self.actual_bitvector["2.1.2"] == 1 and (self.facts["2.1.2"] is not None):
 
                     stack_traces = self.facts["2.1.2"][test_index]
 
-                    self.prompt = self.prompt + self.template["2.1.2"] + "```text\n"
+                    self.strata_4_content = self.strata_4_content + self.template["2.1.2"] + "```text\n"
                     for error_index in range(len(stack_traces)):
-                        self.prompt = self.prompt + stack_traces[error_index] + "\n"
+                        self.strata_4_content = self.strata_4_content + stack_traces[error_index] + "\n"
 
-                    self.prompt = self.prompt + "\n```"
+                    self.strata_4_content = self.strata_4_content + "\n```"
 
                 if self.actual_bitvector["2.1.1"] == 1 and (self.facts["2.1.2"] is not None):
 
                     error_messages = self.facts["2.1.1"][test_index]
 
-                    self.prompt = self.prompt + self.template["2.1.1"] + "```text\n"
+                    self.strata_4_content = self.strata_4_content + self.template["2.1.1"] + "```text\n"
                     for error_index in range(len(error_messages)):
-                        self.prompt = self.prompt + error_messages[error_index] + "\n"
+                        self.strata_4_content = self.strata_4_content + error_messages[error_index] + "\n"
 
-                    self.prompt = self.prompt + "\n```"
+                    self.strata_4_content = self.strata_4_content + "\n```"
 
-            self.prompt = self.prompt + "\n"
+            self.strata_4_content = self.strata_4_content + "\n"
+
+        self.prompt = self.prompt + self.strata_4_content
 
     def generate_buggy_code_section(self):
         self.prompt = self.prompt + self.template["1.1.1"]
@@ -364,33 +380,34 @@ class PromptGenerator:
         has_class_declaration = False
 
         if self.actual_bitvector["1.3.1"] == 1:
-            self.prompt = self.prompt + self.template["1.3.1"] + self.facts["1.3.1"]
-            self.add_newline_between_sections()
+            self.strata_3_content = self.strata_3_content + self.template["1.3.1"] + self.facts["1.3.1"] + "\n\n"
 
         if self.actual_bitvector["1.3.2"] == 1:
             has_function_in_file = True
             buggy_functions: List[str] = self.facts["1.3.2"]
             for function_index in range(len(buggy_functions)):
-                self.prompt = self.prompt + self.template["1.3.2"]
-                self.prompt = self.prompt + "def " + buggy_functions[function_index] + ":\n    " + omitted_code + "\n"
-                self.prompt = self.prompt + "    pass"
-                self.add_newline_between_sections()
+                self.strata_3_content = self.strata_3_content + self.template["1.3.2"]
+                self.strata_3_content = self.strata_3_content + "def " + buggy_functions[function_index] + ":\n    " + omitted_code + "\n"
+                self.strata_3_content = self.strata_3_content + "    pass"
+                self.strata_3_content = self.strata_3_content + "\n\n"
+
+        self.prompt = self.prompt + self.strata_3_content
 
         if self.actual_bitvector["1.2.1"] == 1:
             has_class_declaration = True
-            self.prompt = self.prompt + self.template["1.2.1"]
-            self.prompt = self.prompt + self.facts["1.2.1"] + ":\n"
+            self.strata_2_content = self.strata_2_content + self.template["1.2.1"]
+            self.strata_2_content = self.strata_2_content + self.facts["1.2.1"] + ":\n"
 
             if self.actual_bitvector["1.2.2"] == 1:
                 class_docs: str = self.facts["1.2.2"]
-                self.prompt = self.prompt + "    \"\"\"\n"
+                self.strata_2_content = self.strata_2_content + "    \"\"\"\n"
                 for doc in class_docs.split('\n'):
-                    self.prompt = self.prompt + "    " + doc + "\n"
-                self.prompt = self.prompt + "    \"\"\""
-                self.add_newline_between_sections()
+                    self.strata_2_content = self.strata_2_content + "    " + doc + "\n"
+                self.strata_2_content = self.strata_2_content + "    \"\"\""
+                self.strata_2_content = self.strata_2_content + "\n\n"
 
-            self.prompt = self.prompt + "    " + omitted_code + "\n"
-            self.add_newline_between_sections()
+            self.strata_2_content = self.strata_2_content + "    " + omitted_code + "\n"
+            self.strata_2_content = self.strata_2_content + "\n\n"
 
         if (not has_function_in_file) and (not has_class_declaration):
             indent = ""
@@ -400,26 +417,30 @@ class PromptGenerator:
         if self.actual_bitvector["1.2.3"] == 1:
             buggy_functions: List[str] = self.facts["1.2.3"]
             for function_index in range(len(buggy_functions)):
-                self.prompt = self.prompt + indent + self.template["1.2.3"]
-                self.prompt = self.prompt + indent + "def " + buggy_functions[
+                self.strata_2_content = self.strata_2_content + indent + self.template["1.2.3"]
+                self.strata_2_content = self.strata_2_content + indent + "def " + buggy_functions[
                     function_index] + ":\n" + indent + "    " + omitted_code + "\n"
-                self.prompt = self.prompt + indent + "    pass"
-                self.add_newline_between_sections()
+                self.strata_2_content = self.strata_2_content + indent + "    pass"
+                self.strata_2_content = self.strata_2_content + "\n\n"
+
+        self.prompt = self.prompt + self.strata_2_content
 
         if indent != "":
             self.add_newline_between_sections()
 
         self.prompt = self.prompt + indent + "# this is the buggy function you need to fix\n"
 
-        source_code: str = self.buggy_function_source_code
-        for statement in source_code.split('\n'):
-            self.prompt = self.prompt + indent + statement + "\n"
+        source_code = ""
+        if self.bitvector["1.1.1"] == 1 and self.bitvector["1.1.2"] == 1:
+            source_code: str = self.buggy_function_source_code
 
-        self.prompt = self.prompt + "```"
+        for statement in source_code.split('\n'):
+            self.strata_1_content = self.strata_1_content + indent + statement + "\n"
+
+        self.prompt = self.prompt + self.strata_1_content + "```"
 
     def add_newline_between_sections(self):
-        self.prompt = self.prompt + "\n"
-        self.prompt = self.prompt + "\n"
+        self.prompt = self.prompt + "\n\n"
 
     def write_prompt(self):
         prompt_file_name = ""
@@ -429,6 +450,26 @@ class PromptGenerator:
         prompt_file_name += "_prompt.md"
         with open(os.path.join(self.output_dir, prompt_file_name), "w", encoding='utf-8') as output_file:
             output_file.write(self.prompt)
+
+        self.collect_fact_content_in_prompt()
+
+    def collect_fact_content_in_prompt(self):
+        for selected in self.strata_bitvector.values():
+            if selected == 0:
+                return
+
+        with open(os.path.join(self.output_dir, "facts-in-prompt.json"), "w") as prompt_facts_file:
+            facts_content_strata = {
+                "1": self.strata_1_content,
+                "2": self.strata_2_content,
+                "3": self.strata_3_content,
+                "4": self.strata_4_content,
+                "5": self.strata_5_content,
+                "6": self.strata_6_content,
+                "7": self.strata_7_content
+            }
+
+            json.dump(facts_content_strata, prompt_facts_file, indent=4)
 
     def get_response_from_gpt(self, count_number: int, gpt_model: str):
         bitvector_flatten = ""
@@ -578,7 +619,7 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    database_path = os.path.join("..", "training-data", "395-dataset", "bugs-data")
+    database_path = os.path.join("..", "training-data", "106-dataset", "bugs-data")
 
     projects = os.listdir(database_path)
 
@@ -606,6 +647,6 @@ if __name__ == "__main__":
                     print(f"generate prompt for {project}:{bid}")
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                     prompt_generator.generate_prompt()
-                    prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
+                    # prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
                 except Exception as e:
                     print_in_red(str(e))
