@@ -91,7 +91,7 @@ class PromptGenerator:
             self.buggy_function_source_code: str = bug_data[user_dir]["buggy_functions"][0]["function_code"]
 
             prefix = f"{project_name}_{bug_id}"
-            start_idx = user_dir.find(prefix) + len(prefix)
+            start_idx = user_dir.find(prefix) + len(prefix) + 1
             self.buggy_location_file_name = user_dir[start_idx:]
 
         self.bitvector: dict = parse_bitvector_from_strata(strata_bitvector)
