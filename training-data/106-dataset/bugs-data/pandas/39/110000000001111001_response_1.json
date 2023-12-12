@@ -61,7 +61,7 @@
                 "7": 1
             },
             "start_line": 72,
-            "file_name": "/pandas/core/ops/methods.py",
+            "file_name": "pandas/core/ops/methods.py",
             "replace_code": "def add_special_arithmetic_methods(cls):\n\n    \"\"\"\n    Adds the full suite of special arithmetic methods (``__add__``,\n    ``__sub__``, etc.) to the class.\n    \n    Parameters\n    ----------\n    cls : class\n        special methods will be defined and pinned to this class\n    \"\"\"\n    arith_method = _get_method_wrappers(cls)[2]\n    new_methods = _create_methods(cls, arith_method, special=True)\n    \n    for name, method in new_methods.items():\n        def _wrap_inplace_method(method):\n            \"\"\"\n            return an inplace wrapper for this method\n            \"\"\"\n            def f(self, other):\n                result = method(self, other)\n                self._update_inplace(result.reindex_like(self, copy=False)._data, verify_is_copy=False)\n                return self\n            f.__name__ = f\"__i{name}__\"\n            return f\n    \n        setattr(cls, f\"__i{name}__\", _wrap_inplace_method(method))\n    \n    _add_methods(cls, new_methods=new_methods)"
         }
     ]

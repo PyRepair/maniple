@@ -61,7 +61,7 @@
                 "7": 1
             },
             "start_line": 590,
-            "file_name": "core/reshape/concat.py",
+            "file_name": "pandas/core/reshape/concat.py",
             "replace_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n    # Initialize names if None\n\n    if names is None:\n        names = [None] * len(keys)\n    \n    # Convert keys to a list of tuples if necessary\n    if not isinstance(keys[0], tuple):\n        keys = [(key,) for key in keys]\n    \n    # Ensure levels are properly processed\n    if levels is None:\n        levels = [idx for idx in zip(*keys)]\n    else:\n        levels = [ensure_index(x) for x in levels]\n    \n    codes = []\n    for level, idx in zip(levels, indexes):\n        level_codes = []\n        for key in level:\n            try:\n                i = level.get_loc(key)\n            except KeyError as err:\n                raise ValueError(f\"Key {key} not in level {level}\") from err\n            level_codes.append(np.repeat(i, len(idx)))\n        codes.append(np.concatenate(level_codes))\n    \n    # Concatenate the indexes and update levels and codes\n    concat_index = _concat_indexes(indexes)\n    if isinstance(concat_index, MultiIndex):\n        levels.extend(concat_index.levels)\n        codes.extend(concat_index.codes)\n    else:\n        new_codes, categories = factorize_from_iterable(concat_index)\n        levels.append(categories)\n        codes.append(new_codes)\n    \n    # Ensure consistency of names\n    if len(names) < len(levels):\n        names.extend([None] * (len(levels) - len(names)))\n    \n    return MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)"
         }
     ]

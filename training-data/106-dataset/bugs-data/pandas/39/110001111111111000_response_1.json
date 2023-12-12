@@ -61,7 +61,7 @@
                 "7": 0
             },
             "start_line": 72,
-            "file_name": "/pandas/core/ops/methods.py",
+            "file_name": "pandas/core/ops/methods.py",
             "replace_code": "def add_special_arithmetic_methods(cls):\n\n    \"\"\"\n    Adds the full suite of special arithmetic methods (``__add__``,\n    ``__sub__``, etc.) to the class.\n    \n    Parameters\n    ----------\n    cls : class\n        special methods will be defined and pinned to this class\n    \"\"\"\n    _, _, arith_method, comp_method, bool_method = _get_method_wrappers(cls)\n    new_methods = _create_methods(\n        cls, arith_method, comp_method, bool_method, special=True\n    )\n    \n    def _wrap_inplace_method(method):\n        \"\"\"\n        return an inplace wrapper for this method\n        \"\"\"\n    \n        def _inplace_wrapper(self, other):\n            result = method(self, other)\n            self._update_inplace(\n                result.reindex_like(self, copy=False)._data, verify_is_copy=False\n            )\n            return self\n    \n        name = method.__name__.strip(\"__\")\n        _inplace_wrapper.__name__ = f\"__i{name}__\"\n        return _inplace_wrapper\n    \n    for op in [\"add\", \"sub\", \"mul\", \"truediv\", \"floordiv\", \"mod\", \"pow\"]:\n        new_methods[f\"__i{op}__\"] = _wrap_inplace_method(new_methods[f\"__{op}__\"])\n    \n    for op in [\"and\", \"or\", \"xor\"]:\n        new_methods[f\"__i{op}__\"] = _wrap_inplace_method(new_methods[f\"__{op}__\"])\n    \n    _add_methods(cls, new_methods=new_methods)"
         }
     ]

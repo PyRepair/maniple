@@ -61,7 +61,7 @@
                 "7": 0
             },
             "start_line": 999,
-            "file_name": "/pandas/core/groupby/generic.py",
+            "file_name": "pandas/core/groupby/generic.py",
             "replace_code": "def _cython_agg_blocks(\n        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n    ) -> Tuple[List[Block], Index]:\n        # TODO: the actual managing of mgr_locs is a PITA\n        # here, it should happen via BlockManager.combine\n    \n\n    data: BlockManager = self._get_data_to_aggregate()\n    \n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n    \n    itis = iterkeys if data._is_label_axis(ax) else iteratitems\n    agg_blocks = []\n    new_items = []\n    deleted_items = []\n    split_items = []\n    split_frames = []\n    \n    no_result = object()\n    for loc, block in itis(data.blocks):\n        # Avoid inheriting result from earlier in the loop\n        result = no_result\n        try:\n            result, _ = self.grouper.aggregate(block.values, how, axis=1, min_count=min_count)\n        except NotImplementedError as err:\n            if alt is None:\n                raise err\n        else:\n            new_blocks = result.items\n            for splitter in new_blocks:\n                item, block = new_blocks.get_split(splitter)\n                if dtype.is_area_type(block.dtype) or isinstance(block, Block):\n                    agg_blocks.append(block)\n                    new_items.append(item)\n                else:\n                    split_items.append(item)\n                    split_frames.append(block)\n    if not (agg_blocks or split_frames):\n        raise DataError(\"No numeric types to aggregate\")"
         }
     ]

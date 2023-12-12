@@ -61,7 +61,7 @@
                 "7": 0
             },
             "start_line": 263,
-            "file_name": "/pandas/core/ops/array_ops.py",
+            "file_name": "pandas/core/ops/array_ops.py",
             "replace_code": "def na_logical_op(x: np.ndarray, y, op):\n    import numpy as np\n    import operator\n    import pytest\n    from pandas._libs.ops import libops\n    from pandas._libs import lib\n    from pandas import testing as tm\n    from pandas.core.dtypes.common import is_bool_dtype\n    from pandas.core.algorithms import ensure_object\n    from pandas.core.common import isna\n    try:\n        result = op(x, y)\n    except TypeError:\n        if isinstance(y, np.ndarray):\n            # bool-bool dtype operations should be OK, should not get here\n            assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))\n            x = ensure_object(x)\n            y = ensure_object(y)\n            result = libops.vec_binop(x.ravel(), y.ravel(), op)\n        else:\n            # let null fall thru\n            assert lib.is_scalar(y)\n            if not isna(y):\n                y = bool(y)\n            try:\n                result = libops.scalar_binop(x.ravel(), y, op)\n            except (\n                TypeError,\n                ValueError,\n                AttributeError,\n                OverflowError,\n                NotImplementedError,\n            ):\n                typ = type(y).__name__\n                raise TypeError(\n                    f\"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array \"\n                    f\"and scalar of type [{typ}]\"\n                )\n    \n    return result"
         }
     ]
