@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 4,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 3479,
+            "file_name": "core/indexes/base.py",
+            "replace_code": "def _join_multi(self, other, how, return_indexers=True):\n    from pandas.core.indexes.multi import MultiIndex\n    from pandas.core.reshape.merge import _restore_dropped_levels_multijoin\n    from pandas.core.indexes.multi import MultiIndex\n    from pandas.core.reshape.merge import _restore_dropped_levels_multijoin\n    \n    # figure out join names\n    self_names = set(com.not_none(*self.names))\n    other_names = set(com.not_none(*other.names))\n    overlap = self_names & other_names\n    \n    # need at least 1 in common\n    if not overlap:\n        raise ValueError(\"cannot join with no overlapping index names\")\n    \n    self_is_mi = isinstance(self, pd.core.indexes.multi.ABCMultiIndex)\n    other_is_mi = isinstance(other, pd.core.indexes.multi.ABCMultiIndex)\n    \n    if self_is_mi and other_is_mi:\n    \n        # Drop the non-matching levels from left and right respectively\n        ldrop_names = list(self_names - overlap)\n        rdrop_names = list(other_names - overlap)\n    \n        # if only the order differs\n        if not len(ldrop_names + rdrop_names):\n            self_jnlevels = self\n            other_jnlevels = other.reorder_levels(self.names)\n        else:\n            self_jnlevels = self.droplevel(ldrop_names)\n            other_jnlevels = other.droplevel(rdrop_names)\n    \n        # Join left and right\n        # Join on same leveled multi-index frames is supported\n        join_idx, lidx, ridx = self_jnlevels.join(\n            other_jnlevels, how, return_indexers=return_indexers\n        )\n    \n        # Restore the dropped levels\n        # Returned index level order is\n        # common levels, ldrop_names, rdrop_names\n        dropped_names = ldrop_names + rdrop_names\n    \n        levels, codes, names = _restore_dropped_levels_multijoin(\n            self, other, dropped_names, join_idx, lidx, ridx\n        )\n    \n        # Re-create the multi-index\n        multi_join_idx = MultiIndex(\n            levels=levels, codes=codes, names=names, verify_integrity=False\n        )\n    \n        multi_join_idx = multi_join_idx.remove_unused_levels()\n    \n        return multi_join_idx, lidx, ridx\n    \n    jl = list(overlap)[0]\n    \n    # Case where only one index is multi\n    # make the indices into mi's that match\n    flip_order = False\n    if self_is_mi:\n        self, other = other, self\n        flip_order = True\n        # flip if join method is right or left\n        how = {\"right\": \"left\", \"left\": \"right\"}.get(how, how)\n    \n    level = other.names.index(jl)\n    result = self._join_level(\n        other, level, how=how, return_indexers=return_indexers\n    )\n    \n    if flip_order:\n        if isinstance(result, tuple):\n            return result[0], result[2], result[1]\n    return result"
+        }
+    ]
+}

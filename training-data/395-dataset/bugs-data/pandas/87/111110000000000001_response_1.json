@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 87,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 453,
+            "file_name": "core/reshape/pivot.py",
+            "replace_code": "def crosstab(\n    index,\n    columns,\n    values=None,\n    rownames=None,\n    colnames=None,\n    aggfunc=None,\n    margins=False,\n    margins_name: str = \"All\",\n    dropna: bool = True,\n    normalize=False,\n) -> \"DataFrame\":\n    import pandas as pd\n    index = pd.core.common.maybe_make_list(index)\n    columns = pd.core.common.maybe_make_list(columns)\n    \n    rownames = pd.core.base._get_names(index, rownames, prefix=\"row\")\n    colnames = pd.core.base._get_names(columns, colnames, prefix=\"col\")\n    \n    common_idx = None\n    pass_objs = [x for x in index + columns if isinstance(x, (pd.core.series.ABCSeries, pd.core.frame.ABCDataFrame))]\n    if pass_objs:\n        common_idx = pd.core.indexes.base.get_objs_combined_axis(pass_objs, intersect=True, sort=False)\n    \n    data: Dict = {}\n    data.update(zip(rownames, index))\n    data.update(zip(colnames, columns))\n    \n    if values is None and aggfunc is not None:\n        raise ValueError(\"aggfunc cannot be used without values.\")\n    \n    if values is not None and aggfunc is None:\n        raise ValueError(\"values cannot be used without an aggfunc.\")\n    \n    df = pd.DataFrame(data, index=common_idx)\n    if values is None:\n        df[\"__dummy__\"] = 0\n        kwargs = {\"aggfunc\": len, \"fill_value\": 0}\n    else:\n        df[\"__dummy__\"] = values\n        kwargs = {\"aggfunc\": aggfunc}\n    \n    table = df.pivot_table(\n        \"__dummy__\",\n        index=rownames,\n        columns=colnames,\n        margins=margins,\n        margins_name=margins_name,\n        dropna=dropna,\n        **kwargs,\n    )\n    \n    # Post-process\n    if normalize is not False:\n        table = pd.core.reshape.pivot._normalize(\n            table, normalize=normalize, margins=margins, margins_name=margins_name\n        )\n    \n    return table"
+        }
+    ]
+}
