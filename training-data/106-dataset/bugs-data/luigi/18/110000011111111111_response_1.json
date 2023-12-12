@@ -1,0 +1,68 @@
+{
+    "luigi": [
+        {
+            "bugID": 18,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 393,
+            "file_name": "scheduler.py",
+            "replace_code": "def set_status(self, task, new_status, config=None):\n\n    if new_status == \"FAILED\" and task.status == \"DISABLED\":\n        return  # Return if the task is already disabled\n    \n    if new_status == \"DISABLED\" and task.status == \"RUNNING\":\n        return  # Prevent transitioning to DISABLED while the task is running\n    \n    if task.status == \"DISABLED\":\n        # Re-enable the task when transitioning from DISABLED to DONE\n        if new_status == \"DONE\":\n            self.re_enable(task)\n    \n    # Transition to DISABLED if the task has excessive failures\n    if new_status == \"FAILED\" and task.can_disable() and task.status != \"DISABLED\":\n        task.add_failure()\n        if task.has_excessive_failures():\n            task.scheduler_disable_time = time.time()\n            new_status = \"DISABLED\"\n            notifications.send_error_email(\n                'Luigi Scheduler: DISABLED {task} due to excessive failures'.format(task=task.id),\n                '{task} failed {failures} times in the last {window} seconds, so it is being disabled for {persist} seconds'.format(\n                    failures=config.disable_failures,\n                    task=task.id,\n                    window=config.disable_window,\n                    persist=config.disable_persist,\n                ))\n    elif new_status == \"DISABLED\":\n        # Clear scheduler_disable_time when transitioning to DISABLED\n        task.scheduler_disable_time = None\n    \n    # Update the status in the task list\n    self._status_tasks[task.status].pop(task.id)\n    self._status_tasks[new_status][task.id] = task\n    task.status = new_status"
+        }
+    ]
+}

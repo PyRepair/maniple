@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 78,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 7903,
+            "file_name": "core/frame.py",
+            "replace_code": "def _reduce(\n    self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds\n):\n\n    def _get_data(axis_matters):\n        if filter_type is None or filter_type == \"numeric\":\n            if axis_matters:\n                data = self._get_numeric_data()\n            else:\n                data = self\n        elif filter_type == \"bool\":\n            if axis_matters:\n                data = self._get_bool_data() if axis == 0 else self\n            else:\n                data = self._get_bool_data()\n        else:\n            msg = (\n                f\"Generating numeric_only data with filter_type {filter_type} \"\n                \"not supported.\"\n            )\n            raise NotImplementedError(msg)\n        return data\n    \n    if numeric_only is None:\n        values = self.values\n        try:\n            result = op(values, axis=self._get_axis_number(axis), skipna=skipna, **kwds)\n            if filter_type == \"bool\" and is_object_dtype(values) and axis is None:\n                result = np.bool_(result)\n        except TypeError:\n            opa = self.apply(f)\n            result = opa.get_result()\n            if result.ndim == self.ndim:\n                result = result.iloc[0]\n            return result\n    else:\n        if numeric_only:\n            data = _get_data(axis_matters=True)\n            values = data.values\n        else:\n            values = self.values\n        \n        result = op(values, axis=self._get_axis_number(axis), skipna=skipna, **kwds)\n    \n    if hasattr(result, \"dtype\") and is_object_dtype(result.dtype):\n        try:\n            if filter_type is None or filter_type == \"numeric\":\n                result = result.astype(np.float64)\n            elif filter_type == \"bool\" and notna(result).all():\n                result = result.astype(np.bool_)\n        except (ValueError, TypeError):\n            result = coerce_to_dtypes(result, self.dtypes)\n    \n    if constructor is not None:\n        result = Series(result, index=self._get_agg_axis(axis))\n    return result"
+        }
+    ]
+}

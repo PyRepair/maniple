@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 23,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 114,
+            "file_name": "engine/sequential.py",
+            "replace_code": "def add(self, layer):\n\n    if isinstance(layer, Sequential):\n        if not layer.layers:\n            raise ValueError('Cannot add an empty model to a Sequential model.')\n        # Find the innermost layer in the Sequential model\n        inner_layer = layer\n        while isinstance(inner_layer, Sequential):\n            inner_layer = inner_layer.layers[0]\n        batch_shape = inner_layer.batch_input_shape\n    else:\n        batch_shape = layer.batch_input_shape\n    if batch_shape is None:\n        # Handle the case where the layer doesn't know its expected shape\n        # We will have to build the model lazily on `fit`/etc.\n        first_layer = True\n    else:\n        first_layer = False\n        # Instantiate the input layer\n        x = Input(batch_shape=batch_shape, dtype=layer.dtype, name=layer.name + '_input')\n        layer(x)\n    \n    # ... (omitted code) ...\n    \n    self.built = False\n    if first_layer:\n        set_inputs = False\n    else:\n        set_inputs = True\n        if len(layer._inbound_nodes[-1].output_tensors) != 1:\n            raise ValueError('All layers in a Sequential model should have a single output tensor. '\n                             'For multi-output layers, use the functional API.')\n        self.outputs = [layer._inbound_nodes[-1].output_tensors[0]]\n        self.inputs = network.get_source_inputs(self.outputs[0])\n    self._layers.append(layer)"
+        }
+    ]
+}

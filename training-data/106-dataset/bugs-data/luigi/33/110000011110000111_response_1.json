@@ -1,0 +1,68 @@
+{
+    "luigi": [
+        {
+            "bugID": 33,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 313,
+            "file_name": "task.py",
+            "replace_code": "def get_param_values(cls, params, args, kwargs):\n\n    \"\"\"\n    Get the values of the parameters from the args and kwargs.\n    \n    :param params: list of (param_name, Parameter).\n    :param args: positional arguments\n    :param kwargs: keyword arguments.\n    :returns: list of `(name, value)` tuples, one for each parameter.\n    \"\"\"\n    # Create a dictionary to store the parameter values\n    result = {}\n    \n    # Create a dictionary of params for easier access\n    params_dict = dict(params)\n    \n    task_name = cls.task_family\n    \n    # Collect the names of significant params for positional arguments\n    positional_params = [n for n, p in params if p.significant]\n    \n    # Handle positional arguments\n    for i, arg in enumerate(args):\n        if i < len(positional_params):\n            param_name = positional_params[i]\n            result[param_name] = arg\n        else:\n            raise parameter.UnknownParameterException(f\"{task_name}[args={args}, kwargs={kwargs}]: takes at most {len(positional_params)} parameters ({len(args)} given)\")\n    \n    # Handle keyword arguments\n    for param_name, arg in kwargs.items():\n        if param_name in result:\n            raise parameter.DuplicateParameterException(f\"{task_name}[args={args}, kwargs={kwargs}]: parameter {param_name} was already set as a positional parameter\")\n        elif param_name not in params_dict:\n            raise parameter.UnknownParameterException(f\"{task_name}[args={args}, kwargs={kwargs}]: unknown parameter {param_name}\")\n        else:\n            result[param_name] = arg\n    \n    # Handle defaults for anything not filled in\n    for param_name, param_obj in params:\n        if param_name not in result:\n            if not param_obj.has_task_value(task_name, param_name):\n                raise parameter.MissingParameterException(f\"{task_name}[args={args}, kwargs={kwargs}]: requires the '{param_name}' parameter to be set\")\n            else:\n                result[param_name] = param_obj.task_value(task_name, param_name)\n    \n    # Return the list of parameter values\n    return [(param_name, result[param_name]) for param_name, param_obj in params]"
+        }
+    ]
+}

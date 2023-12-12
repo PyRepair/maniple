@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 60,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 1259,
+            "file_name": "core/window/rolling.py",
+            "replace_code": "def apply(\n    self,\n    func,\n    raw: bool = False,\n    engine: str = \"cython\",\n    engine_kwargs: Optional[Dict] = None,\n    args: Optional[Tuple] = None,\n    kwargs: Optional[Dict] = None,\n):\n\n    if args is None:\n        args = ()\n    if kwargs is None:\n        kwargs = {}\n    kwargs.pop(\"_level\", None)\n    kwargs.pop(\"floor\", None)\n    window = self._get_window()\n    offset = calculate_center_offset(window) if self.center else 0\n    \n    if not is_bool(raw):\n        raise ValueError(\"raw parameter must be `True` or `False`\")\n    \n    if raw:\n        # Pass ndarray as argument\n        values = self.agg(lambda x: x.to_numpy())\n        apply_func = self._generate_cython_apply_func(\n            args, kwargs, raw, offset, func\n        )\n    else:\n        # Pass each Series as argument\n        values = self\n        apply_func = lambda x: func(x, *args, **kwargs)\n    \n    return self._apply(\n        apply_func,\n        center=False,\n        floor=0,\n        name=func,\n        use_numba_cache=engine == \"numba\",\n    )"
+        }
+    ]
+}
