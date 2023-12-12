@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 72,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 808,
+            "file_name": "core/internals/blocks.py",
+            "replace_code": "def setitem(self, indexer, value):\n\n    \"\"\"\n    Set the value inplace, returning a a maybe different typed block.\n    \n    Parameters\n    ----------\n    indexer : tuple, list-like, array-like, slice\n        The subset of self.values to set\n    value : object\n        The value being set\n    \n    Returns\n    -------\n    Block\n    \n    Notes\n    -----\n    `indexer` is a direct slice/positional indexer. `value` must\n    be a compatible shape.\n    \"\"\"\n    transpose = self.shape[0] == 2 \n    \n    # coerce None values, if appropriate\n    if value is None:\n        if self.is_numeric():\n            value = np.nan\n    \n    values = self.values\n    self_dtype = self.dtype\n    # coerce if block dtype can store value\n    if self._can_hold_element(value):\n        if is_scalar(value) and lib.is_scalar(self_dtype):\n            value = lib.item_from_zerodim(self_dtype, value)\n    else:\n        if hasattr(value, 'dtype'):\n            dtype = value.dtype\n        elif lib.is_scalar(value) and not isna(value):\n            dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)\n        else:\n            dtype = find_common_type([self_dtype, dtype])\n            if not is_dtype_equal(self_dtype, dtype):\n                if self.ndim > 1 or dtype is not None:\n                    bdtype = self._try_coerce_args(dtype, values)\n                    if bdtype is not None:\n                        return bdtype.setitem(indexer, value)\n        if is_extension_array_dtype(getattr(value, 'dtype', None)):\n            arr_value = value\n        else:\n            arr_value = np.array(value)\n        if not is_scalar(arr_value):\n            arr_value = arr_value.astype('object')\n    if not self._can_hold_element(arr_value):\n        dtype, arr_value = maybe_promote(arr_value)\n        if is_datetime64tz_dtype(arr_value):\n            # must reach our own api to convert tz\n            arr_value = arr_value.values\n        if arr_value.ndim == 1:\n            arr_value = np.atleast_2d(arr_value).T\n        if values.T.shape < arr_value.shape:\n            # broadcasting rather than require()\n            transpose = not transpose\n            arr_value = arr_value.T\n    check_setitem_lengths(indexer, arr_value, values)\n    if not is_empty_indexer(indexer, arr_value):\n        values, _, value, arr_value = clear_error_state(\n            values, arr_value, value, locs, indexer\n        )\n    if is_scalar_indexer(indexer):\n        # setting a single element for each dim and with a rhs that could\n        #  be e.g. a list; see GH#6043\n        values[indexer] = value\n    else:\n        result = dict()\n        values, arr_value = maybe_upcast_putmask(\n            values, arr_value, putmask, take_split_path\n        )\n        values[indexer] = arr_value\n        if transpose:\n            values = values.T\n        block = make_block_same_class(values, placement=self.mgr_locs, klass=self._class)\n        block._can_hold_na = False\n        return block\n    values = maybe_upcast_putmask(values, value, putmask)\n    block = make_block(values, placement=self.mgr_locs)\n    return block"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 108,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 533,
+            "file_name": "core/dtypes/cast.py",
+            "replace_code": "def infer_dtype_from_scalar(val, pandas_dtype: bool = False):\n    import numpy as np\n    from datetime import datetime, timedelta\n    from pandas.core.arrays.datetimes import DatetimeTZDtype\n    from pandas.core.arrays.period import PeriodDtype\n    from pandas import tslibs\n    from pandas import lib\n    from pandas.core.indexes.interval import Interval\n    \"\"\"\n    Interpret the dtype from a scalar.\n    \n    Parameters\n    ----------\n    pandas_dtype : bool, default False\n        whether to infer dtype including pandas extension types.\n        If False, scalar belongs to pandas extension types is inferred as\n        object\n    \"\"\"\n    \n    dtype = np.object_\n    \n    # a 1-element ndarray\n    if isinstance(val, np.ndarray):\n        msg = \"invalid ndarray passed to infer_dtype_from_scalar\"\n        if val.ndim != 0:\n            raise ValueError(msg)\n    \n        dtype = val.dtype\n        val = val.item()\n    \n    elif isinstance(val, str):\n    \n        # If we create an empty array using a string to infer\n        # the dtype, NumPy will only allocate one character per entry\n        # so this is kind of bad. Alternately we could use np.repeat\n        # instead of np.empty (but then you still don't want things\n        # coming out as np.str_!\n    \n        dtype = np.object_\n    \n    elif isinstance(val, (np.datetime64, datetime)):\n        val = tslibs.Timestamp(val)\n        if val is tslibs.NaT or val.tz is None:\n            dtype = np.dtype(\"M8[ns]\")\n        else:\n            if pandas_dtype:\n                dtype = DatetimeTZDtype(unit=\"ns\", tz=val.tz)\n            else:\n                # return datetimetz as object\n                return np.object_, val\n        val = val.value\n    \n    elif isinstance(val, (np.timedelta64, timedelta)):\n        val = tslibs.Timedelta(val).value\n        dtype = np.dtype(\"m8[ns]\")\n    \n    elif lib.is_interval(val):\n        dtype = val.__class__\n    \n    elif is_bool(val):\n        dtype = np.bool_\n    \n    elif is_integer(val):\n        if isinstance(val, np.integer):\n            dtype = type(val)\n        else:\n            dtype = np.int64\n    \n    elif is_float(val):\n        if isinstance(val, np.floating):\n            dtype = type(val)\n        else:\n            dtype = np.float64\n    \n    elif is_complex(val):\n        dtype = np.complex_\n    \n    elif pandas_dtype:\n        if lib.is_period(val):\n            dtype = PeriodDtype(freq=val.freq)\n            val = val.ordinal\n    \n    return dtype, val"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 38,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 312,
+            "file_name": "core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n\n    if len(clocs) == 0:\n        return data\n    \n    index = data.index\n    \n    # Ensure proper recognition of the specified clocs as a whole MultiIndex name\n    for loc in clocs:\n      if loc not in index.names:\n        return data\n    \n    cloc_indices = [index.get_level_number(i) for i in clocs]\n    \n    rloc_indices = [i for i in range(index.nlevels) if i not in cloc_indices]\n    \n    clevels = [index.levels[i] for i in cloc_indices]\n    ccodes = [index.codes[i] for i in cloc_indices]\n    cnames = [index.names[i] for i in cloc_indices]\n    rlevels = [index.levels[i] for i in rloc_indices]\n    rcodes = [index.codes[i] for i in rloc_indices]\n    rnames = [index.names[i] for i in rloc_indices]\n    \n    shape = [len(x) for x in clevels]\n    group_index = get_group_index(ccodes, shape, sort=False, xnull=False)\n    \n    comp_ids, obs_ids = compress_group_index(group_index, sort=False)\n    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)\n    \n    # Update creation of dummy_index based on the type of data whether Series or DataFrame\n    if len(rloc_indices) == 0:\n      dummy_index = Index(obs_ids, name=\"__placeholder__\")\n    else:\n      dummy_index = MultiIndex(\n          levels=rlevels + [obs_ids],\n          codes=rcodes + [comp_ids],\n          names=rnames + [\"__placeholder__\"],\n          verify_integrity=False,\n      )\n    \n    # Original condition was not necessary and resulted in inconsistencies\n    if isinstance(data, Series):\n        dummy = data.copy()\n        dummy.index = dummy_index\n    \n        unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n    else:\n        if isinstance(data.columns, MultiIndex):\n            result = data\n            for i in range(len(cloc_indices)):\n                val = clocs[i]\n                result = result.unstack(val, fill_value=fill_value)\n                cloc_indices = [v if i > v else v - 1 for v in cloc_indices]\n    \n            return result\n        else:\n            dummy = data.copy()\n            dummy.index = dummy_index\n    \n            unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n    \n    # Rest of the code to handle MultiIndex levels, names and coordinates after unstacking remains the same and is not provided here\n    # ...\n    \n    return unstacked"
+        }
+    ]
+}
