@@ -556,7 +556,7 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    database_path = os.path.join("..", "training-data", "106-dataset", "bugs-data")
+    database_path = os.path.join("..", "training-data", "395-dataset", "bugs-data")
 
     projects = os.listdir(database_path)
 
@@ -584,6 +584,6 @@ if __name__ == "__main__":
                     print(f"generate prompt for {project}:{bid}")
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                     prompt_generator.generate_prompt()
-                    # prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
+                    prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
                 except Exception as e:
                     print_in_red(str(e))
