@@ -2,8 +2,15 @@ import json
 import os
 import pandas as pd
 
-database_path = "../preliminary-study/first-stratum"
+dataset_name = "106-dataset"
+database_path = os.path.join("..", "training-data", dataset_name)
+result_sheet_folder = os.path.join("..", "training-data", "result-sheet", dataset_name)
+
+if not os.path.exists(result_sheet_folder):
+    os.makedirs(result_sheet_folder)
+
 use_strata = 1
+only_available_fact_strata = 1
 
 if use_strata == 1:
     data = {
@@ -57,8 +64,12 @@ for project_name in os.listdir(database_path):
 
             with open(os.path.join(bug_path, result_file_name.replace("result", "response")), "r") as response_file:
                 response = json.load(response_file)
-                fact_bitvector: dict = response[project_name][0]["bitvector"]
-                strata_bitvector: dict = response[project_name][0]["strata"]
+                if only_available_fact_strata == 1:
+                    fact_bitvector: dict = response[project_name][0]["bitvector"]
+                    strata_bitvector: dict = response[project_name][0]["strata"]
+                else:
+                    fact_bitvector: dict = response[project_name][0]["available_bitvector"]
+                    strata_bitvector: dict = response[project_name][0]["available_strata"]
 
             data["Project"].append(project_name)
             data["Bug_id"].append(bug_id)
@@ -95,4 +106,7 @@ for project_name in os.listdir(database_path):
             data["result_filename"].append(result_file_name)
 
 df = pd.DataFrame(data)
-df.to_excel(os.path.join("..", "preliminary-study", "first_stratum_raw_result.xlsx"), index=False)
+if use_strata == 1:
+    df.to_excel(os.path.join(result_sheet_folder, "raw_result_fact.xlsx"), index=False)
+else:
+    df.to_excel(os.path.join(result_sheet_folder, "raw_result_strata.xlsx"), index=False)
