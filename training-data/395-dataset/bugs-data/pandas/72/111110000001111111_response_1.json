@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 72,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 808,
+            "file_name": "pandas/core/internals/blocks.py",
+            "replace_code": "def setitem(self, indexer, value):\n\n    \"\"\"\n    Set the value inplace, returning a maybe different typed block.\n    \n    Parameters\n    ----------\n    indexer : tuple, list-like, array-like, slice\n        The subset of self.values to set\n    value : object\n        The value being set\n    \n    Returns\n    -------\n    Block\n    \n    Notes\n    -----\n    `indexer` is a direct slice/positional indexer. `value` must\n    be a compatible shape.\n    \"\"\"\n    transpose = self.ndim == 2\n    \n    # coerce None values, if appropriate\n    if value is None:\n        if self.is_numeric:\n            value = np.nan\n    \n    # coerce if block dtype can store value\n    values = self.values\n    if self._can_hold_element(value):\n        # We only get here for non-Extension Blocks, so _try_coerce_args\n        #  is only relevant for DatetimeBlock and TimedeltaBlock\n        if lib.is_scalar(value):\n            value = convert_scalar(values, value)\n    \n    # handle Categorical dtype separately\n    elif isinstance(value, pd.Categorical):\n        value = value.astype(self.values.dtype)\n    \n    else:\n        # current dtype cannot store value, coerce to common dtype\n        find_dtype = False\n    \n        if hasattr(value, \"dtype\"):\n            dtype = value.dtype\n            find_dtype = True\n    \n        elif lib.is_scalar(value) and not pd.isna(value):\n            dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)\n            find_dtype = True\n    \n        if find_dtype:\n            dtype = find_common_type([values.dtype, dtype])\n            if not is_dtype_equal(self.dtype, dtype):\n                b = self.astype(dtype)\n                return b.setitem(indexer, value)"
+        }
+    ]
+}
