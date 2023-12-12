@@ -61,7 +61,7 @@
                 "7": 1
             },
             "start_line": 393,
-            "file_name": "scheduler.py",
+            "file_name": "/luigi/scheduler.py",
             "replace_code": "def set_status(self, task, new_status, config=None):\n\n    if new_status == FAILED:\n        assert config is not None\n    \n    if new_status == DISABLED and task.status == RUNNING:\n        return\n    \n    if task.status == DISABLED:\n        if new_status == DONE:\n            self.re_enable(task)\n        elif task.scheduler_disable_time is not None and new_status != DISABLED:  # Add this condition to prevent overriding scheduler disable\n            return\n    \n    if new_status == FAILED and task.can_disable() and task.status != DISABLED:\n        task.add_failure()\n        if task.has_excessive_failures():\n            task.scheduler_disable_time = time.time()\n            new_status = DISABLED\n        else:\n            return  # Missing this return statement which resulted in incorrect status changes\n    \n    elif new_status == DISABLED:\n        task.scheduler_disable_time = time.time()  # Reset scheduler_disable_time\n    \n    # Add the task to the new status and ensure it's removed from the old status\n    self._status_tasks[task.status].pop(task.id, None)\n    self._status_tasks[new_status][task.id] = task\n    task.status = new_status"
         }
     ]

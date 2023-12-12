@@ -61,7 +61,7 @@
                 "7": 1
             },
             "start_line": 668,
-            "file_name": "core/internals/blocks.py",
+            "file_name": "/pandas/core/internals/blocks.py",
             "replace_code": "def replace(self, to_replace, value, inplace: bool = False, regex: bool = False, convert: bool = True):\n\n    inplace = validate_bool_kwarg(inplace, \"inplace\")\n    original_to_replace = to_replace\n    \n    values = self.values\n    \n    if not getattr(to_replace, \"ndim\", 0):\n        to_replace = [to_replace]\n    \n    mask = missing.mask_missing(values, to_replace)\n    \n    if not mask.any():\n        if inplace:\n            return [self]\n        return [self.copy()]\n    \n    try:\n        blocks = self.putmask(mask, value, inplace=inplace)\n    except (TypeError, ValueError):\n        # Convert only if not object dtype\n        if is_object_dtype(self):\n            raise\n    \n        assert not self._can_hold_element(value), value\n    \n        # try again with a compatible block\n        block = self.astype(object)\n        return block.replace(\n            to_replace=original_to_replace,\n            value=value,\n            inplace=inplace,\n            regex=regex,\n            convert=convert,\n        )\n    if convert:\n        blocks = [b.convert(numeric=False, copy=not inplace) for b in blocks]\n    return blocks"
         }
     ]

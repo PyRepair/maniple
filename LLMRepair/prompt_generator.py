@@ -90,7 +90,7 @@ class PromptGenerator:
             self.buggy_function_start_line: str = bug_data[user_dir]["buggy_functions"][0]["start_line"]
             self.buggy_function_source_code: str = bug_data[user_dir]["buggy_functions"][0]["function_code"]
 
-            prefix = project_name + "/"
+            prefix = f"{project_name}_{bug_id}"
             start_idx = user_dir.find(prefix) + len(prefix)
             self.buggy_location_file_name = user_dir[start_idx:]
 

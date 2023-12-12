@@ -61,7 +61,7 @@
                 "7": 0
             },
             "start_line": 27,
-            "file_name": "utils/gz.py",
+            "file_name": "/scrapy/utils/gz.py",
             "replace_code": "def gunzip(data):\n    import struct\n    import scrapy\n    from io import BytesIO\n    from scrapy.http import HtmlResponse\n    from scrapy.utils.gz import read1\n    from scrapy.utils.python import to_bytes\n    from scrapy.spidermiddlewares.httperror import HttpError\n    from twisted.python.failure import Failure\n    from twisted.web.client import ResponseFailed\n    \"\"\"Gunzip the given data and return as much data as possible.\n    \n    This is resilient to CRC checksum errors.\n    \"\"\"\n    f = GzipFile(fileobj=BytesIO(data))\n    output = b''\n    chunk = b'.'\n    while chunk:\n        try:\n            chunk = read1(f, 8196)\n            output += chunk\n        except (OSError, EOFError, struct.error):\n            # complete only if there is some data, otherwise re-raise\n            # see issue 87 about catching struct.error\n            # some pages are quite small so output is '' and f.extrabuf\n            # contains the whole page content\n            if output or getattr(f, 'extrabuf', None):\n                try:\n                    output += f.extrabuf\n                finally:\n                    break\n            else:\n                raise\n    return output"
         }
     ]
