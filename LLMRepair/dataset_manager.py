@@ -58,11 +58,13 @@ def load_bugids_from_dataset(
 
     support_list = []
     with open(os.path.join(subset_list_path, "supported106.txt"), "r") as f:
-        supported106 = f.read().split(",")
+        supported106 = f.read().strip().split(",")
         support_list.extend(supported106)
     with open(os.path.join(subset_list_path, "supported395.txt"), "r") as f:
-        supported395 = f.read().split(",")
+        supported395 = f.read().strip().split(",")
         support_list.extend(supported395)
+
+    print(f"Support list length: {len(support_list)}")
 
     bugids = []
     for project_name, bugids_list in dataset_indices.items():
@@ -73,7 +75,7 @@ def load_bugids_from_dataset(
                 continue
 
             bugid_label = f"{project_name}:{bugid}"
-            if use_supported and bugid not in support_list:
+            if use_supported and bugid_label not in support_list:
                 continue
 
             if bugid_label in IGNORED_BUGS:

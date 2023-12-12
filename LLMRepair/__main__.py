@@ -112,14 +112,6 @@ def resolve_cli_args():
     return args
 
 
-def remove_unsupported_bug_dirs(output_dir: str):
-    for bugid in IGNORED_BUGS:
-        print_in_yellow(f"{bugid} is not supported, removing...")
-        bwd = os.path.join(output_dir, *bugid.split(":"))
-        if os.path.exists(bwd):
-            os.removedirs(bwd)
-
-
 def main(args):
     if len(args.bugids) > 0:
         bugids = args.bugids
@@ -150,10 +142,7 @@ def main(args):
             test_mode=args.test_mode,
         )
 
-    if args.use_supported:
-        remove_unsupported_bug_dirs(args.output_dir)
-
-    print(f"Use bugids: {','.join(bugids)}")
+    print(f"Use bugids: {','.join(bugids)}, total: {len(bugids)}")
 
     for bugid in bugids:
         bwd = os.path.join(args.output_dir, *bugid.split(":"))
