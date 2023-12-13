@@ -2,6 +2,7 @@ import argparse
 import glob
 import json
 import os.path
+import threading
 import time
 
 import openai
@@ -73,14 +74,14 @@ class PromptGenerator:
                 self.facts: dict = json.load(facts_file)
 
             if self.facts["1.1.1"] is None:
-                raise Exception(f"{project}:{bug_id} not single function fix, not supported")
+                raise Exception(f"{project_name}:{bug_id} not single function fix, not supported")
         else:
-            raise Exception(f"{project}:{bug_id} not single function fix, not supported")
+            raise Exception(f"{project_name}:{bug_id} not single function fix, not supported")
 
         self.project_name = project_name
         self.bug_id = bug_id
 
-        with open("prompt_template.json", "r") as template_file:
+        with open(os.path.join(os.path.dirname(__file__), "prompt_template.json"), "r") as template_file:
             self.template: dict = json.load(template_file)
         self.prompt: str = ""
 
@@ -545,7 +546,7 @@ class PromptGenerator:
                 }
                 json.dump(test_input_data, json_file, indent=4)
 
-            print(f"write response to file {response_md_file_name} in directory {self.output_dir}")
+            print(f"write response to {response_md_file_path}")
 
         except Exception as error:
             error_str = ""
@@ -579,7 +580,7 @@ class PromptGenerator:
                 }
                 json.dump(test_input_data, json_file, indent=4)
 
-            print(f"write response error to file {self.output_dir}/{response_md_file_name}")
+            print_in_yellow(f"write response error to {response_md_file_path}")
 
     def get_response_with_valid_patch(self, messages: list, gpt_model: str):
         while self.max_generation_count > 0:
@@ -634,30 +635,17 @@ def create_query(messages: list, gpt_model: str) -> str:
     raise QueryException("Tried 10 times OpenAI rate limit query")
 
 
-if __name__ == "__main__":
-    args_parser = argparse.ArgumentParser()
-    args_parser.add_argument(
-        "--database",
-        choices=["106-dataset", "395-dataset"],
-        type=str,
-        help="specify database: 106-dataset or 395-dataset",
-        required=True
-    )
-    args = args_parser.parse_args()
+def divide_list(lst, n_partitions):
+    if n_partitions <= 0:
+        raise ValueError("Number of partitions must be a positive integer")
 
-    database_path = os.path.join("..", "training-data", args.database, "bugs-data")
+    partition_size, remainder = divmod(len(lst), n_partitions)
+    return [lst[i * partition_size + min(i, remainder):(i + 1) * partition_size + min(i + 1, remainder)]
+            for i in range(n_partitions)]
 
-    projects = os.listdir(database_path)
 
-    strata_bitvectors = []
-
-    pattern = "*bitvector*.json"
-    bitvector_files = glob.glob(os.path.join("..", "training-data", "strata-bitvectors", pattern))
-    for file in bitvector_files:
-        with open(file, "r") as input_bitvector_file:
-            strata_bitvectors.append(json.load(input_bitvector_file))
-
-    for bitvector_strata in strata_bitvectors:
+def run_single_bitvector_partition(partition_bitvectors):
+    for bitvector_strata in partition_bitvectors:
         for project in projects:
             project_folder_path = os.path.join(database_path, project)
             if not os.path.isdir(project_folder_path):
@@ -676,3 +664,45 @@ if __name__ == "__main__":
                     prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106", 0)
                 except Exception as e:
                     print_in_red(str(e))
+
+
+if __name__ == "__main__":
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "--database",
+        choices=["106-dataset", "395-dataset"],
+        type=str,
+        help="specify database: 106-dataset or 395-dataset",
+        required=True
+    )
+    args_parser.add_argument(
+        "--partition",
+        type=int,
+        help="how much partition you want, this will split dataset and run every partition parallel",
+        required=True
+    )
+
+    args = args_parser.parse_args()
+
+    database_path = os.path.join("training-data", args.database, "bugs-data")
+
+    projects = os.listdir(database_path)
+
+    strata_bitvectors = []
+
+    pattern = "*bitvector*.json"
+    bitvector_files = glob.glob(os.path.join("training-data", "strata-bitvectors", pattern))
+    for file in bitvector_files:
+        with open(file, "r") as input_bitvector_file:
+            strata_bitvectors.append(json.load(input_bitvector_file))
+
+    strata_bitvectors = divide_list(strata_bitvectors, args.partition)
+
+    threads = []
+    for bitvector in strata_bitvectors:
+        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, ))
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
