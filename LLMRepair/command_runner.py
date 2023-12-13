@@ -3,6 +3,7 @@ import subprocess
 import os
 from typing import Optional
 from utils import print_in_yellow, print_in_red
+import utils
 
 
 def run_clone_command(
@@ -14,7 +15,11 @@ def run_clone_command(
     if envs_dir is not None:
         envs_dir = os.path.abspath(envs_dir)
         repo_dir = os.path.join(envs_dir, "repos", path_bugid_name)
-        if not overwrite and os.path.exists(repo_dir):
+        if (
+            utils.global_args.verbose_logging
+            and not overwrite
+            and os.path.exists(repo_dir)
+        ):
             print_in_yellow(f"Skipping cloning {bugid} because it already exists")
             return True
 
@@ -49,7 +54,11 @@ def run_clone_command(
 
 
 def run_prepare_command(
-    bugid: str, envs_dir: Optional[str] = None, use_docker=False, overwrite=False
+    bugid: str,
+    envs_dir: Optional[str] = None,
+    use_docker=False,
+    overwrite=False,
+    restart=True,
 ) -> bool:
     path_bugid_name = bugid.replace(":", "_")
 
@@ -57,7 +66,11 @@ def run_prepare_command(
     if envs_dir is not None:
         envs_dir = os.path.abspath(envs_dir)
         prepare_env_dir = os.path.join(envs_dir, "envs", path_bugid_name)
-        if not overwrite and os.path.exists(prepare_env_dir):
+        if (
+            utils.global_args.verbose_logging
+            and not overwrite
+            and os.path.exists(prepare_env_dir)
+        ):
             print_in_yellow(f"Skipping preparing {bugid} because it already exists")
             return True
 
@@ -66,11 +79,15 @@ def run_prepare_command(
         command = ["docker", "run", "--rm", "-it"]
         if envs_dir is not None:
             command += ["-v", f"{envs_dir}:/envs"]
-        command += ["pyr:lite", "bgp", "prep", "--restart", "--bugids", bugid]
+        command += ["pyr:lite", "bgp", "prep", "--bugids", bugid]
+        if restart:
+            command += ["--restart"]
         if envs_dir is not None:
             command += ["--envs-dir", "/envs"]
     else:
-        command = ["bgp", "prep", "--restart", "--bugids", bugid]
+        command = ["bgp", "prep", "--bugids", bugid]
+        if restart:
+            command += ["--restart"]
         if envs_dir is not None:
             command += ["--envs-dir", envs_dir]
 
@@ -104,7 +121,11 @@ def run_extract_features_command(
     use_docker=False,
     overwrite=False,
 ) -> bool:
-    if not overwrite and os.path.exists(feature_json_path):
+    if (
+        utils.global_args.verbose_logging
+        and not overwrite
+        and os.path.exists(feature_json_path)
+    ):
         print_in_yellow(
             f"Skipping extracting features for {bugid} because it already exists"
         )
@@ -160,7 +181,11 @@ def run_validate_patch_command(
     use_docker=False,
     overwrite=False,
 ) -> bool:
-    if not overwrite and os.path.exists(output_result_json_path):
+    if (
+        utils.global_args.verbose_logging
+        and not overwrite
+        and os.path.exists(output_result_json_path)
+    ):
         print_in_yellow(
             f"Skipping validating patch for {bugid} because it already exists"
         )
@@ -199,7 +224,9 @@ def run_validate_patch_command(
         print(f"Validating patch for {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
-        subprocess.run(command, check=True, capture_output=True, timeout=10)
+        subprocess.run(
+            command, check=True, capture_output=True, timeout=utils.global_args.timeout
+        )
 
     except subprocess.TimeoutExpired:
         print_in_red(f"Timeout for {bugid}")

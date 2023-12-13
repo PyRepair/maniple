@@ -2,7 +2,11 @@ import json
 import os
 from typing import Optional
 
-from command_runner import ensure_clone_and_prep_complete, run_validate_patch_command
+from command_runner import (
+    ensure_clone_and_prep_complete,
+    run_prepare_command,
+    run_validate_patch_command,
+)
 from utils import print_in_yellow
 
 
@@ -66,6 +70,12 @@ def validate_patches(
         # ensure this bug is prepped
         if not ensure_clone_and_prep_complete(
             bugid, envs_dir, use_docker, overwrite=False
+        ):
+            continue
+
+        # coordinate with Nihil, accuracy can only be ensured by running prepare command
+        if not run_prepare_command(
+            bugid, envsdir, use_docker, overwrite=True, restart=False
         ):
             continue
 

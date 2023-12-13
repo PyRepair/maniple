@@ -6,6 +6,9 @@ import re
 from typing import Dict, Optional
 
 
+global_args = None
+
+
 class NotSupportedError(Exception):
     def __init__(self, message):
         super().__init__(message)

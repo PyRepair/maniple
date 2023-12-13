@@ -3,6 +3,7 @@ import os
 import threading
 
 from utils import divide_list, print_in_yellow
+import utils
 from cleaner import (
     clear_features,
     clear_logs,
@@ -67,6 +68,20 @@ def resolve_cli_args():
         type=str,
         help="specify directory to store prompt and result files",
         required=True,
+    )
+
+    args_parser.add_argument(
+        "--verbose-logging",
+        action="store_true",
+        help="whether print verbose logging",
+        default=False,
+    )
+
+    args_parser.add_argument(
+        "--timeout",
+        type=int,
+        help="specify the timeout in seconds",
+        default=30,
     )
 
     args_parser.add_argument(
@@ -192,4 +207,5 @@ def main(args):
 
 if __name__ == "__main__":
     args = resolve_cli_args()
+    utils.global_args = args
     main(args)
