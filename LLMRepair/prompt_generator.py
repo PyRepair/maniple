@@ -472,7 +472,7 @@ class PromptGenerator:
 
             json.dump(facts_content_strata, prompt_facts_file, indent=4)
 
-    def get_response_from_gpt(self, count_number: int, gpt_model: str):
+    def get_response_from_gpt(self, count_number: int, gpt_model: str, regenerate_invalid_response: int):
         bitvector_flatten = ""
 
         for value in self.bitvector.values():
@@ -601,7 +601,7 @@ def create_query(messages: list, gpt_model: str) -> str:
     retry_max_count = 10
     while retry_max_count > 0:
         try:
-            time.sleep(1)
+            time.sleep(0.5)
             chat_completion = client.chat.completions.create(
                 model=gpt_model,
                 messages=messages
@@ -615,6 +615,7 @@ def create_query(messages: list, gpt_model: str) -> str:
             return chat_completion.choices[0].message.content
 
         except openai.RateLimitError:
+            print_in_yellow("Meet ratelimit error, wait for seconds")
             time.sleep(5)
             retry_max_count -= 1
 
