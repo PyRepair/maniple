@@ -1,3 +1,4 @@
+import argparse
 import glob
 import json
 import os.path
@@ -621,7 +622,17 @@ def create_query(messages: list, gpt_model: str) -> str:
 
 
 if __name__ == "__main__":
-    database_path = os.path.join("..", "training-data", "395-dataset", "bugs-data")
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument(
+        "--database",
+        choices=["106-dataset", "395-dataset"],
+        type=str,
+        help="specify database: 106-dataset or 395-dataset",
+        required=True
+    )
+    args = args_parser.parse_args()
+
+    database_path = os.path.join("..", "training-data", args.database, "bugs-data")
 
     projects = os.listdir(database_path)
 
