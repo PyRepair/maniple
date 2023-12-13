@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 26,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 2676,
+            "file_name": "keras/backend/tensorflow_backend.py",
+            "replace_code": "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n    import tensorflow as tf\n    from tensorflow.python.util import tf_decorator\n    from tensorflow.python.framework import tensor_shape\n    \"\"\"Iterates over the time dimension of a tensor.\n    \n    \n    # Arguments\n    step_function: RNN step function.\n        Parameters:\n            inputs: tensor with shape `(samples, ...)` (no time dimension), representing input for the batch of samples at a certain time step.\n            states: list of tensors. Returns:\n            outputs: tensor with shape `(samples, output_dim)` (no time dimension).\n            new_states: list of tensors, same length and shapes as 'states'. The first state in the list must be the output tensor at the previous timestep.\n        inputs: tensor of temporal data of shape `(samples, time, ...)` (at least 3D).\n        initial_states: tensor with shape (samples, output_dim) (no time dimension), containing the initial values for the states used in the step function.\n        go_backwards: boolean. If True, do the iteration over the time dimension in reverse order and return the reversed sequence.\n        mask: binary tensor with shape `(samples, time, 1)`, with a zero for every element that is masked.\n        constants: a list of constant values passed at each step.\n        unroll: whether to unroll the RNN or to use a symbolic loop (`while_loop` or `scan` depending on backend).\n        input_length: not relevant in the TensorFlow implementation. Must be specified if using unrolling with Theano.\n    \n    # Returns\n        A tuple, `(last_output, outputs, new_states)`.\n        last_output: the latest output of the rnn, of shape `(samples, ...)`\n        outputs: tensor with shape `(samples, time, ...)` where each entry `outputs[s, t]` is the output of the step function at time `t` for sample `s`.\n        new_states: list of tensors, latest states returned by the step function, of shape `(samples, ...)`.\n    \n    # Raises\n        ValueError: if input dimension is less than 3.\n        ValueError: if `unroll` is `True` but input timestep is not a fixed number.\n        ValueError: if `mask` is provided (not `None`) but states is not provided(`len(states)` == 0).\n    \"\"\"\n    ndim = inputs.get_shape().ndims\n    if ndim < 3:\n        raise ValueError('Input should be at least 3D.')\n    if unroll:\n        raise ValueError('Unrolling is not implemented in tensorflow')\n    \n    axes = [1, 0] + [i for i in range(2, ndim)]\n    inputs = tf.transpose(inputs, perm=axes)\n    if mask is not None:\n        mask_ndim = mask.get_shape().ndims\n        if mask_ndim is None:\n            mask = tensor_shape.as_shape(mask).with_rank(ndim - 1)\n        else:\n            if mask_ndim < 2:\n                mask = expand_dims(mask, axis=1)\n            axes = [1, 0] + [i for i in range(2, ndim)]\n            mask = tf.transpose(mask, perm=axes)\n    input_shape = tensor_shape.TensorShape(inputs.get_shape())\n    constants = constants or []\n    for state in initial_states:\n        state.set_shape(input_shape)\n    if mask is not None:\n        states = initial_states\n        successive_states = []\n        successive_outputs = []\n        input_list = tf.unstack(inputs)\n        if go_backwards:\n            input_list = reversed(input_list)\n        if mask is not None:\n            mask_list = tf.unstack(mask)\n            if go_backwards:\n                mask_list = reversed(mask_list)\n            for inp, mask_t in zip(input_list, mask_list):\n                output, new_states = step_function(inp, states + constants)\n                new_states = [tf.where(mask_t, new_states[i], states[i])\n                                for i in range(len(states))]\n                outputs = tf.where(mask_t, output, outputs)\n                states = new_states\n                successive_states.append(states)\n                successive_outputs.append(output)\n        last_output = successive_outputs[-1]\n        new_states = successive_states[-1]\n        indices = slice(0, None, -1 if go_backwards else 1)\n        outputs = tf.stack(successive_outputs, axis=1)[indices]\n        last_output = last_output[indices]\n    else:\n        states = initial_states\n        successive_states = []\n        successive_outputs = []\n        input_list = tf.unstack(inputs)\n        if go_backwards:\n            input_list = reversed(input_list)\n        for inp in input_list:\n            output, states = step_function(inp, states + constants)\n            successive_outputs.append(output)\n            successive_states.append(states)\n        if go_backwards:\n            outputs = tf.stack(successive_outputs, axis=1)[::-1]\n            last_output = outputs[:,-1]\n            new_states = [\n                state[::-1] if state.dtype in (tf.bool, tf.string) else tf.reverse(state, axis=[0])\n                for state in states\n            ]\n        else:\n            outputs = tf.stack(successive_outputs, axis=1)\n            new_states = states\n            last_output = tf.gather(outputs, int(outputs.get_shape()[1]) - 1, axis=1)\n    return last_output, outputs, new_states"
+        }
+    ]
+}

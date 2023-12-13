@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 78,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 7903,
+            "file_name": "pandas/core/frame.py",
+            "replace_code": "def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds):\n    import numpy as np\n    import pandas as pd\n    if axis is None and filter_type == \"bool\":\n        labels = None\n        constructor = None\n    else:\n        axis = self._get_axis_number(axis)\n        labels = self._get_agg_axis(axis)\n        constructor = self._constructor\n    \n    def f(x):\n        return op(x, axis=axis, skipna=skipna, **kwds)\n    \n    def _get_data(axis_matters):\n        if filter_type is None or filter_type == \"numeric\":\n            data = self._get_numeric_data()\n        elif filter_type == \"bool\":\n            if axis_matters:\n                data = self._get_bool_data() if axis == 0 else self\n            else:\n                data = self._get_bool_data()\n        else:\n            raise NotImplementedError(f\"Generating numeric_only data with filter_type {filter_type} not supported.\")\n        return data\n    \n    if numeric_only is not None and axis in [0, 1]:\n        df = self\n        if numeric_only is True:\n            df = _get_data(axis_matters=True)\n        if axis == 1:\n            df = df.T\n            axis = 0\n    \n        out_dtype = \"bool\" if filter_type == \"bool\" else None\n    \n        res = df._data.reduce(op, axis=1, skipna=skipna, **kwds)\n        result = pd.Series(res, dtype=out_dtype)\n        result.index = df.columns\n        return result\n    \n    if numeric_only is None:\n        values = self.values\n        try:\n            result = f(values)\n            if filter_type == \"bool\" and pd.api.types.is_object_dtype(values) and axis is None:\n                result = np.bool_(result)\n        except TypeError:\n            opa = self.apply(f, result_type='expand', axis=0, ignore_failures=True)\n            result = opa.iloc[0]\n            return result\n    \n    else:\n        if numeric_only:\n            data = _get_data(axis_matters=True)\n            values = data.values\n            labels = data._get_agg_axis(axis)\n        else:\n            values = self.values\n        result = f(values)\n    \n    if isinstance(result, pd.Series):\n        result = result.astype(np.float64)\n    elif filter_type == \"bool\" and result.notna().all():\n        result = result.astype(np.bool_)\n    \n    if constructor is not None:\n        result = pd.Series(result, index=labels)\n    return result"
+        }
+    ]
+}
