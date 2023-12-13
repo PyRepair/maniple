@@ -1,0 +1,68 @@
+{
+    "matplotlib": [
+        {
+            "bugID": 28,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 3160,
+            "file_name": "lib/matplotlib/axes/_base.py",
+            "replace_code": "def set_xlim(self, left=None, right=None, emit=True, auto=False, *, xmin=None, xmax=None):\n\n    if right is None and np.iterable(left):\n        left, right = left\n    if xmin is not None:\n        if left is not None:\n            raise TypeError('Cannot pass both `xmin` and `left`')\n        left = xmin\n    if xmax is not None:\n        if right is not None:\n            raise TypeError('Cannot pass both `xmax` and `right`')\n        right = xmax\n    \n    self._process_unit_info(xdata=(left, right))\n    left = self._validate_converted_limits(left, self.convert_xunits)\n    right = self._validate_converted_limits(right, self.convert_xunits)\n    \n    old_left, old_right = self.get_xlim()  # Initialize old_left and old_right\n    if left is None:\n        left = old_left\n    if right is None:\n        right = old_right\n    \n    if self.get_xscale() == 'log':\n        if left <= 0:\n            cbook._warn_external(\n                'Attempted to set non-positive left xlim on a '\n                'log-scaled axis.\\n'\n                'Invalid limit will be ignored.')\n            left = old_left\n        if right <= 0:\n            cbook._warn_external(\n                'Attempted to set non-positive right xlim on a '\n                'log-scaled axis.\\n'\n                'Invalid limit will be ignored.')\n            right = old_right\n    if left == right:\n        cbook._warn_external(\n            f\"Attempting to set identical left == right == {left} results \"\n            f\"in singular transformations; automatically expanding.\")\n    left, right = self.xaxis.get_major_locator().nonsingular(left, right)\n    left, right = self.xaxis.limit_range_for_scale(left, right)\n    \n    self._viewLim.intervalx = (left, right)\n    if auto is not None:\n        self._autoscaleXon = bool(auto)\n    \n    if emit:\n        self.callbacks.process('xlim_changed', self)\n        # Call all of the other x-axes that are shared with this one\n        for other in self._shared_x_axes.get_siblings(self):\n            if other is not self:\n                other.set_xlim(self.viewLim.intervalx,\n                               emit=False, auto=auto)\n                if other.figure != self.figure:\n                    other.figure.canvas.draw_idle()\n    self.stale = True\n    return left, right"
+        }
+    ]
+}
