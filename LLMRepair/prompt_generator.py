@@ -484,8 +484,20 @@ class PromptGenerator:
         response_json_file_path = os.path.join(self.output_dir, response_json_file_name)
 
         if os.path.exists(response_md_file_path) and os.path.exists(response_json_file_path):
-            print(f"{response_md_file_name} already exists in directory {self.output_dir}")
-            return
+            if regenerate_invalid_response == 1:
+                with open(response_json_file_path, "r") as response_file:
+                    response_json = json.load(response_file)
+                    if response_json[self.project_name][0]["replace_code"] is None:
+                        need_regenerate = True
+                    else:
+                        need_regenerate = False
+
+            else:
+                need_regenerate = False
+
+            if not need_regenerate:
+                print(f"{response_md_file_name} already exists in directory {self.output_dir}")
+                return
 
         try:
             buggy_function_length = estimate_function_code_length(self.facts["1.1.1"])
