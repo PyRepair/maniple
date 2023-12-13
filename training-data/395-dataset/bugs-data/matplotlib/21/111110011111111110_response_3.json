@@ -1,0 +1,68 @@
+{
+    "matplotlib": [
+        {
+            "bugID": 21,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 3752,
+            "file_name": "lib/matplotlib/axes/_axes.py",
+            "replace_code": "def bxp(self, bxpstats, positions=None, widths=None, vert=True,\n        patch_artist=False, shownotches=False, showmeans=False,\n        showcaps=True, showbox=True, showfliers=True,\n        boxprops=None, whiskerprops=None, flierprops=None,\n        medianprops=None, capprops=None, meanprops=None,\n        meanline=False, manage_ticks=True, zorder=None):\n    # lists of artists to be output\n\n    whiskers = []\n    caps = []\n    boxes = []\n    medians = []\n    means = []\n    fliers = []\n    datalabels = []\n    \n    # Use default zorder if none specified\n    if zorder is None:\n        zorder = mlines.Line2D.zorder\n    \n    zdelta = 0.1\n    \n    # vertical or horizontal plot?\n    if vert:\n        def doplot(*args, **kwargs):\n            return self.plot(*args, **kwargs)\n    \n        def dopatch(xs, ys, **kwargs):\n            return patch_list(xs, ys, **kwargs)\n    \n    else:\n        def doplot(*args, **kwargs):\n            shuffled = []\n            for i in range(0, len(args), 2):\n                shuffled.extend([args[i + 1], args[i]])\n            return self.plot(*shuffled, **kwargs)\n    \n        def dopatch(xs, ys, **kwargs):\n            xs, ys = ys, xs  # flip X, Y\n            return patch_list(xs, ys, **kwargs)\n    \n    # input validation\n    N = len(bxpstats)\n    datashape_message = (\"List of boxplot statistics and `{0}` \"\n                         \"values must have same the length\")\n    # check position\n    if positions is None:\n        positions = list(range(1, N + 1))\n    elif len(positions) != N:\n        raise ValueError(datashape_message.format(\"positions\"))\n    \n    positions = np.array(positions)\n    if len(positions) > 0 and not isinstance(positions[0], Number):\n        raise TypeError(\"positions should be an iterable of numbers\")\n    \n    # width\n    if widths is None:\n        widths = [np.clip(0.15 * np.ptp(positions), 0.15, 0.5)] * N\n    elif np.isscalar(widths):\n        widths = [widths] * N\n    elif len(widths) != N:\n        raise ValueError(datashape_message.format(\"widths\"))\n    \n    for pos, width, stats in zip(positions, widths, bxpstats):\n    \n        # box properties\n        if patch_artist:\n            final_boxprops = dict(\n                linestyle=rcParams['boxplot.boxprops.linestyle'],\n                linewidth=rcParams['boxplot.boxprops.linewidth'],\n                edgecolor=rcParams['boxplot.boxprops.color'],\n                facecolor=('white' if rcParams['_internal.classic_mode'] else\n                           rcParams['patch.facecolor']),\n                zorder=zorder,\n            )\n            if boxprops is not None:\n                final_boxprops.update(\n                    cbook.normalize_kwargs(\n                        boxprops, mpatches.Patch._alias_map))\n        else:\n            final_boxprops = line_props_with_rcdefaults('boxprops', boxprops)\n    \n        final_whiskerprops = line_props_with_rcdefaults(\n            'whiskerprops', whiskerprops)\n        final_capprops = line_props_with_rcdefaults(\n            'capprops', capprops)\n        final_flierprops = line_props_with_rcdefaults(\n            'flierprops', flierprops)\n        final_medianprops = line_props_with_rcdefaults(\n            'medianprops', medianprops, zdelta)\n        final_meanprops = line_props_with_rcdefaults(\n            'meanprops', meanprops, zdelta)\n    \n        payload = {\n            'whiskers': whiskers,\n            'caps': caps,\n            'boxes': boxes,\n            'medians': medians,\n            'means': means,\n            'fliers': fliers\n        }\n        result = self._boxplot_clean(\n            stats, pos, width, final_boxprops, final_whiskerprops,\n            final_capprops, final_medianprops, final_meanprops, payload\n        )\n    \n    if manage_ticks:\n        self._boxplot_update_line_limits(whiskers, caps, boxes, medians, positions, N)\n    \n    return {'whiskers': whiskers, 'caps': caps, 'boxes': boxes,\n            'medians': medians, 'fliers': fliers, 'means': means}"
+        }
+    ]
+}

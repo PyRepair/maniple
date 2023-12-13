@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 82,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 268,
+            "file_name": "pandas/core/internals/concat.py",
+            "replace_code": "def _get_empty_dtype_and_na(join_units):\n    import numpy as np\n    from collections import defaultdict\n    from pandas.api.types import is_categorical_dtype, is_datetime64tz_dtype, issubclass, is_datetime64_dtype, is_timedelta64_dtype, is_sparse, is_extension_array_dtype, is_float_dtype, is_numeric_dtype\n    import pandas as pd\n    import pandas._testing as tm\n    from pandas.core.internals.concat import _is_uniform_reindex\n    \"\"\"\n    Return dtype and N/A values to use when concatenating specified units.\n    \n    Returned N/A value may be None which means there was no casting involved.\n    \n    Returns\n    -------\n    dtype\n    na\n    \"\"\"\n    if len(join_units) == 1:\n        blk = join_units[0].block\n        if blk is None:\n            return np.float64, np.nan\n    \n    if _is_uniform_reindex(join_units):\n        # FIXME: integrate property\n        empty_dtype = join_units[0].block.dtype\n        upcasted_na = join_units[0].block.fill_value\n        return empty_dtype, upcasted_na\n    \n    has_none_blocks = False\n    dtypes = [None] * len(join_units)\n    for i, unit in enumerate(join_units):\n        if unit.block is None:\n            has_none_blocks = True\n        else:\n            dtypes[i] = unit.dtype\n    \n    upcast_classes = defaultdict(list)\n    null_upcast_classes = defaultdict(list)\n    for dtype, unit in zip(dtypes, join_units):\n        if dtype is None:\n            continue\n    \n        if is_categorical_dtype(dtype):\n            upcast_cls = \"category\"\n        elif is_datetime64tz_dtype(dtype):\n            upcast_cls = \"datetimetz\"\n        elif issubclass(dtype.type, np.bool_):\n            upcast_cls = \"bool\"\n        elif issubclass(dtype.type, np.object_):\n            upcast_cls = \"object\"\n        elif is_datetime64_dtype(dtype):\n            upcast_cls = \"datetime\"\n        elif is_timedelta64_dtype(dtype):\n            upcast_cls = \"timedelta\"\n        elif is_sparse(dtype):\n            upcast_cls = dtype.subtype.name\n        elif is_extension_array_dtype(dtype):\n            upcast_cls = \"object\"\n        elif is_float_dtype(dtype) or is_numeric_dtype(dtype):\n            upcast_cls = dtype.name\n        else:\n            upcast_cls = \"float\"\n    \n        # Null blocks should not influence upcast class selection, unless there\n        # are only null blocks, when same upcasting rules must be applied to\n        # null upcast classes.\n        if unit.is_na:\n            null_upcast_classes[upcast_cls].append(dtype)\n        else:\n            upcast_classes[upcast_cls].append(dtype)\n    \n    if not upcast_classes:\n        upcast_classes = null_upcast_classes\n    \n    # TODO: de-duplicate with maybe_promote?\n    # create the result\n    if \"object\" in upcast_classes:\n        return np.dtype(np.object_), np.nan\n    elif \"bool\" in upcast_classes:\n        if has_none_blocks:\n            return np.dtype(np.object_), np.nan\n        else:\n            return np.dtype(np.bool_), None\n    elif \"category\" in upcast_classes:\n        return np.dtype(np.object_), np.nan\n    elif \"datetimetz\" in upcast_classes:\n        # GH-25014. We use NaT instead of iNaT, since this eventually\n        # ends up in DatetimeArray.take, which does not allow iNaT.\n        dtype = upcast_classes[\"datetimetz\"]\n        return dtype[0], pd.NaT\n    elif \"datetime\" in upcast_classes:\n        return np.dtype(\"M8[ns]\"), pd.iNaT\n    elif \"timedelta\" in upcast_classes:\n        return np.dtype(\"m8[ns]\"), np.timedelta64(\"NaT\", \"ns\")\n    else:  # pragma\n        try:\n            g = np.find_common_type(upcast_classes, [])\n        except TypeError:\n            # At least one is an ExtensionArray\n            return np.dtype(np.object_), np.nan\n        else:\n            if is_float_dtype(g):\n                return g, g.type(np.nan)\n            elif is_numeric_dtype(g):\n                if has_none_blocks:\n                    return np.float64, np.nan\n                else:\n                    return g, None\n    \n    msg = \"invalid dtype determination in get_concat_dtype\"\n    raise AssertionError(msg)"
+        }
+    ]
+}

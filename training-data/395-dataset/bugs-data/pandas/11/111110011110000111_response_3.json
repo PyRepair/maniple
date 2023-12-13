@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 11,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 590,
+            "file_name": "pandas/core/reshape/concat.py",
+            "replace_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n\n    levels = [ensure_index(x) for x in levels] if levels is not None else levels\n    \n    to_concat = [keys] if levels is None else list(zip(*keys))\n    if names is None:\n        names = [None] * len(to_concat)\n    \n    if levels is None:\n        codes, levels = factorize_from_iterables(to_concat)\n    else:\n        codes = [\n            level.get_indexer(hlevel) if isinstance(level, Index) else np.repeat(-1, len(hlevel))\n            for hlevel, level in zip(to_concat, levels)\n        ]\n        for i, code in enumerate(codes):\n            mask = code == -1\n            if mask.any():\n                raise ValueError(f\"Values not found in passed level: {to_concat[i][mask]!s}\")\n    \n    new_index = indexes[0]\n    n = len(new_index)\n    kpieces = len(indexes)\n    new_levels, new_names = list(levels), list(names)\n    new_codes = [np.repeat(code, n) for code in codes]\n    \n    if not all_indexes_same(indexes):\n        for index in indexes[1:]:\n            if len(index) != n:\n                raise ValueError(\"all arrays must be same length\")\n    \n    if isinstance(new_index, MultiIndex):\n        new_levels.extend(new_index.levels)\n        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])\n    else:\n        new_levels.append(new_index)\n        new_codes.append(np.tile(np.arange(n), kpieces))\n    \n    if len(new_names) < len(new_levels):\n        new_names.extend(new_index.names if isinstance(new_index, MultiIndex) else [None])\n    \n    return MultiIndex(levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False)"
+        }
+    ]
+}

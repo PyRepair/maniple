@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 13,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 21,
+            "file_name": "keras/engine/training_generator.py",
+            "replace_code": "def fit_generator(model,\n                  generator,\n                  steps_per_epoch=None,\n                  epochs=1,\n                  verbose=1,\n                  callbacks=None,\n                  validation_data=None,\n                  validation_steps=None,\n                  class_weight=None,\n                  max_queue_size=10,\n                  workers=1,\n                  use_multiprocessing=False,\n                  shuffle=True,\n                  initial_epoch=0):\n\n    \"\"\"See docstring for `Model.fit_generator`.\"\"\"\n    wait_time = 0.01  # in seconds\n    epoch = initial_epoch\n    \n    do_validation = bool(validation_data)\n    model._make_train_function()\n    if do_validation:\n        model._make_test_function()\n    \n    is_sequence = isinstance(generator, Sequence)\n    if not is_sequence and use_multiprocessing and workers > 1:\n        warnings.warn(\n            UserWarning('Using a generator with `use_multiprocessing=True`'\n                        ' and multiple workers may duplicate your data.'\n                        ' Please consider using the`keras.utils.Sequence'\n                        ' class.'))\n    if steps_per_epoch is None:\n        if is_sequence:\n            steps_per_epoch = len(generator)\n        else:\n            raise ValueError('`steps_per_epoch=None` is only valid for a'\n                             ' generator based on the '\n                             '`keras.utils.Sequence`'\n                             ' class. Please specify `steps_per_epoch` '\n                             'or use the `keras.utils.Sequence` class.')\n    \n    # python 2 has 'next', 3 has '__next__'\n    # avoid any explicit version checks\n    val_gen = (hasattr(validation_data, 'next') or\n               hasattr(validation_data, '__next__') or\n               isinstance(validation_data, Sequence))\n    if (val_gen and not isinstance(validation_data, Sequence) and\n            not validation_steps):\n        raise ValueError('`validation_steps=None` is only valid for a'\n                         ' generator based on the `keras.utils.Sequence`'\n                         ' class. Please specify `validation_steps` or use'\n                         ' the `keras.utils.Sequence` class.')\n    \n    # Prepare display labels.\n    out_labels = model.metrics_names\n    callback_metrics = out_labels + ['val_' + n for n in out_labels]\n    \n    # prepare callbacks\n    model.history = cbks.History()\n    _callbacks = [cbks.BaseLogger(\n        stateful_metrics=model.stateful_metric_names)]\n    if verbose:\n        _callbacks.append(\n            cbks.ProgbarLogger(\n                count_mode='steps',\n                stateful_metrics=model.stateful_metric_names))\n    _callbacks += (callbacks or []) + [model.history]\n    callbacks = cbks.CallbackList(_callbacks)\n    \n    # it's possible to callback a different model than self:\n    if hasattr(model, 'callback_model') and model.callback_model:\n        callback_model = model.callback_model\n    else:\n        callback_model = model\n    callbacks.set_model(callback_model)\n    callbacks.set_params({\n        'epochs': epochs,\n        'steps': steps_per_epoch,\n        'verbose': verbose,\n        'do_validation': do_validation,\n        'metrics': callback_metrics,\n    })\n    callbacks.on_train_begin()\n    \n    enqueuer = None\n    val_enqueuer = None\n    \n    try:\n        if do_validation:\n            if val_gen and workers > 0:\n                # Create an Enqueuer that can be reused\n                val_data = validation_data\n                if isinstance(val_data, Sequence):\n                    val_enqueuer = OrderedEnqueuer(\n                        val_data,\n                        use_multiprocessing=use_multiprocessing)\n                    validation_steps = validation_steps or len(val_data)\n                else:\n                    val_enqueuer = GeneratorEnqueuer(\n                        val_data,\n                        use_multiprocessing=use_multiprocessing)\n                val_enqueuer.start(workers=workers,\n                                   max_queue_size=max_queue_size)\n                val_enqueuer_gen = val_enqueuer.get()\n            elif val_gen:\n                val_data = validation_data\n                if isinstance(val_data, Sequence):\n                    val_enqueuer_gen = iter_sequence_infinite(generator)\n                else:\n                    val_enqueuer_gen = val_data\n            else:\n                # Prepare data for validation\n                if len(validation_data) == 2:\n                    val_x, val_y = validation_data\n                    val_sample_weight = None\n                elif len(validation_data) == 3:\n                    val_x, val_y, val_sample_weight = validation_data\n                else:\n                    raise ValueError('`validation_data` should be a tuple '\n                                     '`(val_x, val_y, val_sample_weight)` '\n                                     'or `(val_x, val_y)`. Found: ' +\n                                     str(validation_data))\n                val_x, val_y, val_sample_weights = model._standardize_user_data(\n                    val_x, val_y, val_sample_weight)\n                val_data = val_x + val_y + val_sample_weights\n                if model.uses_learning_phase and not isinstance(K.learning_phase(),\n                                                                int):\n                    val_data += [0.]\n                for cbk in callbacks:\n                    cbk.validation_data = val_data\n    \n        if workers > 0:\n            if is_sequence:\n                enqueuer = OrderedEnqueuer(\n                    generator,\n                    use_multiprocessing=use_multiprocessing,\n                    shuffle=shuffle)\n            else:\n                enqueuer = GeneratorEnqueuer(\n                    generator,\n                    use_multiprocessing=use_multiprocessing,\n                    wait_time=wait_time)\n            enqueuer.start(workers=workers, max_queue_size=max_queue_size)\n            output_generator = enqueuer.get()\n        else:\n            if is_sequence:\n                output_generator = iter_sequence_infinite(generator)\n            else:\n                output_generator = generator\n    \n        callback_model.stop_training = False\n        # Construct epoch logs.\n        epoch_logs = {}\n        while epoch < epochs:\n            for m in model.stateful_metric_functions:\n                m.reset_states()\n            callbacks.on_epoch_begin(epoch)\n            steps_done = 0\n            batch_index = 0\n            while steps_done < steps_per_epoch:\n                generator_output = next(output_generator)\n    \n                if not hasattr(generator_output, '__len__'):\n                    raise ValueError('Output of generator should be '\n                                     'a tuple `(x, y, sample_weight)` '\n                                     'or `(x, y)`. Found: ' +\n                                     str(generator_output))\n    \n                if len(generator_output) == 2:\n                    x, y = generator_output\n                    sample_weight = None\n                elif len(generator_output) == 3:\n                    x, y, sample_weight = generator_output\n                else:\n                    raise ValueError('Output of generator should be '\n                                     'a tuple `(x, y, sample_weight)` '\n                                     'or `(x, y)`. Found: ' +\n                                     str(generator_output))\n                # build batch logs\n                batch_logs = {}\n                if x is None or len(x) == 0:\n                    # Handle data tensors support when no input given\n                    # step-size = 1 for data tensors\n                    batch_size = 1\n                elif isinstance(x, list):\n                    batch_size = x[0].shape[0]\n                elif isinstance(x, dict):\n                    batch_size = list(x.values())[0].shape[0]\n                else:\n                    batch_size = x.shape[0]\n                batch_logs['batch'] = batch_index\n                batch_logs['size'] = batch_size\n                callbacks.on_batch_begin(batch_index, batch_logs)\n    \n                outs = model.train_on_batch(x, y,\n                                            sample_weight=sample_weight,\n                                            class_weight=class_weight)\n    \n                outs = to_list(outs)\n                for l, o in zip(out_labels, outs):\n                    batch_logs[l] = o\n    \n                callbacks.on_batch_end(batch_index, batch_logs)\n    \n                batch_index += 1\n                steps_done += 1\n    \n                # Epoch finished.\n                if steps_done >= steps_per_epoch and do_validation:\n                    if val_gen:\n                        val_outs = model.evaluate_generator(\n                            val_enqueuer_gen,\n                            validation_steps,\n                            workers=0)\n                    else:\n                        # No need for try/except because\n                        # data has already been validated.\n                        val_outs = model.evaluate(\n                            val_x, val_y,\n                            batch_size=batch_size,\n                            sample_weight=val_sample_weights,\n                            verbose=0)\n                    val_outs = to_list(val_outs)\n                    # Same labels assumed.\n                    for l, o in zip(out_labels, val_outs):\n                        epoch_logs['val_' + l] = o\n    \n                if callback_model.stop_training:\n                    break\n    \n            callbacks.on_epoch_end(epoch, epoch_logs)\n            epoch += 1\n            if callback_model.stop_training:\n                break\n    \n    finally:\n        try:\n            if enqueuer is not None:\n                enqueuer.stop()\n        finally:\n            if val_enqueuer is not None:\n                val_enqueuer.stop()\n    \n    callbacks.on_train_end()\n    return model.history"
+        }
+    ]
+}

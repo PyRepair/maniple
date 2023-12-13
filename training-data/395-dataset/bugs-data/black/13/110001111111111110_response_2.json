@@ -1,0 +1,68 @@
+{
+    "black": [
+        {
+            "bugID": 13,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 337,
+            "file_name": "blib2to3/pgen2/tokenize.py",
+            "replace_code": "def generate_tokens(readline):\n\n    lnum = parenlev = continued = 0\n    numchars = '0123456789'\n    contstr, needcont = '', 0\n    contline = None\n    indents = [0]\n    stashed = None\n    async_def = False\n    async_def_indent = 0\n    async_def_nl = False\n    \n    while True:  # loop over lines in stream\n        try:\n            line = readline()\n        except StopIteration:\n            line = ''\n        lnum += 1\n        pos, max = 0, len(line)\n    \n        if contstr:  # continued string\n            if not line:\n                raise TokenError(\"EOF in multi-line string\", strstart)\n            endmatch = endprog.match(line)\n            if endmatch:\n                pos = end = endmatch.end(0)\n                yield (STRING, contstr + line[:end], strstart, (lnum, end), contline + line)\n                contstr, needcont = '', 0\n                contline = None\n            elif needcont and line[-2:] != '\\\\\\n' and line[-3:] != '\\\\\\r\\n':\n                yield (ERRORTOKEN, contstr + line, strstart, (lnum, len(line)), contline)\n                contstr = ''\n                contline = None\n                continue\n            else:\n                contstr = contstr + line\n                contline = contline + line\n                continue\n    \n        elif parenlev == 0 and not continued:  # new statement\n            if not line:\n                break\n            column = 0\n            while pos < max:  # measure leading whitespace\n                if line[pos] == ' ':\n                    column = column + 1\n                elif line[pos] == '\\t':\n                    column = (column // tabsize + 1) * tabsize\n                elif line[pos] == '\\f':\n                    column = 0\n                else:\n                    break\n                pos = pos + 1\n            if pos == max:\n                break\n    \n            if stashed:\n                yield stashed\n                stashed = None\n    \n            if line[pos] in '\\r\\n':  # skip blank lines\n                yield (NL, line[pos:], (lnum, pos), (lnum, len(line)), line)\n                continue\n    \n            if line[pos] == '#':  # skip comments\n                comment_token = line[pos:].rstrip('\\r\\n')\n                nl_pos = pos + len(comment_token)\n                yield (COMMENT, comment_token, (lnum, pos), (lnum, pos + len(comment_token)), line)\n                yield (NL, line[nl_pos:], (lnum, nl_pos), (lnum, len(line)), line)\n                continue\n    \n            if column > indents[-1]:  # count indents\n                indents.append(column)\n                yield (INDENT, line[:pos], (lnum, 0), (lnum, pos), line)\n    \n            while column < indents[-1]:  # count dedents\n                if column not in indents:\n                    raise IndentationError(\n                        \"unindent does not match any outer indentation level\",\n                        (\"<tokenize>\", lnum, pos, line))\n                indents = indents[:-1]\n    \n                if async_def and async_def_indent >= indents[-1]:\n                    async_def = False\n                    async_def_nl = False\n                    async_def_indent = 0\n    \n                yield (DEDENT, '', (lnum, pos), (lnum, pos), line)\n    \n            if async_def and async_def_nl and async_def_indent >= indents[-1]:\n                async_def = False\n                async_def_nl = False\n                async_def_indent = 0\n    \n        else:  # continued statement\n            if not line:\n                raise TokenError(\"EOF in multi-line statement\", (lnum, 0))\n            continued = 0\n    \n        while pos < max:\n            pseudomatch = pseudoprog.match(line, pos)\n            if pseudomatch:  # scan for tokens\n                start, end = pseudomatch.span(1)\n                spos, epos, pos = (lnum, start), (lnum, end), end\n                token, initial = line[start:end], line[start]\n    \n                if initial in numchars or (initial == '.' and token != '.'):  # ordinary number\n                    yield (NUMBER, token, spos, epos, line)\n                elif initial in '\\r\\n':\n                    newline = NEWLINE\n                    if parenlev > 0:\n                        newline = NL\n                    elif async_def:\n                        async_def_nl = True\n                    if stashed:\n                        yield stashed\n                        stashed = None\n                    yield (newline, token, spos, epos, line)\n    \n                elif initial == '#':\n                    assert not token.endswith(\"\\n\")\n                    if stashed:\n                        yield stashed\n                        stashed = None\n                    yield (COMMENT, token, spos, epos, line)\n                elif token in triple_quoted:\n                    endprog = endprogs[token]\n                    endmatch = endprog.match(line, pos)\n                    if endmatch:  # all on one line\n                        pos = endmatch.end(0)\n                        token = line[start:pos]\n                        if stashed:\n                            yield stashed\n                            stashed = None\n                        yield (STRING, token, spos, (lnum, pos), line)\n                    else:\n                        strstart = (lnum, start)  # multiple lines\n                        contstr = line[start:]\n                        contline = line\n                        break\n                elif initial in single_quoted or token[:2] in single_quoted or token[:3] in single_quoted:\n                    if token[-1] == '\\n':  # continued string\n                        strstart = (lnum, start)\n                        endprog = (endprogs[initial] or endprogs[token[1]] or\n                                   endprogs[token[2]])\n                        contstr, needcont = line[start:], 1\n                        contline = line\n                        break\n                    else:  # ordinary string\n                        if stashed:\n                            yield stashed\n                            stashed = None\n                        yield (STRING, token, spos, epos, line)\n                elif initial.isidentifier():  # ordinary name\n                    if token in ('async', 'await'):\n                        if async_def:\n                            yield (ASYNC if token == 'async' else AWAIT,\n                                   token, spos, epos, line)\n                            continue\n    \n                    tok = (NAME, token, spos, epos, line)\n                    if token == 'async' and not stashed:\n                        stashed = tok\n                        continue\n    \n                    if token == 'def':\n                        if (stashed\n                                and stashed[0] == NAME\n                                and stashed[1] == 'async'):\n    \n                            async_def = True\n                            async_def_indent = indents[-1]\n    \n                            yield (ASYNC, stashed[1],\n                                   stashed[2], stashed[3],\n                                   stashed[4])\n                            stashed = None\n    \n                    if stashed:\n                        yield stashed\n                        stashed = None\n    \n                    yield tok\n                elif initial == '\\\\':  # continued stmt\n                    # This yield is new; needed for better idempotency:\n                    if stashed:\n                        yield stashed\n                        stashed = None\n                    yield (NL, token, spos, (lnum, pos), line)\n                    continued = 1\n                else:\n                    if initial in '([{':\n                        parenlev = parenlev + 1\n                    elif initial in ')]}':\n                        parenlev = parenlev - 1\n                    if stashed:\n                        yield stashed\n                        stashed = None\n                    yield (OP, token, spos, epos, line)\n            else:\n                yield (ERRORTOKEN, line[pos], (lnum, pos), (lnum, pos+1), line)\n                pos = pos + 1\n    \n    if stashed:\n        yield stashed\n        stashed = None\n    \n    for indent in indents[1:]:  # pop remaining indent levels\n        yield (DEDENT, '', (lnum, 0), (lnum, 0), '')\n    yield (ENDMARKER, '', (lnum, 0), (lnum, 0), '')"
+        }
+    ]
+}

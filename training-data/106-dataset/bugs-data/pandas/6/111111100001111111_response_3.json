@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 6,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 601,
+            "file_name": "pandas/core/groupby/grouper.py",
+            "replace_code": "def get_grouper(\n    obj: FrameOrSeries,\n    key=None,\n    axis: int = 0,\n    level=None,\n    sort: bool = True,\n    observed: bool = False,\n    mutated: bool = False,\n    validate: bool = True,\n    dropna: bool = True,\n) -> \"Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]\":\n    from pandas.api.types import is_list_like, is_scalar\n    from pandas.core.dtypes.common import is_categorical_dtype\n    from pandas.core.indexes.base import Index\n    from pandas.core.indexes.period import PeriodIndex\n    from pandas.core.indexes.multi import MultiIndex\n    from pandas import DataFrame, Series, Index, np\n    from pandas.core.arrays import Categorical, Period\n    from pandas.core.base import StringMixin\n    from pandas import ops\n    from pandas._typing import FrameOrSeries, Hashable\n    from pandas.core.groupby.grouper import Grouping\n    from typing import List, Tuple\n    \"\"\"\n    Create and return a BaseGrouper, which is an internal\n    mapping of how to create the grouper indexers.\n    This may be composed of multiple Grouping objects, indicating\n    multiple groupers\n    \n    Groupers are ultimately index mappings. They can originate as:\n    index mappings, keys to columns, functions, or Groupers\n    \n    Groupers enable local references to axis,level,sort, while\n    the passed in axis, level, and sort are 'global'.\n    \n    This routine tries to figure out what the passing in references\n    are and then creates a Grouping for each one, combined into\n    a BaseGrouper.\n    \n    If observed & we have a categorical grouper, only show the observed\n    values.\n    \n    If validate, then check for key/level overlaps.\n    \n    \"\"\"\n    if isinstance(obj.index, PeriodIndex):\n        if not is_list_like(level):\n            level = [level]  # Convert level to list for consistency\n        keys = [obj.index.get_level_values(lev) for lev in level]\n    else:\n        # Handle the non-PeriodIndex case\n        key = obj._get_axis(axis)\n        keys = [key]\n        level = obj._get_axis_name(axis)\n    \n    groupings = [Grouping(\n        obj,\n        key,\n        level=lev,\n        sort=sort,\n        observed=observed,\n        dropna=dropna\n    ) for key, lev in zip(keys, level)]\n    \n    return ops.BaseGrouper(obj, groupings, sort=sort, mutated=mutated), [], obj"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 52,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 581,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def nunique(self, dropna: bool = True) -> Series:\n\n    \"\"\"\n    Return number of unique elements in the group.\n    \n    Returns\n    -------\n    Series\n        Number of unique values within each group.\n    \"\"\"\n    ids, _, _ = self.grouper.group_info\n    \n    val = self.obj._internal_get_values()\n    \n    # GH 27951\n    # temporary fix while we wait for NumPy bug 12629 to be fixed\n    val_copy = val.copy()\n    val_copy[isna(val_copy)] = np.datetime64(\"NaT\")\n    \n    try:\n        sorter = np.lexsort((val_copy, ids))\n    except TypeError:  # catches object dtypes\n        msg = f\"val_copy.dtype must be object, got {val_copy.dtype}\"\n        assert val_copy.dtype == object, msg\n        val_copy, _ = algorithms.factorize(val_copy, sort=False)\n        sorter = np.lexsort((val_copy, ids))\n        _isna = lambda a: a == -1\n    else:\n        _isna = isna\n    \n    ids, val_copy = ids[sorter], val_copy[sorter]\n    \n    # group boundaries are where group ids change\n    # unique observations are where sorted values change\n    idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]\n    inc = np.r_[1, val_copy[1:] != val_copy[:-1]]\n    \n    # 1st item of each group is a new unique observation\n    mask = _isna(val_copy)\n    if dropna:\n        inc[idx] = 1\n        inc[mask] = 0\n    else:\n        inc[mask & np.r_[False, mask[:-1]]] = 0\n        inc[idx] = 1\n    \n    out = np.add.reduceat(inc, idx).astype(\"int64\", copy=False)\n    if len(ids):\n        # NaN/NaT group exists if the head of ids is -1,\n        # so remove it from res and exclude its index from idx\n        if ids[0] == -1:\n            res = out[1:]\n            idx = idx[np.flatnonzero(idx)]\n        else:\n            res = out\n    else:\n        res = out[1:]\n    ri = self.grouper.result_index\n    \n    # we might have duplications among the bins\n    if len(res) != len(ri):\n        res, out = np.zeros(len(ri), dtype=out.dtype), res\n        res[ids[idx]] = out\n    \n    result = Series(res, index=ri, name=self._selection_name)\n    return self._reindex_output(result, fill_value=0)"
+        }
+    ]
+}

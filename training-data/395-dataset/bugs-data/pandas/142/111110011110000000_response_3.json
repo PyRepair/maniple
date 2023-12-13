@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 142,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 1890,
+            "file_name": "pandas/core/algorithms.py",
+            "replace_code": "def diff(arr: np.ndarray, n: int, axis: int = 0):\n    import numpy as np\n    \"\"\"\n    difference of n between self,\n    analogous to s-s.shift(n)\n    \n    Parameters\n    ----------\n    arr : ndarray\n    n : int\n        number of periods\n    axis : int\n        axis to shift on\n    \n    Returns\n    -------\n    shifted\n    \"\"\"\n    \n    n = int(n)\n    na = np.nan\n    \n    dtype = arr.dtype\n    \n    if isinstance(arr[0], (np.bool_, bool)):\n        dtype = np.bool_\n    elif np.issubdtype(dtype, np.integer):\n        dtype = np.float64\n    elif np.issubdtype(dtype, np.datetime64):\n        pass\n    else:\n        raise ValueError(f\"Unsupported dtype {dtype}\")\n    \n    # Must use empty_like to match the dtype properly\n    out_arr = np.empty_like(arr, dtype=dtype)\n    \n    na_indexer = [slice(None)] * arr.ndim\n    na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)\n    out_arr[na_indexer] = na\n    \n    if arr.ndim == 2 and arr.dtype.name in _diff_special:\n        f = _diff_special[arr.dtype.name]\n        f(arr, out_arr, n, axis)\n    else:\n        if arr.ndim == 1:\n            res_indexer = slice(n, None) if n >= 0 else slice(None, n)\n            lag_indexer = slice(None, -n) if n > 0 else slice(-n, None)\n        else:\n            # To keep mypy happy, _res_indexer is a list while res_indexer is\n            #  a tuple, ditto for lag_indexer.\n            _res_indexer = [slice(None)] * arr.ndim\n            _res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)\n            res_indexer = tuple(_res_indexer)\n    \n            _lag_indexer = [slice(None)] * arr.ndim\n            _lag_indexer[axis] = slice(None, -n) if n > 0 else slice(-n, None)\n            lag_indexer = tuple(_lag_indexer)\n    \n        result = arr[res_indexer] - arr[lag_indexer]\n    \n        if np.isnat(result).any():\n            result = result.astype(\"float64\", copy=False)\n            result[np.isnat(result)] = na\n    \n        out_arr[res_indexer] = result\n    \n    return out_arr"
+        }
+    ]
+}

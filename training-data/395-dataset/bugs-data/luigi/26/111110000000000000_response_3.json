@@ -1,0 +1,68 @@
+{
+    "luigi": [
+        {
+            "bugID": 26,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 70,
+            "file_name": "luigi/contrib/hadoop_jar.py",
+            "replace_code": "def run_job(self, job):\n\n    arglist = []\n    ssh_config = job.ssh()\n    \n    if ssh_config:\n        host = ssh_config.get(\"host\")\n        key_file = ssh_config.get(\"key_file\")\n        username = ssh_config.get(\"username\")\n        \n        if not host or not key_file or not username or not job.jar():\n            raise HadoopJarJobError(\"missing some config for HadoopRemoteJarJobRunner\")\n        \n        arglist = ['ssh', '-i', key_file,\n                   '-o', 'BatchMode=yes', '{}@{}'.format(username, host)]\n                   \n        if ssh_config.get(\"no_host_key_check\", False):\n            arglist += ['-o', 'UserKnownHostsFile=/dev/null',\n                        '-o', 'StrictHostKeyChecking=no']\n    else:\n        if not job.jar() or not os.path.exists(job.jar()):\n            logger.error(\"Can't find jar: %s, full path %s\", job.jar(), os.path.abspath(job.jar()))\n            raise HadoopJarJobError(\"job jar does not exist\")\n    \n    # TODO(jcrobak): libjars, files, etc. Can refactor out of\n    # hadoop.HadoopJobRunner\n    hadoop_arglist = luigi.contrib.hdfs.load_hadoop_cmd() + ['jar', job.jar()]\n    \n    if job.main():\n        hadoop_arglist.append(job.main())\n    \n    jobconfs = job.jobconfs()\n    \n    for jc in jobconfs:\n        hadoop_arglist += ['-D' + jc]\n    \n    (tmp_files, job_args) = fix_paths(job)\n    \n    hadoop_arglist += job_args\n    arglist.extend(hadoop_arglist)\n    \n    luigi.contrib.hadoop.run_and_track_hadoop_job(arglist)\n    \n    for a, b in tmp_files:\n        a.move(b)"
+        }
+    ]
+}

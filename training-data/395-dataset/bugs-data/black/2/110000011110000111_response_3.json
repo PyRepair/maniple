@@ -1,0 +1,68 @@
+{
+    "black": [
+        {
+            "bugID": 2,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 3112,
+            "file_name": "black.py",
+            "replace_code": "def generate_ignored_nodes(leaf: Leaf) -> Iterator[LN]:\n    from typing import Iterator, Optional, List\n    \"\"\"Starting from the container of `leaf`, generate all leaves until `# fmt: on`.\n    \n    Stops at the end of the block.\n    \"\"\"\n    FMT_ON = {\"# fmt: on\"}  # Assuming FMT_ON and FMT_OFF are defined elsewhere\n    FMT_OFF = {\"# fmt: off\"} \n    \n    # Define a helper function to check if fmt is on or off\n    def is_fmt_on_off(container: LN, index: int, fmt_set: set) -> bool:\n        for comment in list_comments(container.prefix, is_endmarker=False):\n            if comment.value in fmt_set:\n                return comment.value == \"# fmt: on\"\n        return False\n    \n    container: Optional[LN] = container_of(leaf)\n    \n    while container is not None and container.type != token.ENDMARKER:\n        is_fmt_on = False\n        in_fmt_block = True\n        parents: List[LN] = []\n    \n        while container and in_fmt_block:\n            # Check if fmt is on or off in the current block\n            is_fmt_on = is_fmt_on_off(container, -1, FMT_ON)\n            if not is_fmt_on:\n                is_fmt_on = is_fmt_on_off(container, -1, FMT_OFF)\n    \n            # Check if we need to exit the fmt block\n            if is_fmt_on:\n                in_fmt_block = False\n                break\n    \n            # If not part of fmt block, yield the container\n            yield container\n    \n            # Move to the next sibling\n            container = container.next_sibling\n    \n            # Check if we need to exit the fmt block with parent containers\n            while not container and parents:\n                container = parents.pop().next_sibling\n        \n        if not in_fmt_block:\n            # Move to the next sibling\n            container = container.next_sibling"
+        }
+    ]
+}

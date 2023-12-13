@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 133,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 7034,
+            "file_name": "pandas/core/generic.py",
+            "replace_code": "def interpolate(\n    self,\n    method=\"linear\",\n    axis=0,\n    limit=None,\n    inplace=False,\n    limit_direction=\"forward\",\n    limit_area=None,\n    downcast=None,\n    **kwargs\n):\n\n    \"\"\"\n    Interpolate values according to different methods.\n    \"\"\"\n    inplace = validate_bool_kwarg(inplace, \"inplace\")\n    \n    ax = self._info_axis_name if axis == 0 else 1\n    _maybe_transposed_self = self if axis == 0 else self.T\n    ax = _maybe_transposed_self._get_axis_number(ax)\n    \n    if _maybe_transposed_self.ndim == 2:\n        alt_ax = 1 - ax\n    else:\n        alt_ax = ax\n    \n    index = None\n    if method == \"linear\":\n        # prior default\n        index = np.arange(len(_maybe_transposed_self._get_axis(alt_ax)))\n    else:\n        index = _maybe_transposed_self._get_axis(alt_ax)\n        if not is_numeric_dtype(index) and not is_datetime64_any_dtype(index) and not is_timedelta64_dtype(index):\n            raise ValueError(\"Index column must be numeric or datetime type when using {method} method other than linear. Try setting a numeric or datetime index column before interpolating.\".format(method=method))\n    \n    if isna(index).any():\n        raise NotImplementedError(\"Interpolation with NaNs in the index has not been implemented. Try filling those NaNs before interpolating.\")\n    \n    data = _maybe_transposed_self._data\n    new_data = data.interpolate(\n        method=method,\n        axis=ax,\n        index=index,\n        values=_maybe_transposed_self,\n        limit=limit,\n        limit_direction=limit_direction,\n        limit_area=limit_area,\n        inplace=inplace,\n        downcast=downcast,\n        **kwargs\n    )\n    \n    if inplace:\n        if axis == 1:\n            new_data = self._constructor(new_data).T._data\n        self._update_inplace(new_data)\n    else:\n        res = self._constructor(new_data).__finalize__(self)\n        if axis == 1:\n            res = res.T\n        return res"
+        }
+    ]
+}

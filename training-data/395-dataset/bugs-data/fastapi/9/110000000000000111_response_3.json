@@ -1,0 +1,68 @@
+{
+    "fastapi": [
+        {
+            "bugID": 9,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 549,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "def get_body_field(*, dependant, name) -> Optional[Field]:\n    from typing import Optional, Type\n    from fastapi import params\n    from pydantic import create_model, BaseConfig\n    from pydantic.fields import ModelField, Field\n    from fastapi.dependencies.utils import get_flat_dependant\n    flat_dependant = get_flat_dependant(dependant)\n    if not flat_dependant.body_params:\n        return None\n    \n    # Check for media type and embed in request body parameters\n    media_type = \"application/json\"  # Default media type\n    for param in flat_dependant.body_params:\n        if getattr(param.schema, \"media_type\", None):\n            media_type = param.schema.media_type\n        if getattr(param.schema, \"embed\", False):\n            embed = True\n            break\n    else:\n        embed = False\n    \n    model_name = \"Body_\" + name\n    BodyModel = create_model(model_name)\n    \n    for f in flat_dependant.body_params:\n        BodyModel.__fields__[f.name] = get_schema_compatible_field(field=f)\n    \n    required = any(param.required for param in flat_dependant.body_params)\n    BodySchema: Type[params.Body] = params.Body\n    \n    field = Field(\n        name=\"body\",\n        type_=BodyModel,\n        default=None,\n        required=required,\n        model_config=BaseConfig,\n        class_validators={},\n        alias=\"body\",\n        schema=BodySchema(media_type=media_type),\n    )\n    return field"
+        }
+    ]
+}

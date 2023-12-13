@@ -1,0 +1,68 @@
+{
+    "thefuck": [
+        {
+            "bugID": 23,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 157,
+            "file_name": "thefuck/utils.py",
+            "replace_code": "def cache(*depends_on):\n    import os\n    import shelve\n    import tempfile\n    from decorator import decorator\n    \"\"\"Caches function result in temporary file.\n    \n    Cache will be expired when modification date of files from `depends_on`\n    will be changed.\n    \n    Function wrapped in `cache` should be arguments agnostic.\n    \n    \"\"\"\n    def _get_mtime(name):\n        path = os.path.join(os.path.expanduser('~'), name)\n        try:\n            return str(os.path.getmtime(path))\n        except OSError:\n            return '0'\n    \n    @decorator\n    def _cache(fn, *args, **kwargs):\n        if cache.disabled:\n            return fn(*args, **kwargs)\n    \n        cache_path = os.path.join(tempfile.gettempdir(), '.thefuck-cache')\n        key = '{}.{}'.format(fn.__module__, repr(fn).split('at')[0])\n    \n        etag = '.'.join(_get_mtime(name) for name in depends_on)\n    \n        with shelve.open(cache_path) as db:\n            if db.get(key, {}).get('etag') == etag:\n                return db[key]['value']\n            else:\n                value = fn(*args, **kwargs)\n                db[key] = {'etag': etag, 'value': value}\n                return value\n    return _cache"
+        }
+    ]
+}
