@@ -608,6 +608,8 @@ def create_query(messages: list, gpt_model: str) -> str:
             finish_reason = chat_completion.choices[0].finish_reason
             if finish_reason != "stop":
                 print_in_yellow(f"retrying due to not stop, finish reason: {finish_reason}")
+            elif finish_reason == "length":
+                raise QueryException(f"??? exceed maximum 16385 token size")
                 
             return chat_completion.choices[0].message.content
 
