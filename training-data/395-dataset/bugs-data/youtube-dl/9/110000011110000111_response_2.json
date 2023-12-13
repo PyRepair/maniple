@@ -1,0 +1,68 @@
+{
+    "youtube-dl": [
+        {
+            "bugID": 9,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 913,
+            "file_name": "youtube_dl/YoutubeDL.py",
+            "replace_code": "def build_format_selector(self, format_spec):\n\n    def syntax_error(note, start):\n        message = (\n            'Invalid format specification: '\n            '{0}\\n\\t{1}\\n\\t{2}^'.format(note, format_spec, ' ' * start[1]))\n        return SyntaxError(message)\n    \n    PICKFIRST = 'PICKFIRST'\n    MERGE = 'MERGE'\n    SINGLE = 'SINGLE'\n    GROUP = 'GROUP'\n    FormatSelector = collections.namedtuple('FormatSelector', ['type', 'selector', 'filters'])\n    \n    def _parse_filter(tokens):\n        filter_parts = []\n        for type, string, start, _, _ in tokens:\n            if type == tokenize.OP and string == ']':\n                return ''.join(filter_parts)\n            else:\n                filter_parts.append(string)\n    \n    def _parse_format_selection(tokens, endwith=None):\n        selectors = []\n        current_selector = None\n        for type, string, start, _, _ in tokens:\n            # ENCODING is only defined in python 3.x\n            if type == getattr(tokenize, 'ENCODING', None):\n                continue\n            elif type in [tokenize.NAME, tokenize.NUMBER]:\n                current_selector = FormatSelector(SINGLE, string, [])\n            elif type == tokenize.OP:\n                if endwith and string in endwith:\n                    break\n                elif string == ')':\n                    # ')' will be handled by the parentheses group\n                    tokens.restore_last_token()\n                    break\n                if string == ',':\n                    selectors.append(current_selector)\n                    current_selector = None\n                elif string == '/':\n                    first_choice = current_selector\n                    second_choice = _parse_format_selection(tokens, [','])\n                    current_selector = None\n                    selectors.append(FormatSelector(PICKFIRST, (first_choice, second_choice), []))\n                elif string == '[':\n                    if not current_selector:\n                        current_selector = FormatSelector(SINGLE, 'best', [])\n                    format_filter = _parse_filter(tokens)\n                    current_selector.filters.append(format_filter)\n                elif string == '(':\n                    if current_selector:\n                        raise syntax_error('Unexpected \"(\"', start)\n                    current_selector = FormatSelector(GROUP, _parse_format_selection(tokens, [')']), [])\n                elif string == '+':\n                    video_selector = current_selector\n                    audio_selector = _parse_format_selection(tokens, [','])\n                    current_selector = None\n                    selectors.append(FormatSelector(MERGE, (video_selector, audio_selector), []))\n                else:\n                    raise syntax_error('Operator not recognized: \"{0}\"'.format(string), start)\n            elif type == tokenize.ENDMARKER:\n                break\n        if current_selector:\n            selectors.append(current_selector)\n        return selectors\n    \n    def _build_selector_function(selector):\n        if isinstance(selector, list):\n            fs = [_build_selector_function(s) for s in selector]\n    \n            def selector_function(formats):\n                for f in fs:\n                    for format in f(formats):\n                        yield format\n            return selector_function\n        elif selector.type == GROUP:\n            selector_function = _build_selector_function(selector.selector)\n        elif selector.type == PICKFIRST:\n            fs = [_build_selector_function(s) for s in selector.selector]\n    \n            def selector_function(formats):\n                for f in fs:\n                    picked_formats = list(f(formats))\n                    if picked_formats:\n                        return picked_formats\n                return []\n        elif selector.type == SINGLE:\n            format_spec = selector.selector\n    \n            def selector_function(formats):\n                # The logic for selecting specific formats based on the format_spec\n                # ...\n                return selected_formats\n        elif selector.type == MERGE:\n            def _merge(formats_info):\n                # Logic for merging video and audio formats\n                # ...\n                return merged_format\n    \n            video_selector, audio_selector = map(_build_selector_function, selector.selector)\n    \n            def selector_function(formats):\n                # Logic for selecting and merging video and audio formats\n                return merged_formats\n    \n        filters = [self._build_format_filter(f) for f in selector.filters]\n    \n        def final_selector(formats):\n            for _filter in filters:\n                formats = list(filter(_filter, formats))\n            return selector_function(formats)\n        return final_selector\n    \n    # Corrected handling of stream and tokens\n    with io.BytesIO(format_spec.encode('utf-8')) as stream:\n        try:\n            tokens = list(compat_tokenize_tokenize(stream.readline))\n        except tokenize.TokenError:\n            raise syntax_error('Missing closing/opening brackets or parenthesis', (0, len(format_spec)))\n    \n    # Corrected parsing of format selection\n    parsed_selector = _parse_format_selection(iter(TokenIterator(tokens)))\n    return _build_selector_function(parsed_selector)"
+        }
+    ]
+}
