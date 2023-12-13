@@ -15,12 +15,9 @@ def run_clone_command(
     if envs_dir is not None:
         envs_dir = os.path.abspath(envs_dir)
         repo_dir = os.path.join(envs_dir, "repos", path_bugid_name)
-        if (
-            utils.global_args.verbose_logging
-            and not overwrite
-            and os.path.exists(repo_dir)
-        ):
-            print_in_yellow(f"Skipping cloning {bugid} because it already exists")
+        if not overwrite and os.path.exists(repo_dir):
+            if utils.global_args.verbose_logging:
+                print_in_yellow(f"Skipping cloning {bugid} because it already exists")
             return True
 
     try:
@@ -66,12 +63,9 @@ def run_prepare_command(
     if envs_dir is not None:
         envs_dir = os.path.abspath(envs_dir)
         prepare_env_dir = os.path.join(envs_dir, "envs", path_bugid_name)
-        if (
-            utils.global_args.verbose_logging
-            and not overwrite
-            and os.path.exists(prepare_env_dir)
-        ):
-            print_in_yellow(f"Skipping preparing {bugid} because it already exists")
+        if not overwrite and os.path.exists(prepare_env_dir):
+            if utils.global_args.verbose_logging:
+                print_in_yellow(f"Skipping preparing {bugid} because it already exists")
             return True
 
     # Start building the command
@@ -121,14 +115,11 @@ def run_extract_features_command(
     use_docker=False,
     overwrite=False,
 ) -> bool:
-    if (
-        utils.global_args.verbose_logging
-        and not overwrite
-        and os.path.exists(feature_json_path)
-    ):
-        print_in_yellow(
-            f"Skipping extracting features for {bugid} because it already exists"
-        )
+    if not overwrite and os.path.exists(feature_json_path):
+        if utils.global_args.verbose_logging:
+            print_in_yellow(
+                f"Skipping extracting features for {bugid} because it already exists"
+            )
         return True
 
     if envs_dir is not None:
@@ -181,14 +172,11 @@ def run_validate_patch_command(
     use_docker=False,
     overwrite=False,
 ) -> bool:
-    if (
-        utils.global_args.verbose_logging
-        and not overwrite
-        and os.path.exists(output_result_json_path)
-    ):
-        print_in_yellow(
-            f"Skipping validating patch for {bugid} because it already exists"
-        )
+    if not overwrite and os.path.exists(output_result_json_path):
+        if utils.global_args.verbose_logging:
+            print_in_yellow(
+                f"Skipping validating patch for {bugid} because it already exists"
+            )
         return True
 
     if envs_dir is not None:
