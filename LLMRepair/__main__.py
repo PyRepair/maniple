@@ -84,13 +84,6 @@ def resolve_cli_args():
     )
 
     args_parser.add_argument(
-        "--test-mode",
-        action="store_true",
-        help="Take only 1 bug from each project",
-        default=False,
-    )
-
-    args_parser.add_argument(
         "--use-supported",
         action="store_true",
         help="Take only supported projects",
@@ -164,14 +157,12 @@ def main(args):
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
             use_supported=args.use_supported,
-            test_mode=args.test_mode,
         )
         s2 = load_bugids_from_dataset(
             "395subset",
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
             use_supported=args.use_supported,
-            test_mode=args.test_mode,
         )
         bugids = s1 + s2
 
@@ -181,7 +172,6 @@ def main(args):
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
             use_supported=args.use_supported,
-            test_mode=args.test_mode,
         )
 
     print(f"Use bugids: {','.join(bugids)}, total: {len(bugids)}")

@@ -17,7 +17,6 @@ def load_bugids_from_dataset(
     exclude_projects=[],
     include_projects=[],
     use_supported=True,
-    test_mode=False,
 ):
     subset_list_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -79,7 +78,5 @@ def load_bugids_from_dataset(
                 continue
 
             bugids.append(bugid_label)
-            if test_mode:
-                break
 
     return bugids
