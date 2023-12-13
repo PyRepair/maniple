@@ -497,7 +497,6 @@ class PromptGenerator:
                 need_regenerate = False
 
             if not need_regenerate:
-                print(f"{response_md_file_name} already exists in directory {self.output_dir}")
                 return
 
         try:
