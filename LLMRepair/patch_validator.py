@@ -75,7 +75,7 @@ def validate_patches(
 
         # coordinate with Nihil, accuracy can only be ensured by running prepare command
         if not run_prepare_command(
-            bugid, envsdir, use_docker, overwrite=True, restart=False
+            bugid, envs_dir, use_docker, overwrite=True, restart=False
         ):
             continue
 
