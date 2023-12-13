@@ -10,7 +10,6 @@ from command_runner import (
 )
 
 from utils import (
-    IGNORED_BUGS,
     NotSupportedError,
     generate_contextual_diff_with_char_limit,
     get_fact_map,

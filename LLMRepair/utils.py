@@ -6,12 +6,6 @@ import re
 from typing import Dict, Optional
 
 
-IGNORED_BUGS = [
-    "spacy:2", "spacy:3", "spacy:5", "scrapy:11", # 106
-    "keras:26", "black:21" # 395
-]
-
-
 class NotSupportedError(Exception):
     def __init__(self, message):
         super().__init__(message)

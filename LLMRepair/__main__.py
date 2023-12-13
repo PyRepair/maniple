@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from utils import print_in_yellow, IGNORED_BUGS
+from utils import print_in_yellow
 from cleaner import (
     clear_features,
     clear_logs,

@@ -2,7 +2,7 @@ import json
 from typing import Literal, Union
 import os
 
-from utils import NotSupportedError, IGNORED_BUGS
+from utils import NotSupportedError
 
 DatasetType = Union[
     Literal["106subset"],
@@ -76,9 +76,6 @@ def load_bugids_from_dataset(
 
             bugid_label = f"{project_name}:{bugid}"
             if use_supported and bugid_label not in support_list:
-                continue
-
-            if bugid_label in IGNORED_BUGS:
                 continue
 
             bugids.append(bugid_label)
