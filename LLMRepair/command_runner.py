@@ -199,7 +199,7 @@ def run_validate_patch_command(
         print(f"Validating patch for {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
-        subprocess.run(command, check=True, capture_output=True, timeout=60)
+        subprocess.run(command, check=True, capture_output=True, timeout=10)
 
     except subprocess.TimeoutExpired:
         print_in_red(f"Timeout for {bugid}")

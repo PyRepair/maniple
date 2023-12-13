@@ -13,6 +13,7 @@ def main(path):
         0,
         0,
     )
+    count_2 = 0
     count_6_7 = 0
 
     for root, _, files in os.walk(path):
@@ -36,6 +37,8 @@ def main(path):
                 elif first_value == 0:
                     count_0 += 1
                     bug_fixed_in_folder = True
+                elif first_value == 2:
+                    count_2 += 1
                 elif first_value == 4:
                     count_4 += 1
                 elif first_value == 6 or first_value == 7:
@@ -54,6 +57,9 @@ def main(path):
     )
     print(
         f"Number of fail labels (flag 1): {count_1}, percentage: {int((count_1 / total) * 100)}%"
+    )
+    print(
+        f"Number of test running timeouts (flag 2): {count_2}, percentage: {int((count_2 / total) * 100)}%"
     )
     print(
         f"Number of test running errors (flag 4): {count_4}, percentage: {int((count_4 / total) * 100)}%"
