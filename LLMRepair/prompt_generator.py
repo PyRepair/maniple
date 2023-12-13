@@ -613,7 +613,7 @@ def create_query(messages: list, gpt_model: str) -> str:
     retry_max_count = 10
     while retry_max_count > 0:
         try:
-            time.sleep(0.5)
+            time.sleep(0.2)
             chat_completion = client.chat.completions.create(
                 model=gpt_model,
                 messages=messages
