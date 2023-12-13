@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 dataset_name = "106-dataset"
-database_path = os.path.join("..", "training-data", dataset_name)
+database_path = os.path.join("..", "training-data", dataset_name, "bugs-data")
 result_sheet_folder = os.path.join("..", "training-data", "result-sheet", dataset_name)
 
 if not os.path.exists(result_sheet_folder):
@@ -52,19 +52,22 @@ else:
         "result_filename": []
     }
 
+count = 0
 for project_name in os.listdir(database_path):
-    for bug_id in os.listdir(project_name):
-        bug_path = os.path.join(database_path, project_name, bug_id)
-        result_files = [path for path in os.listdir(bug_path) if "result" in path]
+    project_path = os.path.join(database_path, project_name)
+    for bug_id in os.listdir(project_path):
+        bug_path = os.path.join(project_path, bug_id)
+        for result_file_name in os.listdir(bug_path):
+            if "_result_1.json" not in result_file_name:
+                continue
 
-        for result_file_name in result_files:
             with open(os.path.join(bug_path, result_file_name), "r") as result_file:
                 result = json.load(result_file)
                 pass_test = result[f"{project_name}:{bug_id}"]
 
             with open(os.path.join(bug_path, result_file_name.replace("result", "response")), "r") as response_file:
                 response = json.load(response_file)
-                if only_available_fact_strata == 1:
+                if only_available_fact_strata == 0:
                     fact_bitvector: dict = response[project_name][0]["bitvector"]
                     strata_bitvector: dict = response[project_name][0]["strata"]
                 else:
@@ -107,6 +110,6 @@ for project_name in os.listdir(database_path):
 
 df = pd.DataFrame(data)
 if use_strata == 1:
-    df.to_excel(os.path.join(result_sheet_folder, "raw_result_fact.xlsx"), index=False)
-else:
     df.to_excel(os.path.join(result_sheet_folder, "raw_result_strata.xlsx"), index=False)
+else:
+    df.to_excel(os.path.join(result_sheet_folder, "raw_result_fact.xlsx"), index=False)
