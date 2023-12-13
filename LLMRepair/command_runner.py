@@ -199,7 +199,14 @@ def run_validate_patch_command(
         print(f"Validating patch for {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
-        subprocess.run(command, check=True, capture_output=True)
+        subprocess.run(command, check=True, capture_output=True, timeout=60)
+
+    except subprocess.TimeoutExpired:
+        print_in_red(f"Timeout for {bugid}")
+        with open(output_result_json_path, "w") as f:
+            json.dump({bugid: 2}, f, indent=4)
+
+        return False
 
     except subprocess.CalledProcessError as e:
         error_log_path = input_patch_json_path.replace("response", "log").replace(
@@ -208,8 +215,10 @@ def run_validate_patch_command(
         msg = e.stderr.decode("utf-8") + "\n" + e.stdout.decode("utf-8")
         with open(os.path.join(error_log_path), "w") as f:
             f.write(msg)
+
         with open(output_result_json_path, "w") as f:
             json.dump({bugid: 8}, f, indent=4)
+
         return False
 
     return True
