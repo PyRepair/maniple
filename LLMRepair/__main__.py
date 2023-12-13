@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from utils import print_in_yellow
+from utils import divide_list, print_in_yellow
 from cleaner import (
     clear_features,
     clear_logs,
@@ -65,7 +65,14 @@ def resolve_cli_args():
         "--output-dir",
         type=str,
         help="specify directory to store prompt and result files",
-        default=os.getcwd(),
+        required=True,
+    )
+
+    args_parser.add_argument(
+        "--partitions",
+        type=int,
+        help="specify the number of partitions",
+        default=1,
     )
 
     args_parser.add_argument(
@@ -112,6 +119,40 @@ def resolve_cli_args():
     return args
 
 
+def run_single_partition_bugids(args, bugids):
+    for bugid in bugids:
+        bwd = os.path.join(args.output_dir, *bugid.split(":"))
+        if not os.path.exists(bwd):
+            os.makedirs(bwd)
+
+        try:
+            if args.command == "prep":
+                ensure_clone_and_prep_complete(
+                    bugid, args.envs_dir, args.use_docker, args.overwrite
+                )
+            elif args.command == "extract":
+                collect_facts(
+                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                )
+            elif args.command == "validate":
+                validate_patches(
+                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                )
+            elif args.command == "clean_feature_files":
+                clear_features(bwd)
+            elif args.command == "clean_log_files":
+                clear_logs(bwd)
+            elif args.command == "clean_prompt_files":
+                clear_prompts(bwd)
+            elif args.command == "clean_result_files":
+                clear_results(bwd)
+            elif args.command == "clean_response_files":
+                clear_responses(bwd)
+
+        except NotSupportedError as e:
+            print_in_yellow(f"WARNING: {e}, skip bugid: {bugid}")
+
+
 def main(args):
     if len(args.bugids) > 0:
         bugids = args.bugids
@@ -144,38 +185,18 @@ def main(args):
 
     print(f"Use bugids: {','.join(bugids)}, total: {len(bugids)}")
 
-    for bugid in bugids:
-        bwd = os.path.join(args.output_dir, *bugid.split(":"))
-        if not os.path.exists(bwd):
-            os.makedirs(bwd)
+    bugids_partitions = divide_list(bugids, args.partitions)
 
-        try:
-            if args.command == "prep":
-                ensure_clone_and_prep_complete(
-                    bugid, args.envs_dir, args.use_docker, args.overwrite
-                )
-            elif args.command == "extract":
-                collect_facts(
-                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
-                )
-            elif args.command == "validate":
-                validate_patches(
-                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
-                )
-            elif args.command == "clean_feature_files":
-                clear_features(bwd)
-            elif args.command == "clean_log_files":
-                clear_logs(bwd)
-            elif args.command == "clean_prompt_files":
-                clear_prompts(bwd)
-            elif args.command == "clean_result_files":
-                clear_results(bwd)
-            elif args.command == "clean_response_files":
-                clear_responses(bwd)
+    threads = []
+    for partition_bugids in strata_bitvectors:
+        thread = threading.Thread(
+            target=run_single_partition_bugids, args=(args, bugids)
+        )
+        thread.start()
+        threads.append(thread)
 
-        except NotSupportedError as e:
-            print_in_yellow(f"WARNING: {e}")
-            print_in_yellow(f"Skip {bugid}")
+    for thread in threads:
+        thread.join()
 
 
 if __name__ == "__main__":

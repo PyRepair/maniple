@@ -19,6 +19,21 @@ def get_fact_map() -> Dict[str, str]:
     return facts
 
 
+def divide_list(lst: list, n_partitions: int):
+    if n_partitions <= 0:
+        raise ValueError("Number of partitions must be a positive integer")
+
+    partition_size, remainder = divmod(len(lst), n_partitions)
+    return [
+        lst[
+            i * partition_size
+            + min(i, remainder) : (i + 1) * partition_size
+            + min(i + 1, remainder)
+        ]
+        for i in range(n_partitions)
+    ]
+
+
 def print_in_red(text):
     RED = "\033[91m"
     RESET = "\033[0m"
