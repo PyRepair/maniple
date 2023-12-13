@@ -647,6 +647,6 @@ if __name__ == "__main__":
                     print(f"generate prompt for {project}:{bid}")
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                     prompt_generator.generate_prompt()
-                    prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
+                    prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106")
                 except Exception as e:
                     print_in_red(str(e))
