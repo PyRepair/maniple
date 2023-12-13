@@ -1,0 +1,68 @@
+{
+    "youtube-dl": [
+        {
+            "bugID": 18,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 820,
+            "file_name": "youtube_dl/YoutubeDL.py",
+            "replace_code": "def process_ie_result(self, ie_result, download=True, extra_info={}):\n\n    result_type = ie_result.get('_type', 'video')\n    if result_type in ('url', 'url_transparent'):\n        ie_result['url'] = 'sanitized_url'\n        extract_flat = self.params.get('extract_flat', False)\n        if ((extract_flat == 'in_playlist' and 'playlist' in extra_info) or extract_flat is True):\n            if self.params.get('forcejson', False):\n                return json.dumps(ie_result)\n    \n    if result_type == 'video':\n        self.add_extra_info(ie_result, extra_info)\n        return self.process_video_result(ie_result, download=download)\n    \n    elif result_type == 'url':\n        return self.extract_info(ie_result['url'], download, ie_key=ie_result.get('ie_key'), extra_info=extra_info)\n    \n    elif result_type == 'url_transparent':\n        info = self.extract_info(ie_result['url'], ie_key=ie_result.get('ie_key'), extra_info=extra_info, download=False, process=False)\n    \n        if not info:\n            return info\n    \n        force_properties = {k: v for k, v in ie_result.items() if v is not None and k not in ('_type', 'url', 'ie_key')}\n        new_result = info.copy()\n        new_result.update(force_properties)\n    \n        if new_result.get('_type') == 'url':\n            new_result['_type'] = 'url_transparent'\n    \n        return self.process_ie_result(new_result, download=download, extra_info=extra_info)\n    \n    elif result_type in ('playlist', 'multi_video'):\n        # Process each entry in the playlist\n        playlist = ie_result.get('title') or ie_result.get('id')\n        self.to_screen(f'[download] Downloading playlist: {playlist}')\n    \n        # Implementation for processing playlists goes here...\n    \n    elif result_type == 'compat_list':\n        self.report_warning(f'Extractor {ie_result.get(\"extractor\")} returned a compat_list result. It needs to be updated.')\n    \n        def _fixup(r):\n            self.add_extra_info(r, {'extractor': ie_result['extractor'], 'webpage_url': ie_result['webpage_url'], 'webpage_url_basename': url_basename(ie_result['webpage_url']), 'extractor_key': ie_result['extractor_key']})\n            return r\n    \n        entries = [self.process_ie_result(_fixup(r), download, extra_info) for r in ie_result['entries']]\n        ie_result['entries'] = entries\n        return ie_result\n    \n    else:\n        raise Exception(f'Invalid result type: {result_type}')"
+        }
+    ]
+}
