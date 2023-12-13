@@ -1,5 +1,6 @@
 import argparse
 import os
+import threading
 
 from utils import divide_list, print_in_yellow
 from cleaner import (
@@ -188,9 +189,9 @@ def main(args):
     bugids_partitions = divide_list(bugids, args.partitions)
 
     threads = []
-    for partition_bugids in strata_bitvectors:
+    for bugids_partition in bugids_partitions:
         thread = threading.Thread(
-            target=run_single_partition_bugids, args=(args, bugids)
+            target=run_single_partition_bugids, args=(args, bugids_partition)
         )
         thread.start()
         threads.append(thread)
