@@ -1,0 +1,68 @@
+{
+    "luigi": [
+        {
+            "bugID": 30,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 168,
+            "file_name": "luigi/worker.py",
+            "replace_code": "def run(self):\n    import os\n    import time\n    import random\n    import json\n    import notifications\n    logger.info('[pid %s] Worker %s running   %s', os.getpid(), self.worker_id, self.task.task_id)\n    \n    if self.random_seed:\n        # Need to have different random seeds if running in separate processes\n        random.seed((os.getpid(), time.time()))\n    \n    status = FAILED\n    error_message = ''\n    missing = []\n    new_deps = []\n    try:\n        # Verify that all the tasks are fulfilled!\n        missing = [dep.task_id for dep in self.task.deps() if not dep.complete()]\n        if missing:\n            deps = 'dependency' if len(missing) == 1 else 'dependencies'\n            raise RuntimeError('Unfulfilled %s at run time: %s' % (deps, ', '.join(missing)))\n        self.task.trigger_event(Event.START, self.task)\n        t0 = time.time()\n        status = None\n        try:\n            new_deps = self._run_get_new_deps()\n            if new_deps is None:\n                status = RUNNING\n            else:\n                status = SUSPENDED\n                logger.info(\n                    '[pid %s] Worker %s new requirements      %s',\n                    os.getpid(), self.worker_id, self.task.task_id)\n        finally:\n            if status != SUSPENDED:\n                self.task.trigger_event(\n                    Event.PROCESSING_TIME, self.task, time.time() - t0)\n                error_message = json.dumps(self.task.on_success())\n                logger.info('[pid %s] Worker %s done      %s', os.getpid(),\n                            self.worker_id, self.task.task_id)\n                self.task.trigger_event(Event.SUCCESS, self.task)\n                status = DONE\n    \n    except KeyboardInterrupt:\n        raise\n    except BaseException as ex:\n        status = FAILED\n        logger.exception(\"[pid %s] Worker %s failed    %s\", os.getpid(), self.worker_id, self.task)\n        error_message = notifications.wrap_traceback(self.task.on_failure(ex))\n        self.task.trigger_event(Event.FAILURE, self.task, ex)\n        subject = \"Luigi: %s FAILED\" % self.task\n        notifications.send_error_email(subject, error_message)\n    finally:\n        self.result_queue.put(\n            (self.task.task_id, status, error_message, missing, new_deps))"
+        }
+    ]
+}
