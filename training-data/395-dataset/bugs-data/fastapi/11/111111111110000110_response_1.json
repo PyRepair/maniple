@@ -1,0 +1,68 @@
+{
+    "fastapi": [
+        {
+            "bugID": 11,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 133,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "def is_scalar_field(field: Field) -> bool:\n\n    from typing import Any, Dict, Type, Tuple\n    from pydantic.schema import (\n    field_type_schema,\n    field_singleton_schema,\n    field_singleton_sub_fields_schema\n)\n    from pydantic.fields import Field\n    ref_prefix = ref_prefix or default_prefix\n    definitions: Dict[str, Any] = {}\n    nested_models: Set[str] = set()\n    if field.sub_fields:\n        return field_singleton_sub_fields_schema(\n            field.sub_fields,\n            by_alias=by_alias,\n            model_name_map=model_name_map,\n            schema_overrides=schema_overrides,\n            ref_prefix=ref_prefix,\n            known_models=known_models,\n        )\n    if field.type_ is Any or type(field.type_) == TypeVar:\n        return {}, definitions, nested_models  # no restrictions\n    if is_callable_type(field.type_):\n        raise SkipField(f'Callable {field.name} was excluded from schema since JSON schema has no equivalent type.')\n    f_schema: Dict[str, Any] = {}\n    if field.schema is not None and field.schema.const:\n        f_schema['const'] = field.default\n    field_type = field.type_\n    if is_new_type(field_type):\n        field_type = new_type_supertype(field_type)\n    if is_literal_type(field_type):\n        literal_value = literal_values(field_type)[0]\n        field_type = type(literal_value)\n        f_schema['const'] = literal_value\n    if issubclass(field_type, Enum):\n        f_schema.update({'enum': [item.value for item in field_type]})\n        # Don't return immediately, to allow adding specific types\n    for field_name, schema_name in validation_attribute_to_schema_keyword.items():\n        field_value = getattr(field_type, field_name, None)\n        if field_value is not None:\n            if field_name == 'regex':\n                field_value = field_value.pattern\n            f_schema[schema_name] = field_value\n    for type_, t_schema in field_class_to_schema_enum_enabled:\n        if issubclass(field_type, type_):\n            f_schema.update(t_schema)\n            break\n    if f_schema:\n        return f_schema, definitions, nested_models\n    for type_, t_schema in field_class_to_schema_enum_disabled:\n        if issubclass(field_type, type_):\n            return t_schema, definitions, nested_models\n    if lenient_issubclass(getattr(field_type, '__pydantic_model__', None), BaseModel):\n        field_type = field_type.__pydantic_model__\n    if issubclass(field_type, BaseModel):\n        model_name = model_name_map.get(field_type)\n        if model_name is not None:\n            return model_name, definitions, nested_models\n    return {}, definitions, nested_models"
+        }
+    ]
+}

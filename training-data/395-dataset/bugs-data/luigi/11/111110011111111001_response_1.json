@@ -1,0 +1,68 @@
+{
+    "luigi": [
+        {
+            "bugID": 11,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 818,
+            "file_name": "luigi/scheduler.py",
+            "replace_code": "def get_work(self, host=None, assistant=False, current_tasks=None, worker=None, **kwargs):\n\n    if self._config.prune_on_get_work:\n        self.prune()\n    \n    assert worker is not None\n    worker_id = worker\n    self.update(worker_id, {'host': host}, get_work=True)\n    if assistant:\n        self.add_worker(worker_id, [('assistant', assistant)])\n    \n    pending_tasks = self._state.get_pending_tasks()\n    relevant_tasks = [\n        task for task in pending_tasks\n        if task.status == PENDING \n        and self._schedulable(task) \n        and self._has_resources(task.resources, self._used_resources())\n    ]\n    \n    batchable_tasks = [\n        task for task in relevant_tasks \n        if task.is_batchable()\n    ]\n    \n    if batchable_tasks:\n        batched_params = {param: [task.params[param] for task in batchable_tasks] for param in batchable_tasks[0].params.keys()}\n        combined_params = {}\n        for param, values in batched_params.items():\n            combined_params[param] = values\n        combined_params.update(kwargs)  # Combine with any additional parameters\n        return {\n            'n_pending_tasks': len(relevant_tasks),\n            'running_tasks': [],\n            'task_id': None,\n            'n_unique_pending': len(set(task.id for task in relevant_tasks)),\n            'task_family': relevant_tasks[0].family,\n            'task_module': getattr(relevant_tasks[0], 'module', None),\n            'task_params': combined_params\n        }\n    else:\n        # Return no pending tasks if there are no batchable tasks\n        return {\n            'n_pending_tasks': 0,\n            'running_tasks': [],\n            'task_id': None,\n            'n_unique_pending': 0,\n            'task_family': None,\n            'task_module': None,\n            'task_params': None\n        }"
+        }
+    ]
+}

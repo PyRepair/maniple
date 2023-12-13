@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 115,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 167,
+            "file_name": "pandas/core/missing.py",
+            "replace_code": "def interpolate_1d(\n    xvalues: ptypes.NDFrameOrArray, \n    yvalues: ptypes.NDFrameOrArray, \n    method: str = \"linear\",\n    limit: Optional[int] = None,\n    limit_direction: str = \"forward\",\n    limit_area: Optional[str] = None,\n    fill_value: Optional[float] = None,\n    bounds_error: bool = False,\n    order: Optional[int] = None,\n    **kwargs\n) -> np.ndarray:\n    import numpy as np\n    from pandas.api import types as ptypes\n    from pandas.core import algorithms as algos\n    from pandas.core.dtypes.common import needs_i8_conversion\n    from pandas.core.missing import isna\n    from pandas.core.series import Series\n    from typing import Optional, List, Tuple\n    if not isinstance(xvalues, np.ndarray):\n        xvalues = np.array(xvalues)\n    if not isinstance(yvalues, np.ndarray):\n        yvalues = np.array(yvalues)\n    \n    invalid = isna(yvalues)\n    valid = ~invalid\n    \n    if not valid.any():\n        result = np.full_like(xvalues, fill_value, dtype=np.float64)\n        return result\n    \n    result = yvalues.copy()\n    indices = np.arange(len(yvalues))\n    \n    if method == \"index\":\n        method = \"values\"\n    \n    valid_limit_directions = [\"forward\", \"backward\", \"both\"]\n    limit_direction = limit_direction.lower()\n    if limit_direction not in valid_limit_directions:\n        raise ValueError(\n            f\"Invalid limit_direction: expecting one of {valid_limit_directions}, got {limit_direction}.\"\n        )\n    \n    if limit_area is not None:\n        valid_limit_areas = [\"inside\", \"outside\"]\n        limit_area = limit_area.lower()\n        if limit_area not in valid_limit_areas:\n            raise ValueError(\n                f\"Invalid limit_area: expecting one of {valid_limit_areas}, got {limit_area}.\"\n            )\n    \n    limit = algos._validate_limit(nobs=None, limit=limit)\n    \n    all_nans = set(indices[invalid])\n    start_nans = set(range(find_valid_index(yvalues, \"first\")))\n    end_nans = set(range(1 + find_valid_index(yvalues, \"last\"), len(valid)))\n    mid_nans = all_nans - start_nans - end_nans\n    \n    if limit_direction == \"forward\":\n        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))\n    elif limit_direction == \"backward\":\n        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))\n    else:\n        preserve_nans = set(_interp_limit(invalid, limit, limit))\n    \n    if limit_area == \"inside\":\n        preserve_nans |= start_nans | end_nans\n    elif limit_area == \"outside\":\n        preserve_nans |= mid_nans\n    \n    preserve_nans = sorted(preserve_nans)\n    \n    if method in [\"linear\", \"time\", \"index\", \"values\"]:\n        if method in (\"values\", \"index\"):\n            inds = np.asarray(xvalues)\n            if needs_i8_conversion(inds.dtype.type):\n                inds = inds.view(np.int64)\n            if inds.dtype == np.object_:\n                inds = Series(inds).infer_objects().to_numpy()\n        else:\n            inds = xvalues\n        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])\n        result[preserve_nans] = np.nan\n    else:\n        sp_methods = [\n            \"nearest\",\n            \"zero\",\n            \"slinear\",\n            \"quadratic\",\n            \"cubic\",\n            \"barycentric\",\n            \"krogh\",\n            \"spline\",\n            \"polynomial\",\n            \"from_derivatives\",\n            \"piecewise_polynomial\",\n            \"pchip\",\n            \"akima\",\n        ]\n        if method in sp_methods:\n            inds = np.asarray(xvalues)\n            if inds.dtype.type == np.datetime64:\n                inds = inds.view(np.int64)\n            result[invalid] = _interpolate_scipy_wrapper(\n                inds[valid],\n                yvalues[valid],\n                inds[invalid],\n                method=method,\n                fill_value=fill_value,\n                bounds_error=bounds_error,\n                order=order,\n                **kwargs,\n            )\n            result[preserve_nans] = np.nan\n    \n    return result"
+        }
+    ]
+}
