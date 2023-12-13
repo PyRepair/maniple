@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 3,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model):\n    from tensorflow.keras.layers import Input, InputLayer\n    from tensorflow.keras.models import Model\n    import tensorflow.keras.backend as K\n    from tensorflow.keras.utils.generic_utils import to_list, has_arg\n    \"\"\"Clone a functional `Model` instance.\n    \n    Model cloning is similar to calling a model on new inputs,\n    except that it creates new layers (and thus new weights) instead\n    of sharing the weights of the existing layers.\n    \n    # Arguments\n        model: Instance of `Model`.\n    \n    # Returns\n        An instance of `Model` reproducing the behavior\n        of the original model, using newly instantiated weights.\n        \n    # Raises\n        ValueError: in case of invalid `model` argument value.\n    \"\"\"\n    from tensorflow.keras.layers import Input, InputLayer\n    from tensorflow.keras.models import Model\n    import tensorflow.keras.backend as K\n    from tensorflow.keras.utils.generic_utils import to_list, has_arg\n    \n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument '\n                         'to be a `Model` instance, got ', model)\n    \n    layer_map = {}  # Cache for created layers\n    tensor_map = {}  # Map {reference_tensor: corresponding_tensor}\n    # Iterated over every layer (not node) in the reference model.\n    for layer in model.layers:\n        # If the layer is an input layer, the input tensor\n        # gets a clone (overriding the already created one).\n        # Otherwise, create new layer instances.\n        if isinstance(layer, InputLayer):\n            new_layer = Input(batch_shape=layer.batch_input_shape,\n                              dtype=layer.dtype,\n                              sparse=layer.sparse,\n                              name=layer.name)\n        else:\n            # Create new layer instance\n            new_layer = layer.__class__.from_config(layer.get_config())\n        # Keep track\n        layer_map[layer] = new_layer\n        # Update accompanying input tensor\n        original_input_tensor = layer.get_input_at(0)\n        new_tensor = new_layer.get_input_at(0)\n        tensor_map[original_input_tensor] = new_tensor\n    \n    # Set the input tensors.\n    input_tensors = [tensor_map[x] for x in model.inputs]\n    \n    # Set layer weights.\n    for layer in model.layers:\n        new_layer = layer_map[layer]\n        if layer.weights:\n            weights = layer.get_weights()\n            new_layer.set_weights(weights)\n    \n    # Recreate output tensors.\n    output_tensors = [tensor_map[x] for x in model.outputs]\n    \n    # Create a new model instance\n    new_model = Model(input_tensors, output_tensors, name=model.name)\n    return new_model"
+        }
+    ]
+}

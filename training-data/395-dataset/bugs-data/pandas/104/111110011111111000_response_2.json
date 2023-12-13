@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 104,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 1845,
+            "file_name": "pandas/core/groupby/groupby.py",
+            "replace_code": "def quantile(self, q=[0.5], interpolation: str = \"linear\"):\n    from pandas import concat\n    \"\"\"\n    Return group values at the given quantile, a la numpy.percentile.\n    \n    Parameters\n    ----------\n    q : float or array-like, default 0.5 (50% quantile)\n        Value(s) between 0 and 1 providing the quantile(s) to compute.\n    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}\n        Method to use when the desired quantile falls between two points.\n    \n    Returns\n    -------\n    Series or DataFrame\n        Return type determined by caller of GroupBy object.\n    \n    See Also\n    --------\n    Series.quantile : Similar method for Series.\n    DataFrame.quantile : Similar method for DataFrame.\n    numpy.percentile : NumPy method to compute qth percentile.\n    \n    Examples\n    --------\n    >>> df = pd.DataFrame([\n    ...     ['a', 1], ['a', 2], ['a', 3],\n    ...     ['b', 1], ['b', 3], ['b', 5]\n    ... ], columns=['key', 'val'])\n    >>> df.groupby('key').quantile()\n        val\n    key\n    a    2.0\n    b    3.0\n    \"\"\"\n    from pandas import concat\n    \n    def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:\n        if is_object_dtype(vals):\n            raise TypeError(\n                \"'quantile' cannot be performed against 'object' dtypes!\"\n            )\n    \n        inference = None\n        if is_integer_dtype(vals):\n            inference = np.int64\n        elif is_datetime64_dtype(vals):\n            inference = \"datetime64[ns]\"\n            vals = vals.astype(np.float)\n    \n        return vals, inference\n    \n    def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:\n        if inference:\n            # Check for edge case\n            if not (\n                is_integer_dtype(inference)\n                and interpolation in {\"linear\", \"midpoint\"}\n            ):\n                vals = vals.astype(inference)\n    \n        return vals\n    \n    if is_scalar(q):\n        return self._get_cythonized_result(\n            \"group_quantile\",\n            aggregate=True,\n            needs_values=True,\n            needs_mask=True,\n            cython_dtype=np.dtype(np.float64),\n            pre_processing=pre_processor,\n            post_processing=post_processor,\n            q=q,\n            interpolation=interpolation,\n        )\n    else:\n        results = [\n            self._get_cythonized_result(\n                \"group_quantile\",\n                aggregate=True,\n                needs_values=True,\n                needs_mask=True,\n                cython_dtype=np.dtype(np.float64),\n                pre_processing=pre_processor,\n                post_processing=post_processor,\n                q=qi,\n                interpolation=interpolation,\n            )\n            for qi in q\n        ]\n        result = concat(results, axis=0, keys=q)\n        # fix levels to place quantiles on the inside\n        # TODO(GH-10710): Ideally, we could write this as\n        #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]\n        #  but this hits https://github.com/pandas-dev/pandas/issues/10710\n        #  which doesn't reorder the list-like `q` on the inner level.\n        order = np.roll(list(range(result.index.nlevels)), -1)\n        result = result.reorder_levels(order)\n        result = result.reindex(q, level=-1)\n    \n        # fix order.\n        hi = len(q) * self.ngroups\n        arr = np.arange(0, hi, self.ngroups)\n        arrays = []\n    \n        for i in range(self.ngroups):\n            arr2 = arr + i\n            arrays.append(arr2)\n    \n        indices = np.concatenate(arrays)\n        assert len(indices) == len(result)\n        return result.take(indices)"
+        }
+    ]
+}
