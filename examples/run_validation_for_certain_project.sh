@@ -6,4 +6,4 @@ python3 LLMRepair validate \
     --include-projects black \
     --timeout 30 \
     --overwrite \
-    --partitions 8
+    --partitions 4
