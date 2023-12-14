@@ -164,7 +164,10 @@ def run_extract_features_command(
                 command += ["--envs-dir", envs_dir]
             command += ["--feature-json", feature_json_path]
 
-        print(f"Extracting features for {bugid} using command: '{' '.join(command)}'")
+        if verbose_logging:
+            print(
+                f"Extracting features for {bugid} using command: '{' '.join(command)}'"
+            )
 
         # Run the subprocess
         subprocess.run(command, capture_output=True, check=True)
@@ -256,7 +259,7 @@ def run_validate_patch_command(
             os.killpg(proc.pid, signal.SIGTERM)
             proc.communicate()
 
-            print_in_red(f"Timeout for {bugid}")
+            print_in_red(f"Timeout for {input_patch_json_path}")
             with open(output_result_json_path, "w") as f:
                 json.dump({bugid: 2}, f, indent=4)
             return False

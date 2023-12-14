@@ -77,7 +77,12 @@ def validate_patches(
 
         # coordinate with Nihil, accuracy can only be ensured by running prepare command
         if not run_prepare_command(
-            bugid, envs_dir, use_docker, overwrite=True, restart=False
+            bugid,
+            envs_dir,
+            use_docker,
+            overwrite=True,
+            restart=False,
+            verbose_logging=verbose_logging,
         ):
             continue
 
@@ -92,4 +97,4 @@ def validate_patches(
             overwrite=overwrite,
             verbose_logging=verbose_logging,
         ):
-            print_in_green(f"Successfully validated patch for {bugid}")
+            print_in_green(f"Successfully validated patch for {result_file_path}")
