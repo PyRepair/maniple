@@ -489,16 +489,14 @@ def collect_facts(
     envs_dir: Optional[str] = None,
     use_docker=False,
     overwrite=False,
+    verbose_logging=False,
 ):
-    if bugid in IGNORED_BUGS:
-        print_in_yellow(f"WARNING: {bugid} is ignored")
-        return
-
     ensure_clone_and_prep_complete(
         bugid,
         envs_dir,
         use_docker=use_docker,
         overwrite=False,
+        verbose_logging=verbose_logging,
     )
 
     bug_json_file = os.path.join(bwd, "bug-data.json")
@@ -508,9 +506,12 @@ def collect_facts(
         envs_dir,
         use_docker=use_docker,
         overwrite=overwrite,
+        verbose_logging=verbose_logging,
     ):
         return
 
     facts = Facts(bugid, bwd)
     facts.load_from_bwd(bug_json_file, write_markdown_files=True, write_facts_json=True)
-    # print_in_yellow(facts.report_stats())
+
+    if verbose_logging:
+        print_in_yellow(facts.report_stats())

@@ -7,7 +7,7 @@ from command_runner import (
     run_prepare_command,
     run_validate_patch_command,
 )
-from utils import print_in_yellow
+from utils import print_in_green, print_in_yellow
 
 
 def is_patch_file_ok(patchfile_path: str, result_file_path: str, bugid: str) -> bool:
@@ -38,6 +38,8 @@ def validate_patches(
     envs_dir: Optional[str] = None,
     use_docker=False,
     overwrite=False,
+    timeout=30,
+    verbose_logging=False,
 ):
     """
     Result status code: (1-5 from pytest, 6-7 from LLMRepair)
@@ -80,11 +82,14 @@ def validate_patches(
             continue
 
         # run validation
-        run_validate_patch_command(
+        if run_validate_patch_command(
             bugid,
             patchfile_path,
             result_file_path,
+            timeout,
             envs_dir,
             use_docker=use_docker,
             overwrite=overwrite,
-        )
+            verbose_logging=verbose_logging,
+        ):
+            print_in_green(f"Successfully validated patch for {bugid}")

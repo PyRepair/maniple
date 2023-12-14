@@ -3,10 +3,7 @@ import ast
 import json
 import os
 import re
-from typing import Dict, Optional
-
-
-global_args = None
+from typing import Dict, List, Optional, Tuple
 
 
 class NotSupportedError(Exception):
@@ -47,6 +44,12 @@ def print_in_yellow(text):
     YELLOW = "\033[93m"
     RESET = "\033[0m"
     print(f"{YELLOW}{text}{RESET}")
+
+
+def print_in_green(text):
+    green_start = "\033[92m"
+    reset = "\033[0m"
+    print(f"{green_start}{text}{reset}")
 
 
 def remove_comments_and_docstrings(source):
@@ -207,3 +210,52 @@ def _extract_function_from_code_block_impl(
     )
 
     return modified_function
+
+
+def extract_function_and_tuple_from_code_block(
+    code_block: str, func_name: str
+) -> Optional[Tuple[str, List[str]]]:
+    try:
+        return _extract_function_and_tuple_from_code_block_impl(code_block, func_name)
+    except Exception:
+        return None
+
+
+def _extract_function_and_tuple_from_code_block_impl(
+    code_block: str, func_name: str
+) -> Optional[Tuple[str, List[str]]]:
+    """
+    Extracts a function and its import statements from a source code block.
+
+    :param code_block: valid python source code
+    :param func_name: name of the function to be extracted
+    :return: Tuple containing the function code and a list of import statements
+    """
+
+    # Parsing the source code into an AST
+    tree = ast.parse(code_block)
+
+    # Find the function node and import statements
+    function_node = None
+    import_statements = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == func_name:
+            function_node = node
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            import_statements.append(node)
+
+    if not function_node:
+        return None
+
+    # Extract the source code of the function
+    function_code = ast.get_source_segment(code_block, function_node)  # type: ignore
+
+    if function_code is None:
+        return None
+
+    # Extract import statements as source code
+    imports_code: List[str] = [
+        ast.get_source_segment(code_block, node) for node in import_statements  # type: ignore
+    ]
+
+    return function_code, imports_code

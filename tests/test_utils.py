@@ -1,7 +1,7 @@
 import pytest
 from LLMRepair.utils import (
     generate_contextual_diff_with_char_limit,
-    extract_function_from_response,
+    extract_function_from_code_block,
     remove_comments_and_docstrings,
 )
 
@@ -32,7 +32,9 @@ def test_function():
     """
 
     # Call the function with the test inputs
-    result = extract_function_from_response(input_code, "test_function")
+    result = extract_function_from_code_block(input_code, "test_function")
+
+    assert result is not None
 
     # Define the expected output
     expected_output = """
@@ -64,7 +66,10 @@ def _partially_consume_prefix(self, prefix, column):
     current_line = ""
 """
 
-    result = extract_function_from_response(input_code, "_partially_consume_prefix")
+    result = extract_function_from_code_block(input_code, "_partially_consume_prefix")
+
+    assert result is not None
+
     assert result.strip() == expected_output.strip()
 
 
@@ -95,7 +100,7 @@ def pivot(data: "DataFrame", index=None, columns, values) -> "DataFrame":
     return indexed.unstack(columns)
 """
     with pytest.raises(SyntaxError):
-        extract_function_from_response(input_code, "pivot")
+        extract_function_from_code_block(input_code, "pivot")
 
 
 def test_remove_comments_and_docstrings():
@@ -123,7 +128,7 @@ def test_remove_comments_and_docstrings():
         {
             "input": "from a import b\nimport c\n\n# This is a comment\nprint('Hello, world!')",
             "expected": "print('Hello, world!')",
-        }
+        },
     ]
 
     # Test each case

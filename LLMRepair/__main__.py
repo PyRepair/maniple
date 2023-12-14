@@ -3,7 +3,6 @@ import os
 import threading
 
 from utils import divide_list, print_in_yellow
-import utils
 from cleaner import (
     clear_features,
     clear_logs,
@@ -137,16 +136,34 @@ def run_single_partition_bugids(args, bugids):
         try:
             if args.command == "prep":
                 ensure_clone_and_prep_complete(
-                    bugid, args.envs_dir, args.use_docker, args.overwrite
+                    bugid,
+                    args.envs_dir,
+                    args.use_docker,
+                    args.overwrite,
+                    args.verbose_logging,
                 )
+
             elif args.command == "extract":
                 collect_facts(
-                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                    bugid,
+                    bwd,
+                    args.envs_dir,
+                    args.use_docker,
+                    args.overwrite,
+                    args.verbose_logging,
                 )
+
             elif args.command == "validate":
                 validate_patches(
-                    bugid, bwd, args.envs_dir, args.use_docker, args.overwrite
+                    bugid,
+                    bwd,
+                    args.envs_dir,
+                    args.use_docker,
+                    args.overwrite,
+                    args.timeout,
+                    args.verbose_logging,
                 )
+
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":
@@ -207,5 +224,4 @@ def main(args):
 
 if __name__ == "__main__":
     args = resolve_cli_args()
-    utils.global_args = args
     main(args)
