@@ -3,7 +3,7 @@ import signal
 import subprocess
 import os
 from typing import Optional
-from utils import print_in_yellow, print_in_red
+from utils import print_in_green, print_in_yellow, print_in_red
 
 
 def run_clone_command(
@@ -102,6 +102,8 @@ def run_prepare_command(
         with open(f"logs/{path_bugid_name}_prep_fail_log.txt", "w") as f:
             f.write(all_output)
         return False
+
+    print_in_green(f"Successfully prepared {bugid}")
 
     return True
 

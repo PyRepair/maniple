@@ -13,6 +13,7 @@ from utils import (
     NotSupportedError,
     generate_contextual_diff_with_char_limit,
     get_fact_map,
+    print_in_green,
     print_in_red,
     print_in_yellow,
 )
@@ -515,3 +516,5 @@ def collect_facts(
 
     if verbose_logging:
         print_in_yellow(facts.report_stats())
+
+    print_in_green(f"fact collected successfully for {bugid}")
