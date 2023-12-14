@@ -101,6 +101,40 @@ for dataset_name in dataset:
 
     print(f"{len(fixed_bug)} bug fixed at least in one of three response generation using a specific bitvector in {dataset_name}")
 
+    fixed_bug: dict = {}
+    for index, row in fix_rate[fix_rate['fix_probability'] > 0].iterrows():
+        project_bug_id = f"{row['Project']}:{row['Bug_id']}"
+        code_key = ''.join(row.iloc[2:9].astype(str))
+
+        # Append the project_bug_id to the set in the dictionary for the code_key
+        if project_bug_id not in fixed_bug:
+            fixed_bug[project_bug_id] = {}
+
+        fixed_bug[project_bug_id][code_key] = row['fix_probability']
+
+    for bug in fixed_bug.keys():
+        bitvectors: dict = fixed_bug[bug]
+        if "1111111" in bitvectors or "1000000" in bitvectors.keys():
+            continue
+
+        all_success_bitvectors = bitvectors.copy()
+
+        keys_to_remove = []
+        for key, value in all_success_bitvectors.items():
+            if value != 1:
+                keys_to_remove.append(key)
+
+        for key in keys_to_remove:
+            del all_success_bitvectors[key]
+
+        if len(all_success_bitvectors) == 0:
+            continue
+
+        print(f"{dataset_name} {bug} can be fixed by {len(all_success_bitvectors)} bitvectors in all 3 generation"
+              f", but not with all facts or only buggy function. They are:")
+        print(all_success_bitvectors.keys())
+        print()
+
     if all_success == 0:
         fix_succeed = fix_rate[fix_rate['fix_probability'] > 0]
     else:
