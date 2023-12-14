@@ -62,7 +62,7 @@
             },
             "start_line": 1827,
             "file_name": "pandas/core/groupby/groupby.py",
-            "replace_code": null
+            "replace_code": "def quantile(self, q=0.5, interpolation: str = \"linear\"):\n    import numpy as np\n    from pandas import DataFrame, concat\n    from pandas.api.types import is_object_dtype, is_integer_dtype, is_datetime64_dtype\n    from typing import Tuple, Optional, Type\n    def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:\n        if any(isinstance(val, str) for val in vals):\n            raise TypeError(\n                \"'quantile' cannot be performed against 'object' dtypes!\"\n            )\n    \n        inference = None\n        if any(isinstance(val, int) for val in vals):\n            inference = np.int64\n        elif any(isinstance(val, np.datetime64) for val in vals):\n            inference = \"datetime64[ns]\"\n            vals = np.asarray(vals).astype(np.float)\n    \n        return vals, inference\n    \n    def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:\n        if inference:\n            # Check for edge case\n            if not (\n                is_integer_dtype(inference)\n                and interpolation in {\"linear\", \"midpoint\"}\n            ):\n                vals = vals.astype(inference)\n    \n        return vals\n    \n    # rest of the function remains the same\n    ..."
         }
     ]
 }

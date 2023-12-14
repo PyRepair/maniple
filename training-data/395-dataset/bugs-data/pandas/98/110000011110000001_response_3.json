@@ -62,7 +62,7 @@
             },
             "start_line": 271,
             "file_name": "pandas/core/indexes/base.py",
-            "replace_code": null
+            "replace_code": "def __new__(\n    cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,\n) -> \"Index\":\n    # ... (previous code)\n\n    # period with specified dtype\n    from .multi import MultiIndex\n    if is_period_dtype(data) and (dtype is not None):\n        return PeriodIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)\n    # ... (previous code)\n    \n    elif hasattr(data, \"__array__\"):\n        return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)\n    elif data is None or is_scalar(data):\n        raise cls._scalar_data_error(data)\n    else:\n        if tupleize_cols and is_list_like(data):\n            # GH21470: convert iterable to list before determining if empty\n            if is_iterator(data):\n                data = list(data)\n    \n            if data and all(isinstance(e, tuple) for e in data):\n                # we must be all tuples, otherwise don't construct\n                # 10697\n                from .multi import MultiIndex\n    \n                return MultiIndex.from_tuples(\n                    data, names=name or kwargs.get(\"names\")\n                )\n        # other iterable of some kind\n        subarr = com.asarray_tuplesafe(data, dtype=object)\n        return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)"
         }
     ]
 }

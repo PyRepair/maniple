@@ -62,7 +62,7 @@
             },
             "start_line": 376,
             "file_name": "tornado/http1connection.py",
-            "replace_code": null
+            "replace_code": "def write_headers(\n        self,\n        start_line: Union[httputil.RequestStartLine, httputil.ResponseStartLine],\n        headers: httputil.HTTPHeaders,\n        chunk: bytes = None,\n    ) -> \"Future[None]\":\n    from tornado.concurrent import Future\n    \"\"\"Implements `.HTTPConnection.write_headers`.\"\"\"\n    lines = []\n    # ... (existing code remains the same) ...\n    \n    future = Future()  # Create a Future object\n    \n    if self.stream.closed():\n        future.set_exception(iostream.StreamClosedError())\n    else:\n        data = b\"\\r\\n\".join(lines) + b\"\\r\\n\\r\\n\"\n        if chunk:\n            data += self._format_chunk(chunk)\n        self._pending_write = self.stream.write(data)\n        future_add_done_callback(self._pending_write, self._on_write_complete)\n    \n    return future  # Return the Future object"
         }
     ]
 }

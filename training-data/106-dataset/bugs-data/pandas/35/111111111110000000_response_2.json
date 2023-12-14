@@ -62,7 +62,7 @@
             },
             "start_line": 325,
             "file_name": "pandas/core/indexes/period.py",
-            "replace_code": null
+            "replace_code": "def _engine(self, inplace=False):\n    # To avoid a reference cycle, pass a weakref of self to _engine_type.\n\n    if self._length == 0:\n        raise ValueError(\"Cannot call _engine with length of 0\")\n    \n    if inplace:\n        if self._engine is not None:\n            inplace = False\n            if self._allocated == self._length:\n                return self._join_inplace(other)\n            else:\n                msg = f\"cannot join with no overlapping index\"\n                raise ValueError(msg)\n    \n    if not hasattr(self, \"is_monotonic_increasing\") or inplace:\n        return super()._engine(inplace=inplace)\n    \n    shape = (self._length,) if self._length else (0,)\n    if hasattr(self, \"_CXIndex\"):\n        return CXEngineDNNP(self, inplace=inplace)\n    elif self.is_monotonic_increasing:\n        return self._engine_type_I8(self, shape, inplace=inplace)\n    else:\n        return self._engine_type_DeltI8(self, shape, inplace=inplace)"
         }
     ]
 }

@@ -62,7 +62,7 @@
             },
             "start_line": 884,
             "file_name": "pandas/core/series.py",
-            "replace_code": null
+            "replace_code": "def _get_with(self, key):\n\n    if isinstance(key, slice):\n        return self._slice(key)\n    elif isinstance(key, ABCDataFrame):\n        raise TypeError(\n            \"Indexing a Series with DataFrame is not \"\n            \"supported, use the appropriate DataFrame column\"\n        )\n    elif isinstance(key, tuple):\n        try:\n            return self._get_values_tuple(key)\n        except ValueError:\n            if len(key) == 1:\n                key = key[0]\n                if isinstance(key, slice):\n                    return self._get_values(key)\n            raise\n    if not isinstance(key, (list, np.ndarray, Series, Index)):\n        key = list(key)\n    key_type = lib.infer_dtype(key, skipna=False)\n    if key_type == \"integer\":\n        if self.index.is_integer() or self.index.is_floating():\n            return self.loc[key]\n        elif isinstance(self.index, IntervalIndex):\n            indexer = self.index.get_indexer_for(key)\n            return self.iloc[indexer]\n        else:\n            return self._get_values(key)\n    if isinstance(key, (list, tuple)):\n        if len(key) == 1 and isinstance(key[0], slice):\n            return self._get_values(key)\n        return self.loc[key]\n    return self.reindex(key)"
         }
     ]
 }

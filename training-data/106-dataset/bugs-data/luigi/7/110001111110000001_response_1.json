@@ -62,7 +62,7 @@
             },
             "start_line": 761,
             "file_name": "luigi/scheduler.py",
-            "replace_code": null
+            "replace_code": "def add_task(self, task_id=None, status='PENDING', runnable=True,\n             deps=None, new_deps=None, expl=None, resources=None,\n             priority=0, family='', module=None, params=None,\n             assistant=False, tracking_url=None, worker=None, batchable=None,\n             batch_id=None, retry_policy_dict={}, owners=None, **kwargs):\n\n    worker_id = worker\n    worker = self.get_worker(worker_id)\n    \n    if not worker.enabled:\n        return  # Return if the worker is not enabled\n    \n    task = self.get_task(task_id, setdefault=self._make_task(task_id))\n    \n    if task is None or (task.status != 'RUNNING' and not worker.enabled):\n        return  # Return if the task is not found or if it's not running and worker is not enabled\n    \n    # Update the task status only if there's an actual change\n    if status != task.status:\n        # Perform status updates and history tracking\n        self.set_status(task, status, config=self._config)\n        self._update_task_history(task, status)\n    \n    #... (other logic)\n    \n    # Update other task attributes as needed\n    \n    #...\n    \n    if runnable and status not in ['FAILED', 'SUSPENDED'] and worker.enabled:\n        task.workers.add(worker_id)\n        self.get_worker(worker_id).tasks.add(task)\n        task.runnable = runnable"
         }
     ]
 }

@@ -62,7 +62,7 @@
             },
             "start_line": 2676,
             "file_name": "keras/backend/tensorflow_backend.py",
-            "replace_code": null
+            "replace_code": "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n    # ... (other implementation details)\n\n    import tensorflow as tf\n    if unroll:\n        # ... (other implementation details)\n    \n        if mask is not None:\n            # ... (other implementation details)\n    \n            if not successive_outputs:\n                prev_output = tf.zeros_like(output)  # change zeros_like to tf.zeros_like\n            else:\n                prev_output = successive_outputs[-1]\n    \n            # Ensure proper handling of the shapes for mask application\n            output = tf.where(tiled_mask_t, output, prev_output)\n    \n            return_states = []\n            for state, new_state in zip(states, new_states):\n                return_states.append(tf.where(tiled_mask_t, new_state, state))\n            states = return_states\n            successive_outputs.append(output)\n            successive_states.append(states)\n        last_output = successive_outputs[-1]\n        new_states = successive_states[-1]\n        outputs = tf.stack(successive_outputs)\n    \n    else:\n        if go_backwards:\n            inputs = tf.reverse(inputs, [0])  # change reverse to tf.reverse\n    \n        states = tuple(initial_states)\n    \n        time_steps = tf.shape(inputs)[0]\n        outputs, _ = step_function(inputs[0], initial_states + constants)\n    \n        # ... (other implementation details)\n    \n    return last_output, outputs, new_states"
         }
     ]
 }

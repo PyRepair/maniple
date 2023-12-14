@@ -62,7 +62,7 @@
             },
             "start_line": 73,
             "file_name": "pandas/core/computation/expressions.py",
-            "replace_code": null
+            "replace_code": "def _can_use_numexpr(op, op_str, a, b, dtype_check):\n    import numpy as np\n    \"\"\" return a boolean if we WILL be using numexpr \"\"\"\n    if op_str is not None:\n    \n        # required min elements (otherwise we are adding overhead)\n        if np.prod(a.shape) > _MIN_ELEMENTS:\n    \n            # check for dtype compatibility\n            dtypes = set()\n            for o in [a, b]:\n                if hasattr(o, \"dtypes\"):\n                    if o.dtypes.nunique() == 1:\n                        dtypes.add(str(o.dtypes[0]))\n                    else:\n                        return False  # Return False if multiple dtypes are present\n                elif isinstance(o, np.ndarray):\n                    dtypes.add(o.dtype.name)\n                else:\n                    return False  # Return False for unsupported types\n    \n            # Check whether dtype compatibility is ensured\n            if not dtypes:  # If no dtypes found, return False\n                return False\n            if len(dtypes) == 1 and _ALLOWED_DTYPES[dtype_check] >= dtypes:\n                return True\n    return False"
         }
     ]
 }

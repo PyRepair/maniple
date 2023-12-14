@@ -62,7 +62,7 @@
             },
             "start_line": 51,
             "file_name": "fastapi/routing.py",
-            "replace_code": null
+            "replace_code": "def serialize_response(\n    *,\n    field: Field = None,\n    response_content: Any,\n    include: Union[Set[int,str], Dict[int,str,Any]] = None,\n    exclude: Union[Set[int,str], Dict[int,str,Any]] = set(),\n    by_alias: bool = True,\n    exclude_unset: bool = False,\n) -> Any:\n    from typing import Any, Union, Set, Dict\n    from pydantic import BaseModel, Field, ValidationError\n    from fastapi.encoders import jsonable_encoder\n    from concurrent.futures import ThreadPoolExecutor\n    import asyncio\n    if field:\n        if exclude_unset and isinstance(response_content, BaseModel):\n            response_content = response_content.dict(exclude_unset=exclude_unset)\n        \n        if asyncio.iscoroutinefunction(field.validate):\n            value = await field.validate(response_content, {}, loc=(\"response\",))\n        else:\n            with ThreadPoolExecutor() as pool:\n                loop = asyncio.get_event_loop()\n                value = await loop.run_in_executor(pool, field.validate, response_content, {}, loc=(\"response\",))\n    \n        return jsonable_encoder(\n            value,\n            include=include,\n            exclude=exclude,\n            by_alias=by_alias,\n            exclude_unset=exclude_unset,\n        )\n    else:\n        return jsonable_encoder(response_content)"
         }
     ]
 }

@@ -62,7 +62,7 @@
             },
             "start_line": 2676,
             "file_name": "keras/backend/tensorflow_backend.py",
-            "replace_code": null
+            "replace_code": "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n    \n    # ... (previous code) ...\n    \n\n    for inp, mask_t in zip(input_list, mask_list):\n        output, new_states = step_function(inp, states + constants)\n        if getattr(output, '_uses_learning_phase', False):\n            uses_learning_phase = True\n        \n        # Transformation to ensure dimensions are compatible\n        # Use broadcasting to align the shapes\n        if output.shape[1] != prev_output.shape[1]:\n            output = tf.tile(output, [1, prev_output.shape[1] // output.shape[1]])\n        \n        # Perform the masked update of output\n        prev_output = tf.where(mask_t, output, prev_output)\n        \n        return_states = []\n        for state, new_state in zip(states, new_states):\n            # Perform the masked update of states\n            new_state = tf.where(mask_t, new_state, state)\n            return_states.append(new_state)\n        \n        states = return_states\n        successive_outputs.append(output)\n        successive_states.append(states)"
         }
     ]
 }
