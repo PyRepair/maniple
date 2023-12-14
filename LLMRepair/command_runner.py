@@ -103,7 +103,8 @@ def run_prepare_command(
             f.write(all_output)
         return False
 
-    print_in_green(f"Successfully prepared {bugid}")
+    if restart:
+        print_in_green(f"Successfully prepared {bugid}")
 
     return True
 
