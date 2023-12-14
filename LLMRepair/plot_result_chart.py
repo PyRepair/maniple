@@ -36,6 +36,9 @@ def create_fix_probability(test_data, filename):
         fix_patch_count=lambda x: (x == 0).sum(),
         total_response_count=lambda x: x.count()
     ).reset_index()
+
+    fix_rate_data = fix_rate_data.sort_values(by='fix_probability', ascending=False)
+
     fix_rate_data.to_excel(os.path.join(result_sheet_folder, filename), index=False)
 
     return fix_rate_data
@@ -44,7 +47,10 @@ def create_fix_probability(test_data, filename):
 def create_fix_rate_for_each_bug(fix_rate_data, filename):
     fix_rate_for_each_bug = fix_rate_data.groupby(['Project', 'Bug_id'])[
         ['fix_patch_count', 'total_response_count']].sum().reset_index()
+
     fix_rate_for_each_bug.to_excel(os.path.join(result_sheet_folder, filename), index=False)
+
+    return fix_rate_for_each_bug
 
 
 def create_bitvector_fix_rate(fix_rate_data, filename):
@@ -59,64 +65,87 @@ def create_bitvector_fix_rate(fix_rate_data, filename):
     grouped_df.to_excel(os.path.join(result_sheet_folder, filename), index=False)
 
 
-def keep_top_5_highest_fix_rate_bitvector(input_dict):
+def keep_top_k_highest_fix_rate_bitvector(input_dict, _k: int):
     # Sort the input_dict based on the length of the value dict in descending order
     sorted_dict = sorted(input_dict.items(), key=lambda x: len(x[1]), reverse=True)
 
     # Keep only the top 10
-    top_10 = dict(sorted_dict[:5])
+    top_10 = dict(sorted_dict[:_k])
 
     return top_10
 
 
-dataset_name = "395-dataset"
-database_path = os.path.join("..", "training-data", dataset_name)
-result_sheet_folder = os.path.join("..", "training-data", "result-sheet", dataset_name)
-result_path = os.path.join(result_sheet_folder, "raw_result_strata.xlsx")
+dataset = ["106-dataset", "395-dataset", "315-dataset"]
 
-raw_data = pd.read_excel(result_path, engine='openpyxl')
+all_success = 0
 
-create_raw_bitvector_fix_rate(raw_data, "raw_strata_fix_rate.xlsx")
-create_raw_aggregate_fix_rate(raw_data, "raw_aggregate_fix_rate.xlsx")
-fix_rate = create_fix_probability(raw_data, "strata_fix_probability_for_each_bug.xlsx")
-create_fix_rate_for_each_bug(fix_rate, "fix_rate_for_each_bug.xlsx")
-create_bitvector_fix_rate(fix_rate, "strata_fix_rate.xlsx")
+for dataset_name in dataset:
+    result_sheet_folder = os.path.join("..", "training-data", "result-sheet", dataset_name)
+    result_path = os.path.join(result_sheet_folder, "raw_result_strata.xlsx")
 
+    raw_data = pd.read_excel(result_path, engine='openpyxl')
 
-fix_succeed = fix_rate[fix_rate['fix_probability'] > 0]
+    create_raw_bitvector_fix_rate(raw_data, "raw_strata_fix_rate.xlsx")
+    create_raw_aggregate_fix_rate(raw_data, "raw_aggregate_fix_rate.xlsx")
+    fix_rate = create_fix_probability(raw_data, "strata_fix_probability_for_each_bug.xlsx")
+    create_fix_rate_for_each_bug(fix_rate, "fix_count_for_each_bug.xlsx")
+    create_bitvector_fix_rate(fix_rate, "strata_fix_count.xlsx")
 
-result_dict: dict = {}
+    fixed_bug = {}
+    for index, row in fix_rate[fix_rate['fix_probability'] > 0].iterrows():
+        project_bug_id = f"{row['Project']}:{row['Bug_id']}"
 
-# Iterate through each row of the filtered DataFrame
-for index, row in fix_succeed.iterrows():
-    # Concatenate the values of columns 3 to 19 as the code key
-    code_key = ''.join(row.iloc[2:9].astype(str))
+        # Append the project_bug_id to the set in the dictionary for the code_key
+        if project_bug_id not in fixed_bug:
+            fixed_bug[project_bug_id] = None
 
-    # Create the project_bug_id string
-    project_bug_id = f"{row['Project']}:{row['Bug_id']}"
+    print(f"{len(fixed_bug)} bug fixed at least in one of three response generation using a specific bitvector in {dataset_name}")
 
-    # Append the project_bug_id to the set in the dictionary for the code_key
-    if code_key not in result_dict:
-        result_dict[code_key] = {project_bug_id}
+    if all_success == 0:
+        fix_succeed = fix_rate[fix_rate['fix_probability'] > 0]
     else:
-        # If the code_key is already in the dictionary, add the new project_bug_id
-        result_dict[code_key].add(project_bug_id)
+        fix_succeed = fix_rate[fix_rate['fix_probability'] == 1]
 
-top_10_bitvector = keep_top_5_highest_fix_rate_bitvector(result_dict)
+    result_dict: dict = {}
 
-if "1111111" not in top_10_bitvector:
-    top_10_bitvector["1111111"] = result_dict["1111111"]
-if "1000000" not in top_10_bitvector:
-    top_10_bitvector["1000000"] = result_dict["1000000"]
+    # Iterate through each row of the filtered DataFrame
+    for index, row in fix_succeed.iterrows():
+        # Concatenate the values of columns 3 to 19 as the code key
+        code_key = ''.join(row.iloc[2:9].astype(str))
 
+        # Create the project_bug_id string
+        project_bug_id = f"{row['Project']}:{row['Bug_id']}"
 
-upset_data: DataFrame = upsetplot.from_contents(top_10_bitvector)
+        # Append the project_bug_id to the set in the dictionary for the code_key
+        if code_key not in result_dict:
+            result_dict[code_key] = {project_bug_id}
+        else:
+            # If the code_key is already in the dictionary, add the new project_bug_id
+            result_dict[code_key].add(project_bug_id)
 
-# Create an UpSet plot
-ax = upsetplot.plot(upset_data, subset_size='count', show_counts='%d', sort_by="cardinality")
+    if all_success == 0:
+        k = 3
+    else:
+        k = 5
 
-plt.savefig(os.path.join(result_sheet_folder, "strata_fix_rate_upset.png"))
-plt.show()
+    top_10_bitvector = keep_top_k_highest_fix_rate_bitvector(result_dict, k)
+
+    if "1111111" not in top_10_bitvector:
+        top_10_bitvector["1111111"] = result_dict["1111111"]
+    if "1000000" not in top_10_bitvector:
+        top_10_bitvector["1000000"] = result_dict["1000000"]
+
+    upset_data: DataFrame = upsetplot.from_contents(top_10_bitvector)
+
+    # Create an UpSet plot
+    ax = upsetplot.plot(upset_data, subset_size='count', show_counts='%d', sort_by="cardinality")
+
+    if all_success == 0:
+        plt.savefig(os.path.join(result_sheet_folder, "best_of_3_strata_fix_rate_upset.png"))
+    else:
+        plt.savefig(os.path.join(result_sheet_folder, "all_success_strata_fix_rate_upset.png"))
+
+    plt.show()
 
 
 # all_keys = list(result_dict.keys())
