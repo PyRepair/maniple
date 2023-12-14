@@ -2,7 +2,7 @@ import json
 import os
 import pandas as pd
 
-dataset_name = "106-dataset"
+dataset_name = "395-dataset"
 database_path = os.path.join("..", "training-data", dataset_name, "bugs-data")
 result_sheet_folder = os.path.join("..", "training-data", "result-sheet", dataset_name)
 
@@ -24,6 +24,7 @@ if use_strata == 1:
         "Strata 6": [],
         "Strata 7": [],
         "Pass Test": [],
+        "Trial": [],
         "result_filename": []
     }
 else:
@@ -49,6 +50,7 @@ else:
         "3.1.2 Github linked issue description": [],
         "cot Chain of Thought prompt technique": [],
         "Pass Test": [],
+        "Trial": [],
         "result_filename": []
     }
 
@@ -58,7 +60,7 @@ for project_name in os.listdir(database_path):
     for bug_id in os.listdir(project_path):
         bug_path = os.path.join(project_path, bug_id)
         for result_file_name in os.listdir(bug_path):
-            if "_result_1.json" not in result_file_name:
+            if "result" not in result_file_name:
                 continue
 
             with open(os.path.join(bug_path, result_file_name), "r") as result_file:
@@ -106,6 +108,7 @@ for project_name in os.listdir(database_path):
                 data["cot Chain of Thought prompt technique"].append(fact_bitvector["cot"])
 
             data["Pass Test"].append(pass_test)
+            data["Trial"].append(int(result_file_name[-6]))
             data["result_filename"].append(result_file_name)
 
 df = pd.DataFrame(data)
