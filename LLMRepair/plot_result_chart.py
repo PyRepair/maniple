@@ -1,3 +1,4 @@
+import json
 import os.path
 from itertools import combinations
 
@@ -91,7 +92,7 @@ for dataset_name in dataset:
     create_fix_rate_for_each_bug(fix_rate, "fix_count_for_each_bug.xlsx")
     create_bitvector_fix_rate(fix_rate, "strata_fix_count.xlsx")
 
-    fixed_bug = {}
+    fixed_bug: dict = {}
     for index, row in fix_rate[fix_rate['fix_probability'] > 0].iterrows():
         project_bug_id = f"{row['Project']}:{row['Bug_id']}"
 
@@ -100,6 +101,27 @@ for dataset_name in dataset:
             fixed_bug[project_bug_id] = None
 
     print(f"{len(fixed_bug)} bug fixed at least in one of three response generation using a specific bitvector in {dataset_name}")
+
+    fixed_bug: dict = list(fixed_bug.keys())
+
+    if dataset_name == "106-dataset":
+        with open(os.path.join("..", "training-data", "subsets-list", "30-106-subset.json"), "r") as sample_bug_file:
+            sample_bugs = json.load(sample_bug_file)
+
+            for project in sample_bugs.keys():
+                bugs = sample_bugs[project]
+                for bid in bugs:
+                    if f"{project}:{bid}" not in fixed_bug:
+                        print(f"{dataset_name}: {project}-{bid} is not fixed by any bitvector")
+    elif dataset_name == "395-dataset":
+        with open(os.path.join("..", "training-data", "subsets-list", "30-395-subset.json"), "r") as sample_bug_file:
+            sample_bugs = json.load(sample_bug_file)
+
+            for project in sample_bugs.keys():
+                bugs = sample_bugs[project]
+                for bid in bugs:
+                    if f"{project}:{bid}" not in fixed_bug:
+                        print(f"{dataset_name}: {project}-{bid} is not fixed by any bitvector")
 
     fixed_bug: dict = {}
     for index, row in fix_rate[fix_rate['fix_probability'] > 0].iterrows():
@@ -119,21 +141,21 @@ for dataset_name in dataset:
 
         all_success_bitvectors = bitvectors.copy()
 
-        keys_to_remove = []
-        for key, value in all_success_bitvectors.items():
-            if value != 1:
-                keys_to_remove.append(key)
-
-        for key in keys_to_remove:
-            del all_success_bitvectors[key]
-
-        if len(all_success_bitvectors) == 0:
-            continue
-
-        print(f"{dataset_name} {bug} can be fixed by {len(all_success_bitvectors)} bitvectors in all 3 generation"
-              f", but not with all facts or only buggy function. They are:")
-        print(all_success_bitvectors.keys())
-        print()
+        # keys_to_remove = []
+        # for key, value in all_success_bitvectors.items():
+        #     if value != 1:
+        #         keys_to_remove.append(key)
+        #
+        # for key in keys_to_remove:
+        #     del all_success_bitvectors[key]
+        #
+        # if len(all_success_bitvectors) == 0:
+        #     continue
+        #
+        # print(f"{dataset_name} {bug} can be fixed by {len(all_success_bitvectors)} bitvectors in all 3 generation"
+        #       f", but not with all facts or only buggy function. They are:")
+        # print(all_success_bitvectors.keys())
+        # print()
 
     if all_success == 0:
         fix_succeed = fix_rate[fix_rate['fix_probability'] > 0]
