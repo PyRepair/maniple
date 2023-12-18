@@ -9,7 +9,7 @@ import openai
 import tiktoken
 from openai import OpenAI
 from typing import List
-from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_from_code_block, find_patch_from_response
+from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_and_imports_from_code_block, find_patch_from_response, divide_list
 
 client = OpenAI(api_key="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")
 
@@ -506,6 +506,7 @@ class PromptGenerator:
             messages = [{"role": "user", "content": self.prompt}]
 
             response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
+            replace_code, import_statements = extract_function_and_imports_from_code_block(fix_patch, self.buggy_function_name)
 
             conversation_response = response
             messages = [
@@ -515,11 +516,14 @@ class PromptGenerator:
             ]
 
             while (estimate_function_code_length(fix_patch) < 0.6 * buggy_function_length
-                   and extract_function_from_code_block(fix_patch, self.buggy_function_name) is None
+                   and replace_code is None
                    and self.max_conversation_count > 0):
                 # if the fix patch is omitted
 
                 conversation_response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
+
+                replace_code, import_statements = extract_function_and_imports_from_code_block(fix_patch, self.buggy_function_name)
+
                 self.max_conversation_count -= 1
 
             if self.max_conversation_count == 0:
@@ -539,7 +543,8 @@ class PromptGenerator:
                             "available_strata": self.actual_strata_bitvector,
                             "start_line": self.buggy_function_start_line,
                             "file_name": self.buggy_location_file_name,
-                            "replace_code": extract_function_from_code_block(fix_patch, self.buggy_function_name),
+                            "replace_code": replace_code,
+                            "imports": import_statements
                         }
                     ]
                 }
@@ -574,6 +579,7 @@ class PromptGenerator:
                             "start_line": self.buggy_function_start_line,
                             "file_name": self.buggy_location_file_name,
                             "replace_code": None,
+                            "imports": []
                         }
                     ]
                 }
@@ -634,15 +640,6 @@ def create_query(messages: list, gpt_model: str) -> str:
     raise QueryException("Tried 10 times OpenAI rate limit query")
 
 
-def divide_list(lst, n_partitions):
-    if n_partitions <= 0:
-        raise ValueError("Number of partitions must be a positive integer")
-
-    partition_size, remainder = divmod(len(lst), n_partitions)
-    return [lst[i * partition_size + min(i, remainder):(i + 1) * partition_size + min(i + 1, remainder)]
-            for i in range(n_partitions)]
-
-
 def run_single_bitvector_partition(partition_bitvectors):
     for bitvector_strata in partition_bitvectors:
         for project in projects:
@@ -683,7 +680,7 @@ if __name__ == "__main__":
 
     args = args_parser.parse_args()
 
-    database_path = os.path.join("training-data", args.database, "bugs-data")
+    database_path = os.path.join("training-data", args.database)
 
     projects = os.listdir(database_path)
 

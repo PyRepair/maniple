@@ -142,16 +142,16 @@ def find_patch_from_response(
 
 def extract_function_and_imports_from_code_block(
     code_block: str, func_name: str
-) -> Optional[Tuple[str, List[str]]]:
+) -> Tuple[Optional[str], Optional[List[str]]]:
     try:
         return _extract_function_and_imports_from_code_block_impl(code_block, func_name)
     except Exception:
-        return None
+        return None, None
 
 
 def _extract_function_and_imports_from_code_block_impl(
     code_block: str, func_name: str
-) -> Optional[Tuple[str, List[str]]]:
+) -> Tuple[Optional[str], List[str]]:
     """
     Extracts a function and its import statements from a source code block.
 
@@ -173,13 +173,13 @@ def _extract_function_and_imports_from_code_block_impl(
             import_statements.append(node)
 
     if not function_node:
-        return None
+        return None, []
 
     # Extract the source code of the function
     function_code = ast.get_source_segment(code_block, function_node)  # type: ignore
 
     if function_code is None:
-        return None
+        return None, []
 
     # Extract import statements as source code
     imports_code: List[str] = [
