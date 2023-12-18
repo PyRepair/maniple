@@ -1,5 +1,6 @@
 import argparse
-from dataclasses import dataclass, fields
+from collections import defaultdict
+from dataclasses import dataclass, field, fields
 import os
 import json
 from typing import Dict, List
@@ -25,8 +26,8 @@ class PassStats:
 
 @dataclass
 class ErrorStats:
-    flag_2: List[str] = []
-    flag_4: List[str] = []
+    flag_2: List[str] = field(default_factory=list)
+    flag_4: List[str] = field(default_factory=list)
 
 
 def print_stats(pass_stat: PassStats):
@@ -67,7 +68,7 @@ def aggregate_stats(pass_stats_list):
 
 def main(path):
     allPassStats = [PassStats(pass_num=1), PassStats(pass_num=2), PassStats(pass_num=3)]
-    bugs_error_stats = dict[str, ErrorStats]()
+    bugs_error_stats = defaultdict[str, ErrorStats](ErrorStats)
     fixed_bugids = set()
     postive_labels = set()
     total_bugs = 0
@@ -145,16 +146,30 @@ def main(path):
         print_stats(pass_stat)
 
     print()
-    print("Top 10 errornous bugs (flag 2 and 4)")
+    print("Top 5 errornous bugs (flag 2)")
     sorted_bugs_error_stats = sorted(
         bugs_error_stats.items(),
-        key=lambda item: len(item[1].flag_2) + len(item[1].flag_4),
+        key=lambda item: len(item[1].flag_2),
         reverse=True,
     )
-    for bugid, error_stats in sorted_bugs_error_stats[:10]:
-        print(f"{bugid}: {len(error_stats.flag_2) + len(error_stats.flag_4)}")
+    for bugid, error_stats in sorted_bugs_error_stats[:5]:
+        print(f"bugid: {bugid}")
         print(f"Flag 2: {len(error_stats.flag_2)}")
+        for error_filename in error_stats.flag_2:
+            print(error_filename)
+        print()
+
+    print()
+    sorted_bugs_error_stats = sorted(
+        bugs_error_stats.items(),
+        key=lambda item: len(item[1].flag_4),
+        reverse=True,
+    )
+    for bugid, error_stats in sorted_bugs_error_stats[:5]:
+        print(f"bugid: {bugid}")
         print(f"Flag 4: {len(error_stats.flag_4)}")
+        for error_filename in error_stats.flag_4:
+            print(error_filename)
         print()
 
 
