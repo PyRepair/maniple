@@ -2,6 +2,7 @@ import argparse
 from dataclasses import dataclass, fields
 import os
 import json
+from typing import Dict, List
 
 
 @dataclass
@@ -20,6 +21,12 @@ class PassStats:
     total_responses: int = 0
 
     fixed_bugids = set()
+
+
+@dataclass
+class ErrorStats:
+    flag_2: List[str] = []
+    flag_4: List[str] = []
 
 
 def print_stats(pass_stat: PassStats):
@@ -60,6 +67,7 @@ def aggregate_stats(pass_stats_list):
 
 def main(path):
     allPassStats = [PassStats(pass_num=1), PassStats(pass_num=2), PassStats(pass_num=3)]
+    bugs_error_stats = dict[str, ErrorStats]()
     fixed_bugids = set()
     postive_labels = set()
     total_bugs = 0
@@ -85,7 +93,8 @@ def main(path):
 
                 allPassStats[pass_index].total_results += 1
 
-                with open(os.path.join(root, file), "r") as json_file:
+                result_file_path = os.path.join(root, file)
+                with open(result_file_path, "r") as json_file:
                     result_data = json.load(json_file)
 
                 first_key = list(result_data.keys())[0]
@@ -102,9 +111,11 @@ def main(path):
 
                 elif first_value == 2:
                     allPassStats[pass_index].count_2 += 1
+                    bugs_error_stats[bugid].flag_2.append(result_file_path)
 
                 elif first_value == 4:
                     allPassStats[pass_index].count_4 += 1
+                    bugs_error_stats[bugid].flag_4.append(result_file_path)
 
                 elif first_value == 6 or first_value == 7:
                     allPassStats[pass_index].count_6_7 += 1
@@ -132,6 +143,19 @@ def main(path):
             f"Number of bugs fixed: {len(pass_stat.fixed_bugids)} out of {total_bugs}, percentage: {int((len(pass_stat.fixed_bugids) / total_bugs) * 100)}%"
         )
         print_stats(pass_stat)
+
+    print()
+    print("Top 10 errornous bugs (flag 2 and 4)")
+    sorted_bugs_error_stats = sorted(
+        bugs_error_stats.items(),
+        key=lambda item: len(item[1].flag_2) + len(item[1].flag_4),
+        reverse=True,
+    )
+    for bugid, error_stats in sorted_bugs_error_stats[:10]:
+        print(f"{bugid}: {len(error_stats.flag_2) + len(error_stats.flag_4)}")
+        print(f"Flag 2: {len(error_stats.flag_2)}")
+        print(f"Flag 4: {len(error_stats.flag_4)}")
+        print()
 
 
 if __name__ == "__main__":
