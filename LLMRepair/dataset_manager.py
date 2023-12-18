@@ -4,6 +4,24 @@ import os
 
 from utils import NotSupportedError
 
+BGP106PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "training-data",
+        "106-dataset",
+    )
+)
+
+BGP395PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "training-data",
+        "395-dataset",
+    )
+)
+
 DatasetType = Union[
     Literal["106subset"],
     Literal["395subset"],
@@ -44,22 +62,11 @@ def split_bugids_from_dataset(
 
     return [
         (
-            os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "training-data",
-                "106-dataset",
-                "bugs-data",
-            ),
+            BGP106PATH,
             s1_results,
         ),
         (
-            os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "training-data",
-                "395-dataset",
-            ),
+            BGP395PATH,
             s2_results,
         ),
     ]
@@ -76,12 +83,7 @@ def load_bugids_from_dataset(
     if dataset == "106subset" or dataset == "first-stratum" or dataset == "all":
         results.append(
             (
-                os.path.join(
-                    os.path.dirname(__file__),
-                    "..",
-                    "training-data",
-                    "395-dataset",
-                ),
+                BGP106PATH,
                 _load_bugids_from_dataset_impl(
                     "106subset",
                     exclude_projects=exclude_projects,
@@ -94,12 +96,7 @@ def load_bugids_from_dataset(
     if dataset == "395subset" or dataset == "second-stratum" or dataset == "all":
         results.append(
             (
-                os.path.join(
-                    os.path.dirname(__file__),
-                    "..",
-                    "training-data",
-                    "395-dataset",
-                ),
+                BGP395PATH,
                 _load_bugids_from_dataset_impl(
                     "395subset",
                     exclude_projects=exclude_projects,
@@ -162,8 +159,6 @@ def _load_bugids_from_dataset_impl(
     with open(os.path.join(subset_list_path, "supported395.txt"), "r") as f:
         supported395 = f.read().strip().split(",")
         support_list.extend(supported395)
-
-    print(f"Support list length: {len(support_list)}")
 
     bugids = []
     for project_name, bugids_list in dataset_indices.items():
