@@ -1,0 +1,68 @@
+{
+    "youtube-dl": [
+        {
+            "bugID": 4,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 58,
+            "file_name": "youtube_dl/jsinterp.py",
+            "replace_code": "def interpret_expression(self, expr, local_vars, allow_recursion):\n    import re\n    import json\n    expr = expr.strip()\n    \n    if expr == '':  # Empty expression\n        return None\n    \n    if expr.startswith('('):\n        parens_count = 0\n        for m in re.finditer(r'[()]', expr):\n            if m.group(0) == '(':\n                parens_count += 1\n            else:\n                parens_count -= 1\n                if parens_count == 0:\n                    sub_expr = expr[1:m.start()]\n                    sub_result = self.interpret_expression(\n                        sub_expr, local_vars, allow_recursion)\n                    remaining_expr = expr[m.end():].strip()\n                    if not remaining_expr:\n                        return sub_result\n                    else:\n                        expr = json.dumps(sub_result) + remaining_expr\n                    break\n        else:\n            raise ExtractorError('Premature end of parens in %r' % expr)\n    \n    _ASSIGN_OPERATORS = [('+', lambda x, y: x + y), ('-', lambda x, y: x - y), ('*', lambda x, y: x * y), ('/', lambda x, y: x / y)]\n    for op, opfunc in _ASSIGN_OPERATORS:\n        m = re.match(r'''(?x)\n            (?P<out>%s)(?:\\[(?P<index>[^\\]]+?)\\])?\n            \\s*%s\n            (?P<expr>.*)$''' % (_NAME_RE, re.escape(op)), expr)\n        if not m:\n            continue\n        right_val = self.interpret_expression(\n            m.group('expr'), local_vars, allow_recursion - 1)\n    \n        if m.groupdict().get('index'):\n            lvar = local_vars[m.group('out')]\n            idx = self.interpret_expression(\n                m.group('index'), local_vars, allow_recursion)\n            assert isinstance(idx, int)\n            cur = lvar[idx]\n            val = opfunc(cur, right_val)\n            lvar[idx] = val\n            return val\n        else:\n            cur = local_vars.get(m.group('out'))\n            val = opfunc(cur, right_val)\n            local_vars[m.group('out')] = val\n            return val\n    \n    if expr.isdigit():\n        return int(expr)\n    \n    var_m = re.match(\n        r'(?!if|return|true|false)(?P<name>%s)$' % _NAME_RE,\n        expr)\n    if var_m:\n        return local_vars[var_m.group('name')]\n    \n    try:\n        return json.loads(expr)\n    except ValueError:\n        pass\n    \n    m = re.match(\n        r'(?P<var>%s)\\.(?P<member>[^(]+)(?:\\(+(?P<args>[^()]*)\\))?$' % _NAME_RE,\n        expr)\n    if m:\n        variable = m.group('var')\n        member = m.group('member')\n        arg_str = m.group('args')\n    \n        if variable in local_vars:\n            obj = local_vars[variable]\n        else:\n            if variable not in self._objects:\n                self._objects[variable] = self.extract_object(variable)\n            obj = self._objects[variable]\n    \n        if arg_str is None:\n            # Member access\n            if member == 'length':\n                return len(obj)\n            return obj[member]\n    \n        assert expr.endswith(')')\n        # Function call\n        if arg_str == '':\n            argvals = tuple()\n        else:\n            argvals = tuple([\n                self.interpret_expression(v, local_vars, allow_recursion)\n                for v in arg_str.split(',')])\n    \n        if member == 'split':\n            assert argvals == ('',)\n            return list(obj)\n        if member == 'join':\n            assert len(argvals) == 1\n            return argvals[0].join(obj)\n        if member == 'reverse':\n            assert len(argvals) == 0\n            obj.reverse()\n            return obj\n        if member == 'slice':\n            assert len(argvals) == 1\n            return obj[argvals[0]:]\n        if member == 'splice':\n            assert isinstance(obj, list)\n            index, howMany = argvals\n            res = []\n            for i in range(index, min(index + howMany, len(obj))):\n                res.append(obj.pop(index))\n            return res\n    \n        return obj[member](argvals)\n    \n    m = re.match(\n        r'(?P<in>%s)\\[(?P<idx>.+)\\]$' % _NAME_RE, expr)\n    if m:\n        val = local_vars[m.group('in')]\n        idx = self.interpret_expression(\n            m.group('idx'), local_vars, allow_recursion - 1)\n        return val[idx]\n    \n    _OPERATORS = [('+', lambda x, y: x + y), ('-', lambda x, y: x - y), ('*', lambda x, y: x * y), ('/', lambda x, y: x / y)]\n    for op, opfunc in _OPERATORS:\n        m = re.match(r'(?P<x>.+?)%s(?P<y>.+)' % re.escape(op), expr)\n        if not m:\n            continue\n        x, abort = self.interpret_statement(\n            m.group('x'), local_vars, allow_recursion - 1)\n        if abort:\n            raise ExtractorError(\n                'Premature left-side return of %s in %r' % (op, expr))\n        y, abort = self.interpret_statement(\n            m.group('y'), local_vars, allow_recursion - 1)\n        if abort:\n            raise ExtractorError(\n                'Premature right-side return of %s in %r' % (op, expr))\n        return opfunc(x, y)\n    \n    m = re.match(\n        r'^(?P<func>%s)\\((?P<args>[a-zA-Z0-9_$,]+)\\)$' % _NAME_RE, expr)\n    if m:\n        fname = m.group('func')\n        argvals = tuple([\n            int(v) if v.isdigit() else local_vars[v]\n            for v in m.group('args').split(',')])\n        if fname not in self._functions:\n            self._functions[fname] = self.extract_function(fname)\n        return self._functions[fname](argvals)\n    \n    raise ExtractorError('Unsupported JS expression %r' % expr)"
+        }
+    ]
+}

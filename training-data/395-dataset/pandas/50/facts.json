@@ -1,0 +1,329 @@
+{
+    "1.1.1": "def _cat_compare_op(op):\n    opname = f\"__{op.__name__}__\"\n\n    @unpack_zerodim_and_defer(opname)\n    def func(self, other):\n        if is_list_like(other) and len(other) != len(self):\n            # TODO: Could this fail if the categories are listlike objects?\n            raise ValueError(\"Lengths must match.\")\n\n        if not self.ordered:\n            if opname in [\"__lt__\", \"__gt__\", \"__le__\", \"__ge__\"]:\n                raise TypeError(\n                    \"Unordered Categoricals can only compare equality or not\"\n                )\n        if isinstance(other, Categorical):\n            # Two Categoricals can only be be compared if the categories are\n            # the same (maybe up to ordering, depending on ordered)\n\n            msg = \"Categoricals can only be compared if 'categories' are the same.\"\n            if len(self.categories) != len(other.categories):\n                raise TypeError(msg + \" Categories are different lengths\")\n            elif self.ordered and not (self.categories == other.categories).all():\n                raise TypeError(msg)\n            elif not set(self.categories) == set(other.categories):\n                raise TypeError(msg)\n\n            if not (self.ordered == other.ordered):\n                raise TypeError(\n                    \"Categoricals can only be compared if 'ordered' is the same\"\n                )\n            if not self.ordered and not self.categories.equals(other.categories):\n                # both unordered and different order\n                other_codes = _get_codes_for_values(other, self.categories)\n            else:\n                other_codes = other._codes\n\n            f = getattr(self._codes, opname)\n            ret = f(other_codes)\n            mask = (self._codes == -1) | (other_codes == -1)\n            if mask.any():\n                # In other series, the leads to False, so do that here too\n                ret[mask] = False\n            return ret\n\n        if is_scalar(other):\n            if other in self.categories:\n                i = self.categories.get_loc(other)\n                ret = getattr(self._codes, opname)(i)\n\n                if opname not in {\"__eq__\", \"__ge__\", \"__gt__\"}:\n                    # check for NaN needed if we are not equal or larger\n                    mask = self._codes == -1\n                    ret[mask] = False\n                return ret\n            else:\n                if opname == \"__eq__\":\n                    return np.zeros(len(self), dtype=bool)\n                elif opname == \"__ne__\":\n                    return np.ones(len(self), dtype=bool)\n                else:\n                    raise TypeError(\n                        f\"Cannot compare a Categorical for op {opname} with a \"\n                        \"scalar, which is not a category.\"\n                    )\n        else:\n\n            # allow categorical vs object dtype array comparisons for equality\n            # these are only positional comparisons\n            if opname in [\"__eq__\", \"__ne__\"]:\n                return getattr(np.array(self), opname)(np.array(other))\n\n            raise TypeError(\n                f\"Cannot compare a Categorical for op {opname} with \"\n                f\"type {type(other)}.\\nIf you want to compare values, \"\n                \"use 'np.asarray(cat) <op> other'.\"\n            )\n\n    func.__name__ = opname\n\n    return func\n",
+    "1.1.2": null,
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/JerrySSD/bgp_envs/repos/pandas_50/pandas/core/arrays/categorical.py",
+    "1.3.2": [
+        "_get_codes_for_values(values, categories)",
+        "func(self, other)",
+        "categories(self)",
+        "categories(self, categories)",
+        "ordered(self) -> Ordered",
+        "equals(self, other)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.parametrize(\n        \"categories\",\n        [[\"a\", \"b\"], [0, 1], [pd.Timestamp(\"2019\"), pd.Timestamp(\"2020\")]],\n    )\n    def test_not_equal_with_na(self, categories):\n        # https://github.com/pandas-dev/pandas/issues/32276\n        c1 = Categorical.from_codes([-1, 0], categories=categories)\n        c2 = Categorical.from_codes([0, 1], categories=categories)\n\n        result = c1 != c2\n\n        assert result.all()",
+        "    @pytest.mark.parametrize(\n        \"categories\",\n        [[\"a\", \"b\"], [0, 1], [pd.Timestamp(\"2019\"), pd.Timestamp(\"2020\")]],\n    )\n    def test_not_equal_with_na(self, categories):\n        # https://github.com/pandas-dev/pandas/issues/32276\n        c1 = Categorical.from_codes([-1, 0], categories=categories)\n        c2 = Categorical.from_codes([0, 1], categories=categories)\n\n        result = c1 != c2\n\n        assert result.all()",
+        "    @pytest.mark.parametrize(\n        \"categories\",\n        [[\"a\", \"b\"], [0, 1], [pd.Timestamp(\"2019\"), pd.Timestamp(\"2020\")]],\n    )\n    def test_not_equal_with_na(self, categories):\n        # https://github.com/pandas-dev/pandas/issues/32276\n        c1 = Categorical.from_codes([-1, 0], categories=categories)\n        c2 = Categorical.from_codes([0, 1], categories=categories)\n\n        result = c1 != c2\n\n        assert result.all()"
+    ],
+    "1.4.2": [
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_50/pandas/tests/extension/test_categorical.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_50/pandas/tests/extension/test_categorical.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_50/pandas/tests/extension/test_categorical.py"
+    ],
+    "2.1.1": [
+        [
+            "E       assert False\nE        +  where False = <built-in method all of numpy.ndarray object at 0x121947800>()\nE        +    where <built-in method all of numpy.ndarray object at 0x121947800> = array([False,  True]).all"
+        ],
+        [
+            "E       assert False\nE        +  where False = <built-in method all of numpy.ndarray object at 0x121a01620>()\nE        +    where <built-in method all of numpy.ndarray object at 0x121a01620> = array([False,  True]).all"
+        ],
+        [
+            "E       assert False\nE        +  where False = <built-in method all of numpy.ndarray object at 0x121931a80>()\nE        +    where <built-in method all of numpy.ndarray object at 0x121931a80> = array([False,  True]).all"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.extension.test_categorical.TestComparisonOps object at 0x1218a2d00>\ncategories = ['a', 'b']\n\n    @pytest.mark.parametrize(\n        \"categories\",\n        [[\"a\", \"b\"], [0, 1], [pd.Timestamp(\"2019\"), pd.Timestamp(\"2020\")]],\n    )\n    def test_not_equal_with_na(self, categories):\n        # https://github.com/pandas-dev/pandas/issues/32276\n        c1 = Categorical.from_codes([-1, 0], categories=categories)\n        c2 = Categorical.from_codes([0, 1], categories=categories)\n    \n        result = c1 != c2\n    \n>       assert result.all()",
+            "\npandas/tests/extension/test_categorical.py:296: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.extension.test_categorical.TestComparisonOps object at 0x12193a910>\ncategories = [0, 1]\n\n    @pytest.mark.parametrize(\n        \"categories\",\n        [[\"a\", \"b\"], [0, 1], [pd.Timestamp(\"2019\"), pd.Timestamp(\"2020\")]],\n    )\n    def test_not_equal_with_na(self, categories):\n        # https://github.com/pandas-dev/pandas/issues/32276\n        c1 = Categorical.from_codes([-1, 0], categories=categories)\n        c2 = Categorical.from_codes([0, 1], categories=categories)\n    \n        result = c1 != c2\n    \n>       assert result.all()",
+            "\npandas/tests/extension/test_categorical.py:296: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.extension.test_categorical.TestComparisonOps object at 0x1218a2a00>\ncategories = [Timestamp('2019-01-01 00:00:00'), Timestamp('2020-01-01 00:00:00')]\n\n    @pytest.mark.parametrize(\n        \"categories\",\n        [[\"a\", \"b\"], [0, 1], [pd.Timestamp(\"2019\"), pd.Timestamp(\"2020\")]],\n    )\n    def test_not_equal_with_na(self, categories):\n        # https://github.com/pandas-dev/pandas/issues/32276\n        c1 = Categorical.from_codes([-1, 0], categories=categories)\n        c2 = Categorical.from_codes([0, 1], categories=categories)\n    \n        result = c1 != c2\n    \n>       assert result.all()",
+            "\npandas/tests/extension/test_categorical.py:296: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "op.__name__": "'eq'",
+                "op": "<built-in function eq>"
+            },
+            {
+                "opname": "'__eq__'",
+                "func.__name__": "'__eq__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x112fa1ca0>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'ne'",
+                "op": "<built-in function ne>"
+            },
+            {
+                "opname": "'__ne__'",
+                "func.__name__": "'__ne__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x112f6c280>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'lt'",
+                "op": "<built-in function lt>"
+            },
+            {
+                "opname": "'__lt__'",
+                "func.__name__": "'__lt__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x112f6c820>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'gt'",
+                "op": "<built-in function gt>"
+            },
+            {
+                "opname": "'__gt__'",
+                "func.__name__": "'__gt__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x112f6cdc0>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'le'",
+                "op": "<built-in function le>"
+            },
+            {
+                "opname": "'__le__'",
+                "func.__name__": "'__le__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x112f773a0>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'ge'",
+                "op": "<built-in function ge>"
+            },
+            {
+                "opname": "'__ge__'",
+                "func.__name__": "'__ge__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x112f6cb80>"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "op.__name__": "'eq'",
+                "op": "<built-in function eq>"
+            },
+            {
+                "opname": "'__eq__'",
+                "func.__name__": "'__eq__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x116724ca0>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'ne'",
+                "op": "<built-in function ne>"
+            },
+            {
+                "opname": "'__ne__'",
+                "func.__name__": "'__ne__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x116715280>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'lt'",
+                "op": "<built-in function lt>"
+            },
+            {
+                "opname": "'__lt__'",
+                "func.__name__": "'__lt__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x116715820>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'gt'",
+                "op": "<built-in function gt>"
+            },
+            {
+                "opname": "'__gt__'",
+                "func.__name__": "'__gt__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x116715dc0>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'le'",
+                "op": "<built-in function le>"
+            },
+            {
+                "opname": "'__le__'",
+                "func.__name__": "'__le__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x1167213a0>"
+            }
+        ],
+        [
+            {
+                "op.__name__": "'ge'",
+                "op": "<built-in function ge>"
+            },
+            {
+                "opname": "'__ge__'",
+                "func.__name__": "'__ge__'",
+                "func": "<function _cat_compare_op.<locals>.func at 0x116715b80>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ],
+        [
+            {
+                "op.__name__": "str",
+                "op": "builtin_function_or_method"
+            },
+            {
+                "opname": "str",
+                "func.__name__": "str",
+                "func": "function"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Categorical NaN behaviour different from a str\n"
+    ],
+    "3.1.2": [
+        "Code Sample\nSeries as category\ndf = pd.Series(['a','a','b','c']).astype('category')\nprint(df.shift(1))\nprint(df)\nprint(df.shift(1) != df)\n\nOUTPUT:\n\n0 NaN\n1 a\n2 a\n3 b\ndtype: category\nCategories (3, object): [a, b, c]\n0 a\n1 a\n2 b\n3 c\ndtype: category\nCategories (3, object): [a, b, c]\n0 False\n1 False\n2 True\n3 True\ndtype: bool\n\nSeries as str\ndf = pd.Series(['a','a','b','c']).astype('str')\nprint(df.shift(1))\nprint(df)\nprint(df.shift(1) != df)\n\nOUTPUT:\n\n0 NaN\n1 a\n2 a\n3 b\ndtype: object\n0 a\n1 a\n2 b\n3 c\ndtype: object\n0 True\n1 False\n2 True\n3 True\ndtype: bool\n\n#### Problem description\n\nThe behaviour of NaN in comparison operators is different for type category and str. See example code - the first element is NaN in both instances, but the second instance equates to false, and the first equates to true for a != operation. For a == operation for a category, the behavior is as expected.\n\n#### Expected Output\n\nI would expect both to have the same output.\n\n#### Output of ``pd.show_versions()``\n\n<details>\n\nINSTALLED VERSIONS\n------------------\ncommit           : None\npython           : 3.8.0.final.0\npython-bits      : 64\nOS               : Linux\nOS-release       : 3.10.0-1062.12.1.el7.x86_64\nmachine          : x86_64\nprocessor        : x86_64\nbyteorder        : little\nLC_ALL           : None\nLANG             : en_GB.UTF-8\nLOCALE           : en_GB.UTF-8\n\npandas           : 1.0.1\nnumpy            : 1.18.1\npytz             : 2019.3\ndateutil         : 2.8.1\npip              : 20.0.2\nsetuptools       : 41.4.0\nCython           : 0.29.15\npytest           : 5.3.5\nhypothesis       : None\nsphinx           : None\nblosc            : None\nfeather          : None\nxlsxwriter       : None\nlxml.etree       : None\nhtml5lib         : None\npymysql          : None\npsycopg2         : None\njinja2           : 2.11.1\nIPython          : 7.12.0\npandas_datareader: None\nbs4              : None\nbottleneck       : None\nfastparquet      : None\ngcsfs            : None\nlxml.etree       : None\nmatplotlib       : 3.1.3\nnumexpr          : 2.7.1\nodfpy            : None\nopenpyxl         : 3.0.3\npandas_gbq       : None\npyarrow          : None\npytables         : None\npytest           : 5.3.5\npyxlsb           : None\ns3fs             : None\nscipy            : 1.4.1\nsqlalchemy       : 1.3.13\ntables           : 3.6.1\ntabulate         : None\nxarray           : None\nxlrd             : None\nxlwt             : None\nxlsxwriter       : None\nnumba            : None\n\n</details>\n"
+    ]
+}

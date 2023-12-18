@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 22,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 33,
+            "file_name": "keras/engine/input_layer.py",
+            "replace_code": "def __init__(self, input_shape=None, batch_size=None, batch_input_shape=None, dtype=None, input_tensor=None, sparse=False, name=None):\n\n    if not name:\n        prefix = 'input'\n        name = prefix + '_' + str(K.get_uid(prefix))\n    super().__init__(dtype=dtype, name=name)\n    \n    self.trainable = False\n    self.built = True\n    self.sparse = sparse\n    \n    if input_shape and batch_input_shape:\n        raise ValueError('Only provide the input_shape OR '\n                         'batch_input_shape argument to '\n                         'InputLayer, not both at the same time.')\n    if input_tensor is not None and batch_input_shape is None:\n        # If input_tensor is set, and batch_input_shape is not set:\n        # Attempt automatic input shape inference.\n        try:\n            batch_input_shape = K.int_shape(input_tensor)\n        except TypeError:\n            if not input_shape and not batch_input_shape:\n                raise ValueError('InputLayer was provided '\n                                 'an input_tensor argument, '\n                                 'but its input shape cannot be '\n                                 'automatically inferred. '\n                                 'You should pass an input_shape or '\n                                 'batch_input_shape argument.')\n    if not batch_input_shape:\n        if not input_shape:\n            raise ValueError('An Input layer should be passed either '\n                             'a `batch_input_shape` or an `input_shape`.')\n        else:\n            batch_input_shape = (batch_size,) + tuple(input_shape)\n    else:\n        batch_input_shape = tuple(batch_input_shape)\n    \n    if not dtype:\n        if input_tensor is None:\n            dtype = K.floatx()\n        else:\n            dtype = K.dtype(input_tensor)\n    \n    self.batch_input_shape = batch_input_shape\n    self.dtype = dtype\n    \n    if input_tensor is None:\n        self.is_placeholder = True\n        input_tensor = K.placeholder(shape=batch_input_shape,\n                                     dtype=dtype,\n                                     sparse=self.sparse,\n                                     name=self.name)\n    else:\n        self.is_placeholder = False\n        input_tensor._keras_shape = batch_input_shape\n    # Create an input node to add to self.outbound_node\n    # and set output_tensors' _keras_history.\n    input_tensor._uses_learning_phase = False\n    input_tensor._keras_history = (self, 0, 0)\n    Node(self,\n         inbound_layers=[],\n         node_indices=[],\n         tensor_indices=[],\n         input_tensors=[input_tensor],\n         output_tensors=[input_tensor],\n         input_masks=[None],\n         output_masks=[None],\n         input_shapes=[batch_input_shape],\n         output_shapes=[batch_input_shape])"
+        }
+    ]
+}

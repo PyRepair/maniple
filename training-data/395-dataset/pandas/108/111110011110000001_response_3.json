@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 108,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 533,
+            "file_name": "pandas/core/dtypes/cast.py",
+            "replace_code": "def infer_dtype_from_scalar(val, pandas_dtype: bool = False):\n    import numpy as np\n    from pandas._libs.tslibs import Timestamp\n    from pandas._libs.tslibs import Timedelta\n    from pandas._libs.interval import Interval\n    from pandas._libs.tslibs import PeriodDtype\n    from pandas.api.types import is_bool, is_integer, is_float, is_complex\n    from pandas.api.types import DatetimeTZDtype\n    dtype = np.object_\n    \n    if isinstance(val, np.ndarray) and val.ndim == 0:\n        dtype = val.dtype\n        val = val.item()\n    elif isinstance(val, str):\n        dtype = np.object_\n    elif isinstance(val, (np.datetime64, Timestamp)):\n        val = Timestamp(val)\n        if val is Timestamp(\"NaT\") or val.tz is None:\n            dtype = np.dtype(\"M8[ns]\")\n        else:\n            if pandas_dtype:\n                dtype = DatetimeTZDtype(unit=\"ns\", tz=val.tz)\n            else:\n                return np.object_, val\n        val = val.value\n    elif isinstance(val, (np.timedelta64, Timedelta)):\n        val = Timedelta(val).value\n        dtype = np.dtype(\"m8[ns]\")\n    elif is_bool(val):\n        dtype = np.bool_\n    elif is_integer(val):\n        if isinstance(val, np.integer):\n            dtype = type(val)\n        else:\n            dtype = np.int64\n    elif is_float(val):\n        if isinstance(val, np.floating):\n            dtype = type(val)\n        else:\n            dtype = np.float64\n    elif is_complex(val):\n        dtype = np.complex_\n    elif pandas_dtype and hasattr(val, \"freq\"):\n        dtype = PeriodDtype(freq=val.freq)\n        val = val.ordinal\n    \n    return dtype, val"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 72,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 808,
+            "file_name": "pandas/core/internals/blocks.py",
+            "replace_code": "def setitem(self, indexer, value):\n    # ... other code ...\n\n    # coercing None values, if appropriate\n\n    if value is None:\n        if self.is_numeric:\n            value = np.nan\n    \n    # coercing if the block dtype can store the value\n    values = self.values\n    if self._can_hold_element(value):\n        # We only get here for non-Extension Blocks, so _try_coerce_args\n        # is only relevant for DatetimeBlock and TimedeltaBlock\n        if lib.is_scalar(value):\n            value = convert_scalar(values, value)\n    else:\n        # current dtype cannot store the value, coerce to common dtype\n        find_dtype = False\n        if hasattr(value, \"dtype\"):\n            dtype = value.dtype\n            find_dtype = True\n        elif lib.is_scalar(value) and not isna(value):\n            dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)\n            find_dtype = True\n        \n        if find_dtype:\n            dtype = find_common_type([values.dtype, dtype])\n            if not is_dtype_equal(self.dtype, dtype):\n                b = self.astype(dtype)\n                return b.setitem(indexer, value)\n    \n    # handling Categorical Dtypes\n    if getattr(value, 'dtype', None) and getattr(value.dtype, 'categories', None):\n        dtype = CategoricalDtype(categories=value.dtype.categories, ordered=value.dtype.ordered)\n        values = values.astype(dtype)\n    else:\n        # value must be storeable at this moment\n        if is_extension_array_dtype(getattr(value, \"dtpe\", None)):\n            # We need to be careful not to allow through strings that\n            #  can be parsed to EADtypes\n            arr_value = value\n        else:\n            arr_value = np.array(value)\n    \n        # cast the values to a type that can hold nan (if necessary)\n        if not self._can_hold_element(value):\n            dtype, _ = maybe_promote(arr_value.dtype)\n            values = values.astype(dtype)"
+        }
+    ]
+}

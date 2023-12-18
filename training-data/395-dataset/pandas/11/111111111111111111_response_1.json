@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 11,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 590,
+            "file_name": "pandas/core/reshape/concat.py",
+            "replace_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n    from pandas import MultiIndex, Index\n    import numpy as np\n    if (levels is None and isinstance(keys[0], tuple)) or (levels is not None and len(levels) > 1):\n        zipped = list(zip(*keys))\n        if names is None:\n            names = [None] * len(zipped)\n    \n        if levels is None:\n            _, levels = factorize_from_iterables(zipped)\n        else:\n            levels = [ensure_index(x) for x in levels]\n    else:\n        zipped = [keys]\n        if names is None:\n            names = [None]\n    \n        if levels is None:\n            levels = [ensure_index(keys)]\n        else:\n            levels = [ensure_index(x) for x in levels]\n    \n    if not all_indexes_same(indexes):\n        codes_list = []\n    \n        for hlevel, level in zip(zipped, levels):\n            to_concat = []\n            for key, index in zip(hlevel, indexes):\n                try:\n                    i = level.get_loc(key)\n                except KeyError as err:\n                    raise ValueError(f\"Key {key} not in level {level}\") from err\n    \n                to_concat.append(np.repeat(i, len(index)))\n            codes_list.append(np.concatenate(to_concat))\n    \n        concat_index = _concat_indexes(indexes)\n    \n        new_levels = levels\n        new_codes_list = codes_list\n        new_names = names\n    \n        if isinstance(concat_index, MultiIndex):\n            new_levels.extend(concat_index.levels)\n            new_codes_list.extend(concat_index.codes)\n        else:\n            # If concat_index is not MultiIndex, construct new codes manually\n            codes = []\n            for idx in indexes:\n                codes.append(level.get_indexer(idx))\n    \n            new_levels.append(ensure_index(concat_index))\n            new_codes_list.extend(codes)\n    \n        if len(new_names) != len(new_levels):\n            new_names = new_names + [None] * (len(new_levels) - len(new_names))\n    \n        return MultiIndex(\n            levels=new_levels, codes=new_codes_list, names=new_names, verify_integrity=False\n        )\n    \n    # If all indexes are the same, construct a new MultiIndex\n    new_index = indexes[0]\n    n = len(new_index)\n    kpieces = len(indexes)\n    \n    new_names = list(names)\n    new_levels = list(levels)\n    new_codes_list = []\n    \n    for hlevel, level in zip(zipped, levels):\n        hlevel = ensure_index(hlevel)\n        mapped = level.get_indexer(hlevel)\n    \n        mask = mapped == -1\n        if mask.any():\n            raise ValueError(f\"Values not found in passed level: {hlevel[mask]!s}\")\n    \n        new_codes_list.append(np.repeat(mapped, n))\n    \n    if isinstance(new_index, MultiIndex):\n        new_levels.extend(new_index.levels)\n        new_codes_list.extend(new_index.codes)\n    else:\n        new_levels.append(new_index)\n        new_codes_list.append(np.tile(np.arange(n), kpieces))\n    \n    if len(new_names) < len(new_levels):\n        new_names.extend(new_index.names)\n    \n    return MultiIndex(\n        levels=new_levels, codes=new_codes_list, names=new_names, verify_integrity=False\n    )"
+        }
+    ]
+}

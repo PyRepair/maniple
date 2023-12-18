@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 161,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 1782,
+            "file_name": "pandas/core/arrays/categorical.py",
+            "replace_code": "def fillna(self, value=None, method=None, limit=None):\n\n    \"\"\"\n    ... (existing function description)\n    \"\"\"\n    value, method = validate_fillna_kwargs(\n        value, method, validate_scalar_dict_value=False\n    )\n    \n    if value is None:\n        value = np.nan\n    if limit is not None:\n        raise NotImplementedError(\n            \"specifying a limit for fillna has not been implemented yet\"\n        )\n    \n    codes = self._codes\n    \n    # pad / bfill\n    if method is not None:\n    \n        values = self.to_dense()\n        notna = values.notna()\n        shifted = notna.shift(method)\n        shifted = shifted.where(shifted, values.loc[notna.shift(-method)].unique())\n        values = values.where(notna, shifted)\n        values = values.where(\n            values.notna(), value=self.categories.dtype._na_value\n        )\n        values = values.astype(self.categories.dtype)\n    \n    if not is_scalar_or_zero_dim_ndarray(value):\n        raise NotImplementedError(\n            'specifying value as a Series or DataFrame has '\n            'not been implemented yet'\n        )\n    \n    if is_scalar_or_zero_dim_ndarray(method):\n        raise NotImplementedError(\n            'specifying method as a scalar has not been '\n            'implemented yet'\n        )\n    \n    # If value is a scalar\n    if is_scalar(value) or isna(value):\n        mask = codes == -1\n        if not mask.all() or notna.any():\n            values = self.to_dense()\n            codes = values.cat.codes\n            codes[mask] = values.cat.categories.get_indexer([value])[0]\n    else:\n        raise TypeError(\n            '\"value\" parameter must be a scalar, dict '\n            \"or Series, but you passed a \"\n            '\"{0}\"'.format(type(value).__name__)\n        )\n    \n    return self._constructor(codes, dtype=self.dtype, fastpath=True)"
+        }
+    ]
+}

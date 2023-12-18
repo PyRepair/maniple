@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 8,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 933,
+            "file_name": "keras/engine/network.py",
+            "replace_code": "def from_config(cls, config, custom_objects=None):\n        \n    from ..layers import deserialize as deserialize_layer\n    created_layers = {} #To store instaces of layers\n    unprocessed_nodes = {} #Queue of unprocessed layer call\n    \n    def add_unprocessed_node(layer, node_data): #Add unprocessed node to Queue\n            if layer not in unprocessed_nodes:\n                unprocessed_nodes[layer] = [node_data]\n            else:\n                unprocessed_nodes[layer].append(node_data)\n    \n    def process_node(layer, node_data):\n        input_tensors = []\n        for input_data in node_data:\n            inbound_layer_name = input_data[0]\n            inbound_node_index = input_data[1]\n            inbound_tensor_index = input_data[2]\n            if len(input_data) == 3:\n                kwargs = {}\n            elif len(input_data) == 4:\n                kwargs = input_data[3]\n            else:\n                raise ValueError('Improperly formatted model config.')\n            inbound_layer = created_layers[inbound_layer_name]\n            if len(inbound_layer._inbound_nodes) <= inbound_node_index:\n                add_unprocessed_node(layer, node_data)\n                return\n            inbound_node = inbound_layer._inbound_nodes[inbound_node_index]\n            input_tensors.append(\n                inbound_node.output_tensors[inbound_tensor_index])\n        # Call layer on its inputs, thus creating the node\n        # and building the layer if needed.\n        if input_tensors:\n            layer(unpack_singleton(input_tensors), **kwargs)\n    \n    def process_layer(layer_data):\n        layer_name = layer_data['name']\n        from ..layers import deserialize as deserialize_layer\n        # Instantiate layer\n        layer = deserialize_layer(layer_data,custom_objects=custom_objects)\n        created_layers[layer_name] = layer\n        inbound_nodes_data = layer_data['inbound_nodes']\n        for node_data in inbound_nodes_data:\n            add_unprocessed_node(layer, node_data)\n    \n    for layer_data in config['layers']:\n        process_layer(layer_data)\n    while unprocessed_nodes:\n        for layer_data in config['layers']:\n            layer = created_layers[layer_data['name']]\n            if layer in unprocessed_nodes:\n                for node_data in unprocessed_nodes.pop(layer):\n                    process_node(layer, node_data)\n                    \n    name = config.get('name')\n    input_tensors = []\n    output_tensors = []\n    for layer_data in config['input_layers']:\n        layer_name, node_index, tensor_index = layer_data\n        assert layer_name in created_layers\n        layer = created_layers[layer_name]\n        layer_output_tensors = layer._inbound_nodes[node_index].output_tensors\n        input_tensors.append(layer_output_tensors[tensor_index])\n    for layer_data in config['output_layers']:\n        layer_name, node_index, tensor_index = layer_data\n        assert layer_name in created_layers\n        layer = created_layers[layer_name]\n        layer_output_tensors = layer._inbound_nodes[node_index].output_tensors\n        output_tensors.append(layer_output_tensors[tensor_index])\n    return cls(inputs=input_tensors, outputs=output_tensors, name=name)"
+        }
+    ]
+}

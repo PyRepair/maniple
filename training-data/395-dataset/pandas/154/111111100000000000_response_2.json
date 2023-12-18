@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 154,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 2192,
+            "file_name": "pandas/core/groupby/groupby.py",
+            "replace_code": "def _get_cythonized_result(\n        self,\n        how,\n        grouper,\n        aggregate=False,\n        cython_dtype=None,\n        needs_values=False,\n        needs_mask=False,\n        needs_ngroups=False,\n        result_is_index=False,\n        pre_processing=None,\n        post_processing=None,\n        **kwargs\n    ):\n    import collections\n    \"\"\"\n    Get result for Cythonized functions.\n    \n    Parameters\n    ----------\n    how : str, Cythonized function name to be called\n    grouper : Grouper object containing pertinent group info\n    aggregate : bool, default False\n        Whether the result should be aggregated to match the number of\n        groups\n    cython_dtype : default None\n        Type of the array that will be modified by the Cython call. If\n        `None`, the type will be inferred from the values of each slice\n    needs_values : bool, default False\n        Whether the values should be a part of the Cython call\n        signature\n    needs_mask : bool, default False\n        Whether boolean mask needs to be part of the Cython call\n        signature\n    needs_ngroups : bool, default False\n        Whether number of groups is part of the Cython call signature\n    result_is_index : bool, default False\n        Whether the result of the Cython operation is an index of\n        values to be retrieved, instead of the actual values themselves\n    pre_processing : function, default None\n        Function to be applied to `values` prior to passing to Cython.\n        Function should return a tuple where the first element is the\n        values to be passed to Cython and the second element is an optional\n        type which the values should be converted to after being returned\n        by the Cython operation. Raises if `needs_values` is False.\n    post_processing : function, default None\n        Function to be applied to result of Cython function. Should accept\n        an array of values as the first argument and type inferences as its\n        second argument, i.e. the signature should be\n        (ndarray, Type).\n    **kwargs : dict\n        Extra arguments to be passed back to Cython funcs\n    \n    Returns\n    -------\n    `Series` or `DataFrame`  with filled values\n    \"\"\"\n    import collections\n    if result_is_index and aggregate:\n        raise ValueError(\"'result_is_index' and 'aggregate' cannot both be True!\")\n    if post_processing:\n        if not callable(post_processing):\n            raise ValueError(\"'post_processing' must be a callable!\")\n    if pre_processing and not callable(pre_processing):\n           raise ValueError(\"'pre_processing' must be a callable!\")\n    if pre_processing and not needs_values:\n        raise ValueError(\n            \"Cannot use 'pre_processing' without specifying 'needs_values'!\"\n        )\n    \n    labels, _, ngroups = grouper.group_info\n    output = collections.OrderedDict()\n    \n    base_func = getattr(libgroupby, how)\n    \n    for name, obj in self._iterate_slices():\n        if aggregate:\n            result_sz = ngroups\n        else:\n            result_sz = len(obj.values)\n        \n        if not cython_dtype:\n            cython_dtype = obj.values.dtype\n    \n        result = np.zeros(result_sz, dtype=cython_dtype)\n        func = functools.partial(base_func, result, labels)\n        inferences = None\n    \n        if needs_values:\n    \n            vals = obj.values\n            if pre_processing:\n                vals, inferences = pre_processing(vals)\n            func = functools.partial(func, vals)\n    \n        if needs_mask:\n            mask = isna(obj.values).view(np.uint8)\n            func = functools.partial(func, mask)\n    \n        if needs_ngroups:\n            func = functools.partial(func, ngroups)\n    \n        func(kwargs)  # Call func to modify indexer values in place\n    \n        if result_is_index:\n            result = algorithms.take_nd(obj.values, result)\n    \n        if post_processing:\n            result = post_processing(result, inferences)\n    \n        output[name] = result\n    \n    if aggregate:\n        return self._wrap_aggregated_output(output)\n    else:\n        return self._wrap_transformed_output(output)"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "matplotlib": [
+        {
+            "bugID": 21,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 3752,
+            "file_name": "lib/matplotlib/axes/_axes.py",
+            "replace_code": "def bxp(self, bxpstats, positions=None, widths=None, vert=True,\n        patch_artist=False, shownotches=False, showmeans=False,\n        showcaps=True, showbox=True, showfliers=True,\n        boxprops=None, whiskerprops=None, flierprops=None,\n        medianprops=None, capprops=None, meanprops=None,\n        meanline=False, manage_ticks=True, zorder=None):\n    # ... (rest of the function remains unchanged)\n\n    # vertical or horizontal plot?\n\n    if vert:\n        def doplot(*args, **kwargs):\n            return self.plot(*args, **kwargs)\n    \n        def dopatch(xs, ys, **kwargs):\n            return patch_list(xs, ys, **kwargs)\n    else:\n        def doplot(*args, **kwargs):\n            shuffled = []\n            for i in range(0, len(args), 2):\n                shuffled.extend([args[i + 1], args[i]])\n            return self.plot(*shuffled, **kwargs)\n    \n        def dopatch(xs, ys, **kwargs):\n            xs, ys = ys, xs  # flip X, Y\n            return patch_list(xs, ys, **kwargs)\n    \n    # input validation\n    N = len(bxpstats)\n    \n    # ... (rest of the function remains unchanged)\n    \n    if manage_ticks:\n        axis_name = \"x\" if vert else \"y\"\n        interval = getattr(self.dataLim, f\"interval{axis_name}\")\n        axis = getattr(self, f\"{axis_name}axis\")\n        positions = axis.convert_units(positions)\n        interval[:] = (min(interval[0], min(positions) - .5),\n                       max(interval[1], max(positions) + .5))\n        for median, position in zip(medians, positions):\n            getattr(median.sticky_edges, axis_name).extend(\n                [position - .5, position + .5])\n        locator = axis.get_major_locator()\n        if not isinstance(axis.get_major_locator(),\n                          mticker.FixedLocator):\n            locator = mticker.FixedLocator([])\n            axis.set_major_locator(locator)\n        locator.locs = np.array([*locator.locs, *positions])\n        formatter = axis.get_major_formatter()\n        if not isinstance(axis.get_major_formatter(),\n                          mticker.FixedFormatter):\n            formatter = mticker.FixedFormatter([])\n            axis.set_major_formatter(formatter)\n        formatter.seq = [*formatter.seq, *datalabels]\n    \n        self._request_autoscale_view(\n            scalex=self._autoscaleXon, scaley=self._autoscaleYon)\n    \n    return dict(whiskers=whiskers, caps=caps, boxes=boxes,\n                medians=medians, fliers=fliers, means=means)"
+        }
+    ]
+}

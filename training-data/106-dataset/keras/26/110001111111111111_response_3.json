@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 26,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 2676,
+            "file_name": "keras/backend/tensorflow_backend.py",
+            "replace_code": "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n    # ... (previous code)\n\n    # Inside the logic of the `if mask is not None:` condition\n    # Replace the usage of tf.where with the following code\n    # The existing code uses tf.where twice within a loop which causes the shape incompatibility issue\n\n    if mask is not None:\n        if mask.dtype != tf.bool:\n            mask = tf.cast(mask, tf.bool)\n        if len(mask.get_shape()) == ndim - 1:\n            mask = expand_dims(mask)\n    \n        mask = tf.transpose(mask, axes)\n    \n        # ... (previous code)\n    \n        for inp, mask_t in zip(input_list, mask_list):\n            output, new_states = step_function(inp, states + constants)\n            if getattr(output, '_uses_learning_phase', False):\n                uses_learning_phase = True\n    \n            # (existing code)\n            # Commenting out the following lines which use tf.where\n            # tiled_mask_t = tf.tile(mask_t, tf.stack([1, tf.shape(output)[1]]))\n            # output = tf.where(tiled_mask_t, output, prev_output)\n    \n            # New code to replace the tf.where\n            output_shape = tf.shape(output)\n            mask_t = tf.cast(mask_t, output.dtype)\n            tiled_mask_t = tf.expand_dims(mask_t, axis=-1)\n            tiled_mask_t = tf.tile(tiled_mask_t, [1, output_shape[1]])\n            output = output * tiled_mask_t + prev_output * (1 - tiled_mask_t)"
+        }
+    ]
+}

@@ -1,0 +1,4485 @@
+{
+    "pandas:82": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_82/pandas/core/internals/concat.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_get_empty_dtype_and_na",
+                    "function_code": "def _get_empty_dtype_and_na(join_units):\n    \"\"\"\n    Return dtype and N/A values to use when concatenating specified units.\n\n    Returned N/A value may be None which means there was no casting involved.\n\n    Returns\n    -------\n    dtype\n    na\n    \"\"\"\n    if len(join_units) == 1:\n        blk = join_units[0].block\n        if blk is None:\n            return np.float64, np.nan\n\n    if _is_uniform_reindex(join_units):\n        # FIXME: integrate property\n        empty_dtype = join_units[0].block.dtype\n        upcasted_na = join_units[0].block.fill_value\n        return empty_dtype, upcasted_na\n\n    has_none_blocks = False\n    dtypes = [None] * len(join_units)\n    for i, unit in enumerate(join_units):\n        if unit.block is None:\n            has_none_blocks = True\n        else:\n            dtypes[i] = unit.dtype\n\n    upcast_classes = defaultdict(list)\n    null_upcast_classes = defaultdict(list)\n    for dtype, unit in zip(dtypes, join_units):\n        if dtype is None:\n            continue\n\n        if is_categorical_dtype(dtype):\n            upcast_cls = \"category\"\n        elif is_datetime64tz_dtype(dtype):\n            upcast_cls = \"datetimetz\"\n        elif issubclass(dtype.type, np.bool_):\n            upcast_cls = \"bool\"\n        elif issubclass(dtype.type, np.object_):\n            upcast_cls = \"object\"\n        elif is_datetime64_dtype(dtype):\n            upcast_cls = \"datetime\"\n        elif is_timedelta64_dtype(dtype):\n            upcast_cls = \"timedelta\"\n        elif is_sparse(dtype):\n            upcast_cls = dtype.subtype.name\n        elif is_extension_array_dtype(dtype):\n            upcast_cls = \"object\"\n        elif is_float_dtype(dtype) or is_numeric_dtype(dtype):\n            upcast_cls = dtype.name\n        else:\n            upcast_cls = \"float\"\n\n        # Null blocks should not influence upcast class selection, unless there\n        # are only null blocks, when same upcasting rules must be applied to\n        # null upcast classes.\n        if unit.is_na:\n            null_upcast_classes[upcast_cls].append(dtype)\n        else:\n            upcast_classes[upcast_cls].append(dtype)\n\n    if not upcast_classes:\n        upcast_classes = null_upcast_classes\n\n    # TODO: de-duplicate with maybe_promote?\n    # create the result\n    if \"object\" in upcast_classes:\n        return np.dtype(np.object_), np.nan\n    elif \"bool\" in upcast_classes:\n        if has_none_blocks:\n            return np.dtype(np.object_), np.nan\n        else:\n            return np.dtype(np.bool_), None\n    elif \"category\" in upcast_classes:\n        return np.dtype(np.object_), np.nan\n    elif \"datetimetz\" in upcast_classes:\n        # GH-25014. We use NaT instead of iNaT, since this eventually\n        # ends up in DatetimeArray.take, which does not allow iNaT.\n        dtype = upcast_classes[\"datetimetz\"]\n        return dtype[0], tslibs.NaT\n    elif \"datetime\" in upcast_classes:\n        return np.dtype(\"M8[ns]\"), tslibs.iNaT\n    elif \"timedelta\" in upcast_classes:\n        return np.dtype(\"m8[ns]\"), np.timedelta64(\"NaT\", \"ns\")\n    else:  # pragma\n        try:\n            g = np.find_common_type(upcast_classes, [])\n        except TypeError:\n            # At least one is an ExtensionArray\n            return np.dtype(np.object_), np.nan\n        else:\n            if is_float_dtype(g):\n                return g, g.type(np.nan)\n            elif is_numeric_dtype(g):\n                if has_none_blocks:\n                    return np.float64, np.nan\n                else:\n                    return g, None\n\n    msg = \"invalid dtype determination in get_concat_dtype\"\n    raise AssertionError(msg)\n",
+                    "decorators": [],
+                    "docstring": "Return dtype and N/A values to use when concatenating specified units.\n\nReturned N/A value may be None which means there was no casting involved.\n\nReturns\n-------\ndtype\nna",
+                    "start_line": 268,
+                    "end_line": 372,
+                    "variables": {
+                        "len": [
+                            291,
+                            279
+                        ],
+                        "join_units": [
+                            291,
+                            292,
+                            300,
+                            279,
+                            280,
+                            284,
+                            286,
+                            287
+                        ],
+                        "blk": [
+                            280,
+                            281
+                        ],
+                        "block": [
+                            280,
+                            286,
+                            287
+                        ],
+                        "np.float64": [
+                            282,
+                            367
+                        ],
+                        "np": [
+                            353,
+                            355,
+                            358,
+                            361,
+                            364,
+                            346,
+                            367,
+                            339,
+                            308,
+                            342,
+                            310,
+                            344,
+                            282
+                        ],
+                        "np.nan": [
+                            361,
+                            364,
+                            346,
+                            367,
+                            339,
+                            342,
+                            282
+                        ],
+                        "_is_uniform_reindex": [
+                            284
+                        ],
+                        "empty_dtype": [
+                            288,
+                            286
+                        ],
+                        "block.dtype": [
+                            286
+                        ],
+                        "upcasted_na": [
+                            288,
+                            287
+                        ],
+                        "block.fill_value": [
+                            287
+                        ],
+                        "has_none_blocks": [
+                            290,
+                            366,
+                            341,
+                            294
+                        ],
+                        "dtypes": [
+                            296,
+                            291,
+                            300
+                        ],
+                        "i": [
+                            296,
+                            292
+                        ],
+                        "unit": [
+                            292,
+                            293,
+                            296,
+                            328,
+                            300
+                        ],
+                        "enumerate": [
+                            292
+                        ],
+                        "unit.block": [
+                            293
+                        ],
+                        "unit.dtype": [
+                            296
+                        ],
+                        "upcast_classes": [
+                            352,
+                            354,
+                            358,
+                            298,
+                            331,
+                            333,
+                            334,
+                            338,
+                            340,
+                            345,
+                            347,
+                            350
+                        ],
+                        "defaultdict": [
+                            298,
+                            299
+                        ],
+                        "list": [
+                            298,
+                            299
+                        ],
+                        "null_upcast_classes": [
+                            329,
+                            299,
+                            334
+                        ],
+                        "dtype": [
+                            320,
+                            321,
+                            350,
+                            329,
+                            331,
+                            300,
+                            301,
+                            304,
+                            306,
+                            308,
+                            310,
+                            312,
+                            314,
+                            316,
+                            317,
+                            318,
+                            351
+                        ],
+                        "zip": [
+                            300
+                        ],
+                        "is_categorical_dtype": [
+                            304
+                        ],
+                        "upcast_cls": [
+                            321,
+                            323,
+                            329,
+                            331,
+                            305,
+                            307,
+                            309,
+                            311,
+                            313,
+                            315,
+                            317,
+                            319
+                        ],
+                        "is_datetime64tz_dtype": [
+                            306
+                        ],
+                        "issubclass": [
+                            308,
+                            310
+                        ],
+                        "dtype.type": [
+                            308,
+                            310
+                        ],
+                        "np.bool_": [
+                            344,
+                            308
+                        ],
+                        "np.object_": [
+                            361,
+                            339,
+                            342,
+                            310,
+                            346
+                        ],
+                        "is_datetime64_dtype": [
+                            312
+                        ],
+                        "is_timedelta64_dtype": [
+                            314
+                        ],
+                        "is_sparse": [
+                            316
+                        ],
+                        "dtype.subtype.name": [
+                            317
+                        ],
+                        "dtype.subtype": [
+                            317
+                        ],
+                        "is_extension_array_dtype": [
+                            318
+                        ],
+                        "is_float_dtype": [
+                            320,
+                            363
+                        ],
+                        "is_numeric_dtype": [
+                            320,
+                            365
+                        ],
+                        "dtype.name": [
+                            321
+                        ],
+                        "unit.is_na": [
+                            328
+                        ],
+                        "append": [
+                            329,
+                            331
+                        ],
+                        "np.dtype": [
+                            353,
+                            355,
+                            361,
+                            339,
+                            342,
+                            344,
+                            346
+                        ],
+                        "tslibs.NaT": [
+                            351
+                        ],
+                        "tslibs": [
+                            353,
+                            351
+                        ],
+                        "tslibs.iNaT": [
+                            353
+                        ],
+                        "np.timedelta64": [
+                            355
+                        ],
+                        "g": [
+                            358,
+                            363,
+                            364,
+                            365,
+                            369
+                        ],
+                        "np.find_common_type": [
+                            358
+                        ],
+                        "TypeError": [
+                            359
+                        ],
+                        "g.type": [
+                            364
+                        ],
+                        "msg": [
+                            371,
+                            372
+                        ],
+                        "AssertionError": [
+                            372
+                        ]
+                    },
+                    "filtered_variables": {
+                        "join_units": [
+                            291,
+                            292,
+                            300,
+                            279,
+                            280,
+                            284,
+                            286,
+                            287
+                        ],
+                        "blk": [
+                            280,
+                            281
+                        ],
+                        "block": [
+                            280,
+                            286,
+                            287
+                        ],
+                        "np.float64": [
+                            282,
+                            367
+                        ],
+                        "np": [
+                            353,
+                            355,
+                            358,
+                            361,
+                            364,
+                            346,
+                            367,
+                            339,
+                            308,
+                            342,
+                            310,
+                            344,
+                            282
+                        ],
+                        "np.nan": [
+                            361,
+                            364,
+                            346,
+                            367,
+                            339,
+                            342,
+                            282
+                        ],
+                        "_is_uniform_reindex": [
+                            284
+                        ],
+                        "empty_dtype": [
+                            288,
+                            286
+                        ],
+                        "block.dtype": [
+                            286
+                        ],
+                        "upcasted_na": [
+                            288,
+                            287
+                        ],
+                        "block.fill_value": [
+                            287
+                        ],
+                        "has_none_blocks": [
+                            290,
+                            366,
+                            341,
+                            294
+                        ],
+                        "dtypes": [
+                            296,
+                            291,
+                            300
+                        ],
+                        "i": [
+                            296,
+                            292
+                        ],
+                        "unit": [
+                            292,
+                            293,
+                            296,
+                            328,
+                            300
+                        ],
+                        "unit.block": [
+                            293
+                        ],
+                        "unit.dtype": [
+                            296
+                        ],
+                        "upcast_classes": [
+                            352,
+                            354,
+                            358,
+                            298,
+                            331,
+                            333,
+                            334,
+                            338,
+                            340,
+                            345,
+                            347,
+                            350
+                        ],
+                        "defaultdict": [
+                            298,
+                            299
+                        ],
+                        "null_upcast_classes": [
+                            329,
+                            299,
+                            334
+                        ],
+                        "dtype": [
+                            320,
+                            321,
+                            350,
+                            329,
+                            331,
+                            300,
+                            301,
+                            304,
+                            306,
+                            308,
+                            310,
+                            312,
+                            314,
+                            316,
+                            317,
+                            318,
+                            351
+                        ],
+                        "is_categorical_dtype": [
+                            304
+                        ],
+                        "upcast_cls": [
+                            321,
+                            323,
+                            329,
+                            331,
+                            305,
+                            307,
+                            309,
+                            311,
+                            313,
+                            315,
+                            317,
+                            319
+                        ],
+                        "is_datetime64tz_dtype": [
+                            306
+                        ],
+                        "dtype.type": [
+                            308,
+                            310
+                        ],
+                        "np.bool_": [
+                            344,
+                            308
+                        ],
+                        "np.object_": [
+                            361,
+                            339,
+                            342,
+                            310,
+                            346
+                        ],
+                        "is_datetime64_dtype": [
+                            312
+                        ],
+                        "is_timedelta64_dtype": [
+                            314
+                        ],
+                        "is_sparse": [
+                            316
+                        ],
+                        "dtype.subtype.name": [
+                            317
+                        ],
+                        "dtype.subtype": [
+                            317
+                        ],
+                        "is_extension_array_dtype": [
+                            318
+                        ],
+                        "is_float_dtype": [
+                            320,
+                            363
+                        ],
+                        "is_numeric_dtype": [
+                            320,
+                            365
+                        ],
+                        "dtype.name": [
+                            321
+                        ],
+                        "unit.is_na": [
+                            328
+                        ],
+                        "append": [
+                            329,
+                            331
+                        ],
+                        "np.dtype": [
+                            353,
+                            355,
+                            361,
+                            339,
+                            342,
+                            344,
+                            346
+                        ],
+                        "tslibs.NaT": [
+                            351
+                        ],
+                        "tslibs": [
+                            353,
+                            351
+                        ],
+                        "tslibs.iNaT": [
+                            353
+                        ],
+                        "np.timedelta64": [
+                            355
+                        ],
+                        "g": [
+                            358,
+                            363,
+                            364,
+                            365,
+                            369
+                        ],
+                        "np.find_common_type": [
+                            358
+                        ],
+                        "g.type": [
+                            364
+                        ],
+                        "msg": [
+                            371,
+                            372
+                        ]
+                    },
+                    "diff_line_number": 353,
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object, {1: array([0, 1, 2])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.is_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.iNaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object, {1: array([0, 1, 2])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": "ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object",
+                                    "variable_type": "ObjectBlock",
+                                    "variable_shape": "(2, 3)"
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": "[dtype('O')]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "i": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": "JoinUnit(ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object, {1: array([0, 1, 2])})",
+                                    "variable_type": "JoinUnit",
+                                    "variable_shape": "(2, 3)"
+                                },
+                                "unit.block": {
+                                    "variable_value": "ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object",
+                                    "variable_type": "ObjectBlock",
+                                    "variable_shape": "(2, 3)"
+                                },
+                                "unit.dtype": {
+                                    "variable_value": "dtype('O')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {'object': [dtype('O')]})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "1"
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "0"
+                                },
+                                "dtype": {
+                                    "variable_value": "dtype('O')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": "'object'",
+                                    "variable_type": "str",
+                                    "variable_shape": "6"
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": "<class 'numpy.object_'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<attribute 'shape' of 'numpy.generic' objects>"
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": "'object'",
+                                    "variable_type": "str",
+                                    "variable_shape": "6"
+                                },
+                                "unit.is_na": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.iNaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns], {1: array([ 0,  1, -1])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.is_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.iNaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns], {1: array([ 0,  1, -1])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": "DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns]",
+                                    "variable_type": "DatetimeBlock",
+                                    "variable_shape": "(1, 3)"
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": "[dtype('<M8[ns]')]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "i": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": "JoinUnit(DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns], {1: array([ 0,  1, -1])})",
+                                    "variable_type": "JoinUnit",
+                                    "variable_shape": "(1, 3)"
+                                },
+                                "unit.block": {
+                                    "variable_value": "DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns]",
+                                    "variable_type": "DatetimeBlock",
+                                    "variable_shape": "(1, 3)"
+                                },
+                                "unit.dtype": {
+                                    "variable_value": "dtype('<M8[ns]')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {'datetime': [dtype('<M8[ns]')]})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "1"
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "0"
+                                },
+                                "dtype": {
+                                    "variable_value": "dtype('<M8[ns]')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": "'datetime'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": "<class 'numpy.datetime64'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<attribute 'shape' of 'numpy.generic' objects>"
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": "'datetime64[ns]'",
+                                    "variable_type": "str",
+                                    "variable_shape": "14"
+                                },
+                                "unit.is_na": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.iNaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object, {1: array([0, 1, 2])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.is_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.datetime64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object, {1: array([0, 1, 2])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": "ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object",
+                                    "variable_type": "ObjectBlock",
+                                    "variable_shape": "(2, 3)"
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": "[dtype('O')]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "i": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": "JoinUnit(ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object, {1: array([0, 1, 2])})",
+                                    "variable_type": "JoinUnit",
+                                    "variable_shape": "(2, 3)"
+                                },
+                                "unit.block": {
+                                    "variable_value": "ObjectBlock: slice(0, 2, 1), 2 x 3, dtype: object",
+                                    "variable_type": "ObjectBlock",
+                                    "variable_shape": "(2, 3)"
+                                },
+                                "unit.dtype": {
+                                    "variable_value": "dtype('O')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {'object': [dtype('O')]})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "1"
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "0"
+                                },
+                                "dtype": {
+                                    "variable_value": "dtype('O')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": "'object'",
+                                    "variable_type": "str",
+                                    "variable_shape": "6"
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": "<class 'numpy.object_'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<attribute 'shape' of 'numpy.generic' objects>"
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": "'object'",
+                                    "variable_type": "str",
+                                    "variable_shape": "6"
+                                },
+                                "unit.is_na": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.datetime64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns], {1: array([ 0,  1, -1])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "unit.is_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.datetime64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "join_units": {
+                                    "variable_value": "[JoinUnit(DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns], {1: array([ 0,  1, -1])})]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "blk": {
+                                    "variable_value": "DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns]",
+                                    "variable_type": "DatetimeBlock",
+                                    "variable_shape": "(1, 3)"
+                                },
+                                "block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.float64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_is_uniform_reindex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "empty_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcasted_na": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block.fill_value": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "has_none_blocks": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "dtypes": {
+                                    "variable_value": "[dtype('<M8[ns]')]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "i": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": "JoinUnit(DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns], {1: array([ 0,  1, -1])})",
+                                    "variable_type": "JoinUnit",
+                                    "variable_shape": "(1, 3)"
+                                },
+                                "unit.block": {
+                                    "variable_value": "DatetimeBlock: slice(0, 1, 1), 1 x 3, dtype: datetime64[ns]",
+                                    "variable_type": "DatetimeBlock",
+                                    "variable_shape": "(1, 3)"
+                                },
+                                "unit.dtype": {
+                                    "variable_value": "dtype('<M8[ns]')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {'datetime': [dtype('<M8[ns]')]})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "1"
+                                },
+                                "defaultdict": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "null_upcast_classes": {
+                                    "variable_value": "defaultdict(<class 'list'>, {})",
+                                    "variable_type": "defaultdict",
+                                    "variable_shape": "0"
+                                },
+                                "dtype": {
+                                    "variable_value": "dtype('<M8[ns]')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "upcast_cls": {
+                                    "variable_value": "'datetime'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.type": {
+                                    "variable_value": "<class 'numpy.datetime64'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<attribute 'shape' of 'numpy.generic' objects>"
+                                },
+                                "np.bool_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.object_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_timedelta64_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_sparse": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "dtype.subtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_float_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_numeric_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype.name": {
+                                    "variable_value": "'datetime64[ns]'",
+                                    "variable_type": "str",
+                                    "variable_shape": "14"
+                                },
+                                "unit.is_na": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "append": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.NaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.datetime64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.timedelta64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.find_common_type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "g.type": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "msg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def get_mgr_concatenation_plan(mgr, indexers):\n    \"\"\"\n    Construct concatenation plan for given block manager and indexers.\n\n    Parameters\n    ----------\n    mgr : BlockManager\n    indexers : dict of {axis: indexer}\n\n    Returns\n    -------\n    plan : list of (BlockPlacement, JoinUnit) tuples\n\n    \"\"\"\n    # Calculate post-reindex shape , save for item axis which will be separate\n    # for each block anyway.\n    mgr_shape = list(mgr.shape)\n    for ax, indexer in indexers.items():\n        mgr_shape[ax] = len(indexer)\n    mgr_shape = tuple(mgr_shape)\n\n    if 0 in indexers:\n        ax0_indexer = indexers.pop(0)\n        blknos = algos.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)\n        blklocs = algos.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)\n    else:\n\n        if mgr._is_single_block:\n            blk = mgr.blocks[0]\n            return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]\n\n        ax0_indexer = None\n        blknos = mgr._blknos\n        blklocs = mgr._blklocs\n\n    plan = []\n    for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):\n\n        assert placements.is_slice_like\n\n        join_unit_indexers = indexers.copy()\n\n        shape = list(mgr_shape)\n        shape[0] = len(placements)\n        shape = tuple(shape)\n\n        if blkno == -1:\n            unit = JoinUnit(None, shape)\n        else:\n            blk = mgr.blocks[blkno]\n            ax0_blk_indexer = blklocs[placements.indexer]\n\n            unit_no_ax0_reindexing = (\n                len(placements) == len(blk.mgr_locs)\n                and\n                # Fastpath detection of join unit not\n                # needing to reindex its block: no ax0\n                # reindexing took place and block\n                # placement was sequential before.\n                (\n                    (\n                        ax0_indexer is None\n                        and blk.mgr_locs.is_slice_like\n                        and blk.mgr_locs.as_slice.step == 1\n                    )\n                    or\n                    # Slow-ish detection: all indexer locs\n                    # are sequential (and length match is\n                    # checked above).\n                    (np.diff(ax0_blk_indexer) == 1).all()\n                )\n            )\n\n            # Omit indexer if no item reindexing is required.\n            if unit_no_ax0_reindexing:\n                join_unit_indexers.pop(0, None)\n            else:\n                join_unit_indexers[0] = ax0_blk_indexer\n\n            unit = JoinUnit(blk, shape, join_unit_indexers)\n\n        plan.append((placements, unit))\n\n    return plan",
+                "def concatenate_join_units(join_units, concat_axis, copy):\n    \"\"\"\n    Concatenate values from several join units along selected axis.\n    \"\"\"\n    if concat_axis == 0 and len(join_units) > 1:\n        # Concatenating join units along ax0 is handled in _merge_blocks.\n        raise AssertionError(\"Concatenating join units along axis0\")\n\n    empty_dtype, upcasted_na = _get_empty_dtype_and_na(join_units)\n\n    to_concat = [\n        ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)\n        for ju in join_units\n    ]\n\n    if len(to_concat) == 1:\n        # Only one block, nothing to concatenate.\n        concat_values = to_concat[0]\n        if copy:\n            if isinstance(concat_values, np.ndarray):\n                # non-reindexed (=not yet copied) arrays are made into a view\n                # in JoinUnit.get_reindexed_values\n                if concat_values.base is not None:\n                    concat_values = concat_values.copy()\n            else:\n                concat_values = concat_values.copy()\n    else:\n        concat_values = concat_compat(to_concat, axis=concat_axis)\n\n    return concat_values",
+                "def _get_empty_dtype_and_na(join_units):\n    \"\"\"\n    Return dtype and N/A values to use when concatenating specified units.\n\n    Returned N/A value may be None which means there was no casting involved.\n\n    Returns\n    -------\n    dtype\n    na\n    \"\"\"\n    if len(join_units) == 1:\n        blk = join_units[0].block\n        if blk is None:\n            return np.float64, np.nan\n\n    if _is_uniform_reindex(join_units):\n        # FIXME: integrate property\n        empty_dtype = join_units[0].block.dtype\n        upcasted_na = join_units[0].block.fill_value\n        return empty_dtype, upcasted_na\n\n    has_none_blocks = False\n    dtypes = [None] * len(join_units)\n    for i, unit in enumerate(join_units):\n        if unit.block is None:\n            has_none_blocks = True\n        else:\n            dtypes[i] = unit.dtype\n\n    upcast_classes = defaultdict(list)\n    null_upcast_classes = defaultdict(list)\n    for dtype, unit in zip(dtypes, join_units):\n        if dtype is None:\n            continue\n\n        if is_categorical_dtype(dtype):\n            upcast_cls = \"category\"\n        elif is_datetime64tz_dtype(dtype):\n            upcast_cls = \"datetimetz\"\n        elif issubclass(dtype.type, np.bool_):\n            upcast_cls = \"bool\"\n        elif issubclass(dtype.type, np.object_):\n            upcast_cls = \"object\"\n        elif is_datetime64_dtype(dtype):\n            upcast_cls = \"datetime\"\n        elif is_timedelta64_dtype(dtype):\n            upcast_cls = \"timedelta\"\n        elif is_sparse(dtype):\n            upcast_cls = dtype.subtype.name\n        elif is_extension_array_dtype(dtype):\n            upcast_cls = \"object\"\n        elif is_float_dtype(dtype) or is_numeric_dtype(dtype):\n            upcast_cls = dtype.name\n        else:\n            upcast_cls = \"float\"\n\n        # Null blocks should not influence upcast class selection, unless there\n        # are only null blocks, when same upcasting rules must be applied to\n        # null upcast classes.\n        if unit.is_na:\n            null_upcast_classes[upcast_cls].append(dtype)\n        else:\n            upcast_classes[upcast_cls].append(dtype)\n\n    if not upcast_classes:\n        upcast_classes = null_upcast_classes\n\n    # TODO: de-duplicate with maybe_promote?\n    # create the result\n    if \"object\" in upcast_classes:\n        return np.dtype(np.object_), np.nan\n    elif \"bool\" in upcast_classes:\n        if has_none_blocks:\n            return np.dtype(np.object_), np.nan\n        else:\n            return np.dtype(np.bool_), None\n    elif \"category\" in upcast_classes:\n        return np.dtype(np.object_), np.nan\n    elif \"datetimetz\" in upcast_classes:\n        # GH-25014. We use NaT instead of iNaT, since this eventually\n        # ends up in DatetimeArray.take, which does not allow iNaT.\n        dtype = upcast_classes[\"datetimetz\"]\n        return dtype[0], tslibs.NaT\n    elif \"datetime\" in upcast_classes:\n        return np.dtype(\"M8[ns]\"), tslibs.iNaT\n    elif \"timedelta\" in upcast_classes:\n        return np.dtype(\"m8[ns]\"), np.timedelta64(\"NaT\", \"ns\")\n    else:  # pragma\n        try:\n            g = np.find_common_type(upcast_classes, [])\n        except TypeError:\n            # At least one is an ExtensionArray\n            return np.dtype(np.object_), np.nan\n        else:\n            if is_float_dtype(g):\n                return g, g.type(np.nan)\n            elif is_numeric_dtype(g):\n                if has_none_blocks:\n                    return np.float64, np.nan\n                else:\n                    return g, None\n\n    msg = \"invalid dtype determination in get_concat_dtype\"\n    raise AssertionError(msg)",
+                "def is_uniform_join_units(join_units):\n    \"\"\"\n    Check if the join units consist of blocks of uniform type that can\n    be concatenated using Block.concat_same_type instead of the generic\n    concatenate_join_units (which uses `concat_compat`).\n\n    \"\"\"\n    return (\n        # all blocks need to have the same type\n        all(type(ju.block) is type(join_units[0].block) for ju in join_units)\n        and  # noqa\n        # no blocks that would get missing values (can lead to type upcasts)\n        # unless we're an extension dtype.\n        all(not ju.is_na or ju.block.is_extension for ju in join_units)\n        and\n        # no blocks with indexers (as then the dimensions do not fit)\n        all(not ju.indexers for ju in join_units)\n        and\n        # only use this path when there is something to concatenate\n        len(join_units) > 1\n    )",
+                "def _is_uniform_reindex(join_units) -> bool:\n    return (\n        # TODO: should this be ju.block._can_hold_na?\n        all(ju.block and ju.block.is_extension for ju in join_units)\n        and len({ju.block.dtype.name for ju in join_units}) == 1\n    )",
+                "def _trim_join_unit(join_unit, length):\n    \"\"\"\n    Reduce join_unit's shape along item axis to length.\n\n    Extra items that didn't fit are returned as a separate block.\n    \"\"\"\n\n    if 0 not in join_unit.indexers:\n        extra_indexers = join_unit.indexers\n\n        if join_unit.block is None:\n            extra_block = None\n        else:\n            extra_block = join_unit.block.getitem_block(slice(length, None))\n            join_unit.block = join_unit.block.getitem_block(slice(length))\n    else:\n        extra_block = join_unit.block\n\n        extra_indexers = copy.copy(join_unit.indexers)\n        extra_indexers[0] = extra_indexers[0][length:]\n        join_unit.indexers[0] = join_unit.indexers[0][:length]\n\n    extra_shape = (join_unit.shape[0] - length,) + join_unit.shape[1:]\n    join_unit.shape = (length,) + join_unit.shape[1:]\n\n    return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)",
+                "def combine_concat_plans(plans, concat_axis):\n    \"\"\"\n    Combine multiple concatenation plans into one.\n\n    existing_plan is updated in-place.\n    \"\"\"\n    if len(plans) == 1:\n        for p in plans[0]:\n            yield p[0], [p[1]]\n\n    elif concat_axis == 0:\n        offset = 0\n        for plan in plans:\n            last_plc = None\n\n            for plc, unit in plan:\n                yield plc.add(offset), [unit]\n                last_plc = plc\n\n            if last_plc is not None:\n                offset += last_plc.as_slice.stop\n\n    else:\n        num_ended = [0]\n\n        def _next_or_none(seq):\n            retval = next(seq, None)\n            if retval is None:\n                num_ended[0] += 1\n            return retval\n\n        plans = list(map(iter, plans))\n        next_items = list(map(_next_or_none, plans))\n\n        while num_ended[0] != len(next_items):\n            if num_ended[0] > 0:\n                raise ValueError(\"Plan shapes are not aligned\")\n\n            placements, units = zip(*next_items)\n\n            lengths = list(map(len, placements))\n            min_len, max_len = min(lengths), max(lengths)\n\n            if min_len == max_len:\n                yield placements[0], units\n                next_items[:] = map(_next_or_none, plans)\n            else:\n                yielded_placement = None\n                yielded_units = [None] * len(next_items)\n                for i, (plc, unit) in enumerate(next_items):\n                    yielded_units[i] = unit\n                    if len(plc) > min_len:\n                        # _trim_join_unit updates unit in place, so only\n                        # placement needs to be sliced to skip min_len.\n                        next_items[i] = (plc[min_len:], _trim_join_unit(unit, min_len))\n                    else:\n                        yielded_placement = plc\n                        next_items[i] = _next_or_none(plans[i])\n\n                yield yielded_placement, yielded_units",
+                "def __init__(self, block, shape, indexers=None):\n    # Passing shape explicitly is required for cases when block is None.\n    if indexers is None:\n        indexers = {}\n    self.block = block\n    self.indexers = indexers\n    self.shape = shape",
+                "def __repr__(self) -> str:\n    return f\"{type(self).__name__}({repr(self.block)}, {self.indexers})\"",
+                "@cache_readonly\ndef needs_filling(self):\n    for indexer in self.indexers.values():\n        # FIXME: cache results of indexer == -1 checks.\n        if (indexer == -1).any():\n            return True\n\n    return False",
+                "@cache_readonly\ndef dtype(self):\n    if self.block is None:\n        raise AssertionError(\"Block is None, no dtype\")\n\n    if not self.needs_filling:\n        return self.block.dtype\n    else:\n        return _get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])",
+                "@cache_readonly\ndef is_na(self):\n    if self.block is None:\n        return True\n\n    if not self.block._can_hold_na:\n        return False\n\n    # Usually it's enough to check but a small fraction of values to see if\n    # a block is NOT null, chunks should help in such cases.  1000 value\n    # was chosen rather arbitrarily.\n    values = self.block.values\n    if self.block.is_categorical:\n        values_flat = values.categories\n    elif is_sparse(self.block.values.dtype):\n        return False\n    elif self.block.is_extension:\n        values_flat = values\n    else:\n        values_flat = values.ravel(order=\"K\")\n    total_len = values_flat.shape[0]\n    chunk_len = max(total_len // 40, 1000)\n    for i in range(0, total_len, chunk_len):\n        if not isna(values_flat[i : i + chunk_len]).all():\n            return False\n\n    return True",
+                "def get_reindexed_values(self, empty_dtype, upcasted_na):\n    if upcasted_na is None:\n        # No upcasting is necessary\n        fill_value = self.block.fill_value\n        values = self.block.get_values()\n    else:\n        fill_value = upcasted_na\n\n        if self.is_na:\n            if getattr(self.block, \"is_object\", False):\n                # we want to avoid filling with np.nan if we are\n                # using None; we already know that we are all\n                # nulls\n                values = self.block.values.ravel(order=\"K\")\n                if len(values) and values[0] is None:\n                    fill_value = None\n\n            if getattr(self.block, \"is_datetimetz\", False) or is_datetime64tz_dtype(\n                empty_dtype\n            ):\n                if self.block is None:\n                    array = empty_dtype.construct_array_type()\n                    return array(\n                        np.full(self.shape[1], fill_value.value), dtype=empty_dtype\n                    )\n            elif getattr(self.block, \"is_categorical\", False):\n                pass\n            elif getattr(self.block, \"is_extension\", False):\n                pass\n            else:\n                missing_arr = np.empty(self.shape, dtype=empty_dtype)\n                missing_arr.fill(fill_value)\n                return missing_arr\n\n        if not self.indexers:\n            if not self.block._can_consolidate:\n                # preserve these for validation in concat_compat\n                return self.block.values\n\n        if self.block.is_bool and not self.block.is_categorical:\n            # External code requested filling/upcasting, bool values must\n            # be upcasted to object to avoid being upcasted to numeric.\n            values = self.block.astype(np.object_).values\n        elif self.block.is_extension:\n            values = self.block.values\n        else:\n            # No dtype upcasting is done here, it will be performed during\n            # concatenation itself.\n            values = self.block.get_values()\n\n    if not self.indexers:\n        # If there's no indexing to be done, we want to signal outside\n        # code that this array must be copied explicitly.  This is done\n        # by returning a view and checking `retval.base`.\n        values = values.view()\n\n    else:\n        for ax, indexer in self.indexers.items():\n            values = algos.take_nd(values, indexer, axis=ax, fill_value=fill_value)\n\n    return values",
+                "def _next_or_none(seq):\n    retval = next(seq, None)\n    if retval is None:\n        num_ended[0] += 1\n    return retval"
+            ],
+            "inscope_function_signatures": [
+                "get_mgr_concatenation_plan(mgr, indexers)",
+                "concatenate_join_units(join_units, concat_axis, copy)",
+                "_get_empty_dtype_and_na(join_units)",
+                "is_uniform_join_units(join_units)",
+                "_is_uniform_reindex(join_units) -> bool",
+                "_trim_join_unit(join_unit, length)",
+                "combine_concat_plans(plans, concat_axis)",
+                "__init__(self, block, shape, indexers=None)",
+                "__repr__(self) -> str",
+                "needs_filling(self)",
+                "dtype(self)",
+                "is_na(self)",
+                "get_reindexed_values(self, empty_dtype, upcasted_na)",
+                "_next_or_none(seq)"
+            ],
+            "variables_in_file": {
+                "mgr_shape": [
+                    70,
+                    44,
+                    46,
+                    47,
+                    57
+                ],
+                "list": [
+                    70,
+                    298,
+                    299,
+                    44,
+                    465,
+                    466,
+                    474
+                ],
+                "mgr.shape": [
+                    44
+                ],
+                "mgr": [
+                    44,
+                    77,
+                    51,
+                    52,
+                    55,
+                    56,
+                    60,
+                    61
+                ],
+                "ax": [
+                    231,
+                    45,
+                    46,
+                    230
+                ],
+                "indexer": [
+                    128,
+                    130,
+                    230,
+                    231,
+                    45,
+                    46
+                ],
+                "indexers.items": [
+                    45
+                ],
+                "indexers": [
+                    68,
+                    45,
+                    49,
+                    50,
+                    117,
+                    118,
+                    120,
+                    57
+                ],
+                "len": [
+                    482,
+                    291,
+                    485,
+                    71,
+                    394,
+                    46,
+                    251,
+                    240,
+                    81,
+                    402,
+                    468,
+                    279,
+                    440,
+                    474,
+                    187
+                ],
+                "tuple": [
+                    72,
+                    47
+                ],
+                "ax0_indexer": [
+                    50,
+                    51,
+                    52,
+                    89,
+                    59
+                ],
+                "indexers.pop": [
+                    50
+                ],
+                "blknos": [
+                    64,
+                    51,
+                    60
+                ],
+                "algos.take_1d": [
+                    51,
+                    52
+                ],
+                "algos": [
+                    51,
+                    52,
+                    231
+                ],
+                "mgr._blknos": [
+                    51,
+                    60
+                ],
+                "blklocs": [
+                    52,
+                    61,
+                    78
+                ],
+                "mgr._blklocs": [
+                    52,
+                    61
+                ],
+                "mgr._is_single_block": [
+                    55
+                ],
+                "blk": [
+                    280,
+                    281,
+                    107,
+                    77,
+                    81,
+                    56,
+                    57,
+                    90,
+                    91
+                ],
+                "mgr.blocks": [
+                    56,
+                    77
+                ],
+                "blk.mgr_locs": [
+                    81,
+                    57,
+                    90,
+                    91
+                ],
+                "JoinUnit": [
+                    107,
+                    57,
+                    75,
+                    431
+                ],
+                "plan": [
+                    449,
+                    109,
+                    111,
+                    446,
+                    63
+                ],
+                "blkno": [
+                    64,
+                    74,
+                    77
+                ],
+                "placements": [
+                    64,
+                    66,
+                    71,
+                    109,
+                    78,
+                    81,
+                    472,
+                    474,
+                    478
+                ],
+                "libinternals.get_blkno_placements": [
+                    64
+                ],
+                "libinternals": [
+                    64
+                ],
+                "placements.is_slice_like": [
+                    66
+                ],
+                "join_unit_indexers": [
+                    105,
+                    107,
+                    68,
+                    103
+                ],
+                "indexers.copy": [
+                    68
+                ],
+                "shape": [
+                    70,
+                    71,
+                    72,
+                    107,
+                    75,
+                    121
+                ],
+                "unit": [
+                    449,
+                    450,
+                    483,
+                    292,
+                    293,
+                    484,
+                    296,
+                    328,
+                    488,
+                    107,
+                    75,
+                    109,
+                    300
+                ],
+                "ax0_blk_indexer": [
+                    97,
+                    78,
+                    105
+                ],
+                "placements.indexer": [
+                    78
+                ],
+                "unit_no_ax0_reindexing": [
+                    80,
+                    102
+                ],
+                "blk.mgr_locs.is_slice_like": [
+                    90
+                ],
+                "blk.mgr_locs.as_slice.step": [
+                    91
+                ],
+                "blk.mgr_locs.as_slice": [
+                    91
+                ],
+                "all": [
+                    384,
+                    97,
+                    388,
+                    391,
+                    168,
+                    401
+                ],
+                "np.diff": [
+                    97
+                ],
+                "np": [
+                    97,
+                    353,
+                    344,
+                    196,
+                    355,
+                    358,
+                    361,
+                    203,
+                    364,
+                    346,
+                    367,
+                    339,
+                    308,
+                    310,
+                    215,
+                    342,
+                    282,
+                    255
+                ],
+                "join_unit_indexers.pop": [
+                    103
+                ],
+                "plan.append": [
+                    109
+                ],
+                "self.block": [
+                    137,
+                    141,
+                    143,
+                    147,
+                    150,
+                    156,
+                    157,
+                    159,
+                    161,
+                    176,
+                    177,
+                    182,
+                    186,
+                    190,
+                    193,
+                    198,
+                    200,
+                    208,
+                    210,
+                    212,
+                    215,
+                    216,
+                    217,
+                    221,
+                    119,
+                    124
+                ],
+                "self": [
+                    128,
+                    137,
+                    140,
+                    141,
+                    143,
+                    147,
+                    150,
+                    156,
+                    157,
+                    159,
+                    161,
+                    176,
+                    177,
+                    181,
+                    182,
+                    186,
+                    190,
+                    193,
+                    196,
+                    198,
+                    200,
+                    203,
+                    207,
+                    208,
+                    210,
+                    212,
+                    215,
+                    216,
+                    217,
+                    221,
+                    223,
+                    230,
+                    119,
+                    120,
+                    121,
+                    124
+                ],
+                "block": [
+                    384,
+                    119,
+                    280,
+                    286,
+                    287
+                ],
+                "self.indexers": [
+                    128,
+                    230,
+                    207,
+                    120,
+                    124,
+                    223
+                ],
+                "self.shape": [
+                    121,
+                    203,
+                    196
+                ],
+                "__name__": [
+                    124
+                ],
+                "type": [
+                    384,
+                    124
+                ],
+                "repr": [
+                    124
+                ],
+                "str": [
+                    123
+                ],
+                "self.indexers.values": [
+                    128
+                ],
+                "any": [
+                    130
+                ],
+                "cache_readonly": [
+                    145,
+                    126,
+                    135
+                ],
+                "AssertionError": [
+                    138,
+                    242,
+                    372
+                ],
+                "self.needs_filling": [
+                    140
+                ],
+                "self.block.dtype": [
+                    141,
+                    143
+                ],
+                "_get_dtype": [
+                    143
+                ],
+                "maybe_promote": [
+                    143
+                ],
+                "self.block.fill_value": [
+                    176,
+                    143
+                ],
+                "self.block._can_hold_na": [
+                    150
+                ],
+                "values": [
+                    162,
+                    227,
+                    164,
+                    231,
+                    233,
+                    177,
+                    215,
+                    217,
+                    186,
+                    187,
+                    156,
+                    221,
+                    158
+                ],
+                "self.block.values": [
+                    210,
+                    217,
+                    186,
+                    156,
+                    159
+                ],
+                "self.block.is_categorical": [
+                    212,
+                    157
+                ],
+                "values_flat": [
+                    162,
+                    164,
+                    165,
+                    168,
+                    158
+                ],
+                "values.categories": [
+                    158
+                ],
+                "is_sparse": [
+                    316,
+                    159
+                ],
+                "self.block.values.dtype": [
+                    159
+                ],
+                "self.block.is_extension": [
+                    216,
+                    161
+                ],
+                "values.ravel": [
+                    164
+                ],
+                "total_len": [
+                    165,
+                    166,
+                    167
+                ],
+                "values_flat.shape": [
+                    165
+                ],
+                "chunk_len": [
+                    168,
+                    166,
+                    167
+                ],
+                "max": [
+                    475,
+                    166
+                ],
+                "i": [
+                    483,
+                    292,
+                    484,
+                    167,
+                    168,
+                    296,
+                    488,
+                    491
+                ],
+                "range": [
+                    167
+                ],
+                "isna": [
+                    168
+                ],
+                "upcasted_na": [
+                    288,
+                    174,
+                    179,
+                    244,
+                    247,
+                    287
+                ],
+                "fill_value": [
+                    196,
+                    231,
+                    204,
+                    176,
+                    179,
+                    188
+                ],
+                "self.block.get_values": [
+                    177,
+                    221
+                ],
+                "self.is_na": [
+                    181
+                ],
+                "getattr": [
+                    200,
+                    190,
+                    198,
+                    182
+                ],
+                "self.block.values.ravel": [
+                    186
+                ],
+                "is_datetime64tz_dtype": [
+                    306,
+                    190
+                ],
+                "empty_dtype": [
+                    288,
+                    194,
+                    196,
+                    203,
+                    244,
+                    247,
+                    286,
+                    191
+                ],
+                "array": [
+                    194,
+                    195
+                ],
+                "empty_dtype.construct_array_type": [
+                    194
+                ],
+                "np.full": [
+                    196
+                ],
+                "fill_value.value": [
+                    196
+                ],
+                "missing_arr": [
+                    203,
+                    204,
+                    205
+                ],
+                "np.empty": [
+                    203
+                ],
+                "missing_arr.fill": [
+                    204
+                ],
+                "self.block._can_consolidate": [
+                    208
+                ],
+                "self.block.is_bool": [
+                    212
+                ],
+                "self.block.astype": [
+                    215
+                ],
+                "np.object_": [
+                    215,
+                    361,
+                    339,
+                    342,
+                    310,
+                    346
+                ],
+                "values.view": [
+                    227
+                ],
+                "self.indexers.items": [
+                    230
+                ],
+                "algos.take_nd": [
+                    231
+                ],
+                "concat_axis": [
+                    240,
+                    444,
+                    263
+                ],
+                "join_units": [
+                    384,
+                    280,
+                    291,
+                    292,
+                    388,
+                    391,
+                    394,
+                    300,
+                    240,
+                    401,
+                    402,
+                    244,
+                    279,
+                    248,
+                    284,
+                    286,
+                    287
+                ],
+                "_get_empty_dtype_and_na": [
+                    244
+                ],
+                "to_concat": [
+                    251,
+                    253,
+                    246,
+                    263
+                ],
+                "ju.get_reindexed_values": [
+                    247
+                ],
+                "ju": [
+                    384,
+                    388,
+                    391,
+                    401,
+                    402,
+                    247,
+                    248
+                ],
+                "concat_values": [
+                    258,
+                    259,
+                    261,
+                    263,
+                    265,
+                    253,
+                    255
+                ],
+                "copy": [
+                    424,
+                    254
+                ],
+                "isinstance": [
+                    255
+                ],
+                "np.ndarray": [
+                    255
+                ],
+                "concat_values.base": [
+                    258
+                ],
+                "concat_values.copy": [
+                    259,
+                    261
+                ],
+                "concat_compat": [
+                    263
+                ],
+                "np.float64": [
+                    282,
+                    367
+                ],
+                "np.nan": [
+                    361,
+                    364,
+                    346,
+                    367,
+                    339,
+                    342,
+                    282
+                ],
+                "_is_uniform_reindex": [
+                    284
+                ],
+                "block.dtype": [
+                    286
+                ],
+                "block.fill_value": [
+                    287
+                ],
+                "has_none_blocks": [
+                    290,
+                    366,
+                    341,
+                    294
+                ],
+                "dtypes": [
+                    296,
+                    291,
+                    300
+                ],
+                "enumerate": [
+                    483,
+                    292
+                ],
+                "unit.block": [
+                    293
+                ],
+                "unit.dtype": [
+                    296
+                ],
+                "upcast_classes": [
+                    352,
+                    354,
+                    358,
+                    298,
+                    331,
+                    333,
+                    334,
+                    338,
+                    340,
+                    345,
+                    347,
+                    350
+                ],
+                "defaultdict": [
+                    298,
+                    299
+                ],
+                "null_upcast_classes": [
+                    329,
+                    299,
+                    334
+                ],
+                "dtype": [
+                    320,
+                    321,
+                    350,
+                    329,
+                    331,
+                    300,
+                    301,
+                    304,
+                    306,
+                    308,
+                    310,
+                    312,
+                    314,
+                    316,
+                    317,
+                    318,
+                    351
+                ],
+                "zip": [
+                    472,
+                    300
+                ],
+                "is_categorical_dtype": [
+                    304
+                ],
+                "upcast_cls": [
+                    321,
+                    323,
+                    329,
+                    331,
+                    305,
+                    307,
+                    309,
+                    311,
+                    313,
+                    315,
+                    317,
+                    319
+                ],
+                "issubclass": [
+                    308,
+                    310
+                ],
+                "dtype.type": [
+                    308,
+                    310
+                ],
+                "np.bool_": [
+                    344,
+                    308
+                ],
+                "is_datetime64_dtype": [
+                    312
+                ],
+                "is_timedelta64_dtype": [
+                    314
+                ],
+                "dtype.subtype.name": [
+                    317
+                ],
+                "dtype.subtype": [
+                    317
+                ],
+                "is_extension_array_dtype": [
+                    318
+                ],
+                "is_float_dtype": [
+                    320,
+                    363
+                ],
+                "is_numeric_dtype": [
+                    320,
+                    365
+                ],
+                "dtype.name": [
+                    321
+                ],
+                "unit.is_na": [
+                    328
+                ],
+                "append": [
+                    329,
+                    331
+                ],
+                "np.dtype": [
+                    353,
+                    355,
+                    361,
+                    339,
+                    342,
+                    344,
+                    346
+                ],
+                "tslibs.NaT": [
+                    351
+                ],
+                "tslibs": [
+                    353,
+                    351
+                ],
+                "tslibs.iNaT": [
+                    353
+                ],
+                "np.timedelta64": [
+                    355
+                ],
+                "g": [
+                    358,
+                    363,
+                    364,
+                    365,
+                    369
+                ],
+                "np.find_common_type": [
+                    358
+                ],
+                "TypeError": [
+                    359
+                ],
+                "g.type": [
+                    364
+                ],
+                "msg": [
+                    371,
+                    372
+                ],
+                "ju.block": [
+                    384,
+                    401,
+                    402,
+                    388
+                ],
+                "ju.is_na": [
+                    388
+                ],
+                "ju.block.is_extension": [
+                    401,
+                    388
+                ],
+                "ju.indexers": [
+                    391
+                ],
+                "ju.block.dtype.name": [
+                    402
+                ],
+                "ju.block.dtype": [
+                    402
+                ],
+                "bool": [
+                    398
+                ],
+                "join_unit.indexers": [
+                    424,
+                    426,
+                    413,
+                    414
+                ],
+                "join_unit": [
+                    416,
+                    419,
+                    420,
+                    422,
+                    424,
+                    426,
+                    428,
+                    429,
+                    413,
+                    414
+                ],
+                "extra_indexers": [
+                    424,
+                    425,
+                    414,
+                    431
+                ],
+                "join_unit.block": [
+                    416,
+                    419,
+                    420,
+                    422
+                ],
+                "extra_block": [
+                    417,
+                    419,
+                    422,
+                    431
+                ],
+                "join_unit.block.getitem_block": [
+                    419,
+                    420
+                ],
+                "slice": [
+                    419,
+                    420
+                ],
+                "length": [
+                    419,
+                    420,
+                    425,
+                    426,
+                    428,
+                    429
+                ],
+                "copy.copy": [
+                    424
+                ],
+                "extra_shape": [
+                    428,
+                    431
+                ],
+                "join_unit.shape": [
+                    428,
+                    429
+                ],
+                "plans": [
+                    491,
+                    465,
+                    466,
+                    440,
+                    441,
+                    446,
+                    479
+                ],
+                "p": [
+                    441,
+                    442
+                ],
+                "offset": [
+                    450,
+                    445,
+                    454
+                ],
+                "last_plc": [
+                    451,
+                    453,
+                    454,
+                    447
+                ],
+                "plc": [
+                    449,
+                    450,
+                    451,
+                    483,
+                    485,
+                    488,
+                    490
+                ],
+                "plc.add": [
+                    450
+                ],
+                "last_plc.as_slice.stop": [
+                    454
+                ],
+                "last_plc.as_slice": [
+                    454
+                ],
+                "num_ended": [
+                    457,
+                    468,
+                    469,
+                    462
+                ],
+                "retval": [
+                    460,
+                    461,
+                    463
+                ],
+                "next": [
+                    460
+                ],
+                "seq": [
+                    460
+                ],
+                "map": [
+                    465,
+                    466,
+                    474,
+                    479
+                ],
+                "iter": [
+                    465
+                ],
+                "next_items": [
+                    482,
+                    483,
+                    488,
+                    491,
+                    466,
+                    468,
+                    472,
+                    479
+                ],
+                "_next_or_none": [
+                    466,
+                    491,
+                    479
+                ],
+                "ValueError": [
+                    470
+                ],
+                "units": [
+                    472,
+                    478
+                ],
+                "lengths": [
+                    474,
+                    475
+                ],
+                "min_len": [
+                    488,
+                    485,
+                    475,
+                    477
+                ],
+                "max_len": [
+                    475,
+                    477
+                ],
+                "min": [
+                    475
+                ],
+                "yielded_placement": [
+                    481,
+                    490,
+                    493
+                ],
+                "yielded_units": [
+                    482,
+                    484,
+                    493
+                ],
+                "_trim_join_unit": [
+                    488
+                ]
+            },
+            "filtered_variables_in_file": {
+                "mgr_shape": [
+                    70,
+                    44,
+                    46,
+                    47,
+                    57
+                ],
+                "mgr.shape": [
+                    44
+                ],
+                "mgr": [
+                    44,
+                    77,
+                    51,
+                    52,
+                    55,
+                    56,
+                    60,
+                    61
+                ],
+                "ax": [
+                    231,
+                    45,
+                    46,
+                    230
+                ],
+                "indexer": [
+                    128,
+                    130,
+                    230,
+                    231,
+                    45,
+                    46
+                ],
+                "indexers.items": [
+                    45
+                ],
+                "indexers": [
+                    68,
+                    45,
+                    49,
+                    50,
+                    117,
+                    118,
+                    120,
+                    57
+                ],
+                "ax0_indexer": [
+                    50,
+                    51,
+                    52,
+                    89,
+                    59
+                ],
+                "indexers.pop": [
+                    50
+                ],
+                "blknos": [
+                    64,
+                    51,
+                    60
+                ],
+                "algos.take_1d": [
+                    51,
+                    52
+                ],
+                "algos": [
+                    51,
+                    52,
+                    231
+                ],
+                "mgr._blknos": [
+                    51,
+                    60
+                ],
+                "blklocs": [
+                    52,
+                    61,
+                    78
+                ],
+                "mgr._blklocs": [
+                    52,
+                    61
+                ],
+                "mgr._is_single_block": [
+                    55
+                ],
+                "blk": [
+                    280,
+                    281,
+                    107,
+                    77,
+                    81,
+                    56,
+                    57,
+                    90,
+                    91
+                ],
+                "mgr.blocks": [
+                    56,
+                    77
+                ],
+                "blk.mgr_locs": [
+                    81,
+                    57,
+                    90,
+                    91
+                ],
+                "JoinUnit": [
+                    107,
+                    57,
+                    75,
+                    431
+                ],
+                "plan": [
+                    449,
+                    109,
+                    111,
+                    446,
+                    63
+                ],
+                "blkno": [
+                    64,
+                    74,
+                    77
+                ],
+                "placements": [
+                    64,
+                    66,
+                    71,
+                    109,
+                    78,
+                    81,
+                    472,
+                    474,
+                    478
+                ],
+                "libinternals.get_blkno_placements": [
+                    64
+                ],
+                "libinternals": [
+                    64
+                ],
+                "placements.is_slice_like": [
+                    66
+                ],
+                "join_unit_indexers": [
+                    105,
+                    107,
+                    68,
+                    103
+                ],
+                "indexers.copy": [
+                    68
+                ],
+                "shape": [
+                    70,
+                    71,
+                    72,
+                    107,
+                    75,
+                    121
+                ],
+                "unit": [
+                    449,
+                    450,
+                    483,
+                    292,
+                    293,
+                    484,
+                    296,
+                    328,
+                    488,
+                    107,
+                    75,
+                    109,
+                    300
+                ],
+                "ax0_blk_indexer": [
+                    97,
+                    78,
+                    105
+                ],
+                "placements.indexer": [
+                    78
+                ],
+                "unit_no_ax0_reindexing": [
+                    80,
+                    102
+                ],
+                "blk.mgr_locs.is_slice_like": [
+                    90
+                ],
+                "blk.mgr_locs.as_slice.step": [
+                    91
+                ],
+                "blk.mgr_locs.as_slice": [
+                    91
+                ],
+                "np.diff": [
+                    97
+                ],
+                "np": [
+                    97,
+                    353,
+                    344,
+                    196,
+                    355,
+                    358,
+                    361,
+                    203,
+                    364,
+                    346,
+                    367,
+                    339,
+                    308,
+                    310,
+                    215,
+                    342,
+                    282,
+                    255
+                ],
+                "join_unit_indexers.pop": [
+                    103
+                ],
+                "plan.append": [
+                    109
+                ],
+                "self.block": [
+                    137,
+                    141,
+                    143,
+                    147,
+                    150,
+                    156,
+                    157,
+                    159,
+                    161,
+                    176,
+                    177,
+                    182,
+                    186,
+                    190,
+                    193,
+                    198,
+                    200,
+                    208,
+                    210,
+                    212,
+                    215,
+                    216,
+                    217,
+                    221,
+                    119,
+                    124
+                ],
+                "self": [
+                    128,
+                    137,
+                    140,
+                    141,
+                    143,
+                    147,
+                    150,
+                    156,
+                    157,
+                    159,
+                    161,
+                    176,
+                    177,
+                    181,
+                    182,
+                    186,
+                    190,
+                    193,
+                    196,
+                    198,
+                    200,
+                    203,
+                    207,
+                    208,
+                    210,
+                    212,
+                    215,
+                    216,
+                    217,
+                    221,
+                    223,
+                    230,
+                    119,
+                    120,
+                    121,
+                    124
+                ],
+                "block": [
+                    384,
+                    119,
+                    280,
+                    286,
+                    287
+                ],
+                "self.indexers": [
+                    128,
+                    230,
+                    207,
+                    120,
+                    124,
+                    223
+                ],
+                "self.shape": [
+                    121,
+                    203,
+                    196
+                ],
+                "self.indexers.values": [
+                    128
+                ],
+                "cache_readonly": [
+                    145,
+                    126,
+                    135
+                ],
+                "self.needs_filling": [
+                    140
+                ],
+                "self.block.dtype": [
+                    141,
+                    143
+                ],
+                "_get_dtype": [
+                    143
+                ],
+                "maybe_promote": [
+                    143
+                ],
+                "self.block.fill_value": [
+                    176,
+                    143
+                ],
+                "self.block._can_hold_na": [
+                    150
+                ],
+                "values": [
+                    162,
+                    227,
+                    164,
+                    231,
+                    233,
+                    177,
+                    215,
+                    217,
+                    186,
+                    187,
+                    156,
+                    221,
+                    158
+                ],
+                "self.block.values": [
+                    210,
+                    217,
+                    186,
+                    156,
+                    159
+                ],
+                "self.block.is_categorical": [
+                    212,
+                    157
+                ],
+                "values_flat": [
+                    162,
+                    164,
+                    165,
+                    168,
+                    158
+                ],
+                "values.categories": [
+                    158
+                ],
+                "is_sparse": [
+                    316,
+                    159
+                ],
+                "self.block.values.dtype": [
+                    159
+                ],
+                "self.block.is_extension": [
+                    216,
+                    161
+                ],
+                "values.ravel": [
+                    164
+                ],
+                "total_len": [
+                    165,
+                    166,
+                    167
+                ],
+                "values_flat.shape": [
+                    165
+                ],
+                "chunk_len": [
+                    168,
+                    166,
+                    167
+                ],
+                "i": [
+                    483,
+                    292,
+                    484,
+                    167,
+                    168,
+                    296,
+                    488,
+                    491
+                ],
+                "isna": [
+                    168
+                ],
+                "upcasted_na": [
+                    288,
+                    174,
+                    179,
+                    244,
+                    247,
+                    287
+                ],
+                "fill_value": [
+                    196,
+                    231,
+                    204,
+                    176,
+                    179,
+                    188
+                ],
+                "self.block.get_values": [
+                    177,
+                    221
+                ],
+                "self.is_na": [
+                    181
+                ],
+                "self.block.values.ravel": [
+                    186
+                ],
+                "is_datetime64tz_dtype": [
+                    306,
+                    190
+                ],
+                "empty_dtype": [
+                    288,
+                    194,
+                    196,
+                    203,
+                    244,
+                    247,
+                    286,
+                    191
+                ],
+                "array": [
+                    194,
+                    195
+                ],
+                "empty_dtype.construct_array_type": [
+                    194
+                ],
+                "np.full": [
+                    196
+                ],
+                "fill_value.value": [
+                    196
+                ],
+                "missing_arr": [
+                    203,
+                    204,
+                    205
+                ],
+                "np.empty": [
+                    203
+                ],
+                "missing_arr.fill": [
+                    204
+                ],
+                "self.block._can_consolidate": [
+                    208
+                ],
+                "self.block.is_bool": [
+                    212
+                ],
+                "self.block.astype": [
+                    215
+                ],
+                "np.object_": [
+                    215,
+                    361,
+                    339,
+                    342,
+                    310,
+                    346
+                ],
+                "values.view": [
+                    227
+                ],
+                "self.indexers.items": [
+                    230
+                ],
+                "algos.take_nd": [
+                    231
+                ],
+                "concat_axis": [
+                    240,
+                    444,
+                    263
+                ],
+                "join_units": [
+                    384,
+                    280,
+                    291,
+                    292,
+                    388,
+                    391,
+                    394,
+                    300,
+                    240,
+                    401,
+                    402,
+                    244,
+                    279,
+                    248,
+                    284,
+                    286,
+                    287
+                ],
+                "_get_empty_dtype_and_na": [
+                    244
+                ],
+                "to_concat": [
+                    251,
+                    253,
+                    246,
+                    263
+                ],
+                "ju.get_reindexed_values": [
+                    247
+                ],
+                "ju": [
+                    384,
+                    388,
+                    391,
+                    401,
+                    402,
+                    247,
+                    248
+                ],
+                "concat_values": [
+                    258,
+                    259,
+                    261,
+                    263,
+                    265,
+                    253,
+                    255
+                ],
+                "copy": [
+                    424,
+                    254
+                ],
+                "np.ndarray": [
+                    255
+                ],
+                "concat_values.base": [
+                    258
+                ],
+                "concat_values.copy": [
+                    259,
+                    261
+                ],
+                "concat_compat": [
+                    263
+                ],
+                "np.float64": [
+                    282,
+                    367
+                ],
+                "np.nan": [
+                    361,
+                    364,
+                    346,
+                    367,
+                    339,
+                    342,
+                    282
+                ],
+                "_is_uniform_reindex": [
+                    284
+                ],
+                "block.dtype": [
+                    286
+                ],
+                "block.fill_value": [
+                    287
+                ],
+                "has_none_blocks": [
+                    290,
+                    366,
+                    341,
+                    294
+                ],
+                "dtypes": [
+                    296,
+                    291,
+                    300
+                ],
+                "unit.block": [
+                    293
+                ],
+                "unit.dtype": [
+                    296
+                ],
+                "upcast_classes": [
+                    352,
+                    354,
+                    358,
+                    298,
+                    331,
+                    333,
+                    334,
+                    338,
+                    340,
+                    345,
+                    347,
+                    350
+                ],
+                "defaultdict": [
+                    298,
+                    299
+                ],
+                "null_upcast_classes": [
+                    329,
+                    299,
+                    334
+                ],
+                "dtype": [
+                    320,
+                    321,
+                    350,
+                    329,
+                    331,
+                    300,
+                    301,
+                    304,
+                    306,
+                    308,
+                    310,
+                    312,
+                    314,
+                    316,
+                    317,
+                    318,
+                    351
+                ],
+                "is_categorical_dtype": [
+                    304
+                ],
+                "upcast_cls": [
+                    321,
+                    323,
+                    329,
+                    331,
+                    305,
+                    307,
+                    309,
+                    311,
+                    313,
+                    315,
+                    317,
+                    319
+                ],
+                "dtype.type": [
+                    308,
+                    310
+                ],
+                "np.bool_": [
+                    344,
+                    308
+                ],
+                "is_datetime64_dtype": [
+                    312
+                ],
+                "is_timedelta64_dtype": [
+                    314
+                ],
+                "dtype.subtype.name": [
+                    317
+                ],
+                "dtype.subtype": [
+                    317
+                ],
+                "is_extension_array_dtype": [
+                    318
+                ],
+                "is_float_dtype": [
+                    320,
+                    363
+                ],
+                "is_numeric_dtype": [
+                    320,
+                    365
+                ],
+                "dtype.name": [
+                    321
+                ],
+                "unit.is_na": [
+                    328
+                ],
+                "append": [
+                    329,
+                    331
+                ],
+                "np.dtype": [
+                    353,
+                    355,
+                    361,
+                    339,
+                    342,
+                    344,
+                    346
+                ],
+                "tslibs.NaT": [
+                    351
+                ],
+                "tslibs": [
+                    353,
+                    351
+                ],
+                "tslibs.iNaT": [
+                    353
+                ],
+                "np.timedelta64": [
+                    355
+                ],
+                "g": [
+                    358,
+                    363,
+                    364,
+                    365,
+                    369
+                ],
+                "np.find_common_type": [
+                    358
+                ],
+                "g.type": [
+                    364
+                ],
+                "msg": [
+                    371,
+                    372
+                ],
+                "ju.block": [
+                    384,
+                    401,
+                    402,
+                    388
+                ],
+                "ju.is_na": [
+                    388
+                ],
+                "ju.block.is_extension": [
+                    401,
+                    388
+                ],
+                "ju.indexers": [
+                    391
+                ],
+                "ju.block.dtype.name": [
+                    402
+                ],
+                "ju.block.dtype": [
+                    402
+                ],
+                "join_unit.indexers": [
+                    424,
+                    426,
+                    413,
+                    414
+                ],
+                "join_unit": [
+                    416,
+                    419,
+                    420,
+                    422,
+                    424,
+                    426,
+                    428,
+                    429,
+                    413,
+                    414
+                ],
+                "extra_indexers": [
+                    424,
+                    425,
+                    414,
+                    431
+                ],
+                "join_unit.block": [
+                    416,
+                    419,
+                    420,
+                    422
+                ],
+                "extra_block": [
+                    417,
+                    419,
+                    422,
+                    431
+                ],
+                "join_unit.block.getitem_block": [
+                    419,
+                    420
+                ],
+                "length": [
+                    419,
+                    420,
+                    425,
+                    426,
+                    428,
+                    429
+                ],
+                "copy.copy": [
+                    424
+                ],
+                "extra_shape": [
+                    428,
+                    431
+                ],
+                "join_unit.shape": [
+                    428,
+                    429
+                ],
+                "plans": [
+                    491,
+                    465,
+                    466,
+                    440,
+                    441,
+                    446,
+                    479
+                ],
+                "p": [
+                    441,
+                    442
+                ],
+                "offset": [
+                    450,
+                    445,
+                    454
+                ],
+                "last_plc": [
+                    451,
+                    453,
+                    454,
+                    447
+                ],
+                "plc": [
+                    449,
+                    450,
+                    451,
+                    483,
+                    485,
+                    488,
+                    490
+                ],
+                "plc.add": [
+                    450
+                ],
+                "last_plc.as_slice.stop": [
+                    454
+                ],
+                "last_plc.as_slice": [
+                    454
+                ],
+                "num_ended": [
+                    457,
+                    468,
+                    469,
+                    462
+                ],
+                "retval": [
+                    460,
+                    461,
+                    463
+                ],
+                "seq": [
+                    460
+                ],
+                "next_items": [
+                    482,
+                    483,
+                    488,
+                    491,
+                    466,
+                    468,
+                    472,
+                    479
+                ],
+                "_next_or_none": [
+                    466,
+                    491,
+                    479
+                ],
+                "units": [
+                    472,
+                    478
+                ],
+                "lengths": [
+                    474,
+                    475
+                ],
+                "min_len": [
+                    488,
+                    485,
+                    475,
+                    477
+                ],
+                "max_len": [
+                    475,
+                    477
+                ],
+                "yielded_placement": [
+                    481,
+                    490,
+                    493
+                ],
+                "yielded_units": [
+                    482,
+                    484,
+                    493
+                ],
+                "_trim_join_unit": [
+                    488
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_82/pandas/tests/reshape/merge/test_merge.py",
+                "test_function": "test_merge_datetime_upcast_dtype",
+                "test_function_code": "def test_merge_datetime_upcast_dtype():\n    # https://github.com/pandas-dev/pandas/issues/31208\n    df1 = pd.DataFrame({\"x\": [\"a\", \"b\", \"c\"], \"y\": [\"1\", \"2\", \"4\"]})\n    df2 = pd.DataFrame(\n        {\"y\": [\"1\", \"2\", \"3\"], \"z\": pd.to_datetime([\"2000\", \"2001\", \"2002\"])}\n    )\n    result = pd.merge(df1, df2, how=\"left\", on=\"y\")\n    expected = pd.DataFrame(\n        {\n            \"x\": [\"a\", \"b\", \"c\"],\n            \"y\": [\"1\", \"2\", \"4\"],\n            \"z\": pd.to_datetime([\"2000\", \"2001\", \"NaT\"]),\n        }\n    )\n    tm.assert_frame_equal(result, expected)",
+                "test_error": "AssertionError: Attributes of DataFrame.iloc[:, 2] (column name=\"z\") are different  Attribute \"dtype\" are different [left]:  object [right]: datetime64[ns]",
+                "full_test_error": "def test_merge_datetime_upcast_dtype():\n        # https://github.com/pandas-dev/pandas/issues/31208\n        df1 = pd.DataFrame({\"x\": [\"a\", \"b\", \"c\"], \"y\": [\"1\", \"2\", \"4\"]})\n        df2 = pd.DataFrame(\n            {\"y\": [\"1\", \"2\", \"3\"], \"z\": pd.to_datetime([\"2000\", \"2001\", \"2002\"])}\n        )\n        result = pd.merge(df1, df2, how=\"left\", on=\"y\")\n        expected = pd.DataFrame(\n            {\n                \"x\": [\"a\", \"b\", \"c\"],\n                \"y\": [\"1\", \"2\", \"4\"],\n                \"z\": pd.to_datetime([\"2000\", \"2001\", \"NaT\"]),\n            }\n        )\n>       tm.assert_frame_equal(result, expected)\nE       AssertionError: Attributes of DataFrame.iloc[:, 2] (column name=\"z\") are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  object\nE       [right]: datetime64[ns]\n\npandas/tests/reshape/merge/test_merge.py:2171: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

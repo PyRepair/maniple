@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 23,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 652,
+            "file_name": "pandas/core/indexes/datetimelike.py",
+            "replace_code": "def intersection(self, other, sort=False):\n\n    \"\"\"\n    Specialized intersection for DatetimeIndex/TimedeltaIndex.\n    \n    May be much faster than Index.intersection\n    \n    Parameters\n    ----------\n    other : Same type as self or array-like\n    sort : False or None, default False\n        Sort the resulting index if possible.\n    \n        .. versionadded:: 0.24.0\n    \n        .. versionchanged:: 0.24.1\n    \n           Changed the default to ``False`` to match the behaviour\n           from before 0.24.0.\n    \n        .. versionchanged:: 0.25.0\n    \n           The `sort` keyword is added\n    \n    Returns\n    -------\n    y : Index or same type as self\n    \"\"\"\n    self._validate_sort_keyword(sort)\n    self._assert_can_do_setop(other)\n    \n    if self.equals(other):\n        return self._get_reconciled_name_object(other)\n    \n    if len(self) == 0:\n        return self.copy()\n    if len(other) == 0:\n        return other.copy()\n    \n    if not isinstance(other, type(self)):\n        result = pd.Index.intersection(self, other, sort=sort)\n        return result\n    \n    elif (\n        other.freq is None\n        or self.freq is None\n        or other.freq != self.freq\n        or not other.freq.is_anchored()\n        or (not self.is_monotonic or not other.is_monotonic)\n    ):\n        result = pd.Index.intersection(self, other, sort=sort)\n    \n        # Invalidate the freq of `result`, which may not be correct at\n        # this point, depending on the values.\n    \n        result._set_freq(None)\n        result = self._shallow_copy(result._data, name=result.name)\n        if result.freq is None:\n            result._set_freq(\"infer\")\n        return result\n    \n    # to make our life easier, \"sort\" the two ranges\n    if self[0] <= other[0]:\n        left, right = self, other\n    else:\n        left, right = other, self\n    \n    # after sorting, the intersection always starts with the right index\n    # and ends with the index of which the last elements is smallest\n    end = min(left[-1], right[-1])\n    start = right[0]\n    \n    if end < start:\n        return type(self)(data=[])\n    else:\n        lslice = slice(*left.slice_locs(start, end))\n        left_chunk = left.values[lslice]\n        return self._shallow_copy(left_chunk)"
+        }
+    ]
+}

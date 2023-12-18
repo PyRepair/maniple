@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 118,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 20,
+            "file_name": "pandas/core/reshape/melt.py",
+            "replace_code": "def melt(\n    frame: DataFrame,\n    id_vars=None,\n    value_vars=None,\n    var_name=None,\n    value_name=\"value\",\n    col_level=None,\n) -> DataFrame:\n    import numpy as np\n    from pandas import DataFrame, Index, np, concat, MultiIndex\n    from pandas.core.common import is_list_like, is_extension_array_dtype\n    from pandas.core.generic import ABCDataFrame\n    if col_level and isinstance(frame.columns, MultiIndex):\n        frame.columns = frame.columns.get_level_values(col_level)\n    \n    id_vars = [] if id_vars is None else id_vars\n    value_vars = [] if value_vars is None else value_vars\n    \n    var_name = [\n        frame.columns.name if frame.columns.name is not None else \"variable\"\n    ] if var_name is None else [var_name]\n    \n    N, K = frame.shape\n    K -= len(id_vars)\n    \n    mdata = {}\n    mcolumns = id_vars + var_name + [value_name]\n    for col in id_vars:\n        id_data = frame.pop(col)\n        if is_extension_array_dtype(id_data):\n            id_data = concat([id_data] * K, ignore_index=True)\n        else:\n            id_data = np.tile(id_data.values, K)\n        mdata[col] = id_data\n    \n    mdata[value_name] = frame.values.ravel(\"F\")\n    for i, col in enumerate(var_name):\n        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)\n    \n    return frame._constructor(mdata, columns=mcolumns)"
+        }
+    ]
+}

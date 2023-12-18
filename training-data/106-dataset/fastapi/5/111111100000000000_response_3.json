@@ -1,0 +1,68 @@
+{
+    "fastapi": [
+        {
+            "bugID": 5,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 89,
+            "file_name": "fastapi/utils.py",
+            "replace_code": "def create_cloned_field(field: ModelField) -> ModelField:\n    from pydantic.fields import ModelField, FieldInfo, Field, Schema, FieldOwner\n    from pydantic.main import BaseModel, create_model, BaseConfig, Validator, SchemaExtraCallable,Extra\n    from pydantic.utils import lenient_issubclass\n    from dataclasses import is_dataclass\n    from typing import Type, cast\n    original_type = field.type_\n    if is_dataclass(original_type) and hasattr(original_type, \"__pydantic_model__\"):\n        original_type = original_type.__pydantic_model__  # type: ignore\n    use_type = original_type\n    if lenient_issubclass(original_type, BaseModel):\n        original_type = cast(Type[BaseModel], original_type)\n        use_type = create_model(\n            original_type.__name__, __config__=original_type.__config__\n        )\n        for f in original_type.__fields__.values():\n            use_type.__fields__[f.name] = f\n        use_type.__validators__ = original_type.__validators__\n    if PYDANTIC_1:\n        new_field = ModelField(\n            name=field.name,\n            type_=use_type,\n            class_validators=field.class_validators,\n            default=field.default,\n            required=field.required,\n            model_config=BaseConfig,\n            field_info=field.field_info,\n            schema=field.schema,\n            has_alias=field.has_alias,\n            allow_none=field.allow_none,\n            validate_always=field.validate_always,\n            validators=field.validators,\n            pre_validators=field.pre_validators,\n            post_validators=field.post_validators,\n            whole_pre_validators=field.whole_pre_validators,\n            whole_post_validators=field.whole_post_validators,\n            parse_json=field.parse_json,\n            shape=field.shape\n        )\n    else:  # pragma: nocover\n        new_field = ModelField(  # type: ignore\n            name=field.name,\n            type_=use_type,\n            class_validators=field.class_validators,\n            default=field.default,\n            required=field.required,\n            model_config=BaseConfig,\n            field_info=field.field_info,\n            schema=field.schema,\n            has_alias=field.has_alias,\n            allow_none=field.allow_none,\n            validate_always=field.validate_always,\n            validators=field.validators,\n            pre_validators=field.pre_validators,\n            post_validators=field.post_validators,\n            whole_pre_validators=field.whole_pre_validators,\n            whole_post_validators=field.whole_post_validators,\n            parse_json=field.parse_json,\n            shape=field.shape\n        )\n    \n    if field.sub_fields:\n        new_field.sub_fields = [\n            create_cloned_field(sub_field) for sub_field in field.sub_fields\n        ]\n    if field.key_field:\n        new_field.key_field = create_cloned_field(field.key_field)\n    new_field.populate_validators()\n    return new_field"
+        }
+    ]
+}

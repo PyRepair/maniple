@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 164,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 265,
+            "file_name": "pandas/core/tools/datetimes.py",
+            "replace_code": "def _convert_listlike_datetimes(\n    arg,\n    box,\n    format,\n    name=None,\n    tz=None,\n    unit=None,\n    errors=None,\n    infer_datetime_format=None,\n    dayfirst=None,\n    yearfirst=None,\n    exact=None,\n):\n    import numpy as np\n    from pandas import DatetimeIndex, Index\n    from pandas.core.arrays.datetimes import (\n        tslib,\n        maybe_convert_dtype,\n        objects_to_datetime64ns,\n        is_datetime64tz_dtype,\n        is_datetime64_ns_dtype,\n        _format_is_iso,\n        _guess_datetime_format_for_array,\n        array_to_datetime,\n    )\n    from pandas._libs.tslibs import array_with_unit_to_datetime\n    from pandas.core.tools import dt\n    from pandas._typing import ArrayLike\n    \"\"\"\n    Helper function for to_datetime. Performs the conversions of 1D listlike\n    of dates\n    \n    Parameters\n    ----------\n    arg : list, tuple, ndarray, Series, Index\n        date to be parced\n    box : boolean\n        True boxes result as an Index-like, False returns an ndarray\n    name : object\n        None or string for the Index name\n    tz : object\n        None or 'utc'\n    unit : string\n        None or string of the frequency of the passed data\n    errors : string\n        error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'\n    infer_datetime_format : boolean\n        inferring format behavior from to_datetime\n    dayfirst : boolean\n        dayfirst parsing behavior from to_datetime\n    yearfirst : boolean\n        yearfirst parsing behavior from to_datetime\n    exact : boolean\n        exact format matching behavior from to_datetime\n    \n    Returns\n    -------\n    ndarray of parsed dates\n        Returns:\n    \n        - Index-like if box=True\n        - ndarray of Timestamps if box=False\n    \"\"\"\n    import numpy as np\n    from pandas import DatetimeIndex, Index\n    from pandas.core.arrays.datetimes import (\n        tslib,\n        maybe_convert_dtype,\n        objects_to_datetime64ns,\n        is_datetime64tz_dtype,\n        is_datetime64_ns_dtype,\n        _format_is_iso,\n        _guess_datetime_format_for_array,\n        array_to_datetime,\n    )\n    from pandas._libs.tslibs import array_with_unit_to_datetime\n    from pandas.core.tools import dt\n    from pandas._typing import ArrayLike\n    \n    if isinstance(arg, (list, tuple)):\n        arg = np.asarray(arg, dtype=\"O\")\n    \n    if is_datetime64tz_dtype(arg):\n        if not isinstance(arg, (dt.DatetimeArray, DatetimeIndex)):\n            return DatetimeIndex(arg, tz=tz, name=name)\n        if tz == \"utc\":\n            arg = arg.tz_convert(None).tz_localize(tz)\n        return arg\n    \n    elif is_datetime64_ns_dtype(arg):\n        if box and not isinstance(arg, (dt.DatetimeArray, DatetimeIndex)):\n            try:\n                return DatetimeIndex(arg, tz=tz, name=name)\n            except ValueError:\n                pass\n    \n        return arg\n    \n    elif unit is not None:\n        if format is not None:\n            raise ValueError(\"cannot specify both format and unit\")\n        arg = getattr(arg, \"values\", arg)\n        result, tz_parsed = array_with_unit_to_datetime(\n            arg, unit, errors=errors\n        )\n        if box:\n            if errors == \"ignore\":\n                result = Index(result, name=name)\n            else:\n                result = DatetimeIndex(result, name=name)\n            # GH 23758: We may still need to localize the result with tz\n            # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)\n            # result will be naive but in UTC\n            try:\n                result = result.tz_localize(\"UTC\").tz_convert(tz_parsed)\n            except AttributeError:\n                # Regular Index from 'ignore' path\n                return result\n            if tz is not None:\n                if result.tz is None:\n                    result = result.tz_localize(tz)\n                else:\n                    result = result.tz_convert(tz)\n        return result\n    elif getattr(arg, \"ndim\", 1) > 1:\n        raise TypeError(\n            \"arg must be a string, datetime, list, tuple, 1-d array, or Series\"\n        )\n    \n    orig_arg = arg\n    arg, _ = maybe_convert_dtype(arg, copy=False)\n    \n    arg = dt.ensure_object(arg)\n    require_iso8601 = False\n    \n    if (\n        infer_datetime_format and format is None\n    ):\n        format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)\n    \n    if format is not None:\n        format_is_iso8601 = _format_is_iso(format)\n        if format_is_iso8601:\n            require_iso8601 = not infer_datetime_format\n            format = None\n    \n    tz_parsed = None\n    result = None\n    \n    if format is not None:\n    \n        if format == \"%Y%m%d\":\n            try:\n                orig_arg = dt.ensure_object(orig_arg)\n                result = array_to_datetime(orig_arg, errors=errors)\n            except (\n                ValueError,\n                TypeError,\n                tslib.OutOfBoundsDatetime,\n            ):\n                raise ValueError(\n                    \"cannot convert the input to '%Y%m%d' date format\"\n                )\n        if result is None:\n            try:\n                result, timezones = array_to_datetime(arg, tz=tz_parsed, errors=errors, box=box)\n                if tz == \"utc\":\n                    result = result.tz_localize(\"UTC\").tz_convert(tz_parsed)\n                    return _return_parsed_timezone_results(\n                        result, timezones, box, tz, name\n                    )\n            except (\n                tslib.OutOfBoundsDatetime\n            ):\n                if errors == \"raise\":\n                    raise\n                elif errors == \"coerce\":\n                    iresult = np.empty(\n                        arg.shape, dtype=\"M8[ns]\"\n                    ).view(\"i8\")\n                    iresult.fill(tslib.iNaT)\n                    result = np.array(iresult, dtype=\"M8[ns]\")\n                else:\n                    result = arg\n        if result is None:\n            try:\n                return dt.array_to_datetime(arg, errors=errors)\n            except ValueError as e:\n                raise e\n    \n    if result is None:\n        assert format is None or infer_datetime_format\n        utc = tz == \"utc\"\n        result, tz_parsed = objects_to_datetime64ns(\n            arg,\n            errors=errors,\n            require_iso8601=require_iso8601,\n            allow_object=True,\n        )\n    \n    if tz_parsed:\n        if box:\n            return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)\n        else:\n            result = np.array([\n                dt.Timestamp(ts, tz=tz_parsed).to_pydatetime()\n                for ts in result\n            ])\n            return result\n    \n    if box:\n        utc = tz == \"utc\"\n        return _box_as_indexlike(result, utc=utc, name=name)\n    return result"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "scrapy": [
+        {
+            "bugID": 9,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 46,
+            "file_name": "scrapy/mail.py",
+            "replace_code": "def send(self, to, subject, body, cc=None, attachs=(), mimetype='text/plain', charset=None, _callback=None):\n\n    if attachs:\n        msg = MIMEMultipart()\n    else:\n        msg = MIMEText(body, mimetype, charset or 'us-ascii')\n    msg['From'] = self.mailfrom\n    msg['To'] = COMMASPACE.join(to)\n    msg['Date'] = formatdate(localtime=True)\n    msg['Subject'] = subject\n    rcpts = to[:]\n    if cc:\n        rcpts.extend(cc)\n        msg['Cc'] = COMMASPACE.join(cc)\n    \n    if attachs:\n        msg.attach(MIMEText(body, 'plain', charset or 'us-ascii'))\n        for attach_name, mimetype, f in attachs:\n            part = MIMEBase(*mimetype.split('/'))\n            part.set_payload(f.read())\n            Encoders.encode_base64(part)\n            part.add_header('Content-Disposition', 'attachment; filename=\"%s\"' % attach_name)\n            msg.attach(part)\n    else:\n        msg.set_payload(body)\n    \n    if _callback:\n        _callback(to=to, subject=subject, body=body, cc=cc, attach=attachs, msg=msg)\n    \n    if self.debug:\n        logger.debug('Debug mail sent OK: To=%(mailto)s Cc=%(mailcc)s ' 'Subject=\"%(mailsubject)s\" Attachs=%(mailattachs)d', {'mailto': to, 'mailcc': cc, 'mailsubject': subject, 'mailattachs': len(attachs)})\n        return\n    \n    dfd = self._sendmail(rcpts, msg.as_string())\n    dfd.addCallbacks(self._sent_ok, self._sent_failed,\n        callbackArgs=[to, cc, subject, len(attachs)],\n        errbackArgs=[to, cc, subject, len(attachs)])\n    reactor.addSystemEventTrigger('before', 'shutdown', lambda: dfd)\n    return dfd"
+        }
+    ]
+}

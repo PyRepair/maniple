@@ -1,0 +1,68 @@
+{
+    "luigi": [
+        {
+            "bugID": 11,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 818,
+            "file_name": "luigi/scheduler.py",
+            "replace_code": "def get_work(self, host, assistant=False, current_tasks=None, worker=None, **kwargs):\n\n    if self._config.prune_on_get_work:\n        self.prune()\n    \n    assert worker is not None\n    worker_id = worker\n    self.update(worker_id, {'host': host}, get_work=True)\n    if assistant:\n        self.add_worker(worker_id, [('assistant', assistant)])\n    \n    best_task = None\n    running_tasks = []\n    locally_pending_tasks = 0\n    n_unique_pending = 0\n    \n    tasks = self._state.get_pending_tasks()\n    tasks.sort(key=self._rank, reverse=True)\n    \n    for task in tasks:\n        in_workers = (assistant and getattr(task, 'runnable', bool(task.workers))) or worker_id in task.workers\n        if task.status == RUNNING and in_workers:\n            other_worker = self._state.get_worker(task.worker_running)\n            more_info = {'task_id': task.id, 'worker': str(other_worker)}\n            if other_worker is not None:\n                more_info.update(other_worker.info)\n                running_tasks.append(more_info)\n    \n        if task.status == PENDING and in_workers:\n            locally_pending_tasks += 1\n            if len(task.workers) == 1 and not assistant:\n                n_unique_pending += 1\n    \n        if assistant or task.status == RUNNING:\n            continue\n    \n        if self._schedulable(task) and self._has_resources(task.resources):\n            best_task = task\n            break\n    \n    reply = {'n_pending_tasks': locally_pending_tasks,\n             'running_tasks': running_tasks,\n             'task_id': None,\n             'n_unique_pending': n_unique_pending}\n    \n    if best_task:\n        self._state.set_status(best_task, RUNNING, self._config)\n        best_task.worker_running = worker_id\n        best_task.time_running = time.time()\n        self._update_task_history(best_task, RUNNING, host=host)\n    \n        reply['task_id'] = best_task.id\n        reply['task_family'] = best_task.family\n        reply['task_module'] = getattr(best_task, 'module', None)\n        reply['task_params'] = best_task.params\n    \n    return reply"
+        }
+    ]
+}

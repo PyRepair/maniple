@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 29,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 515,
+            "file_name": "pandas/core/arrays/interval.py",
+            "replace_code": "def __setitem__(self, key, value):\n    # na value: need special casing to set directly on numpy arrays\n\n    needs_float_conversion = False\n    if is_scalar(value) and isna(value):\n        if is_integer_dtype(self.dtype.subtype):\n            # can't set NaN on a numpy integer array\n            needs_float_conversion = True\n        elif is_datetime64_any_dtype(self.dtype.subtype):\n            # need proper NaT to set directly on the numpy array\n            value = np.datetime64(\"NaT\")\n        elif is_timedelta64_dtype(self.dtype.subtype):\n            # need proper NaT to set directly on the numpy array\n            value = np.timedelta64(\"NaT\")\n        value_left, value_right = value, value\n    \n    # list-like of intervals\n    elif is_list_like(value) and all(is_interval_dtype(v) or isinstance(v, Interval) for v in value):\n        array = IntervalArray(value)\n        value_left, value_right = array.left, array.right\n    \n    else:\n        # scalar interval or unsupported type\n        raise TypeError(f\"'value' should be an interval type or list-like of intervals, got {type(value)} instead.\")\n    \n    key = check_array_indexer(self, key)\n    # Need to ensure that left and right are updated atomically, so we're\n    # forced to copy, update the copy, and swap in the new values.\n    left = self.left.copy(deep=True)\n    if needs_float_conversion:\n        left = left.astype(\"float\")\n    left.values[key] = value_left\n    self._left = left\n    \n    right = self.right.copy(deep=True)\n    if needs_float_conversion:\n        right = right.astype(\"float\")\n    right.values[key] = value_right\n    self._right = right"
+        }
+    ]
+}

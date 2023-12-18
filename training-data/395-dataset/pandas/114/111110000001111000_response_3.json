@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 114,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 4486,
+            "file_name": "pandas/core/indexes/base.py",
+            "replace_code": "def get_value(self, series, key):\n    \n        # if we have something that is Index-like, then\n        # use this, e.g. DatetimeIndex\n        # Things like `Series._get_value` (via .at) pass the EA directly here.\n\n    s = getattr(series, \"_values\", series)\n    if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):\n        # GH 20882, 21257\n        # Unify Index and ExtensionArray treatment\n        # First try to convert the key to a location\n        # If that fails, raise a KeyError if an integer\n        # index, otherwise, see if key is an integer, and\n        # try that\n        try:\n            iloc = self.get_loc(key)\n            return s[iloc]\n        except KeyError:\n            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):\n                raise\n            elif is_integer(key):\n                return s[key]\n    \n    s = com.values_from_object(series)\n    k = com.values_from_object(key)\n    \n    k = self._convert_scalar_indexer(k, kind=\"getitem\")\n    try:\n        return self._engine.get_value(s, k, tz=getattr(series.dtype, \"tz\", None))\n    except KeyError as e1:\n        if len(self) > 0 and (self.holds_integer() or self.is_boolean()):\n            raise\n    \n        try:\n            return libindex.get_value_at(s, key)\n        except IndexError:\n            raise\n        except TypeError:\n            # generator/iterator-like\n            if is_iterator(key):\n                raise InvalidIndexError(key)\n            else:\n                raise e1\n        except Exception:\n            raise e1\n    except TypeError:\n        # e.g. \"[False] is an invalid key\"\n        if is_scalar(key):\n            raise IndexError(key)\n        raise InvalidIndexError(key)"
+        }
+    ]
+}

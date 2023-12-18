@@ -1,0 +1,920 @@
+{
+    "1.1.1": "def _match_one(filter_part, dct):\n    COMPARISON_OPERATORS = {\n        '<': operator.lt,\n        '<=': operator.le,\n        '>': operator.gt,\n        '>=': operator.ge,\n        '=': operator.eq,\n        '!=': operator.ne,\n    }\n    operator_rex = re.compile(r % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))\n    m = operator_rex.search(filter_part)\n    if m:\n        op = COMPARISON_OPERATORS[m.group('op')]\n        actual_value = dct.get(m.group('key'))\n        if (m.group('strval') is not None or\n            # If the original field is a string and matching comparisonvalue is\n            # a number we should respect the origin of the original field\n            # and process comparison value as a string (see\n            # https://github.com/rg3/youtube-dl/issues/11082).\n            actual_value is not None and m.group('intval') is not None and\n                isinstance(actual_value, compat_str)):\n            if m.group('op') not in ('=', '!='):\n                raise ValueError(\n                    'Operator %s does not support string values!' % m.group('op'))\n            comparison_value = m.group('strval') or m.group('intval')\n        else:\n            try:\n                comparison_value = int(m.group('intval'))\n            except ValueError:\n                comparison_value = parse_filesize(m.group('intval'))\n                if comparison_value is None:\n                    comparison_value = parse_filesize(m.group('intval') + 'B')\n                if comparison_value is None:\n                    raise ValueError(\n                        'Invalid integer value %r in filter part %r' % (\n                            m.group('intval'), filter_part))\n        if actual_value is None:\n            return m.group('none_inclusive')\n        return op(actual_value, comparison_value)\n\n    UNARY_OPERATORS = {\n        '': lambda v: v is not None,\n        '!': lambda v: v is None,\n    }\n    operator_rex = re.compile(r % '|'.join(map(re.escape, UNARY_OPERATORS.keys())))\n    m = operator_rex.search(filter_part)\n    if m:\n        op = UNARY_OPERATORS[m.group('op')]\n        actual_value = dct.get(m.group('key'))\n        return op(actual_value)\n\n    raise ValueError('Invalid filter part %r' % filter_part)\n",
+    "1.1.2": null,
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/youtube-dl_22/youtube_dl/utils.py",
+    "1.3.2": [
+        "parse_filesize(s)"
+    ],
+    "1.4.1": [
+        "    def test_match_filter(self):\n        class FilterYDL(YDL):\n            def __init__(self, *args, **kwargs):\n                super(FilterYDL, self).__init__(*args, **kwargs)\n                self.params['simulate'] = True\n\n            def process_info(self, info_dict):\n                super(YDL, self).process_info(info_dict)\n\n            def _match_entry(self, info_dict, incomplete):\n                res = super(FilterYDL, self)._match_entry(info_dict, incomplete)\n                if res is None:\n                    self.downloaded_info_dicts.append(info_dict)\n                return res\n\n        first = {\n            'id': '1',\n            'url': TEST_URL,\n            'title': 'one',\n            'extractor': 'TEST',\n            'duration': 30,\n            'filesize': 10 * 1024,\n            'playlist_id': '42',\n            'uploader': \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\",\n            'creator': \"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\",\n        }\n        second = {\n            'id': '2',\n            'url': TEST_URL,\n            'title': 'two',\n            'extractor': 'TEST',\n            'duration': 10,\n            'description': 'foo',\n            'filesize': 5 * 1024,\n            'playlist_id': '43',\n            'uploader': \"\u0442\u0435\u0441\u0442 123\",\n        }\n        videos = [first, second]\n\n        def get_videos(filter_=None):\n            ydl = FilterYDL({'match_filter': filter_})\n            for v in videos:\n                ydl.process_ie_result(v, download=True)\n            return [v['id'] for v in ydl.downloaded_info_dicts]\n\n        res = get_videos()\n        self.assertEqual(res, ['1', '2'])\n\n        def f(v):\n            if v['id'] == '1':\n                return None\n            else:\n                return 'Video id is not 1'\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n\n        f = match_filter_func('duration < 30')\n        res = get_videos(f)\n        self.assertEqual(res, ['2'])\n\n        f = match_filter_func('description = foo')\n        res = get_videos(f)\n        self.assertEqual(res, ['2'])\n\n        f = match_filter_func('description =? foo')\n        res = get_videos(f)\n        self.assertEqual(res, ['1', '2'])\n\n        f = match_filter_func('filesize > 5KiB')\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n\n        f = match_filter_func('playlist_id = 42')\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n\n        f = match_filter_func('uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"')\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n\n        f = match_filter_func('uploader != \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"')\n        res = get_videos(f)\n        self.assertEqual(res, ['2'])\n\n        f = match_filter_func('creator = \"\u0442\u0435\u0441\u0442 \\' 123 \\' \u0442\u0435\u0441\u0442--\"')\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n\n        f = match_filter_func(\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--'\")\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n\n        f = match_filter_func(r\"creator = '\u0442\u0435\u0441\u0442 \\' 123 \\' \u0442\u0435\u0441\u0442--' & duration > 30\")\n        res = get_videos(f)\n        self.assertEqual(res, [])"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs/repos/youtube-dl_22/test/test_YoutubeDL.py"
+    ],
+    "2.1.1": [
+        [
+            "E       ValueError: Invalid filter part 'uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <test.test_YoutubeDL.TestYoutubeDL testMethod=test_match_filter>\n\n    def test_match_filter(self):\n        class FilterYDL(YDL):\n            def __init__(self, *args, **kwargs):\n                super(FilterYDL, self).__init__(*args, **kwargs)\n                self.params['simulate'] = True\n    \n            def process_info(self, info_dict):\n                super(YDL, self).process_info(info_dict)\n    \n            def _match_entry(self, info_dict, incomplete):\n                res = super(FilterYDL, self)._match_entry(info_dict, incomplete)\n                if res is None:\n                    self.downloaded_info_dicts.append(info_dict)\n                return res\n    \n        first = {\n            'id': '1',\n            'url': TEST_URL,\n            'title': 'one',\n            'extractor': 'TEST',\n            'duration': 30,\n            'filesize': 10 * 1024,\n            'playlist_id': '42',\n            'uploader': \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\",\n            'creator': \"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\",\n        }\n        second = {\n            'id': '2',\n            'url': TEST_URL,\n            'title': 'two',\n            'extractor': 'TEST',\n            'duration': 10,\n            'description': 'foo',\n            'filesize': 5 * 1024,\n            'playlist_id': '43',\n            'uploader': \"\u0442\u0435\u0441\u0442 123\",\n        }\n        videos = [first, second]\n    \n        def get_videos(filter_=None):\n            ydl = FilterYDL({'match_filter': filter_})\n            for v in videos:\n                ydl.process_ie_result(v, download=True)\n            return [v['id'] for v in ydl.downloaded_info_dicts]\n    \n        res = get_videos()\n        self.assertEqual(res, ['1', '2'])\n    \n        def f(v):\n            if v['id'] == '1':\n                return None\n            else:\n                return 'Video id is not 1'\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n    \n        f = match_filter_func('duration < 30')\n        res = get_videos(f)\n        self.assertEqual(res, ['2'])\n    \n        f = match_filter_func('description = foo')\n        res = get_videos(f)\n        self.assertEqual(res, ['2'])\n    \n        f = match_filter_func('description =? foo')\n        res = get_videos(f)\n        self.assertEqual(res, ['1', '2'])\n    \n        f = match_filter_func('filesize > 5KiB')\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n    \n        f = match_filter_func('playlist_id = 42')\n        res = get_videos(f)\n        self.assertEqual(res, ['1'])\n    \n        f = match_filter_func('uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"')\n>       res = get_videos(f)\n\ntest/test_YoutubeDL.py:664: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntest/test_YoutubeDL.py:629: in get_videos\n    ydl.process_ie_result(v, download=True)\nyoutube_dl/YoutubeDL.py:753: in process_ie_result\n    return self.process_video_result(ie_result, download=download)\nyoutube_dl/YoutubeDL.py:1440: in process_video_result\n    self.process_info(new_info)\ntest/test_YoutubeDL.py:594: in process_info\n    super(YDL, self).process_info(info_dict)\nyoutube_dl/YoutubeDL.py:1511: in process_info\n    reason = self._match_entry(info_dict, incomplete=False)\ntest/test_YoutubeDL.py:597: in _match_entry\n    res = super(FilterYDL, self)._match_entry(info_dict, incomplete)\nyoutube_dl/YoutubeDL.py:658: in _match_entry\n    ret = match_filter(info_dict)\nyoutube_dl/utils.py:2446: in _match_func\n    if match_str(filter_str, info_dict):\nyoutube_dl/utils.py:2441: in match_str\n    _match_one(filter_part, dct) for filter_part in filter_str.split('&'))\nyoutube_dl/utils.py:2441: in <genexpr>\n    _match_one(filter_part, dct) for filter_part in filter_str.split('&'))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfilter_part = 'uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'\ndct = {'creator': \"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\", 'display_id': '1', 'duration': 30, 'ext': 'mp4', ...}\n\n    def _match_one(filter_part, dct):\n        COMPARISON_OPERATORS = {\n            '<': operator.lt,\n            '<=': operator.le,\n            '>': operator.gt,\n            '>=': operator.ge,\n            '=': operator.eq,\n            '!=': operator.ne,\n        }\n        operator_rex = re.compile(r'''(?x)\\s*\n            (?P<key>[a-z_]+)\n            \\s*(?P<op>%s)(?P<none_inclusive>\\s*\\?)?\\s*\n            (?:\n                (?P<intval>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)|\n                (?P<strval>(?![0-9.])[a-z0-9A-Z]*)\n            )\n            \\s*$\n            ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))\n        m = operator_rex.search(filter_part)\n        if m:\n            op = COMPARISON_OPERATORS[m.group('op')]\n            actual_value = dct.get(m.group('key'))\n            if (m.group('strval') is not None or\n                # If the original field is a string and matching comparisonvalue is\n                # a number we should respect the origin of the original field\n                # and process comparison value as a string (see\n                # https://github.com/rg3/youtube-dl/issues/11082).\n                actual_value is not None and m.group('intval') is not None and\n                    isinstance(actual_value, compat_str)):\n                if m.group('op') not in ('=', '!='):\n                    raise ValueError(\n                        'Operator %s does not support string values!' % m.group('op'))\n                comparison_value = m.group('strval') or m.group('intval')\n            else:\n                try:\n                    comparison_value = int(m.group('intval'))\n                except ValueError:\n                    comparison_value = parse_filesize(m.group('intval'))\n                    if comparison_value is None:\n                        comparison_value = parse_filesize(m.group('intval') + 'B')\n                    if comparison_value is None:\n                        raise ValueError(\n                            'Invalid integer value %r in filter part %r' % (\n                                m.group('intval'), filter_part))\n            if actual_value is None:\n                return m.group('none_inclusive')\n            return op(actual_value, comparison_value)\n    \n        UNARY_OPERATORS = {\n            '': lambda v: v is not None,\n            '!': lambda v: v is None,\n        }\n        operator_rex = re.compile(r'''(?x)\\s*\n            (?P<op>%s)\\s*(?P<key>[a-z_]+)\n            \\s*$\n            ''' % '|'.join(map(re.escape, UNARY_OPERATORS.keys())))\n        m = operator_rex.search(filter_part)\n        if m:\n            op = UNARY_OPERATORS[m.group('op')]\n            actual_value = dct.get(m.group('key'))\n            return op(actual_value)\n    \n>       raise ValueError('Invalid filter part %r' % filter_part)",
+            "\nyoutube_dl/utils.py:2434: ValueError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "filter_part": "'duration < 30'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 13), match='duration < 30'>",
+                "op": "<built-in function lt>",
+                "actual_value": "30",
+                "comparison_value": "30"
+            }
+        ],
+        [
+            {
+                "filter_part": "'duration < 30'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 13), match='duration < 30'>",
+                "op": "<built-in function lt>",
+                "actual_value": "10",
+                "comparison_value": "30"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description = foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 17), match='description = foo'>",
+                "op": "<built-in function eq>",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description = foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 17), match='description = foo'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'foo'",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description =? foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 18), match='description =? foo'>",
+                "op": "<built-in function eq>",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description =? foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 18), match='description =? foo'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'foo'",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'filesize > 5KiB'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 15), match='filesize > 5KiB'>",
+                "op": "<built-in function gt>",
+                "actual_value": "10240",
+                "comparison_value": "5120"
+            }
+        ],
+        [
+            {
+                "filter_part": "'filesize > 5KiB'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 15), match='filesize > 5KiB'>",
+                "op": "<built-in function gt>",
+                "actual_value": "5120",
+                "comparison_value": "5120"
+            }
+        ],
+        [
+            {
+                "filter_part": "'playlist_id = 42'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 16), match='playlist_id = 42'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'42'",
+                "comparison_value": "'42'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'playlist_id = 42'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 16), match='playlist_id = 42'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'43'",
+                "comparison_value": "'42'"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "filter_part": "'duration < 30'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 13), match='duration < 30'>",
+                "op": "<built-in function lt>",
+                "actual_value": "30",
+                "comparison_value": "30"
+            }
+        ],
+        [
+            {
+                "filter_part": "'duration < 30'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 13), match='duration < 30'>",
+                "op": "<built-in function lt>",
+                "actual_value": "10",
+                "comparison_value": "30"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description = foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 17), match='description = foo'>",
+                "op": "<built-in function eq>",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description = foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 17), match='description = foo'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'foo'",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description =? foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 18), match='description =? foo'>",
+                "op": "<built-in function eq>",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'description =? foo'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 18), match='description =? foo'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'foo'",
+                "comparison_value": "'foo'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'filesize > 5KiB'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 15), match='filesize > 5KiB'>",
+                "op": "<built-in function gt>",
+                "actual_value": "10240",
+                "comparison_value": "5120"
+            }
+        ],
+        [
+            {
+                "filter_part": "'filesize > 5KiB'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 15), match='filesize > 5KiB'>",
+                "op": "<built-in function gt>",
+                "actual_value": "5120",
+                "comparison_value": "5120"
+            }
+        ],
+        [
+            {
+                "filter_part": "'playlist_id = 42'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 16), match='playlist_id = 42'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'42'",
+                "comparison_value": "'42'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'playlist_id = 42'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 16), match='playlist_id = 42'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'43'",
+                "comparison_value": "'42'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 27), match='uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442'",
+                "comparison_value": "'\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442'",
+                "quote": "'\"'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 27), match='uploader = \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'>",
+                "op": "<built-in function eq>",
+                "actual_value": "'\u0442\u0435\u0441\u0442 123'",
+                "comparison_value": "'\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442'",
+                "quote": "'\"'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'uploader != \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 28), match='uploader != \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'>",
+                "op": "<built-in function ne>",
+                "actual_value": "'\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442'",
+                "comparison_value": "'\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442'",
+                "quote": "'\"'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'uploader != \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 28), match='uploader != \"\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442\"'>",
+                "op": "<built-in function ne>",
+                "actual_value": "'\u0442\u0435\u0441\u0442 123'",
+                "comparison_value": "'\u8b8a\u614b\u598d\u5b57\u5e55\u7248 \u592a\u598d \u0442\u0435\u0441\u0442'",
+                "quote": "'\"'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'creator = \"\u0442\u0435\u0441\u0442 \\' 123 \\' \u0442\u0435\u0441\u0442--\"'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 31), match='creator = \"\u0442\u0435\u0441\u0442 \\' 123 \\' \u0442\u0435\u0441\u0442--\"'>",
+                "op": "<built-in function eq>",
+                "actual_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "comparison_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "quote": "'\"'"
+            }
+        ],
+        [
+            {
+                "filter_part": "'creator = \"\u0442\u0435\u0441\u0442 \\' 123 \\' \u0442\u0435\u0441\u0442--\"'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 31), match='creator = \"\u0442\u0435\u0441\u0442 \\' 123 \\' \u0442\u0435\u0441\u0442--\"'>",
+                "op": "<built-in function eq>",
+                "comparison_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "quote": "'\"'"
+            }
+        ],
+        [
+            {
+                "filter_part": "\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--'\"",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 33), match=\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--'\">",
+                "op": "<built-in function eq>",
+                "actual_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "comparison_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "quote": "\"'\""
+            }
+        ],
+        [
+            {
+                "filter_part": "\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--'\"",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 33), match=\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--'\">",
+                "op": "<built-in function eq>",
+                "comparison_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "quote": "\"'\""
+            }
+        ],
+        [
+            {
+                "filter_part": "\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--' \"",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 34), match=\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--' \">",
+                "op": "<built-in function eq>",
+                "actual_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "comparison_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "quote": "\"'\""
+            }
+        ],
+        [
+            {
+                "filter_part": "' duration > 30'",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 14), match=' duration > 30'>",
+                "op": "<built-in function gt>",
+                "actual_value": "30",
+                "comparison_value": "30"
+            }
+        ],
+        [
+            {
+                "filter_part": "\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--' \"",
+                "dct": "array of shape 19"
+            },
+            {
+                "COMPARISON_OPERATORS": "{'<': <built-in function lt>, '<=': <built-in function le>, '>': <built-in function gt>, '>=': <built-in function ge>, '=': <built-in function eq>, '!=': <built-in function ne>}",
+                "operator_rex": "re.compile('(?x)\\\\s*\\n        (?P<key>[a-z_]+)\\n        \\\\s*(?P<op><",
+                "m": "<re.Match object; span=(0, 34), match=\"creator = '\u0442\u0435\u0441\u0442 \\\\' 123 \\\\' \u0442\u0435\u0441\u0442--' \">",
+                "op": "<built-in function eq>",
+                "comparison_value": "\"\u0442\u0435\u0441\u0442 ' 123 ' \u0442\u0435\u0441\u0442--\"",
+                "quote": "\"'\""
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "str",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "actual_value": "int",
+                "comparison_value": "int"
+            }
+        ],
+        [
+            {
+                "filter_part": "str",
+                "dct": "dict"
+            },
+            {
+                "COMPARISON_OPERATORS": "dict",
+                "operator_rex": "Pattern",
+                "m": "Match",
+                "op": "builtin_function_or_method",
+                "comparison_value": "str",
+                "quote": "str"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "--match-filter parsing with spaces or dashes\n",
+        "[Request] - A --reject-uploader for youtube.com\n",
+        "[enhancement] Added new parameters --match-uploader and --reject-uploader\n"
+    ],
+    "3.1.2": [
+        "How do I use --match-filter to match this youtube channel?\nDoes it support spaces or hyphens in the string?\n\nThis is the uploader and uploader_ID from the json dump for one of the videos.\n\n   \"uploader\":\"John Sucks at Video Games\",\n   \"uploader_id\":\"UC1hlBVlxLDY--Ih2fEyH5nQ\",\nFor uploader, it will either not match spaces properly (breaking them into separate tokens) or just not match.\n\nG:\\Youtube-DL>youtube-dl https://www.youtube.com/channel/UC1hlBVlxLDY--Ih2fEyH5nQ  --verbose --match-filter \"uploader = John Sucks at Video Games\"\n[debug] System config: []\n[debug] User config: []\n[debug] Command-line args: [u'https://www.youtube.com/channel/UC1hlBVlxLDY--Ih2fEyH5nQ', u'--verbose', u'--match-filter', u'uploader = John Sucks at Video Games']\n[debug] Encodings: locale cp1252, fs mbcs, out cp437, pref cp1252\n[debug] youtube-dl version 2015.12.29\n[debug] Python version 2.7.10 - Windows-8-6.2.9200\n[debug] exe versions: ffmpeg N-69422-gf5722ba, ffprobe N-69422-gf5722ba\n[debug] Proxy map: {}\n[youtube:channel] UC1hlBVlxLDY--Ih2fEyH5nQ: Downloading channel page\n[youtube:playlist] UU1hlBVlxLDY--Ih2fEyH5nQ: Downloading webpage\n[download] Downloading playlist: Uploads from John Sucks at Video Games\n[youtube:playlist] UU1hlBVlxLDY--Ih2fEyH5nQ: Downloading page #1\n[youtube:playlist] playlist Uploads from John Sucks at Video Games: Downloading 13 videos\n[download] Downloading video 1 of 13\n[youtube] BX88GB_bXmc: Downloading webpage\n[youtube] BX88GB_bXmc: Downloading video info webpage\n[youtube] BX88GB_bXmc: Extracting video information\n[youtube] BX88GB_bXmc: Downloading DASH manifest\n[youtube] BX88GB_bXmc: Downloading DASH manifest\n[download] Thunder Wolves PC Game Review - HELICOPTER COLLECTOR does not pass filter uploader = John Sucks at Video Games, skipping ..\n[download] Downloading video 2 of 13\n[youtube] 9MpxxJos1gQ: Downloading webpage\n[youtube] 9MpxxJos1gQ: Downloading video info webpage\n[youtube] 9MpxxJos1gQ: Extracting video information\n[youtube] 9MpxxJos1gQ: Downloading DASH manifest\n[youtube] 9MpxxJos1gQ: Downloading DASH manifest\n[download] Windows 10 21:9 Gaming PC Build - Part 6 - Final Build Video - Let's put it all together! does not pass filter uploader = John Sucks at Video Games, skipping ..\n[download] Downloading video 3 of 13\n[youtube] _cFaXX2txAY: Downloading webpage\n\nERROR: Interrupted by user\nFor uploader_id, I get this error:\n\nG:\\Youtube-DL>youtube-dl https://www.youtube.com/channel/UC1hlBVlxLDY--Ih2fEyH5nQ  --verbose --match-filter \"uploader_id = UC1hlBVlxLDY--Ih2fEyH5nQ\"\n[debug] System config: []\n[debug] User config: []\n[debug] Command-line args: [u'https://www.youtube.com/channel/UC1hlBVlxLDY--Ih2fEyH5nQ', u'--verbose', u'--match-filter', u'uploader_id = UC1hlBVlxLDY--Ih2fEyH5nQ']\n[debug] Encodings: locale cp1252, fs mbcs, out cp437, pref cp1252\n[debug] youtube-dl version 2015.12.29\n[debug] Python version 2.7.10 - Windows-8-6.2.9200\n[debug] exe versions: ffmpeg N-69422-gf5722ba, ffprobe N-69422-gf5722ba\n[debug] Proxy map: {}\n[youtube:channel] UC1hlBVlxLDY--Ih2fEyH5nQ: Downloading channel page\n[youtube:playlist] UU1hlBVlxLDY--Ih2fEyH5nQ: Downloading webpage\n[download] Downloading playlist: Uploads from John Sucks at Video Games\n[youtube:playlist] UU1hlBVlxLDY--Ih2fEyH5nQ: Downloading page #1\n[youtube:playlist] playlist Uploads from John Sucks at Video Games: Downloading 13 videos\n[download] Downloading video 1 of 13\n[youtube] BX88GB_bXmc: Downloading webpage\n[youtube] BX88GB_bXmc: Downloading video info webpage\n[youtube] BX88GB_bXmc: Extracting video information\n[youtube] BX88GB_bXmc: Downloading DASH manifest\n[youtube] BX88GB_bXmc: Downloading DASH manifest\nTraceback (most recent call last):\n  File \"__main__.py\", line 19, in <module>\n  File \"youtube_dl\\__init__.pyo\", line 410, in main\n  File \"youtube_dl\\__init__.pyo\", line 400, in _real_main\n  File \"youtube_dl\\YoutubeDL.pyo\", line 1677, in download\n  File \"youtube_dl\\YoutubeDL.pyo\", line 676, in extract_info\n  File \"youtube_dl\\YoutubeDL.pyo\", line 729, in process_ie_result\n  File \"youtube_dl\\YoutubeDL.pyo\", line 676, in extract_info\n  File \"youtube_dl\\YoutubeDL.pyo\", line 837, in process_ie_result\n  File \"youtube_dl\\YoutubeDL.pyo\", line 729, in process_ie_result\n  File \"youtube_dl\\YoutubeDL.pyo\", line 676, in extract_info\n  File \"youtube_dl\\YoutubeDL.pyo\", line 722, in process_ie_result\n  File \"youtube_dl\\YoutubeDL.pyo\", line 1347, in process_video_result\n  File \"youtube_dl\\YoutubeDL.pyo\", line 1418, in process_info\n  File \"youtube_dl\\YoutubeDL.pyo\", line 628, in _match_entry\n  File \"youtube_dl\\utils.pyo\", line 1984, in _match_func\n  File \"youtube_dl\\utils.pyo\", line 1979, in match_str\n  File \"youtube_dl\\utils.pyo\", line 1979, in <genexpr>\n  File \"youtube_dl\\utils.pyo\", line 1972, in _match_one\nValueError: Invalid filter part u'uploader_id = UC1hlBVlxLDY--Ih2fEyH5nQ'\nI know I can specify the channel in the video URL, but I want to use my subscription list and pick the video format depending on the channel. I don't want to unsubscribe from these channels. I need to exclude those channels with the last catch-all download line in the script using match-format \"uploader != xxxx & uploader != xxxx & uploader != xxxx \"\n\nHere is that part of my script:\n\nyoutube-dl -f 299+141/299+140 https://www.youtube.com/user/blkdog7/videos -o \"%%(uploader)s/%%(title)s.%%(ext)s\" --ignore-errors --download-archive archive.YT --verbose --restrict-filenames \nyoutube-dl -f 299+141/299+140 https://www.youtube.com/channel/UC1hlBVlxLDY--Ih2fEyH5nQ/videos  -o \"%%(uploader)s/%%(title)s.%%(ext)s\" --ignore-errors --download-archive archive.YT --verbose --restrict-filenames \nyoutube-dl -f 299+141/299+140/137+141/137+140/bestvideo+bestaudio/best -o \"%%(uploader)s/%%(title)s.%%(ext)s\" --ignore-errors --download-archive archive.YT -u username -p password :ytsubs --verbose --restrict-filenames  --match-filter \"uploader_id != blkdog7 & uploader_id != UC1hlBVlxLDY--Ih2fEyH5nQ\"\n",
+        "I've verified and I assure that I'm running youtube-dl 2017.02.14\n\n At least skimmed through README and most notably FAQ and BUGS sections\n\n Searched the bugtracker for similar issues including closed ones\n\nWhat is the purpose of your issue?\n Feature request (request for a new functionality)\nDidn't see this anywhere in the issues.\nPossible to have a param to exclude some uploaders from youtube.com, like the --reject-title one ?\n\nThanks.\n",
+        "Please follow the guide below\nYou will be asked some questions, please read them carefully and answer honestly\nPut an x into all the boxes [ ] relevant to your pull request (like that [x])\nUse Preview tab to see how your pull request will actually look like\nBefore submitting a pull request make sure you have:\n At least skimmed through adding new extractor tutorial and youtube-dl coding conventions sections\n Searched the bugtracker for similar pull requests\nIn order to be accepted and merged into youtube-dl each piece of code must be in public domain or released under Unlicense. Check one of the following options:\n I am the original author of this code and I am willing to release it under Unlicense\n I am not the original author of this code but it is in public domain or released under Unlicense (provide reliable evidence)\nWhat is the purpose of your pull request?\n Bug fix\n Improvement\n New extractor\n New feature\nDescription of your pull request and other information\nExplanation of your pull request in arbitrary form goes here. Please make sure the description explains the purpose and effect of your pull request and is worded well enough to be understood. Provide as much context and examples as possible.\n\nThis was requested in Issue #12142\n"
+    ]
+}

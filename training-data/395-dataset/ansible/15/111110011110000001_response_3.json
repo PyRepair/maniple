@@ -1,0 +1,68 @@
+{
+    "ansible": [
+        {
+            "bugID": 15,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 219,
+            "file_name": "lib/ansible/modules/network/eos/eos_eapi.py",
+            "replace_code": "def map_obj_to_commands(updates, module, warnings):\n\n    commands = list()\n    want, have = updates\n    \n    def needs_update(x):\n        return want.get(x) is not None and (want.get(x) != have.get(x))\n    \n    def add(cmd):\n        if 'management api http-commands' not in commands:\n            commands.insert(0, 'management api http-commands')\n        commands.append(cmd)\n    \n    if any((needs_update('http'), needs_update('http_port'))):\n        if want['http'] is False:\n            add('no protocol http')\n        else:\n            if have['http'] is False and want['http'] in (False, None):\n                warnings.append('protocol http is not enabled, not configuring http port value')\n            else:\n                port = want['http_port'] or 80\n                add('protocol http port %s' % port)\n    \n    if any((needs_update('https'), needs_update('https_port'))):\n        if want['https'] is False:\n            add('no protocol https')\n        else:\n            if have['https'] is False and want['https'] in (False, None):\n                warnings.append('protocol https is not enabled, not configuring https port value')\n            else:\n                port = want['https_port'] or 443\n                add('protocol https port %s' % port)\n    \n    if any((needs_update('local_http'), needs_update('local_http_port'))):\n        if want['local_http'] is False:\n            add('no protocol http localhost')\n        else:\n            if have['local_http'] is False and want['local_http'] in (False, None):\n                warnings.append('protocol local_http is not enabled, not configuring local_http port value')\n            else:\n                port = want['local_http_port'] or 8080\n                add('protocol http localhost port %s' % port)\n    \n    if any((needs_update('socket'), needs_update('socket'))):\n        if want['socket'] is False:\n            add('no protocol unix-socket')\n        else:\n            add('protocol unix-socket')\n    \n    if needs_update('state') and not needs_update('vrf'):\n        if want['state'] == 'stopped':\n            add('shutdown')\n        elif want['state'] == 'started':\n            add('no shutdown')\n    \n    if needs_update('vrf'):\n        add('vrf %s' % want['vrf'])\n        # switching operational vrfs here\n        # need to add the desired state as well\n        if want['state'] == 'stopped':\n            add('shutdown')\n        elif want['state'] == 'started':\n            add('no shutdown')\n    \n    return commands"
+        }
+    ]
+}

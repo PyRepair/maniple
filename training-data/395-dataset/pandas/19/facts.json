@@ -1,0 +1,2314 @@
+{
+    "1.1.1": "def _getitem_axis(self, key, axis: int):\n    key = item_from_zerodim(key)\n    if is_iterator(key):\n        key = list(key)\n\n    labels = self.obj._get_axis(axis)\n    key = labels._get_partial_string_timestamp_match_key(key)\n\n    if isinstance(key, slice):\n        self._validate_key(key, axis)\n        return self._get_slice_axis(key, axis=axis)\n    elif com.is_bool_indexer(key):\n        return self._getbool_axis(key, axis=axis)\n    elif is_list_like_indexer(key):\n\n        # convert various list-like indexers\n        # to a list of keys\n        # we will use the *values* of the object\n        # and NOT the index if its a PandasObject\n        if isinstance(labels, ABCMultiIndex):\n\n            if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:\n                # Series, or 0,1 ndim ndarray\n                # GH 14730\n                key = list(key)\n            elif isinstance(key, ABCDataFrame):\n                # GH 15438\n                raise NotImplementedError(\n                    \"Indexing a MultiIndex with a \"\n                    \"DataFrame key is not \"\n                    \"implemented\"\n                )\n            elif hasattr(key, \"ndim\") and key.ndim > 1:\n                raise NotImplementedError(\n                    \"Indexing a MultiIndex with a \"\n                    \"multidimensional key is not \"\n                    \"implemented\"\n                )\n\n            if (\n                not isinstance(key, tuple)\n                and len(key)\n                and not isinstance(key[0], tuple)\n            ):\n                key = tuple([key])\n\n        # an iterable multi-selection\n        if not (isinstance(key, tuple) and isinstance(labels, ABCMultiIndex)):\n\n            if hasattr(key, \"ndim\") and key.ndim > 1:\n                raise ValueError(\"Cannot index with multidimensional key\")\n\n            return self._getitem_iterable(key, axis=axis)\n\n        # nested tuple slicing\n        if is_nested_tuple(key, labels):\n            locs = labels.get_locs(key)\n            indexer = [slice(None)] * self.ndim\n            indexer[axis] = locs\n            return self.obj.iloc[tuple(indexer)]\n\n    # fall thru to straight lookup\n    self._validate_key(key, axis)\n    return self._get_label(key, axis=axis)\n",
+    "1.1.2": null,
+    "1.2.1": "@doc(IndexingMixin.loc)\nclass _LocIndexer(_LocationIndexer)",
+    "1.2.2": null,
+    "1.2.3": [
+        "_validate_key(self, key, axis: int)",
+        "_getitem_iterable(self, key, axis: int)",
+        "_get_label(self, label, axis: int)",
+        "_get_slice_axis(self, slice_obj: slice, axis: int)"
+    ],
+    "1.3.1": "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/core/indexing.py",
+    "1.3.2": [
+        "is_nested_tuple(tup, labels) -> bool",
+        "iloc(self) -> '_iLocIndexer'",
+        "_validate_key(self, key, axis: int)",
+        "_getbool_axis(self, key, axis: int)",
+        "_validate_key(self, key, axis: int)",
+        "_getitem_iterable(self, key, axis: int)",
+        "_get_label(self, label, axis: int)",
+        "_get_slice_axis(self, slice_obj: slice, axis: int)",
+        "_validate_key(self, key, axis: int)",
+        "_get_slice_axis(self, slice_obj: slice, axis: int)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n\n        with pytest.raises(KeyError, match=\"not in index\"):\n            df.loc[key]",
+        "    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n\n        with pytest.raises(KeyError, match=\"not in index\"):\n            df.loc[key]",
+        "    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n\n        with pytest.raises(KeyError, match=\"not in index\"):\n            df.loc[key]",
+        "    def test_per_axis_per_level_getitem(self):\n\n        # GH6134\n        # example test case\n        ix = MultiIndex.from_product(\n            [_mklbl(\"A\", 5), _mklbl(\"B\", 7), _mklbl(\"C\", 4), _mklbl(\"D\", 2)]\n        )\n        df = DataFrame(np.arange(len(ix.to_numpy())), index=ix)\n\n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), [\"C1\", \"C3\"]), :]\n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_frame_equal(result, expected)\n\n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\")\n                and (c == \"C1\" or c == \"C2\" or c == \"C3\")\n            ]\n        ]\n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), slice(\"C1\", \"C3\")), :]\n        tm.assert_frame_equal(result, expected)\n\n        # test multi-index slicing with per axis and per index controls\n        index = MultiIndex.from_tuples(\n            [(\"A\", 1), (\"A\", 2), (\"A\", 3), (\"B\", 1)], names=[\"one\", \"two\"]\n        )\n        columns = MultiIndex.from_tuples(\n            [(\"a\", \"foo\"), (\"a\", \"bar\"), (\"b\", \"foo\"), (\"b\", \"bah\")],\n            names=[\"lvl0\", \"lvl1\"],\n        )\n\n        df = DataFrame(\n            np.arange(16, dtype=\"int64\").reshape(4, 4), index=index, columns=columns\n        )\n        df = df.sort_index(axis=0).sort_index(axis=1)\n\n        # identity\n        result = df.loc[(slice(None), slice(None)), :]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[(slice(None), slice(None)), (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[:, (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n\n        # index\n        result = df.loc[(slice(None), [1]), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        result = df.loc[(slice(None), 1), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # columns\n        result = df.loc[:, (slice(None), [\"foo\"])]\n        expected = df.iloc[:, [1, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # both\n        result = df.loc[(slice(None), 1), (slice(None), [\"foo\"])]\n        expected = df.iloc[[0, 3], [1, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        result = df.loc[\"A\", \"a\"]\n        expected = DataFrame(\n            dict(bar=[1, 5, 9], foo=[0, 4, 8]),\n            index=Index([1, 2, 3], name=\"two\"),\n            columns=Index([\"bar\", \"foo\"], name=\"lvl1\"),\n        )\n        tm.assert_frame_equal(result, expected)\n\n        result = df.loc[(slice(None), [1, 2]), :]\n        expected = df.iloc[[0, 1, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # multi-level series\n        s = Series(np.arange(len(ix.to_numpy())), index=ix)\n        result = s.loc[\"A1\":\"A3\", :, [\"C1\", \"C3\"]]\n        expected = s.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in s.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_series_equal(result, expected)\n\n        # boolean indexers\n        result = df.loc[(slice(None), df.loc[:, (\"a\", \"bar\")] > 5), :]\n        expected = df.iloc[[2, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        msg = (\n            \"cannot index with a boolean indexer \"\n            \"that is not the same length as the index\"\n        )\n        with pytest.raises(ValueError, match=msg):\n            df.loc[(slice(None), np.array([True, False])), :]\n\n        with pytest.raises(KeyError, match=r\"\\[1\\] not in index\"):\n            # slice(None) is on the index, [1] is on the columns, but 1 is\n            #  not in the columns, so we raise\n            #  This used to treat [1] as positional GH#16396\n            df.loc[slice(None), [1]]\n\n        result = df.loc[(slice(None), [1]), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n\n        # not lexsorted\n        assert df.index.lexsort_depth == 2\n        df = df.sort_index(level=1, axis=0)\n        assert df.index.lexsort_depth == 0\n\n        msg = (\n            \"MultiIndex slicing requires the index to be \"\n            r\"lexsorted: slicing on levels \\[1\\], lexsort depth 0\"\n        )\n        with pytest.raises(UnsortedIndexError, match=msg):\n            df.loc[(slice(None), slice(\"bar\")), :]\n\n        # GH 16734: not sorted, but no real slicing\n        result = df.loc[(slice(None), df.loc[:, (\"a\", \"bar\")] > 5), :]\n        tm.assert_frame_equal(result, df.iloc[[1, 3], :])",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n\n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n            ser[key]"
+    ],
+    "1.4.2": [
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_loc.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_loc.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_loc.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/indexing/multiindex/test_slice.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py",
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_19/pandas/tests/series/indexing/test_getitem.py"
+    ],
+    "2.1.1": [
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.indexing.multiindex.test_loc.TestMultiIndexLoc object at 0x114beb4c0>\nkey = [2, 4], pos = [0, 1]\n\n    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n    \n        with pytest.raises(KeyError, match=\"not in index\"):\n>           df.loc[key]",
+            "\npandas/tests/indexing/multiindex/test_loc.py:145: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.multiindex.test_loc.TestMultiIndexLoc object at 0x114c2d0a0>\nkey = [2], pos = []\n\n    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n    \n        with pytest.raises(KeyError, match=\"not in index\"):\n>           df.loc[key]",
+            "\npandas/tests/indexing/multiindex/test_loc.py:145: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.multiindex.test_loc.TestMultiIndexLoc object at 0x114d52f40>\nkey = [2, 3], pos = []\n\n    @pytest.mark.parametrize(\"key, pos\", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])\n    def test_loc_multiindex_list_missing_label(self, key, pos):\n        # GH 27148 - lists with missing labels _do_ raise\n        df = DataFrame(\n            np.random.randn(3, 3),\n            columns=[[2, 2, 4], [6, 8, 10]],\n            index=[[4, 4, 8], [8, 10, 12]],\n        )\n    \n        with pytest.raises(KeyError, match=\"not in index\"):\n>           df.loc[key]",
+            "\npandas/tests/indexing/multiindex/test_loc.py:145: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.multiindex.test_slice.TestMultiIndexSlicers object at 0x114d65610>\n\n    def test_per_axis_per_level_getitem(self):\n    \n        # GH6134\n        # example test case\n        ix = MultiIndex.from_product(\n            [_mklbl(\"A\", 5), _mklbl(\"B\", 7), _mklbl(\"C\", 4), _mklbl(\"D\", 2)]\n        )\n        df = DataFrame(np.arange(len(ix.to_numpy())), index=ix)\n    \n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), [\"C1\", \"C3\"]), :]\n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_frame_equal(result, expected)\n    \n        expected = df.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in df.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\")\n                and (c == \"C1\" or c == \"C2\" or c == \"C3\")\n            ]\n        ]\n        result = df.loc[(slice(\"A1\", \"A3\"), slice(None), slice(\"C1\", \"C3\")), :]\n        tm.assert_frame_equal(result, expected)\n    \n        # test multi-index slicing with per axis and per index controls\n        index = MultiIndex.from_tuples(\n            [(\"A\", 1), (\"A\", 2), (\"A\", 3), (\"B\", 1)], names=[\"one\", \"two\"]\n        )\n        columns = MultiIndex.from_tuples(\n            [(\"a\", \"foo\"), (\"a\", \"bar\"), (\"b\", \"foo\"), (\"b\", \"bah\")],\n            names=[\"lvl0\", \"lvl1\"],\n        )\n    \n        df = DataFrame(\n            np.arange(16, dtype=\"int64\").reshape(4, 4), index=index, columns=columns\n        )\n        df = df.sort_index(axis=0).sort_index(axis=1)\n    \n        # identity\n        result = df.loc[(slice(None), slice(None)), :]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[(slice(None), slice(None)), (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n        result = df.loc[:, (slice(None), slice(None))]\n        tm.assert_frame_equal(result, df)\n    \n        # index\n        result = df.loc[(slice(None), [1]), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        result = df.loc[(slice(None), 1), :]\n        expected = df.iloc[[0, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        # columns\n        result = df.loc[:, (slice(None), [\"foo\"])]\n        expected = df.iloc[:, [1, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        # both\n        result = df.loc[(slice(None), 1), (slice(None), [\"foo\"])]\n        expected = df.iloc[[0, 3], [1, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        result = df.loc[\"A\", \"a\"]\n        expected = DataFrame(\n            dict(bar=[1, 5, 9], foo=[0, 4, 8]),\n            index=Index([1, 2, 3], name=\"two\"),\n            columns=Index([\"bar\", \"foo\"], name=\"lvl1\"),\n        )\n        tm.assert_frame_equal(result, expected)\n    \n        result = df.loc[(slice(None), [1, 2]), :]\n        expected = df.iloc[[0, 1, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        # multi-level series\n        s = Series(np.arange(len(ix.to_numpy())), index=ix)\n        result = s.loc[\"A1\":\"A3\", :, [\"C1\", \"C3\"]]\n        expected = s.loc[\n            [\n                tuple([a, b, c, d])\n                for a, b, c, d in s.index.values\n                if (a == \"A1\" or a == \"A2\" or a == \"A3\") and (c == \"C1\" or c == \"C3\")\n            ]\n        ]\n        tm.assert_series_equal(result, expected)\n    \n        # boolean indexers\n        result = df.loc[(slice(None), df.loc[:, (\"a\", \"bar\")] > 5), :]\n        expected = df.iloc[[2, 3]]\n        tm.assert_frame_equal(result, expected)\n    \n        msg = (\n            \"cannot index with a boolean indexer \"\n            \"that is not the same length as the index\"\n        )\n        with pytest.raises(ValueError, match=msg):\n            df.loc[(slice(None), np.array([True, False])), :]\n    \n        with pytest.raises(KeyError, match=r\"\\[1\\] not in index\"):\n            # slice(None) is on the index, [1] is on the columns, but 1 is\n            #  not in the columns, so we raise\n            #  This used to treat [1] as positional GH#16396\n>           df.loc[slice(None), [1]]",
+            "\npandas/tests/indexing/multiindex/test_slice.py:125: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114d52370>\ndtype = <class 'numpy.int64'>, box = <class 'list'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114d08160>\ndtype = <class 'numpy.int64'>, box = <built-in function array>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114d5bd00>\ndtype = <class 'numpy.int64'>, box = <class 'pandas.core.indexes.base.Index'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114e6c250>\ndtype = <class 'numpy.float64'>, box = <class 'list'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114dd1400>\ndtype = <class 'numpy.float64'>, box = <built-in function array>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114d5b0d0>\ndtype = <class 'numpy.float64'>, box = <class 'pandas.core.indexes.base.Index'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114dd1970>\ndtype = <class 'numpy.uint64'>, box = <class 'list'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114d48700>\ndtype = <class 'numpy.uint64'>, box = <built-in function array>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x114d52eb0>\ndtype = <class 'numpy.uint64'>, box = <class 'pandas.core.indexes.base.Index'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index])\n    @pytest.mark.parametrize(\"dtype\", [np.int64, np.float64, np.uint64])\n    def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):\n        # GH#33404 do _not_ fall back to positional since ints are ambiguous\n        idx = pd.Index(range(4)).astype(dtype)\n        dti = date_range(\"2000-01-03\", periods=3)\n        mi = pd.MultiIndex.from_product([idx, dti])\n        ser = Series(range(len(mi))[::-1], index=mi)\n    \n        key = box([5])\n        with pytest.raises(KeyError, match=\"5\"):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:128: Failed"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "key": "[2, 4]",
+                "self.obj": "             2                   4\n            6         8         10\n4 8  -0.915624 -0.800096 -1.165471\n  10  0.456463 -0.538957 -1.824972\n8 12 -0.049943 -0.385960 -0.956430",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153371d0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "key": "([2, 4],)",
+                "labels": "MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "locs": "array([0, 1])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "indexer": "[array([0, 1]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "[2]",
+                "self.obj": "             2                   4\n            6         8         10\n4 8   1.285106 -0.802538 -1.461331\n  10  0.436357 -0.236523 -1.065813\n8 12 -1.283179  0.466606  1.633564",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1152ac950>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "key": "([2],)",
+                "labels": "MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "indexer": "[array([], dtype=int64), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "[2, 3]",
+                "self.obj": "             2                   4\n            6         8         10\n4 8   0.573617  0.808506  0.953831\n  10 -1.176943 -0.219339  0.257522\n8 12  1.686174  0.421958  0.739802",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11530af90>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "key": "([2, 3],)",
+                "labels": "MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "indexer": "[array([], dtype=int64), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice('A1', 'A3', None), slice(None, None, None), ['C1', 'C3'])",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1152c2540>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "locs": "array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223])",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>",
+                "indexer": "[array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "array of shape 84",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1152c24a0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>"
+            }
+        ],
+        [
+            {
+                "key": "array of shape 126",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11550ed60>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>"
+            }
+        ],
+        [
+            {
+                "key": "(slice('A1', 'A3', None), slice(None, None, None), slice('C1', 'C3', None))",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1155182c0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "locs": "array of shape (126,)",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>",
+                "indexer": "array of shape 2"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x115513950>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 1, 2, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1155176d0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 1, 2, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1155176d0>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([0, 1, 2, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x115520720>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([0, 1, 2, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), [1])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x115520ea0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), 1)",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11550e220>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), ['foo'])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1152c2450>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([1, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([1, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), 1)",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x115517950>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), ['foo'])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x115517950>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([1, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([1, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "'A'",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11550e220>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>"
+            }
+        ],
+        [
+            {
+                "key": "'a'",
+                "self.obj": "lvl0   a       b    \nlvl1 bar foo bah foo\ntwo                 \n1      1   0   3   2\n2      5   4   7   6\n3      9   8  11  10",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1152c2450>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), [1, 2])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1152c2450>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 1, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 1, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice('A1', 'A3', None), slice(None, None, None), ['C1', 'C3'])",
+                "self.obj": "A0  B0  C0  D0      0\n            D1      1\n        C1  D0      2\n            D1      3\n        C2  D0      4\n                 ... \nA4  B6  C1  D1    275\n        C2  D0    276\n            D1    277\n        C3  D0    278\n            D1    279\nLength: 280, dtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x115520b80>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "locs": "array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223])",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>",
+                "indexer": "[array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223])]"
+            }
+        ],
+        [
+            {
+                "key": "array of shape 84",
+                "self.obj": "A0  B0  C0  D0      0\n            D1      1\n        C1  D0      2\n            D1      3\n        C2  D0      4\n                 ... \nA4  B6  C1  D1    275\n        C2  D0    276\n            D1    277\n        C3  D0    278\n            D1    279\nLength: 280, dtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x115513680>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>"
+            }
+        ],
+        [
+            {
+                "key": "('a', 'bar')",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11550d7c0>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), one  two\nA    1      False\n     2      False\n     3       True\nB    1       True\nName: (a, bar), dtype: bool)",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1155133b0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([2, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "[1]",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11550e4a0>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "key": "([1],)",
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "[5]",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153b0040>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "key": "([5],)",
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "array([5])",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153a9e50>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "key": "([5],)",
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index([5], dtype='int64')",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153a94a0>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "key": "(Int64Index([5], dtype='int64'),)",
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "[5]",
+                "self.obj": "0.0  2000-01-03    11\n     2000-01-04    10\n     2000-01-05     9\n1.0  2000-01-03     8\n     2000-01-04     7\n     2000-01-05     6\n2.0  2000-01-03     5\n     2000-01-04     4\n     2000-01-05     3\n3.0  2000-01-03     2\n     2000-01-04     1\n     2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153a8630>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "key": "([5],)",
+                "labels": "MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "array([5])",
+                "self.obj": "0.0  2000-01-03    11\n     2000-01-04    10\n     2000-01-05     9\n1.0  2000-01-03     8\n     2000-01-04     7\n     2000-01-05     6\n2.0  2000-01-03     5\n     2000-01-04     4\n     2000-01-05     3\n3.0  2000-01-03     2\n     2000-01-04     1\n     2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153b82c0>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "key": "([5],)",
+                "labels": "MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index([5], dtype='int64')",
+                "self.obj": "0.0  2000-01-03    11\n     2000-01-04    10\n     2000-01-05     9\n1.0  2000-01-03     8\n     2000-01-04     7\n     2000-01-05     6\n2.0  2000-01-03     5\n     2000-01-04     4\n     2000-01-05     3\n3.0  2000-01-03     2\n     2000-01-04     1\n     2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153b8f40>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "key": "(Int64Index([5], dtype='int64'),)",
+                "labels": "MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "[5]",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1154b2400>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "key": "([5],)",
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "array([5])",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1154c9e00>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "key": "([5],)",
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index([5], dtype='int64')",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1153b88b0>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "key": "(Int64Index([5], dtype='int64'),)",
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "locs": "array([], dtype=int64)",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "indexer": "[array([], dtype=int64)]"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "key": "tuple",
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "key": "[2, 4]",
+                "self.obj": "             2                   4\n            6         8         10\n4 8   0.513856  0.394161  0.198294\n  10 -0.243232  0.978980  0.223799\n8 12  1.861835  0.183575 -1.576461",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1166e0e00>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "[2]",
+                "self.obj": "             2                   4\n            6         8         10\n4 8  -1.431157  0.060275  0.146345\n  10 -2.387835 -0.150634 -0.821127\n8 12  1.097211  1.160184  1.591412",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116811c70>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "[2, 3]",
+                "self.obj": "             2                   4\n            6         8         10\n4 8  -1.355982 -0.987792 -0.871567\n  10  0.622677  0.420918 -1.282030\n8 12  0.223348 -0.141610 -0.081980",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11681d040>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(4,  8),\n            (4, 10),\n            (8, 12)],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "(slice('A1', 'A3', None), slice(None, None, None), ['C1', 'C3'])",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116834ae0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "locs": "array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223])",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>",
+                "indexer": "[array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "array of shape 84",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116834a40>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>"
+            }
+        ],
+        [
+            {
+                "key": "array of shape 126",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1167e6e00>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>"
+            }
+        ],
+        [
+            {
+                "key": "(slice('A1', 'A3', None), slice(None, None, None), slice('C1', 'C3', None))",
+                "self.obj": "               0\nA0 B0 C0 D0    0\n         D1    1\n      C1 D0    2\n         D1    3\n      C2 D0    4\n...          ...\nA4 B6 C1 D1  275\n      C2 D0  276\n         D1  277\n      C3 D0  278\n         D1  279\n\n[280 rows x 1 columns]",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11682dd60>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "locs": "array of shape (126,)",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>",
+                "indexer": "array of shape 2"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11682d9f0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 1, 2, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11682dd60>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 1, 2, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11682dd60>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([0, 1, 2, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), slice(None, None, None))",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116865f90>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([0, 1, 2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([0, 1, 2, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), [1])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116865ae0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), 1)",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168635e0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), ['foo'])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116863400>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([1, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([1, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), 1)",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168349f0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), ['foo'])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168349f0>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "locs": "array([1, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "indexer": "[slice(None, None, None), array([1, 3])]"
+            }
+        ],
+        [
+            {
+                "key": "'A'",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168529f0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>"
+            }
+        ],
+        [
+            {
+                "key": "'a'",
+                "self.obj": "lvl0   a       b    \nlvl1 bar foo bah foo\ntwo                 \n1      1   0   3   2\n2      5   4   7   6\n3      9   8  11  10",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116868040>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), [1, 2])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1167c9040>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 1, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 1, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "(slice('A1', 'A3', None), slice(None, None, None), ['C1', 'C3'])",
+                "self.obj": "A0  B0  C0  D0      0\n            D1      1\n        C1  D0      2\n            D1      3\n        C2  D0      4\n                 ... \nA4  B6  C1  D1    275\n        C2  D0    276\n            D1    277\n        C3  D0    278\n            D1    279\nLength: 280, dtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116862db0>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "locs": "array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223])",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>",
+                "indexer": "[array([ 58,  59,  62,  63,  66,  67,  70,  71,  74,  75,  78,  79,  82,\n        83,  86,  87,  90,  91,  94,  95,  98,  99, 102, 103, 106, 107,\n       110, 111, 114, 115, 118, 119, 122, 123, 126, 127, 130, 131, 134,\n       135, 138, 139, 142, 143, 146, 147, 150, 151, 154, 155, 158, 159,\n       162, 163, 166, 167, 170, 171, 174, 175, 178, 179, 182, 183, 186,\n       187, 190, 191, 194, 195, 198, 199, 202, 203, 206, 207, 210, 211,\n       214, 215, 218, 219, 222, 223])]"
+            }
+        ],
+        [
+            {
+                "key": "array of shape 84",
+                "self.obj": "A0  B0  C0  D0      0\n            D1      1\n        C1  D0      2\n            D1      3\n        C2  D0      4\n                 ... \nA4  B6  C1  D1    275\n        C2  D0    276\n            D1    277\n        C3  D0    278\n            D1    279\nLength: 280, dtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116865b30>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "array of shape (280,)",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_ ... D1')],\n           length=280)>",
+                "labels.get_locs": "<bound method MultiIndex.get_l ... D1')],\n           length=280)>"
+            }
+        ],
+        [
+            {
+                "key": "('a', 'bar')",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11684e4f0>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), one  two\nA    1      False\n     2      False\n     3       True\nB    1       True\nName: (a, bar), dtype: bool)",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116865b30>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([2, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([2, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "[1]",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116842810>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), [1])",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\n    2     5   4   7   6\n    3     9   8  11  10\nB   1    13  12  15  14",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116964c70>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "locs": "array([0, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('A', 2),\n            ('A', 3),\n            ('B', 1)],\n           names=['one', 'two'])>",
+                "indexer": "[array([0, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "('a', 'bar')",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\nB   1    13  12  15  14\nA   2     5   4   7   6\n    3     9   8  11  10",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116845c70>",
+                "axis": "1",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('a', 'bar'),\n            ('a', 'foo'),\n            ('b', 'bah'),\n            ('b', 'foo')],\n           names=['lvl0', 'lvl1'])>"
+            }
+        ],
+        [
+            {
+                "key": "(slice(None, None, None), one  two\nA    1      False\nB    1       True\nA    2      False\n     3       True\nName: (a, bar), dtype: bool)",
+                "self.obj": "lvl0      a       b    \nlvl1    bar foo bah foo\none two                \nA   1     1   0   3   2\nB   1    13  12  15  14\nA   2     5   4   7   6\n    3     9   8  11  10",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168621d0>",
+                "axis": "0",
+                "self.ndim": "2"
+            },
+            {
+                "labels": "MultiIndex([('A', 1),\n            ('B', 1),\n            ('A', 2),\n            ('A', 3)],\n           names=['one', 'two'])",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([('A', 1),\n            ('B', 1),\n            ('A', 2),\n            ('A', 3)],\n           names=['one', 'two'])>",
+                "locs": "array([1, 3])",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([('A', 1),\n            ('B', 1),\n            ('A', 2),\n            ('A', 3)],\n           names=['one', 'two'])>",
+                "indexer": "[array([1, 3]), slice(None, None, None)]"
+            }
+        ],
+        [
+            {
+                "key": "[5]",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11684ec20>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "array([5])",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116850d10>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index([5], dtype='int64')",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168624f0>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "[5]",
+                "self.obj": "0.0  2000-01-03    11\n     2000-01-04    10\n     2000-01-05     9\n1.0  2000-01-03     8\n     2000-01-04     7\n     2000-01-05     6\n2.0  2000-01-03     5\n     2000-01-04     4\n     2000-01-05     3\n3.0  2000-01-03     2\n     2000-01-04     1\n     2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168623b0>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "array([5])",
+                "self.obj": "0.0  2000-01-03    11\n     2000-01-04    10\n     2000-01-05     9\n1.0  2000-01-03     8\n     2000-01-04     7\n     2000-01-05     6\n2.0  2000-01-03     5\n     2000-01-04     4\n     2000-01-05     3\n3.0  2000-01-03     2\n     2000-01-04     1\n     2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11684ec20>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index([5], dtype='int64')",
+                "self.obj": "0.0  2000-01-03    11\n     2000-01-04    10\n     2000-01-05     9\n1.0  2000-01-03     8\n     2000-01-04     7\n     2000-01-05     6\n2.0  2000-01-03     5\n     2000-01-04     4\n     2000-01-05     3\n3.0  2000-01-03     2\n     2000-01-04     1\n     2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168626d0>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0.0, '2000-01-03'),\n            (0.0, '2000-01-04'),\n            (0.0, '2000-01-05'),\n            (1.0, '2000-01-03'),\n            (1.0, '2000-01-04'),\n            (1.0, '2000-01-05'),\n            (2.0, '2000-01-03'),\n            (2.0, '2000-01-04'),\n            (2.0, '2000-01-05'),\n            (3.0, '2000-01-03'),\n            (3.0, '2000-01-04'),\n            (3.0, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "[5]",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x116862400>",
+                "axis": "0",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "array([5])",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x11694f310>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index([5], dtype='int64')",
+                "self.obj": "0  2000-01-03    11\n   2000-01-04    10\n   2000-01-05     9\n1  2000-01-03     8\n   2000-01-04     7\n   2000-01-05     6\n2  2000-01-03     5\n   2000-01-04     4\n   2000-01-05     3\n3  2000-01-03     2\n   2000-01-04     1\n   2000-01-05     0\ndtype: int64",
+                "self": "<pandas.core.indexing._LocIndexer object at 0x1168621d0>",
+                "axis": "0",
+                "key.ndim": "1",
+                "self.ndim": "1"
+            },
+            {
+                "labels": "MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )",
+                "labels._get_partial_string_timestamp_match_key": "<bound method MultiIndex._get_partial_string_timestamp_match_key of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>",
+                "labels.get_locs": "<bound method MultiIndex.get_locs of MultiIndex([(0, '2000-01-03'),\n            (0, '2000-01-04'),\n            (0, '2000-01-05'),\n            (1, '2000-01-03'),\n            (1, '2000-01-04'),\n            (1, '2000-01-05'),\n            (2, '2000-01-03'),\n            (2, '2000-01-04'),\n            (2, '2000-01-05'),\n            (3, '2000-01-03'),\n            (3, '2000-01-04'),\n            (3, '2000-01-05')],\n           )>"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "str",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "tuple",
+                "self.obj": "DataFrame",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "locs": "ndarray",
+                "labels.get_locs": "method",
+                "indexer": "list"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "list",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ],
+        [
+            {
+                "key": "Int64Index",
+                "self.obj": "Series",
+                "self": "_LocIndexer",
+                "axis": "int",
+                "key.ndim": "int",
+                "self.ndim": "int"
+            },
+            {
+                "labels": "MultiIndex",
+                "labels._get_partial_string_timestamp_match_key": "method",
+                "labels.get_locs": "method"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

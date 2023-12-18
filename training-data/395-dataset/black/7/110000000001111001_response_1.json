@@ -1,0 +1,68 @@
+{
+    "black": [
+        {
+            "bugID": 7,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 2713,
+            "file_name": "black.py",
+            "replace_code": "def normalize_invisible_parens(node: Node, parens_after: Set[str]) -> None:\n\n    \"\"\"Make existing optional parentheses invisible or create new ones.\n    \n    `parens_after` is a set of string leaf values immeditely after which parens\n    should be put.\n    \n    Standardizes on visible parentheses for single-element tuples, and keeps\n    existing visible parentheses for other tuples and generator expressions.\n    \"\"\"\n    for pc in list_comments(node.prefix, is_endmarker=False):\n        if pc.value in FMT_OFF:\n            # This `node` has a prefix with `# fmt: off`, don't mess with parens.\n            return\n    \n    check_lpar = False\n    for index, child in enumerate(list(node.children)):\n        if check_lpar:\n            if child.type == syms.atom:\n                if maybe_make_parens_invisible_in_atom(child, parent=node):\n                    lpar = Leaf(token.LPAR, \"\")\n                    rpar = Leaf(token.RPAR, \"\")\n                    index = child.remove() or 0\n                    node.insert_child(index, Node(syms.atom, [lpar, child, rpar]))\n            elif is_one_tuple(child):\n                # wrap child in visible parentheses\n                lpar = Leaf(token.LPAR, \"(\")\n                rpar = Leaf(token.RPAR, \")\")\n                child.remove()\n                node.insert_child(index, Node(syms.atom, [lpar, child, rpar]))\n            elif child.type == syms.import_from:  # Check child type instead\n                # \"import from\" nodes store parentheses directly as part of\n                # the statement\n                if child.type == token.LPAR:\n                    # make parentheses invisible\n                    child.value = \"\"  # type: ignore\n                    node.children[-1].value = \"\"  # type: ignore\n                elif child.type != token.STAR:\n                    # insert invisible parentheses\n                    node.insert_child(index, Leaf(token.LPAR, \"\"))\n                    node.append_child(Leaf(token.RPAR, \"\"))\n                break"
+        }
+    ]
+}

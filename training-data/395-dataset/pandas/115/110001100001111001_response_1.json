@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 115,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 167,
+            "file_name": "pandas/core/missing.py",
+            "replace_code": "def interpolate_1d(\n    xvalues,\n    yvalues,\n    method=\"linear\",\n    limit=None,\n    limit_direction=\"forward\",\n    limit_area=None,\n    fill_value=None,\n    bounds_error=False,\n    order=None,\n    **kwargs,\n):\n    import numpy as np\n    \"\"\"\n    Logic for the 1-d interpolation.  The result should be 1-d, inputs\n    xvalues and yvalues will each be 1-d arrays of the same length.\n    \n    Bounds_error is currently hardcoded to False since non-scipy ones don't\n    take it as an argument.\n    \"\"\"\n    valid = ~np.isnan(yvalues)\n    \n    if valid.all():\n        return yvalues\n    \n    preserve_nans = []\n    if limit_direction == \"forward\":\n        preserve_nans = np.where(np.isnan(yvalues))[0][:limit]\n    elif limit_direction == \"backward\":\n        preserve_nans = np.where(np.isnan(yvalues))[0][-limit:]\n    else:\n        preserve_nans = np.where(np.isnan(yvalues))[0]\n    \n    if limit_area == \"inside\":\n        preserve_nans = np.concatenate([preserve_nans, np.where(np.isnan(yvalues))[0]])\n    elif limit_area == \"outside\":\n        preserve_nans = np.delete(np.where(np.isnan(yvalues))[0], preserve_nans)\n    \n    result = yvalues.copy()\n    \n    if method in [\"linear\", \"time\", \"index\", \"values\"]:\n        invalid = np.isnan(yvalues)\n        inds = np.asarray(xvalues, dtype=np.float64)\n        inds = np.where(np.isnan(inds), np.nan, inds)\n        \n        valid_inds = ~np.isnan(inds)\n        valid_yvalues = yvalues[valid]\n        valid_xvalues = xvalues[valid_inds]\n        \n        result[invalid] = np.interp(inds[invalid], valid_xvalues, valid_yvalues)\n        result[preserve_nans] = np.nan\n        return result\n    else:\n        # Handle other methods\n        pass"
+        }
+    ]
+}

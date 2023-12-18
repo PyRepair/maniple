@@ -1,0 +1,68 @@
+{
+    "keras": [
+        {
+            "bugID": 26,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 2676,
+            "file_name": "keras/backend/tensorflow_backend.py",
+            "replace_code": "def rnn(step_function, inputs, initial_states, go_backwards=False, mask=None, constants=None, unroll=False, input_length=None):\n\n    ndim = len(inputs.get_shape())\n    if ndim < 3:\n        raise ValueError('Input should be at least 3D.')\n    \n    if unroll:\n        if not inputs.get_shape().as_list()[0]:\n            raise ValueError('Unrolling requires a fixed number of timesteps.')\n        states = initial_states\n        successive_states = []\n        successive_outputs = []\n        input_list = tf.unstack(inputs)\n        \n        if go_backwards:\n            input_list = input_list[::-1]\n        \n        for inp in input_list:\n            output, states = step_function(inp, states + constants)\n            if getattr(output, '_uses_learning_phase', False):\n                uses_learning_phase = True\n            successive_outputs.append(output)\n            successive_states.append(states)\n        \n        last_output = successive_outputs[-1]\n        new_states = successive_states[-1]\n        outputs = tf.stack(successive_outputs)\n    \n    else:\n        if go_backwards:\n            inputs = reverse(inputs, [0])\n        \n        time_steps = tf.shape(inputs)[0]\n        outputs_ta, _ = tf.TensorArray(dtype=inputs.dtype, size=time_steps, dynamic_size=False, element_shape=inputs.get_shape()[1:]), None\n        input_ta = tf.TensorArray(dtype=inputs.dtype, size=time_steps, dynamic_size=False, element_shape=inputs.get_shape()[1:])\n        input_ta = input_ta.unstack(inputs)\n        time = tf.constant(0, dtype='int32')\n        output_ta_t = tf.TensorArray(dtype=inputs.dtype, size=time_steps)\n        \n        def _step(time, output_ta_t, *states):\n            current_input = input_ta.read(time)\n            output, new_states = step_function(current_input, tuple(states) + tuple(constants))\n            if getattr(output, '_uses_learning_phase', False):\n                global uses_learning_phase\n                uses_learning_phase = True\n            output_ta_t = output_ta_t.write(time, output)\n            return (time + 1), output_ta_t, *new_states\n    \n        _, outputs, *new_states = control_flow_ops.while_loop(\n            cond=lambda time, *_: time < time_steps,\n            body=_step,\n            loop_vars=(time, output_ta_t) + tuple(states),\n            parallel_iterations=32,\n            swap_memory=True)\n        \n        last_output = new_states[0]\n        new_states = new_states[1:]\n        outputs = outputs.stack()\n        \n    # Transpose to batch-major\n    axes = [1, 0] + list(range(2, len(outputs.get_shape())))\n    outputs = tf.transpose(outputs, axes)\n    last_output._uses_learning_phase = uses_learning_phase\n    return last_output, outputs, new_states"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "ansible": [
+        {
+            "bugID": 1,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 650,
+            "file_name": "lib/ansible/galaxy/collection.py",
+            "replace_code": "def verify_collections(collections, search_paths, apis, validate_certs, ignore_errors, allow_pre_release=False):\n\n    with _display_progress():\n        with _tempdir() as b_temp_path:\n            for collection in collections:\n                try:\n                    local_collection = None\n                    b_collection = to_bytes(collection[0], errors='surrogate_or_strict')\n                    if os.path.isfile(b_collection) or urlparse(collection[0]).scheme.lower() in ['http', 'https'] or len(collection[0].split('.')) != 2:\n                        raise AnsibleError(message=\"'%s' is not a valid collection name. The format namespace.name is expected.\" % collection[0])\n                    collection_name = collection[0]\n                    namespace, name = collection_name.split('.')\n                    collection_version = collection[1]\n    \n                    for search_path in search_paths:\n                        b_search_path = to_bytes(os.path.join(search_path, namespace, name), errors='surrogate_or_strict')\n                        if os.path.isdir(b_search_path):\n                            local_collection = CollectionRequirement.from_path(b_search_path, False)\n                            break\n                    if local_collection is None:\n                        raise AnsibleError(message='Collection %s is not installed in any of the collection paths.' % collection_name)\n    \n                    try:\n                        remote_collection = CollectionRequirement.from_name(collection_name, [apis], collection_version, False, parent=None, allow_pre_release=allow_pre_release)\n                    except AnsibleError as e:\n                        if e.message == 'Failed to find collection %s:%s' % (collection[0], collection[1]):\n                            raise AnsibleError('Failed to find remote collection %s:%s on any of the galaxy servers' % (collection[0], collection[1]))\n                        raise\n    \n                    download_url = remote_collection.metadata.download_url\n                    headers = {}\n                    remote_collection.api._add_auth_token(headers, download_url, required=False)\n                    b_temp_tar_path = _download_file(download_url, b_temp_path, None, validate_certs, headers=headers)\n    \n                    local_collection.verify(remote_collection, search_paths, b_temp_tar_path)\n    \n                except AnsibleError as err:\n                    if ignore_errors:\n                        display.warning(\"Failed to verify collection %s but skipping due to --ignore-errors being set. Error: %s\" % (collection[0], to_text(err)))\n                    else:\n                        raise"
+        }
+    ]
+}

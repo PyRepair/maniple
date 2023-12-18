@@ -1,0 +1,262 @@
+{
+    "1.1.1": "def makeMappingArray(N, data, gamma=1.0):\n    \n\n    if callable(data):\n        xind = np.linspace(0, 1, N) ** gamma\n        lut = np.clip(np.array(data(xind), dtype=float), 0, 1)\n        return lut\n\n    try:\n        adata = np.array(data)\n    except Exception:\n        raise TypeError(\"data must be convertible to an array\")\n    shape = adata.shape\n    if len(shape) != 2 or shape[1] != 3:\n        raise ValueError(\"data must be nx3 format\")\n\n    x = adata[:, 0]\n    y0 = adata[:, 1]\n    y1 = adata[:, 2]\n\n    if x[0] != 0. or x[-1] != 1.0:\n        raise ValueError(\n            \"data mapping points must start with x=0 and end with x=1\")\n    if (np.diff(x) < 0).any():\n        raise ValueError(\"data mapping points must have x in increasing order\")\n    # begin generation of lookup table\n    x = x * (N - 1)\n    xind = (N - 1) * np.linspace(0, 1, N) ** gamma\n    ind = np.searchsorted(x, xind)[1:-1]\n\n    distance = (xind[1:-1] - x[ind - 1]) / (x[ind] - x[ind - 1])\n    lut = np.concatenate([\n        [y1[0]],\n        distance * (y0[ind] - y1[ind - 1]) + y1[ind - 1],\n        [y0[-1]],\n    ])\n    # ensure that the lut is confined to values between 0 and 1 by clipping it\n    return np.clip(lut, 0.0, 1.0)\n",
+    "1.1.2": "Create an *N* -element 1-d lookup table\n\n*data* represented by a list of x,y0,y1 mapping correspondences.\nEach element in this list represents how a value between 0 and 1\n(inclusive) represented by x is mapped to a corresponding value\nbetween 0 and 1 (inclusive). The two values of y are to allow\nfor discontinuous mapping functions (say as might be found in a\nsawtooth) where y0 represents the value of y for values of x\n<= to that given, and y1 is the value to be used for x > than\nthat given). The list must start with x=0, end with x=1, and\nall values of x must be in increasing order. Values between\nthe given mapping points are determined by simple linear interpolation.\n\nAlternatively, data can be a function mapping values between 0 - 1\nto 0 - 1.\n\nThe function returns an array \"result\" where ``result[x*(N-1)]``\ngives the closest value for values of x between 0 and 1.",
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/matplotlib_30/lib/matplotlib/colors.py",
+    "1.3.2": null,
+    "1.4.1": [
+        "@pytest.mark.parametrize('N, result', [\n    (5, [1, .6, .2, .1, 0]),\n    (2, [1, 0]),\n    (1, [0]),\n])\ndef test_makeMappingArray(N, result):\n    data = [(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]\n    assert_array_almost_equal(mcolors.makeMappingArray(N, data), result)"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs/repos/matplotlib_30/lib/matplotlib/tests/test_colors.py"
+    ],
+    "2.1.1": [
+        [
+            "E           AssertionError: \nE           Arrays are not almost equal to 6 decimals\nE           \nE           (shapes (2,), (1,) mismatch)\nE            x: array([1., 0.])\nE            y: array([0])"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "N = 1, result = [0]\n\n    @pytest.mark.parametrize('N, result', [\n        (5, [1, .6, .2, .1, 0]),\n        (2, [1, 0]),\n        (1, [0]),\n    ])\n    def test_makeMappingArray(N, result):\n        data = [(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]\n>       assert_array_almost_equal(mcolors.makeMappingArray(N, data), result)\n\nlib/matplotlib/tests/test_colors.py:26: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/usr/local/Cellar/python@3.8/3.8.18_1/Frameworks/Python.framework/Versions/3.8/lib/python3.8/contextlib.py:75: in inner\n    return func(*args, **kwds)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nargs = (<function assert_array_almost_equal.<locals>.compare at 0x1136ea700>, array([1., 0.]), [0])\nkwds = {'err_msg': '', 'header': 'Arrays are not almost equal to 6 decimals', 'precision': 6, 'verbose': True}\n\n    @wraps(func)\n    def inner(*args, **kwds):\n        with self._recreate_cm():\n>           return func(*args, **kwds)",
+            "\n/usr/local/Cellar/python@3.8/3.8.18_1/Frameworks/Python.framework/Versions/3.8/lib/python3.8/contextlib.py:75: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "data": "[(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]",
+                "N": "5",
+                "gamma": "1.0"
+            },
+            {
+                "xind": "array([0., 1., 2., 3., 4.])",
+                "lut": "array([1. , 0.6, 0.2, 0.1, 0. ])",
+                "adata": "array([[0. , 1. , 1. ],\n       [0.5, 0.2, 0.2],\n       [1. , 0. , 0. ]])",
+                "shape": "(3, 3)",
+                "adata.shape": "(3, 3)",
+                "x": "array([0., 2., 4.])",
+                "y0": "array([1. , 0.2, 0. ])",
+                "y1": "array([1. , 0.2, 0. ])",
+                "ind": "array([1, 1, 2])",
+                "distance": "array([0.5, 1. , 0.5])"
+            }
+        ],
+        [
+            {
+                "data": "[(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]",
+                "N": "2",
+                "gamma": "1.0"
+            },
+            {
+                "xind": "array([0., 1.])",
+                "lut": "array([1., 0.])",
+                "adata": "array([[0. , 1. , 1. ],\n       [0.5, 0.2, 0.2],\n       [1. , 0. , 0. ]])",
+                "shape": "(3, 3)",
+                "adata.shape": "(3, 3)",
+                "x": "array([0. , 0.5, 1. ])",
+                "y0": "array([1. , 0.2, 0. ])",
+                "y1": "array([1. , 0.2, 0. ])",
+                "ind": "array([], dtype=int64)",
+                "distance": "array([], dtype=float64)"
+            }
+        ],
+        [
+            {
+                "data": "[(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]",
+                "N": "1",
+                "gamma": "1.0"
+            },
+            {
+                "xind": "array([0.])",
+                "lut": "array([1., 0.])",
+                "adata": "array([[0. , 1. , 1. ],\n       [0.5, 0.2, 0.2],\n       [1. , 0. , 0. ]])",
+                "shape": "(3, 3)",
+                "adata.shape": "(3, 3)",
+                "x": "array([0., 0., 0.])",
+                "y0": "array([1. , 0.2, 0. ])",
+                "y1": "array([1. , 0.2, 0. ])",
+                "ind": "array([], dtype=int64)",
+                "distance": "array([], dtype=float64)"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "data": "list",
+                "N": "int",
+                "gamma": "float"
+            },
+            {
+                "xind": "ndarray",
+                "lut": "ndarray",
+                "adata": "ndarray",
+                "shape": "tuple",
+                "adata.shape": "tuple",
+                "x": "ndarray",
+                "y0": "ndarray",
+                "y1": "ndarray",
+                "ind": "ndarray",
+                "distance": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "N": "int",
+                "gamma": "float"
+            },
+            {
+                "xind": "ndarray",
+                "lut": "ndarray",
+                "adata": "ndarray",
+                "shape": "tuple",
+                "adata.shape": "tuple",
+                "x": "ndarray",
+                "y0": "ndarray",
+                "y1": "ndarray",
+                "ind": "ndarray",
+                "distance": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "N": "int",
+                "gamma": "float"
+            },
+            {
+                "xind": "ndarray",
+                "lut": "ndarray",
+                "adata": "ndarray",
+                "shape": "tuple",
+                "adata.shape": "tuple",
+                "x": "ndarray",
+                "y0": "ndarray",
+                "y1": "ndarray",
+                "ind": "ndarray",
+                "distance": "ndarray"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "data": "[(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]",
+                "N": "5",
+                "gamma": "1.0"
+            },
+            {
+                "xind": "array([0., 1., 2., 3., 4.])",
+                "lut": "array([1. , 0.6, 0.2, 0.1, 0. ])",
+                "adata": "array([[0. , 1. , 1. ],\n       [0.5, 0.2, 0.2],\n       [1. , 0. , 0. ]])",
+                "shape": "(3, 3)",
+                "adata.shape": "(3, 3)",
+                "x": "array([0., 2., 4.])",
+                "y0": "array([1. , 0.2, 0. ])",
+                "y1": "array([1. , 0.2, 0. ])",
+                "ind": "array([1, 1, 2])",
+                "distance": "array([0.5, 1. , 0.5])"
+            }
+        ],
+        [
+            {
+                "data": "[(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]",
+                "N": "2",
+                "gamma": "1.0"
+            },
+            {
+                "xind": "array([0., 1.])",
+                "lut": "array([1., 0.])",
+                "adata": "array([[0. , 1. , 1. ],\n       [0.5, 0.2, 0.2],\n       [1. , 0. , 0. ]])",
+                "shape": "(3, 3)",
+                "adata.shape": "(3, 3)",
+                "x": "array([0. , 0.5, 1. ])",
+                "y0": "array([1. , 0.2, 0. ])",
+                "y1": "array([1. , 0.2, 0. ])",
+                "ind": "array([], dtype=int64)",
+                "distance": "array([], dtype=float64)"
+            }
+        ],
+        [
+            {
+                "data": "[(0.0, 1.0, 1.0), (0.5, 0.2, 0.2), (1.0, 0.0, 0.0)]",
+                "N": "1",
+                "gamma": "1.0"
+            },
+            {
+                "lut": "array(0.)",
+                "adata": "array([[0. , 1. , 1. ],\n       [0.5, 0.2, 0.2],\n       [1. , 0. , 0. ]])",
+                "shape": "(3, 3)",
+                "adata.shape": "(3, 3)",
+                "x": "array([0. , 0.5, 1. ])",
+                "y0": "array([1. , 0.2, 0. ])",
+                "y1": "array([1. , 0.2, 0. ])"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "data": "list",
+                "N": "int",
+                "gamma": "float"
+            },
+            {
+                "xind": "ndarray",
+                "lut": "ndarray",
+                "adata": "ndarray",
+                "shape": "tuple",
+                "adata.shape": "tuple",
+                "x": "ndarray",
+                "y0": "ndarray",
+                "y1": "ndarray",
+                "ind": "ndarray",
+                "distance": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "N": "int",
+                "gamma": "float"
+            },
+            {
+                "xind": "ndarray",
+                "lut": "ndarray",
+                "adata": "ndarray",
+                "shape": "tuple",
+                "adata.shape": "tuple",
+                "x": "ndarray",
+                "y0": "ndarray",
+                "y1": "ndarray",
+                "ind": "ndarray",
+                "distance": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "N": "int",
+                "gamma": "float"
+            },
+            {
+                "lut": "ndarray",
+                "adata": "ndarray",
+                "shape": "tuple",
+                "adata.shape": "tuple",
+                "x": "ndarray",
+                "y0": "ndarray",
+                "y1": "ndarray"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "LinearSegmentedColormap with N=1 gives confusing error message\n"
+    ],
+    "3.1.2": [
+        "Bug report\nBug summary\n\nLinearSegmentedColormap with N=1 gives confusing error message.\n\nCode for reproduction\n\nimport numpy as np\nfrom matplotlib import pyplot as plt\nfrom matplotlib import colors\n\nplt.figure()\nfig = plt.gcf()\nax = plt.gca()\n\nx = np.arange(0,3,1)\ny = np.arange(0,3,1)\nX, Y = np.meshgrid(x, y)\nZ = Y\n\ncs = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]\nN = 1 # No error if this is changed to 2\ncmapg = colors.LinearSegmentedColormap.from_list('a',cs,N)\nax.pcolormesh(X, Y, Z, cmap=cmapg)\n\nfig.show()\nActual outcome\n\nIn Matplotlib 3.1rc1, error is\n\n  File \"/Users/abc/anaconda3/envs/python3.6/lib/python3.6/site-packages/matplotlib-3.1.0rc1-py3.6-macosx-10.7-x86_64.egg/matplotlib/colors.py\", line 663, in _init\n    self.N, self._segmentdata['red'], self._gamma)\n\nValueError: could not broadcast input array from shape (2) into shape (1)\nExpected outcome\n\nI ran into this error because I was plotting a matrix with values of NaN or 1 and only needed to specify a single color (there is probably a better way to do this). This worked in Matplotlib 2.2.2 as desired but caused a confusing error message in Matplotlib 3.1rc1.\n\nI expected this to either work as-is or for pcolormap throw an error indicating that the passed colormap is invalid.\n\nMatplotlib version\n\nOperating system: OS-X 10.14\nMatplotlib version: 3.1rc1\nMatplotlib backend (print(matplotlib.get_backend())): Qt5Agg\nPython version: 3.6\nJupyter version (if applicable):\nOther libraries: Using Matplotlib installed with conda create -n python3.6 python=3.6\n"
+    ]
+}

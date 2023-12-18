@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 29,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 515,
+            "file_name": "pandas/core/arrays/interval.py",
+            "replace_code": "def __setitem__(self, key, value):\n\n    needs_float_conversion = False\n    if is_scalar(value) and isna(value):\n        if is_integer_dtype(self.dtype.subtype):\n            needs_float_conversion = True\n        elif is_datetime64_any_dtype(self.dtype.subtype):\n            value = np.datetime64(\"NaT\")\n        elif is_timedelta64_dtype(self.dtype.subtype):\n            value = np.timedelta64(\"NaT\")\n        value_left, value_right = value, value\n    \n    elif is_interval_dtype(value) or isinstance(value, Interval):\n        self._check_closed_matches(value, name=\"value\")\n        value_left, value_right = value.left, value.right\n    \n    else:\n        try:\n            array = IntervalArray(value)\n            value_left, value_right = array.left, array.right\n        except TypeError as err:\n            msg = f\"'value' should be an interval type, got {type(value)} instead.\"\n            raise TypeError(msg) from err\n    \n    key = check_array_indexer(self, key)\n    \n    new_left_values = self.left.values.copy()\n    new_right_values = self.right.values.copy()\n    \n    if needs_float_conversion:\n        new_left_values = new_left_values.astype(\"float\")\n        new_right_values = new_right_values.astype(\"float\")\n    \n    new_left_values[key] = value_left\n    new_right_values[key] = value_right\n    \n    self._left = new_left_values\n    self._right = new_right_values"
+        }
+    ]
+}

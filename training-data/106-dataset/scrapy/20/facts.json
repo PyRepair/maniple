@@ -1,0 +1,71 @@
+{
+    "1.1.1": "def _parse_sitemap(self, response):\n    if response.url.endswith('/robots.txt'):\n        for url in sitemap_urls_from_robots(response.body):\n            yield Request(url, callback=self._parse_sitemap)\n    else:\n        body = self._get_sitemap_body(response)\n        if body is None:\n            logger.warning(\"Ignoring invalid sitemap: %(response)s\",\n                           {'response': response}, extra={'spider': self})\n            return\n\n        s = Sitemap(body)\n        if s.type == 'sitemapindex':\n            for loc in iterloc(s, self.sitemap_alternate_links):\n                if any(x.search(loc) for x in self._follow):\n                    yield Request(loc, callback=self._parse_sitemap)\n        elif s.type == 'urlset':\n            for loc in iterloc(s):\n                for r, c in self._cbs:\n                    if r.search(loc):\n                        yield Request(loc, callback=c)\n                        break\n",
+    "1.1.2": null,
+    "1.2.1": "class SitemapSpider(Spider)",
+    "1.2.2": null,
+    "1.2.3": [
+        "_parse_sitemap(self, response)",
+        "_get_sitemap_body(self, response)"
+    ],
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/scrapy_20/scrapy/spiders/sitemap.py",
+    "1.3.2": [
+        "iterloc(it, alt=False)",
+        "_parse_sitemap(self, response)",
+        "_get_sitemap_body(self, response)"
+    ],
+    "1.4.1": [
+        "    def test_get_sitemap_urls_from_robotstxt(self):\n        robots = b\"\"\"# Sitemap files\nSitemap: http://example.com/sitemap.xml\nSitemap: http://example.com/sitemap-product-index.xml\n\"\"\"\n\n        r = TextResponse(url=\"http://www.example.com/robots.txt\", body=robots)\n        spider = self.spider_class(\"example.com\")\n        self.assertEqual([req.url for req in spider._parse_sitemap(r)],\n                         ['http://example.com/sitemap.xml',\n                          'http://example.com/sitemap-product-index.xml'])"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs/repos/scrapy_20/tests/test_spider.py"
+    ],
+    "2.1.1": [
+        [
+            "E           TypeError: startswith first arg must be bytes or a tuple of bytes, not str"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tests.test_spider.SitemapSpiderTest testMethod=test_get_sitemap_urls_from_robotstxt>\n\n        def test_get_sitemap_urls_from_robotstxt(self):\n            robots = b\"\"\"# Sitemap files\n    Sitemap: http://example.com/sitemap.xml\n    Sitemap: http://example.com/sitemap-product-index.xml\n    \"\"\"\n    \n            r = TextResponse(url=\"http://www.example.com/robots.txt\", body=robots)\n            spider = self.spider_class(\"example.com\")\n>           self.assertEqual([req.url for req in spider._parse_sitemap(r)],\n                             ['http://example.com/sitemap.xml',\n                              'http://example.com/sitemap-product-index.xml'])\n\n/Volumes/SSD2T/bgp_envs/repos/scrapy_20/tests/test_spider.py:339: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/Volumes/SSD2T/bgp_envs/repos/scrapy_20/tests/test_spider.py:339: in <listcomp>\n    self.assertEqual([req.url for req in spider._parse_sitemap(r)],\n/Volumes/SSD2T/bgp_envs/repos/scrapy_20/scrapy/spiders/sitemap.py:35: in _parse_sitemap\n    for url in sitemap_urls_from_robots(response.body):\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nrobots_text = b'# Sitemap files\\nSitemap: http://example.com/sitemap.xml\\nSitemap: http://example.com/sitemap-product-index.xml\\n'\n\n    def sitemap_urls_from_robots(robots_text):\n        \"\"\"Return an iterator over all sitemap urls contained in the given\n        robots.txt file\n        \"\"\"\n        for line in robots_text.splitlines():\n>           if line.lstrip().startswith('Sitemap:'):",
+            "\n/Volumes/SSD2T/bgp_envs/repos/scrapy_20/scrapy/utils/sitemap.py:42: TypeError"
+        ]
+    ],
+    "2.1.3": null,
+    "2.1.4": null,
+    "2.1.5": [
+        [
+            {
+                "response.url": "'http://www.example.com/robots.txt'",
+                "response": "<200 http://www.example.com/robots.txt>",
+                "response.text": "'# Sitemap files\\nSitemap: http://example.com/sitemap.xml\\nSitemap: http://example.com/sitemap-product-index.xml\\n'",
+                "self.sitemap_alternate_links": "False",
+                "self._follow": "[re.compile('')]",
+                "self._cbs": "[(re.compile(''), <bound method Spider.parse of <SitemapSpider 'example.com' at 0x10b65fc40>>)]"
+            },
+            {
+                "url": "'http://example.com/sitemap-product-index.xml'"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "response.url": "str",
+                "response": "TextResponse",
+                "response.text": "str",
+                "self.sitemap_alternate_links": "bool",
+                "self._follow": "list",
+                "self._cbs": "list"
+            },
+            {
+                "url": "str"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "PY3: SitemapSpider fail to extract sitemap URLs from robots.txt in Scrapy 1.1.0rc1\n"
+    ],
+    "3.1.2": [
+        "Environment\nMac OS X 10.10.5\nPython 3.4.2\nScrapy 1.1.0rc1\nSteps to Reproduce\nSave the following spider as sitemap_spider.py.\n\nfrom scrapy.spiders import SitemapSpider\n\n\nclass BlogSitemapSpider(SitemapSpider):\n   name = \"blog_sitemap\"\n   allowed_domains = [\"blog.scrapinghub.com\"]\n\n   sitemap_urls = [\n       'https://blog.scrapinghub.com/robots.txt',\n   ]\n   sitemap_rules = [\n       (r'/2016/', 'parse'),\n   ]\n\n   def parse(self, response):\n       pass\nRun the following command.\n\n$ scrapy runspider sitemap_spider.py\nExpected Results\nThe spider crawl several pages according to the sitemaps without error.\n\nActual Results\nThe spider fail to extract sitemap URLs from robots.txt. No pages are crawled.\n\n$ scrapy runspider sitemap_spider.py 2016-02-06 20:55:51 [scrapy] INFO: Scrapy 1.1.0rc1 started (bot: scrapybot)\n2016-02-06 20:55:51 [scrapy] INFO: Overridden settings: {}\n2016-02-06 20:55:52 [scrapy] INFO: Enabled extensions:\n['scrapy.extensions.corestats.CoreStats',\n 'scrapy.extensions.logstats.LogStats']\n2016-02-06 20:55:52 [scrapy] INFO: Enabled downloader middlewares:\n['scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware',\n 'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware',\n 'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware',\n 'scrapy.downloadermiddlewares.retry.RetryMiddleware',\n 'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware',\n 'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware',\n 'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware',\n 'scrapy.downloadermiddlewares.redirect.RedirectMiddleware',\n 'scrapy.downloadermiddlewares.cookies.CookiesMiddleware',\n 'scrapy.downloadermiddlewares.chunked.ChunkedTransferMiddleware',\n 'scrapy.downloadermiddlewares.stats.DownloaderStats']\n2016-02-06 20:55:52 [scrapy] INFO: Enabled spider middlewares:\n['scrapy.spidermiddlewares.httperror.HttpErrorMiddleware',\n 'scrapy.spidermiddlewares.offsite.OffsiteMiddleware',\n 'scrapy.spidermiddlewares.referer.RefererMiddleware',\n 'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware',\n 'scrapy.spidermiddlewares.depth.DepthMiddleware']\n2016-02-06 20:55:52 [scrapy] INFO: Enabled item pipelines:\n[]\n2016-02-06 20:55:52 [scrapy] INFO: Spider opened\n2016-02-06 20:55:52 [scrapy] INFO: Crawled 0 pages (at 0 pages/min), scraped 0 items (at 0 items/min)\n2016-02-06 20:55:52 [scrapy] DEBUG: Crawled (200) <GET https://blog.scrapinghub.com/robots.txt> (referer: None)\n2016-02-06 20:55:52 [scrapy] ERROR: Spider error processing <GET https://blog.scrapinghub.com/robots.txt> (referer: None)\nTraceback (most recent call last):\n  File \"/private/tmp/scrapy1.1/venv/lib/python3.4/site-packages/scrapy/utils/defer.py\", line 102, in iter_errback\n    yield next(it)\n  File \"/private/tmp/scrapy1.1/venv/lib/python3.4/site-packages/scrapy/spidermiddlewares/offsite.py\", line 29, in process_spider_output\n    for x in result:\n  File \"/private/tmp/scrapy1.1/venv/lib/python3.4/site-packages/scrapy/spidermiddlewares/referer.py\", line 22, in <genexpr>\n    return (_set_referer(r) for r in result or ())\n  File \"/private/tmp/scrapy1.1/venv/lib/python3.4/site-packages/scrapy/spidermiddlewares/urllength.py\", line 37, in <genexpr>\n    return (r for r in result or () if _filter(r))\n  File \"/private/tmp/scrapy1.1/venv/lib/python3.4/site-packages/scrapy/spidermiddlewares/depth.py\", line 58, in <genexpr>\n    return (r for r in result or () if _filter(r))\n  File \"/private/tmp/scrapy1.1/venv/lib/python3.4/site-packages/scrapy/spiders/sitemap.py\", line 35, in _parse_sitemap\n    for url in sitemap_urls_from_robots(response.body):\n  File \"/private/tmp/scrapy1.1/venv/lib/python3.4/site-packages/scrapy/utils/sitemap.py\", line 42, in sitemap_urls_from_robots\n    if line.lstrip().startswith('Sitemap:'):\nTypeError: startswith first arg must be bytes or a tuple of bytes, not str\n2016-02-06 20:55:52 [scrapy] INFO: Closing spider (finished)\n2016-02-06 20:55:52 [scrapy] INFO: Dumping Scrapy stats:\n{'downloader/request_bytes': 231,\n 'downloader/request_count': 1,\n 'downloader/request_method_count/GET': 1,\n 'downloader/response_bytes': 1009,\n 'downloader/response_count': 1,\n 'downloader/response_status_count/200': 1,\n 'finish_reason': 'finished',\n 'finish_time': datetime.datetime(2016, 2, 6, 11, 55, 52, 570098),\n 'log_count/DEBUG': 1,\n 'log_count/ERROR': 1,\n 'log_count/INFO': 7,\n 'response_received_count': 1,\n 'scheduler/dequeued': 1,\n 'scheduler/dequeued/memory': 1,\n 'scheduler/enqueued': 1,\n 'scheduler/enqueued/memory': 1,\n 'spider_exceptions/TypeError': 1,\n 'start_time': datetime.datetime(2016, 2, 6, 11, 55, 52, 97618)}\n2016-02-06 20:55:52 [scrapy] INFO: Spider closed (finished)\n"
+    ]
+}

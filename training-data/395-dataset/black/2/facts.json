@@ -1,0 +1,94 @@
+{
+    "1.1.1": "def generate_ignored_nodes(leaf: Leaf) -> Iterator[LN]:\n    \n    container: Optional[LN] = container_of(leaf)\n    while container is not None and container.type != token.ENDMARKER:\n        is_fmt_on = False\n        for comment in list_comments(container.prefix, is_endmarker=False):\n            if comment.value in FMT_ON:\n                is_fmt_on = True\n            elif comment.value in FMT_OFF:\n                is_fmt_on = False\n        if is_fmt_on:\n            return\n\n        yield container\n\n        container = container.next_sibling\n",
+    "1.1.2": "Starting from the container of `leaf`, generate all leaves until `# fmt: on`.\n\nStops at the end of the block.",
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.3.1": "/Volumes/SSD2T/bgp_envs/repos/black_2/black.py",
+    "1.3.2": [
+        "container_of(leaf: Leaf) -> LN",
+        "list_comments(prefix: str) -> List[ProtoComment]"
+    ],
+    "1.4.1": [
+        "    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_fmtonoff4(self) -> None:\n        source, expected = read_data(\"fmtonoff4\")\n        actual = fs(source)\n        self.assertFormatEqual(expected, actual)\n        black.assert_equivalent(source, actual)\n        black.assert_stable(source, actual, black.FileMode())"
+    ],
+    "1.4.2": [
+        "/Volumes/SSD2T/bgp_envs/repos/black_2/tests/test_black.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AssertionError: '# fm[57 chars] f():\\n    pass\\n\\n\\n@test(\\n    [1, 2, 3, 4,][21 chars]ss\\n' != '# fm[57 chars] f(): pass\\n\\n@test([\\n    1, 2,\\n    3, 4,\\n][14 chars]ss\\n'\nE     # fmt: off\nE     @test([\nE         1, 2,\nE         3, 4,\nE     ])\nE     # fmt: on\nE   - def f():\nE   + def f(): pass\nE   ?         +++++\nE   -     pass\nE     \nE   - \nE   - @test(\nE   + @test([\nE   ?       +\nE   -     [1, 2, 3, 4,]\nE   +     1, 2,\nE   +     3, 4,\nE   - )\nE   + ])\nE   ? +\nE   - def f():\nE   + def f(): pass\nE   ?         +++++\nE   -     pass"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <test_black.BlackTestCase testMethod=test_fmtonoff4>\n\n    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_fmtonoff4(self) -> None:\n        source, expected = read_data(\"fmtonoff4\")\n        actual = fs(source)\n>       self.assertFormatEqual(expected, actual)\n\ntests/test_black.py:639: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntests/test_black.py:153: in assertFormatEqual\n    self.assertEqual(expected, actual)"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "leaf": "Leaf(AT, '@')"
+            },
+            {
+                "container": "Leaf(ENDMARKER, '')",
+                "container.type": "0",
+                "is_fmt_on": "False",
+                "comment": "ProtoComment(type=53, value='# fmt: off', newlines=0, consumed=11)",
+                "container.prefix": "''",
+                "comment.value": "'# fmt: off'"
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "leaf": "Leaf"
+            },
+            {
+                "container": "Leaf",
+                "container.type": "int",
+                "is_fmt_on": "bool",
+                "comment": "ProtoComment",
+                "container.prefix": "str",
+                "comment.value": "str"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "leaf": "Leaf(AT, '@')",
+                "leaf.column": "0"
+            },
+            {
+                "container": "Node(decorated, [Node(decorato ... s'), Leaf(NEWLINE, '\\n')])])])",
+                "container.type": "277",
+                "child": "Node(funcdef, [Leaf(NAME, 'def'), Leaf(NAME, 'f'), Node(parameters, [Leaf(LPAR, '('), Leaf(RPAR, ')')]), Leaf(COLON, ':'), Node(simple_stmt, [Leaf(NAME, 'pass'), Leaf(NEWLINE, '\\n')])])",
+                "container.children": "array of shape 2",
+                "container.next_sibling": "Node(decorated, [Node(decorato ... s'), Leaf(NEWLINE, '\\n')])])])"
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "leaf": "Leaf",
+                "leaf.column": "int"
+            },
+            {
+                "container": "Node",
+                "container.type": "int",
+                "child": "Node",
+                "container.children": "list",
+                "container.next_sibling": "Node"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "\"fmt: on\" does not work when crossing block boundaries and decorators\n"
+    ],
+    "3.1.2": [
+        "Operating system: Linux Mint 19.0\nPython version: 3.6.6\nBlack version: 18.9b0\nDoes also happen on master: yes\n\nSimplest reproducer: the following is left unchanged. In fact, it behaves as if # fmt: off is true until end of file.\n\n# fmt: off\nif (x and y):\n# fmt: on\n    pass\n\nif (x and y):\n    pass\nThe soonest # fmt: on takes effect is at end of the indented if block.\n\nRan into this with a series of decorators:\n\n# fmt: off\n@click.command()\n@click.option(\"-a\", \"--align\",      help=\"aligned help texts\")\n@click.option(\"-b\", \"--big-option\", help=\"should stay aligned\")\n# fmt: on\ndef foo(align,    big_option):\n    pass\nSimple workaround for me is keep the formatter commands within a \"block\" - the following works perfectly fine:\n\n@click.command()\n# fmt: off\n@click.option(\"-a\", \"--align\",      help=\"aligned help texts\")\n@click.option(\"-b\", \"--big-option\", help=\"should stay aligned\")\n# fmt: on\ndef foo(align, big_option):\n    pass\n"
+    ]
+}

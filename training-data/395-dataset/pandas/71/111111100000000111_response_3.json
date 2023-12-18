@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 71,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 30,
+            "file_name": "pandas/core/reshape/tile.py",
+            "replace_code": "def cut(\n    x,\n    bins,\n    right: bool = True,\n    labels=None,\n    retbins: bool = False,\n    precision: int = 3,\n    include_lowest: bool = False,\n    duplicates: str = \"raise\",\n):\n    import numpy as np\n    original = x\n    x = _preprocess_for_cut(x)\n    x, dtype = _coerce_to_type(x)\n    \n    if not np.iterable(bins):\n        if is_scalar(bins) and bins < 1:\n            raise ValueError(\"`bins` should be a positive integer.\")\n    \n        try:  # for array-like\n            sz = x.size\n        except AttributeError:\n            x = np.asarray(x)\n            sz = x.size\n    \n        if sz == 0:\n            raise ValueError(\"Cannot cut empty array\")\n    \n        rng = (np.nanmin(x), np.nanmax(x))\n        mn, mx = [mi + 0.0 for mi in rng]\n    \n        if np.isinf(mn) or np.isinf(mx):\n            raise ValueError(\"cannot specify integer `bins` when input data contains infinity\")\n        elif mn == mx:\n            mn -= 0.001 * abs(mn) if mn != 0 else 0.001\n            mx += 0.001 * abs(mx) if mx != 0 else 0.001\n            bins = np.linspace(mn, mx, bins + 1, endpoint=True)\n        else:\n            bins = np.linspace(mn, mx, bins + 1, endpoint=True)\n            adj = (mx - mn) * 0.001\n            if right:\n                bins[0] -= adj\n            else:\n                bins[-1] += adj\n    \n    elif hasattr(bins, 'is_overlapping'):\n        if bins.is_overlapping:\n            raise ValueError(\"Overlapping IntervalIndex is not accepted.\")\n    \n    else:\n        if is_datetime64tz_dtype(bins):\n            bins = np.asarray(bins, dtype=_NS_DTYPE)\n        else:\n            bins = np.asarray(bins)\n        bins = _convert_bin_to_numeric_type(bins, dtype)\n    \n        if (np.diff(bins.astype(\"float64\")) < 0).any():\n            raise ValueError(\"bins must increase monotonically.\")\n    \n    fac, bins = _bins_to_cuts(\n        x,\n        bins,\n        right=right,\n        labels=labels,\n        precision=precision,\n        include_lowest=include_lowest,\n        dtype=dtype,\n        duplicates=duplicates,\n    )\n    \n    return _postprocess_for_cut(fac, bins, retbins, dtype, original)"
+        }
+    ]
+}

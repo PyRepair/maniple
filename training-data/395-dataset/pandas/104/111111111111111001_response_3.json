@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 104,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 1845,
+            "file_name": "pandas/core/groupby/groupby.py",
+            "replace_code": "def quantile(self, q=0.5, interpolation: str = \"linear\"):\n\n    if is_scalar(q):\n        return self._get_cythonized_result(\n            \"group_quantile\",\n            aggregate=True,\n            needs_values=True,\n            needs_mask=True,\n            needs_ngroups=True,  # Add needs_ngroups\n            cython_dtype=np.dtype(np.float64),\n            pre_processing=None,  # Remove pre_processor\n            post_processing=None,  # Remove post_processor\n            q=q,\n            interpolation=interpolation,\n        )\n    else:\n        results = [\n            self._get_cythonized_result(\n                \"group_quantile\",\n                aggregate=True,\n                needs_values=True,\n                needs_mask=True,\n                needs_ngroups=True,  # Add needs_ngroups\n                cython_dtype=np.dtype(np.float64),\n                pre_processing=None,  # Remove pre_processor\n                post_processing=None,  # Remove post_processor\n                q=qi,\n                interpolation=interpolation,\n            )\n            for qi in q\n        ]\n        result = concat(results, axis=0, keys=q)\n        order = np.roll(list(range(result.index.nlevels)), -1)\n        result = result.reorder_levels(order)\n        result = result.reindex(q, level=-1)\n    \n        hi = len(q) * self.ngroups\n        arr = np.arange(0, hi, self.ngroups)\n        arrays = []\n        for i in range(self.ngroups):\n            arr2 = arr + i\n            arrays.append(arr2)\n    \n        indices = np.concatenate(arrays)\n        return result.take(indices)"
+        }
+    ]
+}

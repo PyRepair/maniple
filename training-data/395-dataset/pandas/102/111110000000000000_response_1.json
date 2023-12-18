@@ -1,0 +1,68 @@
+{
+    "pandas": [
+        {
+            "bugID": 102,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 123,
+            "file_name": "pandas/core/internals/construction.py",
+            "replace_code": "def init_ndarray(values: ArrayLike, index: Optional[Index] = None, columns: Optional[ColumnLike] = None, dtype: Optional[Dtype] = None, copy: bool = False) -> 'BlockManager':\n    # input must be a ndarray, list, Series, index\n\n    import numpy as np\n    from pandas._typing import ArrayLike, Dtype, Optional, Index, Axes, ColumnLike\n    from pandas.core.arrays.base import ExtensionArray\n    from pandas.core.internals.blocks import make_block\n    from pandas.core.arrays.base import ExtensionArray  # to avoid issue#25685\n    if isinstance(values, ABCSeries):\n        if columns is None:\n            if isinstance(values, ABCSeries) and values.name is not None:\n                columns = [values.name]\n        # zero len case (GH #2234)\n        if not len(values) and columns is not None and len(columns):\n            values = np.empty((0, 1), dtype=object)\n    \n    if is_categorical_dtype(getattr(values, \"dtype\", None)) or is_categorical_dtype(\n        dtype\n    ):\n        # GH#19157\n        values = prep_ndarray(values, copy=copy)\n    \n        index, columns = _get_axes(len(values), 1, index, columns)\n        values = values.T\n        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\n    \n    elif isinstance(values, ExtensionArray) or is_extension_array_dtype(dtype):\n        # GH#19157\n        if columns is None:\n            columns = [0]\n        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\n    \n    # by definition an array here\n    values = prep_ndarray(values, copy=copy)\n    \n    if dtype is not None:\n        if not is_dtype_equal(values.dtype, dtype):\n            try:\n                values = values.astype(dtype)\n            except Exception as orig:\n                # e.g. ValueError when trying to cast object dtype to float64\n                raise ValueError(\n                    f\"failed to cast to '{dtype}' (exception was: {orig})\"\n                ) from orig\n    \n    index, columns = _get_axes(*values.shape, index=index, columns=columns)\n    values = values.T\n    \n    if dtype is None and is_object_dtype(values):\n        if values.ndim == 2 and values.shape[0] != 1:\n            # transpose and separate blocks\n            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]\n            for n in range(len(dvals_list)):\n                if isinstance(dvals_list[n], np.ndarray):\n                    dvals_list[n] = dvals_list[n].reshape(1, -1)\n            from pandas.core.internals.blocks import make_block\n            # TODO: What about re-joining object columns?\n            block_values = [\n                make_block(dvals_list[n], placement=[n]) for n in range(len(dvals_list))\n            ]\n        else:\n            datelike_vals = maybe_infer_to_datetimelike(values)\n            block_values = [datelike_vals]\n    else:\n        block_values = [values]\n    \n    return create_block_manager_from_blocks(block_values, [columns, index])"
+        }
+    ]
+}
