@@ -1,5 +1,5 @@
 import json
-from typing import Literal, Union
+from typing import List, Literal, Tuple, Union
 import os
 
 from utils import NotSupportedError
@@ -9,10 +9,110 @@ DatasetType = Union[
     Literal["395subset"],
     Literal["first-stratum"],
     Literal["second-stratum"],
+    Literal["all"],
 ]
 
 
+def split_bugids_from_dataset(
+    bugids: List[str],
+    exclude_projects=[],
+    include_projects=[],
+    use_supported=True,
+) -> List[Tuple[str, List[str]]]:
+    s1 = _load_bugids_from_dataset_impl(
+        "106subset",
+        exclude_projects,
+        include_projects,
+        use_supported,
+    )
+    s2 = _load_bugids_from_dataset_impl(
+        "395subset",
+        exclude_projects,
+        include_projects,
+        use_supported,
+    )
+
+    s1_results = []
+    s2_results = []
+    for bugid in bugids:
+        if bugid in s1:
+            s1_results.append(bugid)
+        elif bugid in s2:
+            s2_results.append(bugid)
+        else:
+            raise NotSupportedError(f"Bugid {bugid} is not supported")
+
+    return [
+        (
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "training-data",
+                "106-dataset",
+                "bugs-data",
+            ),
+            s1_results,
+        ),
+        (
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "training-data",
+                "395-dataset",
+            ),
+            s2_results,
+        ),
+    ]
+
+
 def load_bugids_from_dataset(
+    dataset: DatasetType,
+    exclude_projects=[],
+    include_projects=[],
+    use_supported=True,
+) -> List[Tuple[str, List[str]]]:
+    results = []
+
+    if dataset == "106subset" or dataset == "first-stratum" or dataset == "all":
+        results.append(
+            (
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "training-data",
+                    "395-dataset",
+                ),
+                _load_bugids_from_dataset_impl(
+                    "106subset",
+                    exclude_projects=exclude_projects,
+                    include_projects=include_projects,
+                    use_supported=use_supported,
+                ),
+            )
+        )
+
+    if dataset == "395subset" or dataset == "second-stratum" or dataset == "all":
+        results.append(
+            (
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "training-data",
+                    "395-dataset",
+                ),
+                _load_bugids_from_dataset_impl(
+                    "395subset",
+                    exclude_projects=exclude_projects,
+                    include_projects=include_projects,
+                    use_supported=use_supported,
+                ),
+            )
+        )
+
+    return results
+
+
+def _load_bugids_from_dataset_impl(
     dataset: DatasetType,
     exclude_projects=[],
     include_projects=[],

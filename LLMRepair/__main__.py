@@ -1,6 +1,7 @@
 import argparse
 import os
 import threading
+from typing import List
 
 from utils import divide_list, print_in_yellow
 from cleaner import (
@@ -12,7 +13,7 @@ from cleaner import (
 )
 from features_extractor import collect_facts, NotSupportedError
 from patch_validator import validate_patches
-from dataset_manager import load_bugids_from_dataset
+from dataset_manager import load_bugids_from_dataset, split_bugids_from_dataset
 from command_runner import ensure_clone_and_prep_complete
 
 
@@ -66,7 +67,8 @@ def resolve_cli_args():
         "--output-dir",
         type=str,
         help="specify directory to store prompt and result files",
-        required=True,
+        required=False,
+        default=None,
     )
 
     args_parser.add_argument(
@@ -120,16 +122,12 @@ def resolve_cli_args():
 
     args = args_parser.parse_args()
 
-    if args.output_dir is None:
-        args_parser.print_help()
-        exit(1)
-
     return args
 
 
-def run_single_partition_bugids(args, bugids):
+def run_single_partition_bugids(args, bugids: List[str], output_dir: str):
     for bugid in bugids:
-        bwd = os.path.join(args.output_dir, *bugid.split(":"))
+        bwd = os.path.join(output_dir, *bugid.split(":"))
         if not os.path.exists(bwd):
             os.makedirs(bwd)
 
@@ -179,24 +177,30 @@ def run_single_partition_bugids(args, bugids):
             print_in_yellow(f"WARNING: {e}, skip bugid: {bugid}")
 
 
+def start_multithread_task(args, bugids: List[str], output_dir: str):
+    bugids_partitions = divide_list(bugids, args.partitions)
+
+    threads = []
+    for bugids_partition in bugids_partitions:
+        thread = threading.Thread(
+            target=run_single_partition_bugids,
+            args=(args, bugids_partition, output_dir),
+        )
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
+
 def main(args):
     if len(args.bugids) > 0:
-        bugids = args.bugids
-
-    elif args.dataset == "all":
-        s1 = load_bugids_from_dataset(
-            "106subset",
+        bugids = split_bugids_from_dataset(
+            args.bugids,
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
             use_supported=args.use_supported,
         )
-        s2 = load_bugids_from_dataset(
-            "395subset",
-            exclude_projects=args.exclude_projects,
-            include_projects=args.include_projects,
-            use_supported=args.use_supported,
-        )
-        bugids = s1 + s2
 
     else:
         bugids = load_bugids_from_dataset(
@@ -206,20 +210,11 @@ def main(args):
             use_supported=args.use_supported,
         )
 
-    print(f"Use bugids: {','.join(bugids)}, total: {len(bugids)}")
-
-    bugids_partitions = divide_list(bugids, args.partitions)
-
-    threads = []
-    for bugids_partition in bugids_partitions:
-        thread = threading.Thread(
-            target=run_single_partition_bugids, args=(args, bugids_partition)
-        )
-        thread.start()
-        threads.append(thread)
-
-    for thread in threads:
-        thread.join()
+    for output_dir, bugids in bugids:
+        used_output_dir = output_dir if args.output_dir is None else args.output_dir
+        print(f"Output directory: {used_output_dir}")
+        print(f"Bugids: {bugids}, total: {len(bugids)}")
+        start_multithread_task(args, bugids, used_output_dir)
 
 
 if __name__ == "__main__":
