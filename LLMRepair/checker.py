@@ -19,6 +19,8 @@ class PassStats:
     total_results: int = 0
     total_responses: int = 0
 
+    fixed_bugids = set()
+
 
 def print_stats(pass_stat: PassStats):
     print(
@@ -92,6 +94,7 @@ def main(path):
                 if first_value == 0:
                     allPassStats[pass_index].count_0 += 1
                     postive_labels.add(f"{bugid}_{bitvector}")
+                    allPassStats[pass_index].fixed_bugids.add(bugid)
                     bug_fixed_in_folder = True
 
                 elif first_value == 1:
@@ -125,6 +128,9 @@ def main(path):
     for idx, pass_stat in enumerate(allPassStats):
         print()
         print(f"Pass #{idx + 1}")
+        print(
+            f"Number of bugs fixed: {len(pass_stat.fixed_bugids)} out of {total_bugs}, percentage: {int((len(pass_stat.fixed_bugids) / total_bugs) * 100)}%"
+        )
         print_stats(pass_stat)
 
 
