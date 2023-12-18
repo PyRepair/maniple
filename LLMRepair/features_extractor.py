@@ -11,7 +11,6 @@ from command_runner import (
 
 from utils import (
     NotSupportedError,
-    generate_contextual_diff_with_char_limit,
     get_fact_map,
     print_in_green,
     print_in_red,
