@@ -62,7 +62,19 @@
             },
             "start_line": 429,
             "file_name": "pandas/core/reshape/pivot.py",
-            "replace_code": "def pivot(data: \"DataFrame\", index=None, columns=None, values=None) -> \"DataFrame\":\n    from pandas.core.frame import DataFrame\n    from pandas.core.groupby import GroupBy\n    from pandas.core.indexes.base import ensure_index\n    from pandas.core.indexes.category import CategoricalIndex\n    from pandas.core.indexes.multi import MultiIndex\n    from pandas.core.indexes.range import RangeIndex\n    from pandas.core.indexes.timedeltas import TimedeltaIndex\n    from pandas.core.indexes.datetimes import DatetimeIndex\n    from pandas.core.indexes.numeric import UInt64Index\n    from pandas.core.indexes.interval import IntervalIndex\n    if columns is None:\n        raise ValueError(\"The 'columns' parameter is not optional. Please provide a valid value for 'columns'.\")\n    \n    if values is None:\n        cols = [columns] if index is None else [index, columns]\n        append = index is None\n        indexed = data.set_index(cols, append=append)\n    else:\n        if index is None:\n            index = data.index\n        else:\n            index = data[index]\n        index = MultiIndex.from_arrays([index, data[columns]])\n    \n        if is_list_like(values) and not isinstance(values, tuple):\n            # Exclude tuple because it is seen as a single column name\n            indexed = data._constructor(\n                data[values].values, index=index, columns=values\n            )\n        else:\n            indexed = data._constructor_sliced(data[values].values, index=index)\n    return indexed.unstack(columns)"
+            "replace_code": "def pivot(data: \"DataFrame\", index=None, columns=None, values=None) -> \"DataFrame\":\n    if columns is None:\n        raise ValueError(\"The 'columns' parameter is not optional. Please provide a valid value for 'columns'.\")\n\n    if values is None:\n        cols = [columns] if index is None else [index, columns]\n        append = index is None\n        indexed = data.set_index(cols, append=append)\n    else:\n        if index is None:\n            index = data.index\n        else:\n            index = data[index]\n        index = MultiIndex.from_arrays([index, data[columns]])\n\n        if is_list_like(values) and not isinstance(values, tuple):\n            # Exclude tuple because it is seen as a single column name\n            indexed = data._constructor(\n                data[values].values, index=index, columns=values\n            )\n        else:\n            indexed = data._constructor_sliced(data[values].values, index=index)\n    return indexed.unstack(columns)",
+            "imports": [
+                "from pandas.core.frame import DataFrame",
+                "from pandas.core.groupby import GroupBy",
+                "from pandas.core.indexes.base import ensure_index",
+                "from pandas.core.indexes.category import CategoricalIndex",
+                "from pandas.core.indexes.multi import MultiIndex",
+                "from pandas.core.indexes.range import RangeIndex",
+                "from pandas.core.indexes.timedeltas import TimedeltaIndex",
+                "from pandas.core.indexes.datetimes import DatetimeIndex",
+                "from pandas.core.indexes.numeric import UInt64Index",
+                "from pandas.core.indexes.interval import IntervalIndex"
+            ]
         }
     ]
 }
