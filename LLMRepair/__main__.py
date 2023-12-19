@@ -211,6 +211,9 @@ def main(args):
         )
 
     for output_dir, bugids in bugids:
+        if len(bugids) == 0:
+            continue
+
         used_output_dir = output_dir if args.output_dir is None else args.output_dir
         print(f"Output directory: {used_output_dir}")
         print(f"Bugids: {bugids}, total: {len(bugids)}")

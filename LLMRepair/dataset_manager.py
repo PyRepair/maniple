@@ -22,6 +22,24 @@ BGP395PATH = os.path.abspath(
     )
 )
 
+FIRST_STRATUM_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "preliminary-study",
+        "first-stratum",
+    )
+)
+
+SECOND_STRATUM_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "preliminary-study",
+        "second-stratum",
+    )
+)
+
 DatasetType = Union[
     Literal["106subset"],
     Literal["395subset"],
@@ -85,7 +103,7 @@ def load_bugids_from_dataset(
             (
                 BGP106PATH,
                 _load_bugids_from_dataset_impl(
-                    "106subset",
+                    dataset,
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
                     use_supported=use_supported,
@@ -98,7 +116,7 @@ def load_bugids_from_dataset(
             (
                 BGP395PATH,
                 _load_bugids_from_dataset_impl(
-                    "395subset",
+                    dataset,
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
                     use_supported=use_supported,
