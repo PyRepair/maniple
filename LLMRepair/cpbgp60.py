@@ -11,7 +11,7 @@ def main():
     s1 = load_bugids_from_dataset("first-stratum", use_supported=True)
     for src_path, bugids in s1:
         for bugid in bugids:
-            dest_path = os.path.join(FIRST_STRATUM_PATH, bugid.split(":")[0])
+            dest_path = os.path.join(FIRST_STRATUM_PATH, *bugid.split(":"))
             os.makedirs(dest_path, exist_ok=True)
             shutil.copytree(
                 os.path.join(src_path, *bugid.split(":")),
@@ -22,7 +22,7 @@ def main():
     s2 = load_bugids_from_dataset("second-stratum", use_supported=True)
     for src_path, bugids in s2:
         for bugid in bugids:
-            dest_path = os.path.join(SECOND_STRATUM_PATH, *bugid.split(":")[0])
+            dest_path = os.path.join(SECOND_STRATUM_PATH, *bugid.split(":"))
             os.makedirs(dest_path, exist_ok=True)
             shutil.copytree(
                 os.path.join(src_path, *bugid.split(":")),
