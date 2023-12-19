@@ -99,11 +99,12 @@ def load_bugids_from_dataset(
     results = []
 
     if dataset == "106subset" or dataset == "first-stratum" or dataset == "all":
+        param = "106subset" if dataset == "all" else dataset
         results.append(
             (
                 BGP106PATH,
                 _load_bugids_from_dataset_impl(
-                    dataset,
+                    param,
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
                     use_supported=use_supported,
@@ -112,11 +113,12 @@ def load_bugids_from_dataset(
         )
 
     if dataset == "395subset" or dataset == "second-stratum" or dataset == "all":
+        param = "395subset" if dataset == "all" else dataset
         results.append(
             (
                 BGP395PATH,
                 _load_bugids_from_dataset_impl(
-                    dataset,
+                    param,
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
                     use_supported=use_supported,

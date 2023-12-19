@@ -73,8 +73,15 @@ class Facts:
             else:
                 self._resolve_file_info(filename, file_info)
 
+    def _remove_project_root(self, path: str):
+        bugid_label = self._bugid.replace(":", "_")
+        idx = path.find(bugid_label)
+        if idx == -1:
+            return path
+        return path[idx + len(bugid_label) + 1 :]
+
     def _resolve_file_info(self, filename, file_info):
-        self.facts["1.3.1"] = filename
+        self.facts["1.3.1"] = self._remove_project_root(filename)
 
         buggy_functions = []
         for bg_fn_info in file_info["buggy_functions"]:
@@ -356,7 +363,7 @@ class Facts:
         else:
             self.facts["1.4.1"].append(test_function_code)
 
-        test_file_name = test_data["test_path"]
+        test_file_name = self._remove_project_root(test_data["test_path"])
         if self.facts["1.4.2"] is None:
             self.facts["1.4.2"] = [test_file_name]
         else:
