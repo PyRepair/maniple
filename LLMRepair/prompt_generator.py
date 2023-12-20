@@ -377,7 +377,7 @@ class PromptGenerator:
         self.prompt = self.prompt + self.template["1.1.1"]
         self.prompt = self.prompt + "```python\n"
 
-        omitted_code = "# ... omitted code ..."
+        ignore_comment = "# Please ignore the body of this function"
         has_function_in_file = False
         has_class_declaration = False
 
@@ -389,9 +389,7 @@ class PromptGenerator:
             buggy_functions: List[str] = self.facts["1.3.2"]
             for function_index in range(len(buggy_functions)):
                 self.strata_3_content = self.strata_3_content + self.template["1.3.2"]
-                self.strata_3_content = self.strata_3_content + "def " + buggy_functions[function_index] + ":\n    " + omitted_code + "\n"
-                self.strata_3_content = self.strata_3_content + "    pass"
-                self.strata_3_content = self.strata_3_content + "\n\n"
+                self.strata_3_content = self.strata_3_content + "def " + buggy_functions[function_index] + ":\n    " + ignore_comment + "\n\n"
 
         self.prompt = self.prompt + self.strata_3_content
 
@@ -408,10 +406,11 @@ class PromptGenerator:
                 self.strata_2_content = self.strata_2_content + "    \"\"\""
                 self.strata_2_content = self.strata_2_content + "\n\n"
 
-            self.strata_2_content = self.strata_2_content + "    " + omitted_code + "\n"
             self.strata_2_content = self.strata_2_content + "\n\n"
 
         if (not has_function_in_file) and (not has_class_declaration):
+            indent = ""
+        elif has_function_in_file and (not has_class_declaration):
             indent = ""
         else:
             indent = "    "
@@ -420,10 +419,8 @@ class PromptGenerator:
             buggy_functions: List[str] = self.facts["1.2.3"]
             for function_index in range(len(buggy_functions)):
                 self.strata_2_content = self.strata_2_content + indent + self.template["1.2.3"]
-                self.strata_2_content = self.strata_2_content + indent + "def " + buggy_functions[
-                    function_index] + ":\n" + indent + "    " + omitted_code + "\n"
-                self.strata_2_content = self.strata_2_content + indent + "    pass"
-                self.strata_2_content = self.strata_2_content + "\n\n"
+                self.strata_2_content = self.strata_2_content + indent + "def " + buggy_functions[function_index] + ":\n"
+                self.strata_2_content = self.strata_2_content + indent + "    " + ignore_comment + "\n\n"
 
         self.prompt = self.prompt + self.strata_2_content
 
