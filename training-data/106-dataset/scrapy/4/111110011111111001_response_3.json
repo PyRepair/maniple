@@ -62,7 +62,14 @@
             },
             "start_line": 71,
             "file_name": "scrapy/contracts/__init__.py",
-            "replace_code": "def _clean_req(self, request, method, results):\n\n    from functools import wraps\n    import sys\n    from unittest.runner import TextTestResult\n    from scrapy.contracts import HttpError, failure\n    from scrapy import Request\n    def cb_wrapper(response):\n        try:\n            output = request.callback(response)\n            output = list(iterate_spider_output(output))\n        except Exception as e:\n            case = f'_create_testcase(method, \"callback\")'\n            results.addError(case, sys.exc_info())\n    \n    def eb_wrapper(failure):\n        case = f'_create_testcase({method}, \"errback\")'\n        exc_type = type(failure.value)\n        exc_value = failure.value\n        exc_traceback = failure.getTracebackObject()\n        try:\n            exc_traceback = exc_value.__traceback__\n        except AttributeError:\n            exc_traceback = None\n        exc_info = (exc_type, exc_value, exc_traceback)\n        results.addError(case, exc_info)\n    \n    request.callback = cb_wrapper\n    request.errback = eb_wrapper"
+            "replace_code": "def _clean_req(self, request, method, results):\n\n        def cb_wrapper(response):\n            try:\n                output = request.callback(response)\n                output = list(iterate_spider_output(output))\n            except Exception as e:\n                case = f'_create_testcase(method, \"callback\")'\n                results.addError(case, sys.exc_info())\n\n        def eb_wrapper(failure):\n            case = f'_create_testcase({method}, \"errback\")'\n            exc_type = type(failure.value)\n            exc_value = failure.value\n            exc_traceback = failure.getTracebackObject()\n            try:\n                exc_traceback = exc_value.__traceback__\n            except AttributeError:\n                exc_traceback = None\n            exc_info = (exc_type, exc_value, exc_traceback)\n            results.addError(case, exc_info)\n\n        request.callback = cb_wrapper\n        request.errback = eb_wrapper",
+            "imports": [
+                "from functools import wraps",
+                "import sys",
+                "from unittest.runner import TextTestResult",
+                "from scrapy.contracts import HttpError, failure",
+                "from scrapy import Request"
+            ]
         }
     ]
 }

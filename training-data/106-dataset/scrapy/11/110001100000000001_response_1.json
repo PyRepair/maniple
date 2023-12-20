@@ -62,7 +62,12 @@
             },
             "start_line": 27,
             "file_name": "scrapy/utils/gz.py",
-            "replace_code": "def gunzip(data):\n    import struct\n    from io import BytesIO\n    from gzip import GzipFile\n    \"\"\"Gunzip the given data and return as much data as possible.\n    \n    This is resilient to CRC checksum errors.\n    \"\"\"\n    f = GzipFile(fileobj=BytesIO(data))\n    output = b''\n    chunk = b'.'\n    try:\n        while chunk:\n            chunk = f.read(8196)\n            output += chunk\n    except (IOError, EOFError, struct.error):\n        # complete only if there is some data, otherwise re-raise\n        # see issue 87 about catching struct.error\n        # some pages are quite small so output is '' and f.extrabuf\n        # contains the whole page content\n        if output or getattr(f, 'extrabuf', None):\n            try:\n                output += f.extrabuf\n            finally:\n                return output\n        else:\n            raise\n    return output"
+            "replace_code": "def gunzip(data):\n    \"\"\"Gunzip the given data and return as much data as possible.\n\n    This is resilient to CRC checksum errors.\n    \"\"\"\n    f = GzipFile(fileobj=BytesIO(data))\n    output = b''\n    chunk = b'.'\n    try:\n        while chunk:\n            chunk = f.read(8196)\n            output += chunk\n    except (IOError, EOFError, struct.error):\n        # complete only if there is some data, otherwise re-raise\n        # see issue 87 about catching struct.error\n        # some pages are quite small so output is '' and f.extrabuf\n        # contains the whole page content\n        if output or getattr(f, 'extrabuf', None):\n            try:\n                output += f.extrabuf\n            finally:\n                return output\n        else:\n            raise\n    return output",
+            "imports": [
+                "import struct",
+                "from io import BytesIO",
+                "from gzip import GzipFile"
+            ]
         }
     ]
 }

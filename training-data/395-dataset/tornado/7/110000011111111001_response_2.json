@@ -62,7 +62,10 @@
             },
             "start_line": 642,
             "file_name": "tornado/ioloop.py",
-            "replace_code": "def run_in_executor(self, executor, func, *args):\n    from tornado.process import cpu_count\n    if executor is None:\n        if not hasattr(self, '_executor'):\n            from tornado.process import cpu_count\n            self._executor = ThreadPoolExecutor(max_workers=(cpu_count() * 5))\n        executor = self._executor\n    \n    future = concurrent.futures.Future()\n    \n    def callback(f):\n        if f.exception() is not None:\n            future.set_exception(f.exception())\n        else:\n            future.set_result(f.result())\n    \n    executor.submit(func, *args).add_done_callback(callback)\n    \n    return future"
+            "replace_code": "def run_in_executor(self, executor, func, *args):\n    if executor is None:\n        if not hasattr(self, '_executor'):\n            from tornado.process import cpu_count\n            self._executor = ThreadPoolExecutor(max_workers=(cpu_count() * 5))\n        executor = self._executor\n\n    future = concurrent.futures.Future()\n\n    def callback(f):\n        if f.exception() is not None:\n            future.set_exception(f.exception())\n        else:\n            future.set_result(f.result())\n\n    executor.submit(func, *args).add_done_callback(callback)\n\n    return future",
+            "imports": [
+                "from tornado.process import cpu_count"
+            ]
         }
     ]
 }

@@ -62,7 +62,17 @@
             },
             "start_line": 37,
             "file_name": "fastapi/routing.py",
-            "replace_code": "def serialize_response(\n    field: Field = None,\n    response: Response = None,\n    include: Set[str] = None,\n    exclude: Set[str] = None,\n    by_alias: bool = True,\n    skip_defaults: bool = False,\n) -> Any:\n    from typing import Any, Set\n    from fastapi.encoders import jsonable_encoder\n    from pydantic import Field\n    from starlette.responses import Response\n    from pydantic.fields import ErrorWrapper\n    from pydantic.main import BaseModel, Field\n    from starlette.datastructures import URL\n    from fastapi import FastAPI, Request\n    if field:\n        errors = []\n        value, errors_ = field.validate(response, {}, loc=(\"response\",))\n        if isinstance(errors_, ErrorWrapper):\n            errors.append(errors_)\n        elif isinstance(errors_, list):\n            errors.extend(errors_)\n        if errors:\n            raise ValidationError(errors)\n        return jsonable_encoder(\n            value,\n            include=include,\n            exclude=exclude,\n            by_alias=by_alias,\n            skip_defaults=skip_defaults,  # Apply the skip_defaults flag here\n        )\n    else:\n        return jsonable_encoder(response, skip_defaults=skip_defaults)  # Apply the skip_defaults flag here"
+            "replace_code": "def serialize_response(\n    field: Field = None,\n    response: Response = None,\n    include: Set[str] = None,\n    exclude: Set[str] = None,\n    by_alias: bool = True,\n    skip_defaults: bool = False,\n) -> Any:\n    if field:\n        errors = []\n        value, errors_ = field.validate(response, {}, loc=(\"response\",))\n        if isinstance(errors_, ErrorWrapper):\n            errors.append(errors_)\n        elif isinstance(errors_, list):\n            errors.extend(errors_)\n        if errors:\n            raise ValidationError(errors)\n        return jsonable_encoder(\n            value,\n            include=include,\n            exclude=exclude,\n            by_alias=by_alias,\n            skip_defaults=skip_defaults,  # Apply the skip_defaults flag here\n        )\n    else:\n        return jsonable_encoder(response, skip_defaults=skip_defaults)",
+            "imports": [
+                "from typing import Any, Set",
+                "from fastapi.encoders import jsonable_encoder",
+                "from pydantic import Field",
+                "from starlette.responses import Response",
+                "from pydantic.fields import ErrorWrapper",
+                "from pydantic.main import BaseModel, Field",
+                "from starlette.datastructures import URL",
+                "from fastapi import FastAPI, Request"
+            ]
         }
     ]
 }

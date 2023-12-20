@@ -62,7 +62,10 @@
             },
             "start_line": 393,
             "file_name": "pandas/core/dtypes/missing.py",
-            "replace_code": "def array_equivalent(left, right, strict_nan=False):\n    import numpy as np\n    left, right = np.asarray(left), np.asarray(right)\n    \n    # shape compat\n    if left.shape != right.shape:\n        return False\n    \n    # string dtypes must be come to this path for NumPy 1.7.1 compat\n    if np.issubdtype(left.dtype, np.str_):\n        if not strict_nan:\n            return np.array_equal(left, right)\n    \n        for left_value, right_value in zip(left.flat, right.flat):\n            if left_value != right_value:\n                return False\n        return True\n    \n    # NaNs can occur in float and complex arrays.\n    if np.issubdtype(left.dtype, np.floating) or np.issubdtype(left.dtype, np.complexfloating):\n        return np.array_equal(left, right) | (np.isnan(left) & np.isnan(right))\n    \n    # if we have structured dtypes, compare first\n    if left.dtype.type is np.void or right.dtype.type is np.void:\n        if left.dtype != right.dtype:\n            return False\n    \n    return np.array_equal(left, right)"
+            "replace_code": "def array_equivalent(left, right, strict_nan=False):\n    left, right = np.asarray(left), np.asarray(right)\n\n    # shape compat\n    if left.shape != right.shape:\n        return False\n\n    # string dtypes must be come to this path for NumPy 1.7.1 compat\n    if np.issubdtype(left.dtype, np.str_):\n        if not strict_nan:\n            return np.array_equal(left, right)\n\n        for left_value, right_value in zip(left.flat, right.flat):\n            if left_value != right_value:\n                return False\n        return True\n\n    # NaNs can occur in float and complex arrays.\n    if np.issubdtype(left.dtype, np.floating) or np.issubdtype(left.dtype, np.complexfloating):\n        return np.array_equal(left, right) | (np.isnan(left) & np.isnan(right))\n\n    # if we have structured dtypes, compare first\n    if left.dtype.type is np.void or right.dtype.type is np.void:\n        if left.dtype != right.dtype:\n            return False\n\n    return np.array_equal(left, right)",
+            "imports": [
+                "import numpy as np"
+            ]
         }
     ]
 }

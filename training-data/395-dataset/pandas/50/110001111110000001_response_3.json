@@ -62,7 +62,11 @@
             },
             "start_line": 65,
             "file_name": "pandas/core/arrays/categorical.py",
-            "replace_code": "def _cat_compare_op(op):\n    from pandas.api.types import is_scalar\n    import numpy as np\n    opname = f\"__{op.__name__}__\"\n    \n    def func(self, other):\n        if is_scalar(other):\n            other = [other] * len(self)\n    \n        # Handle missing values in the categorical variables\n        mask = (self._codes == -1) | (other._codes == -1)\n        self_na = np.zeros(len(self), dtype=bool)\n        self_na[mask] = True\n        other_na = np.zeros(len(other), dtype=bool)\n        other_na[mask] = True\n    \n        # Comparison logic\n        ret = op(self._codes, other._codes)\n        ret[mask] = False\n    \n        return ret\n    \n    func.__name__ = opname\n    \n    return func"
+            "replace_code": "def _cat_compare_op(op):\n    opname = f\"__{op.__name__}__\"\n\n    def func(self, other):\n        if is_scalar(other):\n            other = [other] * len(self)\n\n        # Handle missing values in the categorical variables\n        mask = (self._codes == -1) | (other._codes == -1)\n        self_na = np.zeros(len(self), dtype=bool)\n        self_na[mask] = True\n        other_na = np.zeros(len(other), dtype=bool)\n        other_na[mask] = True\n\n        # Comparison logic\n        ret = op(self._codes, other._codes)\n        ret[mask] = False\n\n        return ret\n\n    func.__name__ = opname\n\n    return func",
+            "imports": [
+                "from pandas.api.types import is_scalar",
+                "import numpy as np"
+            ]
         }
     ]
 }

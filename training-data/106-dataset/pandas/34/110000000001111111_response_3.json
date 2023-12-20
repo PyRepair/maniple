@@ -62,7 +62,13 @@
             },
             "start_line": 1406,
             "file_name": "pandas/core/resample.py",
-            "replace_code": "def _get_time_bins(self, ax):\n    from pandas import DatetimeIndex, Timestamp, NaT\n    from pandas.tseries.frequencies import to_offset\n    from pandas.tseries.frequencies import Day\n    import pandas._libs.tslibs.timedeltas as lib\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(\n            \"axis must be a DatetimeIndex, but got \"\n            f\"an instance of {type(ax).__name__}\"\n        )\n    \n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return binner, [], labels\n    \n    first = ax.min()\n    last = ax.max()\n    freq = to_offset(self.freq)\n    bins = []\n    labels = []\n    \n    current = first\n    while current <= last:\n        bins.append(current.value)\n        labels.append(current)\n        current += freq\n    \n    bins = lib.generate_bins_dt64(ax.asi8, bins, self.closed, hasnans=ax.hasnans)\n    \n    if ax.hasnans:\n        bins = [NaT] + bins\n        labels = [NaT] + labels\n    \n    return labels, bins, labels"
+            "replace_code": "def _get_time_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(\n            \"axis must be a DatetimeIndex, but got \"\n            f\"an instance of {type(ax).__name__}\"\n        )\n\n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return binner, [], labels\n\n    first = ax.min()\n    last = ax.max()\n    freq = to_offset(self.freq)\n    bins = []\n    labels = []\n    \n    current = first\n    while current <= last:\n        bins.append(current.value)\n        labels.append(current)\n        current += freq\n\n    bins = lib.generate_bins_dt64(ax.asi8, bins, self.closed, hasnans=ax.hasnans)\n\n    if ax.hasnans:\n        bins = [NaT] + bins\n        labels = [NaT] + labels\n\n    return labels, bins, labels",
+            "imports": [
+                "from pandas import DatetimeIndex, Timestamp, NaT",
+                "from pandas.tseries.frequencies import to_offset",
+                "from pandas.tseries.frequencies import Day",
+                "import pandas._libs.tslibs.timedeltas as lib"
+            ]
         }
     ]
 }

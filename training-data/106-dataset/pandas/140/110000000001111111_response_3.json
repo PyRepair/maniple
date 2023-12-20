@@ -62,7 +62,10 @@
             },
             "start_line": 1895,
             "file_name": "pandas/core/groupby/generic.py",
-            "replace_code": "def _recast_datetimelike_result(result: DataFrame) -> DataFrame:\n    import pandas.api.types as pdtypes\n    \"\"\"\n    If we have date/time-like values in the original, coerce dates\n    as we are stacking can easily have object dtypes here.\n    \n    Parameters\n    ----------\n    result : DataFrame\n    \n    Returns\n    -------\n    DataFrame\n    \"\"\"\n    result = result.copy()\n    \n    obj_cols = [\n        idx for idx in range(len(result.columns)) if pdtypes.is_object_dtype(result.dtypes[idx])\n    ]\n    \n    # Iterate through the object type columns and check for datetime-like columns\n    for n in obj_cols:\n        if pdtypes.is_datetime64_any_dtype(result.iloc[:, n].values):\n            result.iloc[:, n] = pd.to_datetime(result.iloc[:, n], errors='coerce')\n        else:\n            converted = maybe_convert_objects(\n                result.iloc[:, n].values, convert_numeric=False\n            )\n            result.iloc[:, n] = converted\n    \n    return result"
+            "replace_code": "def _recast_datetimelike_result(result: DataFrame) -> DataFrame:\n    \"\"\"\n    If we have date/time-like values in the original, coerce dates\n    as we are stacking can easily have object dtypes here.\n\n    Parameters\n    ----------\n    result : DataFrame\n\n    Returns\n    -------\n    DataFrame\n    \"\"\"\n    result = result.copy()\n\n    obj_cols = [\n        idx for idx in range(len(result.columns)) if pdtypes.is_object_dtype(result.dtypes[idx])\n    ]\n\n    # Iterate through the object type columns and check for datetime-like columns\n    for n in obj_cols:\n        if pdtypes.is_datetime64_any_dtype(result.iloc[:, n].values):\n            result.iloc[:, n] = pd.to_datetime(result.iloc[:, n], errors='coerce')\n        else:\n            converted = maybe_convert_objects(\n                result.iloc[:, n].values, convert_numeric=False\n            )\n            result.iloc[:, n] = converted\n    \n    return result",
+            "imports": [
+                "import pandas.api.types as pdtypes"
+            ]
         }
     ]
 }

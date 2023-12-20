@@ -62,7 +62,8 @@
             },
             "start_line": 26,
             "file_name": "scrapy/item.py",
-            "replace_code": "def __new__(mcs, class_name, bases, attrs):\n\n    new_bases = tuple(base._class for base in bases if hasattr(base, '_class'))\n    _class = super(ItemMeta, mcs).__new__(mcs, 'x_' + class_name, new_bases, attrs)\n    \n    fields = {}\n    new_attrs = {}\n    for n in dir(_class):\n        v = getattr(_class, n)\n        if isinstance(v, Field):\n            fields[n] = v\n        elif n in attrs:\n            new_attrs[n] = attrs[n]\n    \n    tmp_attrs = _class.__dict__.copy()\n    for k, v in attrs.items():\n        if isinstance(v, dict) and isinstance(tmp_attrs.get(k, None), dict):\n            # merge dicts\n            tmp_attrs[k] = {**tmp_attrs[k], **v}\n        else:\n            tmp_attrs[k] = v\n    \n    tmp_attrs['fields'] = fields\n    tmp_attrs['_class'] = _class\n    result = super(ItemMeta, mcs).__new__(mcs, class_name, bases, tmp_attrs)\n    return result"
+            "replace_code": "def __new__(mcs, class_name, bases, attrs):\n    new_bases = tuple(base._class for base in bases if hasattr(base, '_class'))\n    _class = super(ItemMeta, mcs).__new__(mcs, 'x_' + class_name, new_bases, attrs)\n\n    fields = {}\n    new_attrs = {}\n    for n in dir(_class):\n        v = getattr(_class, n)\n        if isinstance(v, Field):\n            fields[n] = v\n        elif n in attrs:\n            new_attrs[n] = attrs[n]\n\n    tmp_attrs = _class.__dict__.copy()\n    for k, v in attrs.items():\n        if isinstance(v, dict) and isinstance(tmp_attrs.get(k, None), dict):\n            # merge dicts\n            tmp_attrs[k] = {**tmp_attrs[k], **v}\n        else:\n            tmp_attrs[k] = v\n\n    tmp_attrs['fields'] = fields\n    tmp_attrs['_class'] = _class\n    result = super(ItemMeta, mcs).__new__(mcs, class_name, bases, tmp_attrs)\n    return result",
+            "imports": []
         }
     ]
 }

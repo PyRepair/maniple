@@ -62,7 +62,28 @@
             },
             "start_line": 381,
             "file_name": "pandas/core/indexes/range.py",
-            "replace_code": "def get_indexer(self, target, method=None, limit=None, tolerance=None):\n    import numpy as np\n    from pandas._libs import lib\n    from pandas._libs.missing import isna\n    from pandas._typing import ArrayLike, Index\n    from pandas.core.dtypes.common import ensure_platform_int\n    from pandas.core.indexers import IndexerBase\n    from pandas.core.indexers.numeric import ensure_index_from_sequences\n    from pandas.core.sorting import safe_sort\n    import pandas.testing as tm\n    from pandas.core.indexes.range import RangeIndex\n    from pandas._libs import lib\n    import pandas as pd\n    from pandas import Int64Index, RangeIndex\n    from pandas.core.indexes._asarray import _asarray\n    from pandas._typing import Axes, Dtype, IndexC, IndexLike\n    from pandas.core.indexes.extension import ExtensionIndex, Index\n    from pandas.core.arrays import ExtensionArray\n    from pandas._libs.algos import unique\n    import numpy as np\n    if com.any_not_none(method, tolerance, limit) or not is_list_like(target):\n        return super().get_indexer(\n            target, method=method, tolerance=tolerance, limit=limit\n        )\n    \n    start, stop, step = self.start, self.stop, self.step\n    if step < 0:\n        # Handle negative step by constructing the range in reverse\n        start, stop, step = self.stop + self.step, self.start - 1, -self.step\n    \n    target_array = np.asarray(target)\n    locs = target_array - start\n    valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)\n    locs[~valid] = -1\n    locs[valid] = locs[valid] // step\n    \n    if step != self.step:\n        # We reversed this range: transform to original locs\n        locs[valid] = len(self) - 1 - locs[valid]\n    return ensure_platform_int(locs)"
+            "replace_code": "def get_indexer(self, target, method=None, limit=None, tolerance=None):\n    if com.any_not_none(method, tolerance, limit) or not is_list_like(target):\n        return super().get_indexer(\n            target, method=method, tolerance=tolerance, limit=limit\n        )\n\n    start, stop, step = self.start, self.stop, self.step\n    if step < 0:\n        # Handle negative step by constructing the range in reverse\n        start, stop, step = self.stop + self.step, self.start - 1, -self.step\n\n    target_array = np.asarray(target)\n    locs = target_array - start\n    valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)\n    locs[~valid] = -1\n    locs[valid] = locs[valid] // step\n\n    if step != self.step:\n        # We reversed this range: transform to original locs\n        locs[valid] = len(self) - 1 - locs[valid]\n    return ensure_platform_int(locs)",
+            "imports": [
+                "import numpy as np",
+                "from pandas._libs import lib",
+                "from pandas._libs.missing import isna",
+                "from pandas._typing import ArrayLike, Index",
+                "from pandas.core.dtypes.common import ensure_platform_int",
+                "from pandas.core.indexers import IndexerBase",
+                "from pandas.core.indexers.numeric import ensure_index_from_sequences",
+                "from pandas.core.sorting import safe_sort",
+                "import pandas.testing as tm",
+                "from pandas.core.indexes.range import RangeIndex",
+                "from pandas._libs import lib",
+                "import pandas as pd",
+                "from pandas import Int64Index, RangeIndex",
+                "from pandas.core.indexes._asarray import _asarray",
+                "from pandas._typing import Axes, Dtype, IndexC, IndexLike",
+                "from pandas.core.indexes.extension import ExtensionIndex, Index",
+                "from pandas.core.arrays import ExtensionArray",
+                "from pandas._libs.algos import unique",
+                "import numpy as np"
+            ]
         }
     ]
 }

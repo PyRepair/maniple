@@ -62,7 +62,12 @@
             },
             "start_line": 601,
             "file_name": "pandas/core/groupby/grouper.py",
-            "replace_code": "def get_grouper(\n    obj: FrameOrSeries,\n    key=None,\n    axis: int = 0,\n    level=None,\n    sort: bool = True,\n    observed: bool = False,\n    mutated: bool = False,\n    validate: bool = True,\n    dropna: bool = True,\n) -> \"Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]\":\n    # ... (previous code)\n\n    # check if the object is a PeriodIndex\n    from pandas.core.indexes.base import Index\n    from pandas.core.indexes.period import PeriodIndex\n    from pandas.core.arrays.base import ExtensionArray\n    if isinstance(obj, PeriodIndex):\n        index_values = obj.to_timestamp()  # convert PeriodIndex to DatetimeIndex\n        obj = pd.Series(obj, index=index_values)  # create a Series with DatetimeIndex\n        group_axis = obj.index\n    \n        # handle grouping for PeriodIndex\n        if level in obj.index.names:\n            grouper = ops.BaseGrouper(group_axis, [], sort=sort, mutated=mutated)\n            return grouper, [], obj\n        else:\n            raise ValueError(f\"Level '{level}' not in PeriodIndex names: {obj.index.names}\")\n    \n    # handle grouping for other types of indexes\n    group_axis = obj._get_axis(axis)"
+            "replace_code": "def get_grouper(\n    obj: FrameOrSeries,\n    key=None,\n    axis: int = 0,\n    level=None,\n    sort: bool = True,\n    observed: bool = False,\n    mutated: bool = False,\n    validate: bool = True,\n    dropna: bool = True,\n) -> \"Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]\":\n    # ... (previous code)\n\n    # check if the object is a PeriodIndex\n    if isinstance(obj, PeriodIndex):\n        index_values = obj.to_timestamp()  # convert PeriodIndex to DatetimeIndex\n        obj = pd.Series(obj, index=index_values)  # create a Series with DatetimeIndex\n        group_axis = obj.index\n\n        # handle grouping for PeriodIndex\n        if level in obj.index.names:\n            grouper = ops.BaseGrouper(group_axis, [], sort=sort, mutated=mutated)\n            return grouper, [], obj\n        else:\n            raise ValueError(f\"Level '{level}' not in PeriodIndex names: {obj.index.names}\")\n\n    # handle grouping for other types of indexes\n    group_axis = obj._get_axis(axis)",
+            "imports": [
+                "from pandas.core.indexes.base import Index",
+                "from pandas.core.indexes.period import PeriodIndex",
+                "from pandas.core.arrays.base import ExtensionArray"
+            ]
         }
     ]
 }

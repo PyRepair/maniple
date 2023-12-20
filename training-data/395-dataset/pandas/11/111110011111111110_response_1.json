@@ -62,7 +62,11 @@
             },
             "start_line": 590,
             "file_name": "pandas/core/reshape/concat.py",
-            "replace_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n    from pandas import MultiIndex, Index, Series, DataFrame, concat\n    import pandas._testing as tm\n    if levels is None:\n        levels = [Index(keys)]\n    else:\n        levels = [Index(x) for x in levels]\n    \n    if len(levels) < 2:\n        zipped = [Index(keys)]\n        if names is None:\n            names = [None]\n        else:\n            names = list(names)\n    \n        codes_list = [Index(indexes[i]).get_indexer(zipped[i]) for i in range(len(zipped))]\n        concat_index = concat(indexes, verify_integrity=True)\n    \n        return MultiIndex(\n            levels=levels, codes=codes_list, names=names, verify_integrity=True\n        )\n    \n    concatenated = concat(indexes, axis=0)\n    new_index = concatenated.reset_index(drop=True)\n    new_codes = [Index(new_index).get_indexer(index) for index in indexes]\n    new_names = list(names) if names is not None else [None] * len(levels)\n    \n    return MultiIndex(\n        levels=levels, codes=new_codes, names=new_names, verify_integrity=True\n    )"
+            "replace_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n    if levels is None:\n        levels = [Index(keys)]\n    else:\n        levels = [Index(x) for x in levels]\n\n    if len(levels) < 2:\n        zipped = [Index(keys)]\n        if names is None:\n            names = [None]\n        else:\n            names = list(names)\n\n        codes_list = [Index(indexes[i]).get_indexer(zipped[i]) for i in range(len(zipped))]\n        concat_index = concat(indexes, verify_integrity=True)\n\n        return MultiIndex(\n            levels=levels, codes=codes_list, names=names, verify_integrity=True\n        )\n\n    concatenated = concat(indexes, axis=0)\n    new_index = concatenated.reset_index(drop=True)\n    new_codes = [Index(new_index).get_indexer(index) for index in indexes]\n    new_names = list(names) if names is not None else [None] * len(levels)\n    \n    return MultiIndex(\n        levels=levels, codes=new_codes, names=new_names, verify_integrity=True\n    )",
+            "imports": [
+                "from pandas import MultiIndex, Index, Series, DataFrame, concat",
+                "import pandas._testing as tm"
+            ]
         }
     ]
 }

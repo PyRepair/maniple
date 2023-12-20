@@ -62,7 +62,13 @@
             },
             "start_line": 130,
             "file_name": "scrapy/pipelines/images.py",
-            "replace_code": "def convert_image(self, image, size=None):\n    from PIL import Image, ImageFile\n    from io import BytesIO\n    from scrapy.pipelines.images import ImagesPipeline, ImageException\n    from scrapy.pipelines.media import MediaPipeline\n    if image.format == 'PNG' and image.mode == 'RGBA':\n        background = Image.new('RGB', image.size, (255, 255, 255))\n        background.paste(image, (0, 0), image)\n        image = background.convert('RGBA').convert('RGB')\n    \n    if size:\n        image = image.copy()\n        image.thumbnail(size, Image.ANTIALIAS)\n    \n    buf = BytesIO()\n    try:\n        image.save(buf, 'JPEG')\n    except Exception as ex:\n        raise ImageException(f'Cannot process image. Error: {str(ex)}') from ex\n    \n    return image, buf"
+            "replace_code": "def convert_image(self, image, size=None):\n        if image.format == 'PNG' and image.mode == 'RGBA':\n            background = Image.new('RGB', image.size, (255, 255, 255))\n            background.paste(image, (0, 0), image)\n            image = background.convert('RGBA').convert('RGB')\n        \n        if size:\n            image = image.copy()\n            image.thumbnail(size, Image.ANTIALIAS)\n        \n        buf = BytesIO()\n        try:\n            image.save(buf, 'JPEG')\n        except Exception as ex:\n            raise ImageException(f'Cannot process image. Error: {str(ex)}') from ex\n        \n        return image, buf",
+            "imports": [
+                "from PIL import Image, ImageFile",
+                "from io import BytesIO",
+                "from scrapy.pipelines.images import ImagesPipeline, ImageException",
+                "from scrapy.pipelines.media import MediaPipeline"
+            ]
         }
     ]
 }

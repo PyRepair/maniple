@@ -62,7 +62,12 @@
             },
             "start_line": 798,
             "file_name": "sanic/app.py",
-            "replace_code": "def url_for(self, view_name: str, _external=False, _scheme=\"\", **kwargs: Union[str, int]):\n    from typing import Dict, Union\n    import re\n    from urllib.parse import urlencode, urlunparse\n    kw: Dict[str, str] = {}\n    if view_name == \"static\":\n        kw.update(name=kwargs.pop(\"name\", \"static\"))\n    elif view_name.endswith(\".static\"):\n        kwargs.pop(\"name\", None)\n        kw.update(name=view_name)\n    \n    uri = '/external' if view_name == \"static\" or view_name.endswith(\".static\") else '/'\n    \n    if uri != \"/\" and uri.endswith(\"/\"):\n        uri = uri[:-1]\n    \n    out = uri\n    \n    for match in re.findall(\"pattern\", uri):\n        name = match[0]\n        if name in kwargs:\n            supplied_param = kwargs.pop(name)\n        if re.match(match[2], supplied_param):\n            out = re.sub(f\"(<{name}.*?>)\", supplied_param, out)\n        else:\n            raise ValueError\n    query_string = urlencode(kwargs, doseq=True) if kwargs else \"\"\n    out = urlunparse((_scheme, \"bp.example.com\", out, \"\", query_string, \"\"))\n    return out"
+            "replace_code": "def url_for(self, view_name: str, _external=False, _scheme=\"\", **kwargs: Union[str, int]):\n        kw: Dict[str, str] = {}\n        if view_name == \"static\":\n            kw.update(name=kwargs.pop(\"name\", \"static\"))\n        elif view_name.endswith(\".static\"):\n            kwargs.pop(\"name\", None)\n            kw.update(name=view_name)\n\n        uri = '/external' if view_name == \"static\" or view_name.endswith(\".static\") else '/'\n\n        if uri != \"/\" and uri.endswith(\"/\"):\n            uri = uri[:-1]\n\n        out = uri\n\n        for match in re.findall(\"pattern\", uri):\n            name = match[0]\n            if name in kwargs:\n                supplied_param = kwargs.pop(name)\n            if re.match(match[2], supplied_param):\n                out = re.sub(f\"(<{name}.*?>)\", supplied_param, out)\n            else:\n                raise ValueError\n        query_string = urlencode(kwargs, doseq=True) if kwargs else \"\"\n        out = urlunparse((_scheme, \"bp.example.com\", out, \"\", query_string, \"\"))\n        return out",
+            "imports": [
+                "from typing import Dict, Union",
+                "import re",
+                "from urllib.parse import urlencode, urlunparse"
+            ]
         }
     ]
 }

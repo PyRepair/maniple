@@ -62,7 +62,11 @@
             },
             "start_line": 2934,
             "file_name": "black.py",
-            "replace_code": "def gen_python_files_in_dir(\n    path: Path,\n    root: Path,\n    include: Pattern[str],\n    exclude: Pattern[str],\n    report: \"Report\",\n) -> Iterator[Path]:\n    from typing import Iterator, Pattern\n    from pathlib import Path\n    \"\"\"Generate all files under `path` whose paths are not excluded by the\n    `exclude` regex, but are included by the `include` regex.\n    \n    `report` is where output about exclusions goes.\n    \"\"\"\n    for child in path.iterdir():\n        if child.is_dir():\n            yield from gen_python_files_in_dir(child, root, include, exclude, report)\n        elif child.is_file():            \n            normalized_path = child.resolve().as_posix()\n            if not normalized_path.startswith(root.as_posix()) or exclude.search(normalized_path):\n                report.path_ignored(child, f\"matches the --exclude regular expression\")\n            elif include.search(normalized_path):\n                yield child"
+            "replace_code": "def gen_python_files_in_dir(\n    path: Path,\n    root: Path,\n    include: Pattern[str],\n    exclude: Pattern[str],\n    report: \"Report\",\n) -> Iterator[Path]:\n    \"\"\"Generate all files under `path` whose paths are not excluded by the\n    `exclude` regex, but are included by the `include` regex.\n\n    `report` is where output about exclusions goes.\n    \"\"\"\n    for child in path.iterdir():\n        if child.is_dir():\n            yield from gen_python_files_in_dir(child, root, include, exclude, report)\n        elif child.is_file():            \n            normalized_path = child.resolve().as_posix()\n            if not normalized_path.startswith(root.as_posix()) or exclude.search(normalized_path):\n                report.path_ignored(child, f\"matches the --exclude regular expression\")\n            elif include.search(normalized_path):\n                yield child",
+            "imports": [
+                "from typing import Iterator, Pattern",
+                "from pathlib import Path"
+            ]
         }
     ]
 }

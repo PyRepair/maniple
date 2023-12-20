@@ -62,7 +62,11 @@
             },
             "start_line": 188,
             "file_name": "pandas/core/apply.py",
-            "replace_code": "def apply_empty_result(self):\n    from pandas import Series\n    import numpy as np\n    \"\"\"\n    we have an empty result; at least 1 axis is 0\n    \n    we will try to apply the function to an empty\n    series in order to see if this is a reduction function\n    \"\"\"\n    from pandas import Series\n    import numpy as np\n    \n    # we are asked to reduce or infer reduction\n    if self.result_type in [\"reduce\", None]:\n        EMPTY_SERIES = Series([])\n        r = np.nan\n        try:\n            r = self.f(EMPTY_SERIES, *self.args, **self.kwds)\n        except Exception:\n            pass\n    \n        if not r:\n            should_reduce = True\n        else:\n            should_reduce = False\n    else:\n        # we are not asked to reduce or infer reduction\n        # so just return a copy of the existing object\n        return self.obj.copy()\n    \n    if should_reduce:\n        return self.obj._constructor_sliced(np.nan, index=self.agg_axis)\n    else:\n        return self.obj.copy()"
+            "replace_code": "def apply_empty_result(self):\n    \"\"\"\n    we have an empty result; at least 1 axis is 0\n\n    we will try to apply the function to an empty\n    series in order to see if this is a reduction function\n    \"\"\"\n    from pandas import Series\n    import numpy as np\n\n    # we are asked to reduce or infer reduction\n    if self.result_type in [\"reduce\", None]:\n        EMPTY_SERIES = Series([])\n        r = np.nan\n        try:\n            r = self.f(EMPTY_SERIES, *self.args, **self.kwds)\n        except Exception:\n            pass\n\n        if not r:\n            should_reduce = True\n        else:\n            should_reduce = False\n    else:\n        # we are not asked to reduce or infer reduction\n        # so just return a copy of the existing object\n        return self.obj.copy()\n\n    if should_reduce:\n        return self.obj._constructor_sliced(np.nan, index=self.agg_axis)\n    else:\n        return self.obj.copy()",
+            "imports": [
+                "from pandas import Series",
+                "import numpy as np"
+            ]
         }
     ]
 }

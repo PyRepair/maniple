@@ -62,7 +62,11 @@
             },
             "start_line": 188,
             "file_name": "pandas/core/apply.py",
-            "replace_code": "def apply_empty_result(self):\n    from pandas import DataFrame, Series\n    import numpy as np\n    \"\"\"\n    Check if the result is empty or not\n    \"\"\"\n    if self.result_type not in [\"reduce\", None]:\n        return self.obj.copy()\n    \n    # we may need to infer\n    should_reduce = self.result_type == \"reduce\"\n    \n    if not should_reduce:\n        EMPTY_SERIES = Series([])\n        try:\n            r = self.f(EMPTY_SERIES, *self.args, **self.kwds)\n        except Exception:\n            pass\n        else:\n            should_reduce = not isinstance(r, Series)\n    \n    if should_reduce:\n        return self.obj._constructor_sliced(np.nan, index=self.agg_axis)\n    else:\n        return self.obj.copy()"
+            "replace_code": "def apply_empty_result(self):\n    \"\"\"\n    Check if the result is empty or not\n    \"\"\"\n    if self.result_type not in [\"reduce\", None]:\n        return self.obj.copy()\n    \n    # we may need to infer\n    should_reduce = self.result_type == \"reduce\"\n\n    if not should_reduce:\n        EMPTY_SERIES = Series([])\n        try:\n            r = self.f(EMPTY_SERIES, *self.args, **self.kwds)\n        except Exception:\n            pass\n        else:\n            should_reduce = not isinstance(r, Series)\n\n    if should_reduce:\n        return self.obj._constructor_sliced(np.nan, index=self.agg_axis)\n    else:\n        return self.obj.copy()",
+            "imports": [
+                "from pandas import DataFrame, Series",
+                "import numpy as np"
+            ]
         }
     ]
 }

@@ -62,7 +62,12 @@
             },
             "start_line": 2934,
             "file_name": "black.py",
-            "replace_code": "def gen_python_files_in_dir(\n    path: Path,\n    root: Path,\n    include: Pattern[str],\n    exclude: Pattern[str],\n    report: Report,\n) -> Iterator[Path]:\n    from pathlib import Path\n    from typing import Pattern, Iterator\n    import re\n    \"\"\"Generate all files under `path` whose paths are not excluded by the\n    `exclude` regex, but are included by the `include` regex.\n    \n    `report` is where output about exclusions goes.\n    \"\"\"\n    assert root.is_absolute(), f\"INTERNAL ERROR: `root` must be absolute but is {root}\"\n    for child in path.iterdir():\n        normalized_path = \"/\" + str(child.resolve().relative_to(root))\n        if child.is_dir():\n            normalized_path += \"/\"\n        exclude_match = exclude.search(normalized_path)\n        if exclude_match and exclude_match.group(0):\n            report.path_ignored(child, f\"matches the --exclude regular expression\")\n            continue\n    \n        if child.is_dir():\n            yield from gen_python_files_in_dir(child, root, include, exclude, report)\n    \n        elif child.is_file():\n            include_match = include.search(normalized_path)\n            if include_match:\n                yield child"
+            "replace_code": "def gen_python_files_in_dir(\n    path: Path,\n    root: Path,\n    include: Pattern[str],\n    exclude: Pattern[str],\n    report: Report,\n) -> Iterator[Path]:\n    \"\"\"Generate all files under `path` whose paths are not excluded by the\n    `exclude` regex, but are included by the `include` regex.\n\n    `report` is where output about exclusions goes.\n    \"\"\"\n    assert root.is_absolute(), f\"INTERNAL ERROR: `root` must be absolute but is {root}\"\n    for child in path.iterdir():\n        normalized_path = \"/\" + str(child.resolve().relative_to(root))\n        if child.is_dir():\n            normalized_path += \"/\"\n        exclude_match = exclude.search(normalized_path)\n        if exclude_match and exclude_match.group(0):\n            report.path_ignored(child, f\"matches the --exclude regular expression\")\n            continue\n\n        if child.is_dir():\n            yield from gen_python_files_in_dir(child, root, include, exclude, report)\n\n        elif child.is_file():\n            include_match = include.search(normalized_path)\n            if include_match:\n                yield child",
+            "imports": [
+                "from pathlib import Path",
+                "from typing import Pattern, Iterator",
+                "import re"
+            ]
         }
     ]
 }

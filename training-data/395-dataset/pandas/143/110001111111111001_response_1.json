@@ -62,7 +62,13 @@
             },
             "start_line": 381,
             "file_name": "pandas/core/indexes/range.py",
-            "replace_code": "def get_indexer(self, target, method=None, limit=None, tolerance=None):\n    from pandas.api.extensions import Appender\n    from pandas.core.common import is_list_like\n    from pandas.core.dtypes.common import is_integer_dtype\n    from pandas.core.indexers import ensure_platform_int, lib, _NDFrameIndexer\n    if method is not None or tolerance is not None or not is_list_like(target):\n        return super().get_indexer(target, method=method, tolerance=tolerance)\n    \n    if self.step > 0:\n        start, stop, step = self.start, self.stop, self.step\n    else:\n        start, stop, step = self.stop - self.step, self.start - 1, -self.step\n    \n    target_array = lib.to_object_array(target)\n    \n    locs, index = lib.get_indexer_non_unique(target_array, (start, stop, step), sort=False)\n    \n    if limit is not None:\n        locs_limit = lib.get_indexer_non_unique(target_array, (start, stop, step), sort=True)\n        moved_to_limit = locs_limit != -1\n        under_limit = moved_to_limit & ((locs_limit >= 0) & (locs_limit < limit))\n        locs[moved_to_limit & ~under_limit] = -1\n    \n    return ensure_platform_int(index)"
+            "replace_code": "def get_indexer(self, target, method=None, limit=None, tolerance=None):\n        if method is not None or tolerance is not None or not is_list_like(target):\n            return super().get_indexer(target, method=method, tolerance=tolerance)\n\n        if self.step > 0:\n            start, stop, step = self.start, self.stop, self.step\n        else:\n            start, stop, step = self.stop - self.step, self.start - 1, -self.step\n\n        target_array = lib.to_object_array(target)\n\n        locs, index = lib.get_indexer_non_unique(target_array, (start, stop, step), sort=False)\n\n        if limit is not None:\n            locs_limit = lib.get_indexer_non_unique(target_array, (start, stop, step), sort=True)\n            moved_to_limit = locs_limit != -1\n            under_limit = moved_to_limit & ((locs_limit >= 0) & (locs_limit < limit))\n            locs[moved_to_limit & ~under_limit] = -1\n\n        return ensure_platform_int(index)",
+            "imports": [
+                "from pandas.api.extensions import Appender",
+                "from pandas.core.common import is_list_like",
+                "from pandas.core.dtypes.common import is_integer_dtype",
+                "from pandas.core.indexers import ensure_platform_int, lib, _NDFrameIndexer"
+            ]
         }
     ]
 }

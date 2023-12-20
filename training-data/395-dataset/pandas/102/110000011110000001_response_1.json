@@ -62,7 +62,14 @@
             },
             "start_line": 123,
             "file_name": "pandas/core/internals/construction.py",
-            "replace_code": "def init_ndarray(values, index, columns, dtype=None, copy=False):\n    # input must be a ndarray, list, Series, index\n\n    import numpy as np\n    import pandas as pd\n    from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype\n    from pandas.core.internals.construction import extract_index, arrays_to_mgr\n    from pandas.core.series import BaseSeries\n    if isinstance(values, BaseSeries):\n        if columns is None:\n            if values.name is not None:\n                columns = [values.name]\n        if index is None:\n            index = values.index\n        else:\n            values = values.reindex(index)\n    \n        # zero len case (GH #2234)\n        if not len(values) and columns is not None and len(columns):\n            values = np.empty((0, 1), dtype=object)\n    \n    # rest of the function remains unchanged\n    \n    if is_object_dtype(values):\n        if not index:\n            raise ValueError(\"If using all scalar values, you must pass an index\")\n    \n    return create_block_manager_from_blocks(block_values, [columns, index])"
+            "replace_code": "def init_ndarray(values, index, columns, dtype=None, copy=False):\n    # input must be a ndarray, list, Series, index\n\n    if isinstance(values, BaseSeries):\n        if columns is None:\n            if values.name is not None:\n                columns = [values.name]\n        if index is None:\n            index = values.index\n        else:\n            values = values.reindex(index)\n\n        # zero len case (GH #2234)\n        if not len(values) and columns is not None and len(columns):\n            values = np.empty((0, 1), dtype=object)\n\n    # rest of the function remains unchanged\n\n    if is_object_dtype(values):\n        if not index:\n            raise ValueError(\"If using all scalar values, you must pass an index\")\n\n    return create_block_manager_from_blocks(block_values, [columns, index])",
+            "imports": [
+                "import numpy as np",
+                "import pandas as pd",
+                "from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype",
+                "from pandas.core.internals.construction import extract_index, arrays_to_mgr",
+                "from pandas.core.series import BaseSeries"
+            ]
         }
     ]
 }

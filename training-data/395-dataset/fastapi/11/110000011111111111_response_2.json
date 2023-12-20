@@ -62,7 +62,15 @@
             },
             "start_line": 133,
             "file_name": "fastapi/dependencies/utils.py",
-            "replace_code": "def is_scalar_field(field: Any) -> bool:\n    from typing import Type, Any, Union\n    from pydantic import BaseModel\n    from fastapi import params\n    from pydantic.fields import Field\n    from pydantic.schema import Shape\n    from pydantic.typing import AnyCallable\n    if hasattr(field, 'sub_fields'):\n        # If it's a Union type, iterate through the subfields and perform validations\n        for subfield in field.sub_fields:\n            if is_scalar_field(subfield):\n                return True\n        return False\n    else:\n        # Perform your custom validations here\n        return (\n            field.shape == Shape.SINGLETON\n            and not lenient_issubclass(field.type_, BaseModel)\n            and not lenient_issubclass(field.type_, (list, dict))\n            and not isinstance(field.schema, params.Body)\n        )"
+            "replace_code": "def is_scalar_field(field: Any) -> bool:\n    if hasattr(field, 'sub_fields'):\n        # If it's a Union type, iterate through the subfields and perform validations\n        for subfield in field.sub_fields:\n            if is_scalar_field(subfield):\n                return True\n        return False\n    else:\n        # Perform your custom validations here\n        return (\n            field.shape == Shape.SINGLETON\n            and not lenient_issubclass(field.type_, BaseModel)\n            and not lenient_issubclass(field.type_, (list, dict))\n            and not isinstance(field.schema, params.Body)\n        )",
+            "imports": [
+                "from typing import Type, Any, Union",
+                "from pydantic import BaseModel",
+                "from fastapi import params",
+                "from pydantic.fields import Field",
+                "from pydantic.schema import Shape",
+                "from pydantic.typing import AnyCallable"
+            ]
         }
     ]
 }

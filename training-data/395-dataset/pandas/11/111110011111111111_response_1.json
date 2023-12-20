@@ -62,7 +62,11 @@
             },
             "start_line": 590,
             "file_name": "pandas/core/reshape/concat.py",
-            "replace_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n    from pandas import MultiIndex, Index, Series, DataFrame, concat\n    import numpy as np\n    if levels is None:\n        if isinstance(keys[0], tuple):\n            levels = [Index(x) for x in zip(*keys)]\n        else:\n            levels = [Index(keys)]\n    else:\n        levels = [ensure_index(x) for x in levels]\n    \n    if not all_indexes_same(indexes):\n        raise AssertionError(\"Cannot concat indices that do not have the same number of levels\")\n    \n    codes_list = []\n    concat_index = _concat_indexes(indexes)\n    \n    for level, key in zip(levels, keys):\n        if not isinstance(key, tuple):\n            key = (key,)\n    \n        to_concat = [level.get_loc(k) for k in key]\n        codes_list.append(np.concatenate(to_concat))\n    \n    levels.append(Index(concat_index))\n    codes_list.append(np.tile(np.arange(len(concat_index)), len(keys)))\n    \n    if len(names) != len(levels):\n        names = names + get_consensus_names(indexes)\n    \n    return MultiIndex(levels=levels, codes=codes_list, names=names, verify_integrity=False)"
+            "replace_code": "def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:\n    if levels is None:\n        if isinstance(keys[0], tuple):\n            levels = [Index(x) for x in zip(*keys)]\n        else:\n            levels = [Index(keys)]\n    else:\n        levels = [ensure_index(x) for x in levels]\n\n    if not all_indexes_same(indexes):\n        raise AssertionError(\"Cannot concat indices that do not have the same number of levels\")\n\n    codes_list = []\n    concat_index = _concat_indexes(indexes)\n\n    for level, key in zip(levels, keys):\n        if not isinstance(key, tuple):\n            key = (key,)\n\n        to_concat = [level.get_loc(k) for k in key]\n        codes_list.append(np.concatenate(to_concat))\n\n    levels.append(Index(concat_index))\n    codes_list.append(np.tile(np.arange(len(concat_index)), len(keys)))\n\n    if len(names) != len(levels):\n        names = names + get_consensus_names(indexes)\n\n    return MultiIndex(levels=levels, codes=codes_list, names=names, verify_integrity=False)",
+            "imports": [
+                "from pandas import MultiIndex, Index, Series, DataFrame, concat",
+                "import numpy as np"
+            ]
         }
     ]
 }

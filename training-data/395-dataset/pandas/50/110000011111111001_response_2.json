@@ -62,7 +62,11 @@
             },
             "start_line": 65,
             "file_name": "pandas/core/arrays/categorical.py",
-            "replace_code": "def _cat_compare_op(op):\n    import numpy as np\n    import pandas as pd\n    opname = f\"__{op.__name__}__\"\n    \n    def func(self, other):\n        if opname in [\"__lt__\", \"__gt__\", \"__le__\", \"__ge__\"]:\n            raise TypeError(\"Unordered Categoricals can only compare equality or not\")\n        \n        if isinstance(other, Categorical):\n            if not (self.categories.equals(other.categories)):\n                raise TypeError(\"Categoricals can only be compared if 'categories' are the same.\")\n            if not (self.ordered == other.ordered):\n                raise TypeError(\"Categoricals can only be compared if 'ordered' is the same\")\n            return (self._codes != other._codes)  # Compare the codes directly for inequality\n        \n        elif is_scalar(other):\n            return (self._codes != self.categories.get_loc(other))\n        \n        else:\n            raise TypeError(f\"Cannot compare a Categorical for op {opname} with type {type(other)}.\")\n    \n    func.__name__ = opname\n    \n    return func"
+            "replace_code": "def _cat_compare_op(op):\n    opname = f\"__{op.__name__}__\"\n\n    def func(self, other):\n        if opname in [\"__lt__\", \"__gt__\", \"__le__\", \"__ge__\"]:\n            raise TypeError(\"Unordered Categoricals can only compare equality or not\")\n        \n        if isinstance(other, Categorical):\n            if not (self.categories.equals(other.categories)):\n                raise TypeError(\"Categoricals can only be compared if 'categories' are the same.\")\n            if not (self.ordered == other.ordered):\n                raise TypeError(\"Categoricals can only be compared if 'ordered' is the same\")\n            return (self._codes != other._codes)  # Compare the codes directly for inequality\n        \n        elif is_scalar(other):\n            return (self._codes != self.categories.get_loc(other))\n        \n        else:\n            raise TypeError(f\"Cannot compare a Categorical for op {opname} with type {type(other)}.\")\n\n    func.__name__ = opname\n\n    return func",
+            "imports": [
+                "import numpy as np",
+                "import pandas as pd"
+            ]
         }
     ]
 }

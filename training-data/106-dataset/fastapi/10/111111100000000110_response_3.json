@@ -62,7 +62,12 @@
             },
             "start_line": 37,
             "file_name": "fastapi/routing.py",
-            "replace_code": "def serialize_response(\n        *,\n        field: Field = None,\n        response: Any,\n        include: Set[str] = None,\n        exclude: Set[str] = set(),\n        by_alias: bool = True,\n        skip_defaults: bool = False,\n) -> Any:\n    from typing import Any, Set\n    from fastapi.encoders import jsonable_encoder\n    from pydantic import Field, ErrorWrapper, BaseModel, EmailStr, validate_model\n    if field:\n        errors = []\n        value, errors_ = validate_model(response, field)\n        if isinstance(errors_, ErrorWrapper):\n            errors.append(errors_)\n        elif isinstance(errors_, list):\n            errors.extend(errors_)\n        if errors:\n            raise ValidationError(errors)\n        return jsonable_encoder(\n            value,\n            include=include,\n            exclude=exclude,\n            by_alias=by_alias,\n            skip_defaults=skip_defaults\n        )\n    else:\n        return jsonable_encoder(response, skip_defaults=skip_defaults)"
+            "replace_code": "def serialize_response(\n        *,\n        field: Field = None,\n        response: Any,\n        include: Set[str] = None,\n        exclude: Set[str] = set(),\n        by_alias: bool = True,\n        skip_defaults: bool = False,\n) -> Any:\n    if field:\n        errors = []\n        value, errors_ = validate_model(response, field)\n        if isinstance(errors_, ErrorWrapper):\n            errors.append(errors_)\n        elif isinstance(errors_, list):\n            errors.extend(errors_)\n        if errors:\n            raise ValidationError(errors)\n        return jsonable_encoder(\n            value,\n            include=include,\n            exclude=exclude,\n            by_alias=by_alias,\n            skip_defaults=skip_defaults\n        )\n    else:\n        return jsonable_encoder(response, skip_defaults=skip_defaults)",
+            "imports": [
+                "from typing import Any, Set",
+                "from fastapi.encoders import jsonable_encoder",
+                "from pydantic import Field, ErrorWrapper, BaseModel, EmailStr, validate_model"
+            ]
         }
     ]
 }

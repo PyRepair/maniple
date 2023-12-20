@@ -62,7 +62,16 @@
             },
             "start_line": 123,
             "file_name": "pandas/core/internals/construction.py",
-            "replace_code": "def init_ndarray(values, index, columns,\n                 dtype=None, copy=False):\n    import numpy as np\n    from pandas.core.common import is_object_dtype\n    from pandas.core.dtypes.api import is_categorical_dtype, is_dtype_equal, is_extension_array_dtype\n    from pandas.core.dtypes.common import DatetimeTZDtype\n    from pandas._libs.missing import arrays_to_mgr, create_block_manager_from_blocks\n    from pandas.core.indexes.range import RangeIndex\n    from pandas._libs.internals import maybe_infer_to_datetimelike, prep_ndarray\n    if isinstance(values, (list, np.ndarray)):\n        if isinstance(values, np.ndarray):\n            values = values.T\n        else:\n            values = np.array(values).T\n        \n        columns = RangeIndex(0, len(values[0]))\n    \n        if index is None:    \n            index = RangeIndex(0, len(values))\n        \n        if dtype is not None and not is_dtype_equal(values.dtype, dtype):\n            try:\n                values = values.astype(dtype)\n            except Exception as orig:\n                raise ValueError(\n                    f\"failed to cast to '{dtype}' (Exception was: {orig})\"\n                ) from orig\n        else:\n            if is_object_dtype(values):\n                values = maybe_infer_to_datetimelike(values)\n    \n        return create_block_manager_from_blocks([values], [columns, index])\n    else:\n        raise TypeError(\"Input must be a list or ndarray\")"
+            "replace_code": "def init_ndarray(values, index, columns,\n                 dtype=None, copy=False):\n    if isinstance(values, (list, np.ndarray)):\n        if isinstance(values, np.ndarray):\n            values = values.T\n        else:\n            values = np.array(values).T\n        \n        columns = RangeIndex(0, len(values[0]))\n\n        if index is None:    \n            index = RangeIndex(0, len(values))\n        \n        if dtype is not None and not is_dtype_equal(values.dtype, dtype):\n            try:\n                values = values.astype(dtype)\n            except Exception as orig:\n                raise ValueError(\n                    f\"failed to cast to '{dtype}' (Exception was: {orig})\"\n                ) from orig\n        else:\n            if is_object_dtype(values):\n                values = maybe_infer_to_datetimelike(values)\n\n        return create_block_manager_from_blocks([values], [columns, index])\n    else:\n        raise TypeError(\"Input must be a list or ndarray\")",
+            "imports": [
+                "import numpy as np",
+                "from pandas.core.common import is_object_dtype",
+                "from pandas.core.dtypes.api import is_categorical_dtype, is_dtype_equal, is_extension_array_dtype",
+                "from pandas.core.dtypes.common import DatetimeTZDtype",
+                "from pandas._libs.missing import arrays_to_mgr, create_block_manager_from_blocks",
+                "from pandas.core.indexes.range import RangeIndex",
+                "from pandas._libs.internals import maybe_infer_to_datetimelike, prep_ndarray"
+            ]
         }
     ]
 }

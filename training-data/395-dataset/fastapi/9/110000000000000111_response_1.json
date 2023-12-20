@@ -62,7 +62,15 @@
             },
             "start_line": 549,
             "file_name": "fastapi/dependencies/utils.py",
-            "replace_code": "def get_body_field(*, dependant: params.Depends, name: str) -> Optional[ModelField]:\n    from typing import Optional\n    from pydantic.fields import ModelField\n    from pydantic import Field, BaseConfig\n    from fastapi import params, Body\n    from pydantic.main import ModelMetaclass, create_model\n    from typing import Type\n    flat_dependant = get_flat_dependant(dependant)\n    if not flat_dependant.body_params:\n        return None\n    \n    model_name = \"Body_\" + name\n    BodyModel = create_model(model_name)\n    for f in flat_dependant.body_params:\n        BodyModel.__fields__[f.name] = get_schema_compatible_field(field=f)\n    required = any(True for f in flat_dependant.body_params if f.required)\n    \n    if any(isinstance(f.schema, params.File) for f in flat_dependant.body_params):\n        BodySchema: Type[params.Body] = params.File\n    elif any(isinstance(f.schema, params.Form) for f in flat_dependant.body_params):\n        BodySchema = params.Form\n    else:\n        BodySchema = params.Body\n    \n    media_type = None  # Add logic to determine media_type\n    \n    field = ModelField(\n        name=\"body\",\n        type_=BodyModel,\n        class_validators={},\n        default=None,\n        required=required,\n        model_config=BaseConfig,\n        alias=\"body\",\n        schema=BodySchema(media_type=media_type),  # Use the determined media_type\n    )\n    return field"
+            "replace_code": "def get_body_field(*, dependant: params.Depends, name: str) -> Optional[ModelField]:\n    flat_dependant = get_flat_dependant(dependant)\n    if not flat_dependant.body_params:\n        return None\n    \n    model_name = \"Body_\" + name\n    BodyModel = create_model(model_name)\n    for f in flat_dependant.body_params:\n        BodyModel.__fields__[f.name] = get_schema_compatible_field(field=f)\n    required = any(True for f in flat_dependant.body_params if f.required)\n\n    if any(isinstance(f.schema, params.File) for f in flat_dependant.body_params):\n        BodySchema: Type[params.Body] = params.File\n    elif any(isinstance(f.schema, params.Form) for f in flat_dependant.body_params):\n        BodySchema = params.Form\n    else:\n        BodySchema = params.Body\n\n    media_type = None  # Add logic to determine media_type\n\n    field = ModelField(\n        name=\"body\",\n        type_=BodyModel,\n        class_validators={},\n        default=None,\n        required=required,\n        model_config=BaseConfig,\n        alias=\"body\",\n        schema=BodySchema(media_type=media_type),  # Use the determined media_type\n    )\n    return field",
+            "imports": [
+                "from typing import Optional",
+                "from pydantic.fields import ModelField",
+                "from pydantic import Field, BaseConfig",
+                "from fastapi import params, Body",
+                "from pydantic.main import ModelMetaclass, create_model",
+                "from typing import Type"
+            ]
         }
     ]
 }

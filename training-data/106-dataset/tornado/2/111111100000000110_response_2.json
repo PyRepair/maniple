@@ -62,7 +62,15 @@
             },
             "start_line": 376,
             "file_name": "tornado/http1connection.py",
-            "replace_code": "def write_headers(\n        self,\n        start_line: Union[httputil.RequestStartLine, httputil.ResponseStartLine],\n        headers: httputil.HTTPHeaders,\n        chunk: bytes = None,\n) -> \"Future[None]\":\n    from typing import Union\n    from tornado.concurrent import Future\n    from tornado.http1connection import httputil\n    from tornado.iostream import StreamClosedError\n    from tornado.platform.auto import set_close_exec\n    from tornado.util import utf8\n    \"\"\"Implements `.HTTPConnection.write_headers`.\"\"\"\n    # ... (function's code) ...\n    \n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        future.set_exception(iostream.StreamClosedError())\n        # future.set_exception(StreamClosedError())  # modify the future\n        future.exception()\n    else:\n        future = self._write_future = Future()\n        data = b\"\\r\\n\".join(lines) + b\"\\r\\n\\r\\n\"\n        if chunk:\n            data += self._format_chunk(chunk)\n        self._pending_write = self.stream.write(data)\n        future.add_done_callback(self._on_write_complete)  # we need to modify the function '_on_write_complete'\n    return future"
+            "replace_code": "def write_headers(\n        self,\n        start_line: Union[httputil.RequestStartLine, httputil.ResponseStartLine],\n        headers: httputil.HTTPHeaders,\n        chunk: bytes = None,\n) -> \"Future[None]\":\n    \"\"\"Implements `.HTTPConnection.write_headers`.\"\"\"\n    # ... (function's code) ...\n\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        future.set_exception(iostream.StreamClosedError())\n        # future.set_exception(StreamClosedError())  # modify the future\n        future.exception()\n    else:\n        future = self._write_future = Future()\n        data = b\"\\r\\n\".join(lines) + b\"\\r\\n\\r\\n\"\n        if chunk:\n            data += self._format_chunk(chunk)\n        self._pending_write = self.stream.write(data)\n        future.add_done_callback(self._on_write_complete)  # we need to modify the function '_on_write_complete'\n    return future",
+            "imports": [
+                "from typing import Union",
+                "from tornado.concurrent import Future",
+                "from tornado.http1connection import httputil",
+                "from tornado.iostream import StreamClosedError",
+                "from tornado.platform.auto import set_close_exec",
+                "from tornado.util import utf8"
+            ]
         }
     ]
 }

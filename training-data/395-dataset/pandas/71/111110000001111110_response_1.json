@@ -62,7 +62,17 @@
             },
             "start_line": 30,
             "file_name": "pandas/core/reshape/tile.py",
-            "replace_code": "def cut(x, bins=None, right: bool = True,\n        labels=None, retbins: bool = False, precision: int = 3,\n        include_lowest: bool = False, duplicates: str = 'raise'):\n\n    import numpy as np\n    import pandas as pd\n    from pandas.api.types import is_scalar\n    from pandas.api.types import is_datetime64tz_dtype\n    import pandas.core.algorithms as algos\n    from pandas.core.dtypes.common import is_float\n    from pandas.core.dtypes.dtypes import CategoricalDtype\n    from pandas.core.dtypes.inference import (is_scalar as lib_is_scalar,\n                                          is_list_like,\n                                          is_extension_array_dtype)\n    if retbins and (labels is not None and not lib_is_scalar(labels)):\n        raise ValueError(\n            \"Cannot specify 'retbins' when 'labels' is non-None.\")\n    # Convert input to array\n    x = np.asarray(x)\n    rng = np.min(x), np.max(x)\n    # Infer the type from the values; the result has the dtype\n    xtype = CategoricalDtype(x_dtype, categories=x_values)\n    # Attempt to coerce to float64\n    if not is_float(x):\n        try:\n            x_values = np.array(\n                x_values, copy=False, subok=True, ndmin=1, dtype=np.promote_types(xtype, np.float64))\n        except ValueError:\n            raise ValueError('failed to convert the input')\n    # Error handling\n    left_closed = not right\n    fac, bins = algos.factorize(np.digitize(x, bins, right=right), sort=False)\n    # Return as categoricals\n    res = pd.Categorical(factor, categories=np.arange(len(bins)))\n    if not retbins:\n        return res\n    return res, bins "
+            "replace_code": "def cut(x, bins=None, right: bool = True,\n        labels=None, retbins: bool = False, precision: int = 3,\n        include_lowest: bool = False, duplicates: str = 'raise'):\n\n    if retbins and (labels is not None and not lib_is_scalar(labels)):\n        raise ValueError(\n            \"Cannot specify 'retbins' when 'labels' is non-None.\")\n    # Convert input to array\n    x = np.asarray(x)\n    rng = np.min(x), np.max(x)\n    # Infer the type from the values; the result has the dtype\n    xtype = CategoricalDtype(x_dtype, categories=x_values)\n    # Attempt to coerce to float64\n    if not is_float(x):\n        try:\n            x_values = np.array(\n                x_values, copy=False, subok=True, ndmin=1, dtype=np.promote_types(xtype, np.float64))\n        except ValueError:\n            raise ValueError('failed to convert the input')\n    # Error handling\n    left_closed = not right\n    fac, bins = algos.factorize(np.digitize(x, bins, right=right), sort=False)\n    # Return as categoricals\n    res = pd.Categorical(factor, categories=np.arange(len(bins)))\n    if not retbins:\n        return res\n    return res, bins",
+            "imports": [
+                "import numpy as np",
+                "import pandas as pd",
+                "from pandas.api.types import is_scalar",
+                "from pandas.api.types import is_datetime64tz_dtype",
+                "import pandas.core.algorithms as algos",
+                "from pandas.core.dtypes.common import is_float",
+                "from pandas.core.dtypes.dtypes import CategoricalDtype",
+                "from pandas.core.dtypes.inference import (is_scalar as lib_is_scalar,\n                                          is_list_like,\n                                          is_extension_array_dtype)"
+            ]
         }
     ]
 }

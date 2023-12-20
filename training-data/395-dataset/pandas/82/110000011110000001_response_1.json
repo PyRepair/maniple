@@ -62,7 +62,12 @@
             },
             "start_line": 268,
             "file_name": "pandas/core/internals/concat.py",
-            "replace_code": "def _get_empty_dtype_and_na(join_units):\n    import numpy as np\n    import pandas as pd\n    from pandas.api.types import is_datetime64_dtype, is_bool_dtype\n    if len(join_units) == 1:\n        blk = join_units[0].block\n        if blk is None:\n            return np.float64, np.nan\n    \n    def get_upcast_cls(dtype):\n        if is_datetime64_dtype(dtype):\n            return \"datetime64[ns]\"\n        elif is_bool_dtype(dtype):\n            return \"bool\"\n        else:\n            return dtype\n    \n    dtypes = [get_upcast_cls(unit.dtype) for unit in join_units if unit.block is not None]\n    \n    if not dtypes:\n        return np.dtype('O'), np.nan  # If all blocks are None\n    \n    empty_dtype = pd.api.types.union_categoricals(dtypes)\n    na = pd.NA if pd.api.types.is_object_dtype(empty_dtype) else np.nan\n    return empty_dtype, na"
+            "replace_code": "def _get_empty_dtype_and_na(join_units):\n    if len(join_units) == 1:\n        blk = join_units[0].block\n        if blk is None:\n            return np.float64, np.nan\n\n    def get_upcast_cls(dtype):\n        if is_datetime64_dtype(dtype):\n            return \"datetime64[ns]\"\n        elif is_bool_dtype(dtype):\n            return \"bool\"\n        else:\n            return dtype\n\n    dtypes = [get_upcast_cls(unit.dtype) for unit in join_units if unit.block is not None]\n\n    if not dtypes:\n        return np.dtype('O'), np.nan  # If all blocks are None\n\n    empty_dtype = pd.api.types.union_categoricals(dtypes)\n    na = pd.NA if pd.api.types.is_object_dtype(empty_dtype) else np.nan\n    return empty_dtype, na",
+            "imports": [
+                "import numpy as np",
+                "import pandas as pd",
+                "from pandas.api.types import is_datetime64_dtype, is_bool_dtype"
+            ]
         }
     ]
 }

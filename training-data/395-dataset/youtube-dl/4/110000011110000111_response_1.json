@@ -62,7 +62,11 @@
             },
             "start_line": 58,
             "file_name": "youtube_dl/jsinterp.py",
-            "replace_code": "def interpret_expression(self, expr, local_vars, allow_recursion):\n    import re\n    import json\n    expr = expr.strip()\n    \n    if expr == '':  # Empty expression\n        return None\n    \n    match = re.match(r'^(?P<func>%s)\\((?P<args>[^()]+)?\\)$' % _NAME_RE, expr)\n    if match:\n        func_name = match.group('func')\n        args = match.group('args')\n        arg_vals = []\n        if args:  # If there are arguments\n            for arg in args.split(','):\n                arg = arg.strip()\n                # recursively evaluate the argument expression\n                arg_eval = self.interpret_expression(arg, local_vars, allow_recursion)\n                arg_vals.append(arg_eval)\n        # check if the function is defined\n        if func_name in self._functions:\n            return self._functions[func_name](arg_vals)\n        else:\n            raise ExtractorError('Function %s is not defined' % func_name)\n    \n    # rest of the code remains the same as in the original function\n    # ...\n    \n    raise ExtractorError('Unsupported JS expression %r' % expr)"
+            "replace_code": "def interpret_expression(self, expr, local_vars, allow_recursion):\n    expr = expr.strip()\n\n    if expr == '':  # Empty expression\n        return None\n\n    match = re.match(r'^(?P<func>%s)\\((?P<args>[^()]+)?\\)$' % _NAME_RE, expr)\n    if match:\n        func_name = match.group('func')\n        args = match.group('args')\n        arg_vals = []\n        if args:  # If there are arguments\n            for arg in args.split(','):\n                arg = arg.strip()\n                # recursively evaluate the argument expression\n                arg_eval = self.interpret_expression(arg, local_vars, allow_recursion)\n                arg_vals.append(arg_eval)\n        # check if the function is defined\n        if func_name in self._functions:\n            return self._functions[func_name](arg_vals)\n        else:\n            raise ExtractorError('Function %s is not defined' % func_name)\n\n    # rest of the code remains the same as in the original function\n    # ...\n\n    raise ExtractorError('Unsupported JS expression %r' % expr)",
+            "imports": [
+                "import re",
+                "import json"
+            ]
         }
     ]
 }

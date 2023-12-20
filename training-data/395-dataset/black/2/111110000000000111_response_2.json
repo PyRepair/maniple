@@ -62,7 +62,10 @@
             },
             "start_line": 3112,
             "file_name": "black.py",
-            "replace_code": "def generate_ignored_nodes(leaf: Leaf) -> Iterator[LN]:\n    from typing import Iterator, Optional\n    \"\"\"Starting from the container of `leaf`, generate all leaves until `# fmt: on`.\n    \n    Stops at the end of the block.\n    \"\"\"\n    def is_fmt_on(container):\n        is_on = False\n        for comment in list_comments(container.prefix, is_endmarker=False):\n            if comment.value in FMT_ON:\n                is_on = True\n            elif comment.value in FMT_OFF:\n                is_on = False\n        return is_on\n    \n    def generate_nodes(container):\n        if container is not None and container.type != token.ENDMARKER:\n            is_fmt_on_container = is_fmt_on(container)\n            if is_fmt_on_container:\n                return\n    \n            yield container\n    \n            for child in container.get_children():\n                for node in generate_nodes(child):\n                    yield node\n    \n    container: Optional[LN] = container_of(leaf)\n    for node in generate_nodes(container):\n        yield node"
+            "replace_code": "def generate_ignored_nodes(leaf: Leaf) -> Iterator[LN]:\n    \"\"\"Starting from the container of `leaf`, generate all leaves until `# fmt: on`.\n\n    Stops at the end of the block.\n    \"\"\"\n    def is_fmt_on(container):\n        is_on = False\n        for comment in list_comments(container.prefix, is_endmarker=False):\n            if comment.value in FMT_ON:\n                is_on = True\n            elif comment.value in FMT_OFF:\n                is_on = False\n        return is_on\n\n    def generate_nodes(container):\n        if container is not None and container.type != token.ENDMARKER:\n            is_fmt_on_container = is_fmt_on(container)\n            if is_fmt_on_container:\n                return\n\n            yield container\n\n            for child in container.get_children():\n                for node in generate_nodes(child):\n                    yield node\n\n    container: Optional[LN] = container_of(leaf)\n    for node in generate_nodes(container):\n        yield node",
+            "imports": [
+                "from typing import Iterator, Optional"
+            ]
         }
     ]
 }

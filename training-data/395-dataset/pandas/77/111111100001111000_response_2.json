@@ -62,7 +62,11 @@
             },
             "start_line": 263,
             "file_name": "pandas/core/ops/array_ops.py",
-            "replace_code": "def na_logical_op(x: np.ndarray, y: Any, op: Any) -> np.ndarray:\n    from typing import Any\n    import numpy as np\n    try:\n        result = op(x, y)\n    except TypeError:\n        if isinstance(y, np.ndarray):\n            assert not (np.issubdtype(x.dtype, np.bool_) and np.issubdtype(y.dtype, np.bool_))\n            x = x.astype(object)\n            y = y.astype(object)\n            result = np.array([op(i, j) for i, j in zip(x.ravel(), y.ravel())]).reshape(x.shape)\n        else:\n            if not np.isnan(y):\n                y = bool(y)\n            try:\n                result = np.array([op(i, y) for i in x.ravel()]).reshape(x.shape)\n            except (TypeError, ValueError, AttributeError, OverflowError, NotImplementedError):\n                typ = type(y).__name__\n                raise TypeError(\n                    f\"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array \"\n                    f\"and scalar of type [{typ}]\"\n                )\n    return result"
+            "replace_code": "def na_logical_op(x: np.ndarray, y: Any, op: Any) -> np.ndarray:\n    try:\n        result = op(x, y)\n    except TypeError:\n        if isinstance(y, np.ndarray):\n            assert not (np.issubdtype(x.dtype, np.bool_) and np.issubdtype(y.dtype, np.bool_))\n            x = x.astype(object)\n            y = y.astype(object)\n            result = np.array([op(i, j) for i, j in zip(x.ravel(), y.ravel())]).reshape(x.shape)\n        else:\n            if not np.isnan(y):\n                y = bool(y)\n            try:\n                result = np.array([op(i, y) for i in x.ravel()]).reshape(x.shape)\n            except (TypeError, ValueError, AttributeError, OverflowError, NotImplementedError):\n                typ = type(y).__name__\n                raise TypeError(\n                    f\"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array \"\n                    f\"and scalar of type [{typ}]\"\n                )\n    return result",
+            "imports": [
+                "from typing import Any",
+                "import numpy as np"
+            ]
         }
     ]
 }
