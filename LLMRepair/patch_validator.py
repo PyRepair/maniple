@@ -7,7 +7,7 @@ from command_runner import (
     run_prepare_command,
     run_validate_patch_command,
 )
-from utils import print_in_green, print_in_yellow
+from utils import print_in_green, print_in_red, print_in_yellow
 
 
 def is_patch_file_ok(patchfile_path: str, result_file_path: str, bugid: str) -> bool:
@@ -30,6 +30,48 @@ def is_patch_file_ok(patchfile_path: str, result_file_path: str, bugid: str) -> 
         return False
 
     return True
+
+
+def run_validation_multiple_times(
+    bugid: str,
+    patchfile_path: str,
+    result_file_path: str,
+    timeout: int,
+    envs_dir: Optional[str] = None,
+    use_docker=False,
+    overwrite=False,
+    verbose_logging=False,
+    times=3,
+):
+    running_status_success = True
+
+    for i in range(times):
+        if verbose_logging:
+            print(f"Running validation {i + 1}...")
+            
+        # run validation
+        result_status = run_validate_patch_command(
+            bugid,
+            patchfile_path,
+            result_file_path,
+            timeout,
+            envs_dir,
+            use_docker=use_docker,
+            overwrite=overwrite,
+            verbose_logging=verbose_logging,
+        )
+        running_status_success &= result_status
+
+        with open(result_file_path) as f:
+            patchfile = json.load(f)
+        repair_status = patchfile[bugid]
+        if repair_status != 0:
+            break
+
+    if running_status_success:
+        print_in_green(f"Successfully validated patch for {result_file_path}")
+    else:
+        print_in_red(f"Failed to validate patch for {result_file_path}")
 
 
 def validate_patches(
@@ -87,7 +129,7 @@ def validate_patches(
             continue
 
         # run validation
-        if run_validate_patch_command(
+        run_validation_multiple_times(
             bugid,
             patchfile_path,
             result_file_path,
@@ -96,5 +138,5 @@ def validate_patches(
             use_docker=use_docker,
             overwrite=overwrite,
             verbose_logging=verbose_logging,
-        ):
-            print_in_green(f"Successfully validated patch for {result_file_path}")
+            times=3 if bugid.startswith("keras") else 1,
+        )
