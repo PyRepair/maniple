@@ -24,6 +24,8 @@ class Facts:
     process the facts in a way that can be eaily used to construct a prompt
     """
 
+    MAX_CUTOFF_SIZE = 500
+
     def __init__(self, bugid: str, bug_working_directory: str) -> None:
         self.facts = dict[str, Any]()
         self.stats = dict[str, List[Any]]()
@@ -170,7 +172,7 @@ class Facts:
         if variable_value is None:
             return ""
 
-        max_length = 100
+        max_length = self.MAX_CUTOFF_SIZE
         if len(variable_value) <= max_length:
             return variable_value
 
@@ -358,7 +360,12 @@ class Facts:
 
     @staticmethod
     def _matches_builtin_method(string):
-        pattern = r"<([a-zA-Z\-]+) (?:[^>]+) at 0x[0-9a-f]+>"
+        # Pattern to match built-in methods, functions, bound methods, and class representations
+        pattern = (
+            r"<((built-in (function|method)|function|bound method) "
+            r".+"
+            r"( at 0x[0-9a-f]+| of .+?)?|class '.*?')>"
+        )
         return bool(re.match(pattern, string))
 
     def _resolve_class_info(self, buggy_class_info):
