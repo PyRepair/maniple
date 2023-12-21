@@ -76,8 +76,14 @@ class Facts:
     def _remove_project_root(self, path: str):
         bugid_label = self._bugid.replace(":", "_")
         idx = path.find(bugid_label)
+
         if idx == -1:
-            return path
+            project_name = self._bugid.split(":")[0]
+            idx = path.find(project_name)
+            if idx == -1:
+                return path
+            return path[idx + len(project_name) + 1 :]
+
         return path[idx + len(bugid_label) + 1 :]
 
     def _resolve_file_info(self, filename, file_info):
@@ -160,20 +166,63 @@ class Facts:
         # angelic variables
         self._resolve_angelic_variables(buggy_function_info)
 
-    def _resolve_dynamics_value_and_type(self, varItem) -> Tuple[str, str]:
-        variable_value = varItem["variable_value"]
+    def _smart_cutoff(self, variable_value):
+        if variable_value is None:
+            return ""
+
+        max_length = 100
+        if len(variable_value) <= max_length:
+            return variable_value
+
+        # Paired breakpoints ordered by priority, plus the comma
+        priority_pairs = [("}", "{"), ("]", "["), (")", "(")]
+        fallback_breakpoint = ","
+
+        # Indices to start looking for breakpoints
+        front_index = 30
+        back_index = len(variable_value) - 30
+
+        # Function to find nearest breakpoint for a pair
+        def find_nearest_pair(string: str, pair, start_index, end_index):
+            open_index = string.find(pair[0], start_index)
+            close_index = string.rfind(pair[1], 0, end_index)
+
+            if open_index != -1 and close_index != -1 and open_index < close_index:
+                return open_index, close_index
+            return None
+
+        # Search for breakpoints using pairs
+        for pair in priority_pairs:
+            result = find_nearest_pair(variable_value, pair, front_index, back_index)
+            if result:
+                front_breakpoint, back_breakpoint = result
+                break
+        else:
+            # Fallback to comma
+            front_breakpoint = variable_value.find(fallback_breakpoint, front_index)
+            back_breakpoint = variable_value.rfind(fallback_breakpoint, 0, back_index)
+            if (
+                front_breakpoint == -1
+                or back_breakpoint == -1
+                or front_breakpoint >= back_breakpoint
+            ):
+                # Default breakpoints if no suitable symbols are found
+                front_breakpoint, back_breakpoint = front_index, back_index
+
+        # Substrings
+        front_part = variable_value[: front_breakpoint + 1]
+        back_part = variable_value[back_breakpoint:]
+
+        return f"{front_part} ... {back_part}"
+
+    def _resolve_dynamics_value_and_type(
+        self, varItem
+    ) -> Tuple[str, str, Optional[str]]:
+        variable_value = self._smart_cutoff(varItem["variable_value"])
+        variable_type = varItem["variable_type"]
         variable_shape = varItem["variable_shape"]
 
-        if len(variable_value) > 500:
-            target_variable_value = (
-                f"array of shape {variable_shape}"
-                if variable_shape is not None
-                else f"{variable_value[:30]} ... {variable_value[-30:]}"
-            )
-        else:
-            target_variable_value = variable_value
-
-        return target_variable_value, varItem["variable_type"]
+        return variable_value, variable_type, variable_shape
 
     def _resolve_dynamics(self, values):
         iovals = []
@@ -186,18 +235,33 @@ class Facts:
             for varName, varItem in I.items():
                 if cond(varItem):
                     (
-                        ivals[varName],
-                        itypes[varName],
+                        varValue,
+                        varType,
+                        varShape,
                     ) = self._resolve_dynamics_value_and_type(varItem)
+
+                    ivals[varName] = {
+                        "value": varValue,
+                        "shape": varShape,
+                    }
+                    itypes[varName] = varType
+
             ovals = dict()
             otypes = dict()
 
             for varName, varItem in O.items():
                 if cond(varItem):
                     (
-                        ovals[varName],
-                        otypes[varName],
+                        varValue,
+                        varType,
+                        varShape,
                     ) = self._resolve_dynamics_value_and_type(varItem)
+
+                    ovals[varName] = {
+                        "value": varValue,
+                        "shape": varShape,
+                    }
+                    otypes[varName] = varType
 
             # fix issue to have tuple of 2 empty dicts
             if len(ivals.keys()) > 0 or len(ovals.keys()) > 0:
@@ -498,13 +562,14 @@ def collect_facts(
     overwrite=False,
     verbose_logging=False,
 ):
-    ensure_clone_and_prep_complete(
-        bugid,
-        envs_dir,
-        use_docker=use_docker,
-        overwrite=False,
-        verbose_logging=verbose_logging,
-    )
+    if overwrite:
+        ensure_clone_and_prep_complete(
+            bugid,
+            envs_dir,
+            use_docker=use_docker,
+            overwrite=False,
+            verbose_logging=verbose_logging,
+        )
 
     bug_json_file = os.path.join(bwd, "bug-data.json")
     if not run_extract_features_command(
