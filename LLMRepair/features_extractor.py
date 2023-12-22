@@ -350,21 +350,22 @@ class Facts:
 
     @staticmethod
     def _does_this_variable_record_contains_non_empty_value(variable_record):
+        variable_type = variable_record["variable_type"]
+        variable_value = variable_record["variable_value"]
         if (
-            variable_record["variable_value"] == "None"
-            or variable_record["variable_type"] == "None"
-            or Facts._matches_builtin_method(variable_record["variable_value"])
+            variable_value == "None"
+            or variable_type == "None"
+            or Facts._matches_builtin_method(variable_value)
+            or variable_type in ["function", "method"]
         ):
             return False
         return True
 
     @staticmethod
     def _matches_builtin_method(string):
-        # Pattern to match built-in methods, functions, bound methods, and class representations
         pattern = (
-            r"<((built-in (function|method)|function|bound method) "
-            r".+"
-            r"( at 0x[0-9a-f]+| of .+?)?|class '.*?')>"
+            r"<(built-in (function|method)|function|bound method [^>]*|class '[^']*')"
+            r".*?>"
         )
         return bool(re.match(pattern, string))
 
