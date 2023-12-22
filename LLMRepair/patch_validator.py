@@ -48,7 +48,7 @@ def run_validation_multiple_times(
     for i in range(times):
         if verbose_logging:
             print(f"Running validation {i + 1}...")
-            
+
         # run validation
         result_status = run_validate_patch_command(
             bugid,
@@ -138,5 +138,13 @@ def validate_patches(
             use_docker=use_docker,
             overwrite=overwrite,
             verbose_logging=verbose_logging,
-            times=3 if bugid.startswith("keras") else 1,
+            times=get_run_times_for_bugid(bugid),
         )
+
+
+def get_run_times_for_bugid(bugid: str):
+    projects_need_rerun = ["keras", "tqdm", "black", "PySnooper"]
+    if any(bugid.startswith(pn) for pn in projects_need_rerun):
+        return 10
+    else:
+        return 1
