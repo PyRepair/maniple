@@ -170,11 +170,11 @@ class Facts:
 
     def _smart_cutoff(self, variable_value):
         if variable_value is None:
-            return ""
+            return "", False
 
         max_length = self.MAX_CUTOFF_SIZE
         if len(variable_value) <= max_length:
-            return variable_value
+            return variable_value, False
 
         # Paired breakpoints ordered by priority, plus the comma
         priority_pairs = [("}", "{"), ("]", "["), (")", "(")]
@@ -215,16 +215,16 @@ class Facts:
         front_part = variable_value[: front_breakpoint + 1]
         back_part = variable_value[back_breakpoint:]
 
-        return f"{front_part} ... {back_part}"
+        return f"{front_part} ... {back_part}", True
 
     def _resolve_dynamics_value_and_type(
         self, varItem
-    ) -> Tuple[str, str, Optional[str]]:
-        variable_value = self._smart_cutoff(varItem["variable_value"])
+    ) -> Tuple[str, str, Optional[str], bool]:
+        variable_value, omitted = self._smart_cutoff(varItem["variable_value"])
         variable_type = varItem["variable_type"]
         variable_shape = varItem["variable_shape"]
 
-        return variable_value, variable_type, variable_shape
+        return variable_value, variable_type, variable_shape, omitted
 
     def _resolve_dynamics(self, values):
         iovals = []
@@ -240,11 +240,13 @@ class Facts:
                         varValue,
                         varType,
                         varShape,
+                        omitted,
                     ) = self._resolve_dynamics_value_and_type(varItem)
 
                     ivals[varName] = {
                         "value": varValue,
                         "shape": varShape,
+                        "omitted": omitted,
                     }
                     itypes[varName] = varType
 
@@ -257,11 +259,13 @@ class Facts:
                         varValue,
                         varType,
                         varShape,
+                        omitted,
                     ) = self._resolve_dynamics_value_and_type(varItem)
 
                     ovals[varName] = {
                         "value": varValue,
                         "shape": varShape,
+                        "omitted": omitted,
                     }
                     otypes[varName] = varType
 
