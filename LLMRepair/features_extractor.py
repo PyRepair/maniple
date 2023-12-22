@@ -360,7 +360,7 @@ class Facts:
             variable_value == "None"
             or variable_type == "None"
             or Facts._matches_builtin_method(variable_value)
-            or variable_type in ["function", "method"]
+            or variable_type in ["function", "method", "type"]
         ):
             return False
         return True
