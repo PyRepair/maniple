@@ -367,10 +367,7 @@ class Facts:
 
     @staticmethod
     def _matches_builtin_method(string):
-        pattern = (
-            r"<(built-in (function|method)|function|bound method [^>]*|class '[^']*')"
-            r".*?>"
-        )
+        pattern = r"<.* at 0x[0-9a-f]+>"
         return bool(re.match(pattern, string))
 
     def _resolve_class_info(self, buggy_class_info):
