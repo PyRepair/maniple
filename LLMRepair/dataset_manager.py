@@ -139,7 +139,7 @@ def _load_bugids_from_dataset_impl(
         os.path.dirname(os.path.abspath(__file__)),
         "..",
         "training-data",
-        "subsets-list",
+        "datasets-list",
     )
 
     if dataset == "106subset":

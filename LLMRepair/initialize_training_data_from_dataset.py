@@ -6,7 +6,7 @@ from utils import print_in_red
 
 dataset = "30-395-dataset"
 
-dataset_path = os.path.join("..", "experiment-initialization-resources", "subsets-list", dataset + ".json")
+dataset_path = os.path.join("..", "experiment-initialization-resources", "datasets-list", dataset + ".json")
 if not os.path.exists(dataset_path):
     print_in_red(f"dataset: {dataset} not exist")
 else:

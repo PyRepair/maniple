@@ -731,7 +731,7 @@ if __name__ == "__main__":
     args_parser.add_argument(
         "--database",
         type=str,
-        help="specify database: 106-dataset or 395-dataset",
+        help="specify a database name under training-data folder",
         required=True
     )
     args_parser.add_argument(
