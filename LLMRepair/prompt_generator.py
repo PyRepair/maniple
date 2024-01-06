@@ -168,7 +168,7 @@ class PromptGenerator:
 
         self.generate_cot()
 
-        self.write_prompt()
+        self.collect_fact_content_in_prompt()
 
     def generate_variable_runtime_info(self):
         variable_runtime_value_test_cases: list = self.facts["2.1.5"]
@@ -313,22 +313,49 @@ class PromptGenerator:
                           f"{'related functions, ' if self.actual_strata_bitvector['3'] == 1 else ''}"
                           f"{'test code and corresponding error message, ' if self.actual_strata_bitvector['4'] == 1 else ''}"
                           f"{'the expected and actual input/output variable information, ' if self.actual_strata_bitvector['5'] == 1 else ''}"
-                          f"{'the github issue' if self.actual_strata_bitvector['6'] == 1 else ''}.")
+                          f"{'the github issue' if self.actual_strata_bitvector['6'] == 1 else ''}")
             if optional_1[-3:-1] == ", ":
                 optional_1 = optional_1[:-3] + optional_1[-1]
 
             new_line_str = "\n"
-            optional_2 = (f"{'   (b). The buggy class' + new_line_str if self.actual_strata_bitvector['2'] == 1 else ''}"
-                          f"{'   (c). The related functions' + new_line_str  if self.actual_strata_bitvector['3'] == 1 else ''}"
-                          f"{'   (d). The failing test and error message' + new_line_str if self.actual_strata_bitvector['4'] == 1 else ''}"
-                          f"{'   (e). Discrepancies between expected and actual input/output variable value' + new_line_str if self.actual_strata_bitvector['5'] == 1 else ''}"
-                          f"{'   (f). The GitHub Issue information' + new_line_str if self.actual_strata_bitvector['6'] == 1 else ''}")
 
-            optional_3 = (f"{'   (a). Passes the failing test.' + new_line_str if self.actual_strata_bitvector['4'] == 1 else ''}"
-                          f"{'   (b). Satisfies the expected input/output variable information provided.' + new_line_str if self.actual_strata_bitvector['5'] == 1 else ''}"
-                          f"{'   (c). Successfully resolves the issue posted in GitHub' + new_line_str if self.actual_strata_bitvector['6'] == 1 else ''}")
+            count = 98
+            optional_2 = ""
+            if self.actual_strata_bitvector['2'] == 1:
+                optional_2 += f"   ({chr(count)}). The buggy class\n"
+                count += 1
 
-            self.strata_7_content = self.strata_7_content + f"""{"1. Analyze the buggy function and it's relationship with the " + optional_1 if optional_1 != "" else "1. Analyze the buggy function."}
+            if self.actual_strata_bitvector['3'] == 1:
+                optional_2 += f"   ({chr(count)}). The related functions\n"
+                count += 1
+
+            if self.actual_strata_bitvector['4'] == 1:
+                optional_2 += f"   ({chr(count)}). The failing test and error message\n"
+                count += 1
+
+            if self.actual_strata_bitvector['5'] == 1:
+                optional_2 += f"   ({chr(count)}). Discrepancies between expected and actual input/output variable value\n"
+                count += 1
+
+            if self.actual_strata_bitvector['6'] == 1:
+                optional_2 += f"   ({chr(count)}). The GitHub Issue information\n"
+                count += 1
+
+            count = 97
+            optional_3 = ""
+            if self.actual_strata_bitvector['4'] == 1:
+                optional_3 += f"   ({chr(count)}). Passes the failing test\n"
+                count += 1
+
+            if self.actual_strata_bitvector['5'] == 1:
+                optional_3 += f"   ({chr(count)}). Satisfies the expected input/output variable information provided\n"
+                count += 1
+
+            if self.actual_strata_bitvector['6'] == 1:
+                optional_3 += f"   ({chr(count)}). Successfully resolves the issue posted in GitHub\n"
+                count += 1
+
+            self.strata_7_content = self.strata_7_content + f"""{"1. Analyze the buggy function and it's relationship with the " + optional_1 + "." if optional_1 != "" else "1. Analyze the buggy function."}
 2. Identify the potential error location within the problematic function.
 3. Elucidate the bug's cause using:
    (a). The buggy function
@@ -489,8 +516,6 @@ class PromptGenerator:
         prompt_file_name += "_prompt.md"
         with open(os.path.join(self.output_dir, prompt_file_name), "w", encoding='utf-8') as output_file:
             output_file.write(self.prompt)
-
-        self.collect_fact_content_in_prompt()
 
     def collect_fact_content_in_prompt(self):
         for selected in self.strata_bitvector.values():
@@ -693,9 +718,10 @@ def run_single_bitvector_partition(partition_bitvectors):
                 try:
                     print(f"generate prompt for {project}:{bid}")
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
+                    prompt_generator.generate_prompt()
                     if not prompt_generator.exist_null_strata():
-                        prompt_generator.generate_prompt()
-                        prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106", 0)
+                        prompt_generator.write_prompt()
+                        # prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106", 0)
                 except Exception as e:
                     print_in_red(str(e))
 
@@ -704,7 +730,6 @@ if __name__ == "__main__":
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         "--database",
-        choices=["106-dataset", "395-dataset"],
         type=str,
         help="specify database: 106-dataset or 395-dataset",
         required=True
@@ -725,7 +750,7 @@ if __name__ == "__main__":
     strata_bitvectors = []
 
     pattern = "*bitvector*.json"
-    bitvector_files = glob.glob(os.path.join("experiment-setting", "strata-bitvectors", pattern))
+    bitvector_files = glob.glob(os.path.join("experiment-initialization-resources", "strata-bitvectors", pattern))
     for file in bitvector_files:
         with open(file, "r") as input_bitvector_file:
             strata_bitvectors.append(json.load(input_bitvector_file))
