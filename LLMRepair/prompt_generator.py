@@ -119,8 +119,11 @@ class PromptGenerator:
         self.strata_6_content = ""
         self.strata_7_content = ""
 
+    def exist_null_strata(self):
+        return self.strata_bitvector != self.actual_strata_bitvector
+
     def get_actual_strata(self, strata_bitvector: dict) -> dict:
-        bitvector = {
+        actual_strata_bitvector = {
             "1": 0,
             "2": 0,
             "3": 0,
@@ -134,10 +137,10 @@ class PromptGenerator:
                 facts: dict = strata_bitvector[strata]
                 for fact in facts.keys():
                     if self.actual_bitvector[fact] == 1:
-                        bitvector[strata] = 1
+                        actual_strata_bitvector[strata] = 1
                         break
 
-        return bitvector
+        return actual_strata_bitvector
 
     def generate_prompt(self):
         self.prompt: str = self.template["preface"]
@@ -179,28 +182,34 @@ class PromptGenerator:
         elif self.actual_bitvector["2.1.6"] == 1:
             place_holder = "type"
 
-        self.strata_5_content = self.strata_5_content + f"# Variable runtime {place_holder} inside buggy function\n"
+        self.strata_5_content = self.strata_5_content + f"# Runtime {place_holder} of variables inside the buggy function\n"
+
+        self.strata_5_content = self.strata_5_content + f"Each case below includes input parameter {place_holder}, and the {place_holder} of relevant variables at the function's return, derived from executing failing tests. If an input parameter is not reflected in the output, it is assumed to remain unchanged. Note that some of these values at the function's return might be incorrect. Analyze these cases to identify why the tests are failing to effectively fix the bug.\n\n"
 
         for test_case_index in range(len(variable_runtime_value_test_cases)):
-            self.strata_5_content = self.strata_5_content + f"## Buggy case {test_case_index + 1}\n"
+            self.strata_5_content = self.strata_5_content + f"## Case {test_case_index + 1}\n"
 
             runtime_values: list = variable_runtime_value_test_cases[test_case_index]
             runtime_types: list = variable_runtime_type_test_cases[test_case_index]
 
-            self.strata_5_content = self.strata_5_content + f"### input parameter runtime {place_holder} for buggy function\n"
+            self.strata_5_content = self.strata_5_content + f"### Runtime {place_holder} of the input parameters of the buggy function\n"
 
             input_parameter_values: dict = runtime_values[0]
             input_parameter_types: dict = runtime_types[0]
             for variable in input_parameter_values.keys():
-                variable_value = input_parameter_values[variable]
+                variable_value = input_parameter_values[variable]["value"]
                 variable_type = input_parameter_types[variable]
+                if input_parameter_values[variable]["omitted"]:
+                    variable_shape = f", shape: `{input_parameter_values[variable]['shape']}`"
+                else:
+                    variable_shape = ""
 
                 self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                 if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`, type: `{variable_type}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
                 elif self.actual_bitvector["2.1.5"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}"
                 elif self.actual_bitvector["2.1.6"] == 1:
                     self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
 
@@ -208,23 +217,23 @@ class PromptGenerator:
 
             variable_values_before_return: dict = runtime_values[1]
             variable_types_before_return: dict = runtime_types[1]
-            if len(variable_values_before_return) == 0:
-                # self.prompt = self.prompt + "### Variable runtime info before function return is not available\n\n"
-                continue
-
-            else:
-                self.strata_5_content = self.strata_5_content + f"### variable runtime {place_holder} before buggy function return\n"
+            if len(variable_values_before_return) > 0:
+                self.strata_5_content = self.strata_5_content + f"### Runtime {place_holder} of variables right before the buggy function's return\n"
 
                 for variable in variable_values_before_return.keys():
-                    variable_value = variable_values_before_return[variable]
+                    variable_value = variable_values_before_return[variable]["value"]
                     variable_type = variable_types_before_return[variable]
+                    if variable_values_before_return[variable]["omitted"]:
+                        variable_shape = f", shape: `{variable_values_before_return[variable]['shape']}`"
+                    else:
+                        variable_shape = ""
 
                     self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                     if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`, type: `{variable_type}`"
+                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
                     elif self.actual_bitvector["2.1.5"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`"
+                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}"
                     elif self.actual_bitvector["2.1.6"] == 1:
                         self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
 
@@ -242,7 +251,8 @@ class PromptGenerator:
         elif self.actual_bitvector["2.1.4"] == 1:
             place_holder = "type"
 
-        self.strata_5_content = self.strata_5_content + f"# Expected variable {place_holder} in tests\n"
+        self.strata_5_content = self.strata_5_content + f"# Expected {place_holder} of variables during the failing test execution\n"
+        self.strata_5_content = self.strata_5_content + f"Each case below includes input parameter {place_holder}, and the expected {place_holder} of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. A corrected function must satisfy all these cases.\n\n"
 
         for test_case_index in range(len(variable_angelic_value_test_cases)):
             self.strata_5_content = self.strata_5_content + f"## Expected case {test_case_index + 1}\n"
@@ -255,15 +265,19 @@ class PromptGenerator:
             input_parameter_values: dict = angelic_values[0]
             input_parameter_types: dict = angelic_types[0]
             for variable in input_parameter_values.keys():
-                variable_value = input_parameter_values[variable]
+                variable_value = input_parameter_values[variable]["value"]
                 variable_type = input_parameter_types[variable]
+                if input_parameter_values[variable]["omitted"]:
+                    variable_shape = f", shape: `{input_parameter_values[variable]['shape']}`"
+                else:
+                    variable_shape = ""
 
                 self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                 if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`, type: `{variable_type}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
                 elif self.actual_bitvector["2.1.3"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`"
+                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}"
                 elif self.actual_bitvector["2.1.4"] == 1:
                     self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
 
@@ -271,23 +285,23 @@ class PromptGenerator:
 
             variable_values_before_return: dict = angelic_values[1]
             variable_types_before_return: dict = angelic_types[1]
-            if len(variable_values_before_return) == 0:
-                #self.prompt = self.prompt + "### Expected variable value before function return is not available\n\n"
-                continue
-
-            else:
-                self.strata_5_content = self.strata_5_content + f"### Expected variable {place_holder} before function return\n"
+            if len(variable_values_before_return) > 0:
+                self.strata_5_content = self.strata_5_content + f"### Expected {place_holder} of variables right before the buggy function's return\n"
 
                 for variable in variable_values_before_return.keys():
-                    variable_value = variable_values_before_return[variable]
+                    variable_value = variable_values_before_return[variable]["value"]
                     variable_type = variable_types_before_return[variable]
+                    if variable_values_before_return[variable]["omitted"]:
+                        variable_shape = f", shape: `{variable_values_before_return[variable]['shape']}`"
+                    else:
+                        variable_shape = ""
 
                     self.strata_5_content = self.strata_5_content + f"{variable}, "
 
                     if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`, type: `{variable_type}`"
+                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
                     elif self.actual_bitvector["2.1.3"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`"
+                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`{variable_shape}"
                     elif self.actual_bitvector["2.1.4"] == 1:
                         self.strata_5_content = self.strata_5_content + f"expected type: `{variable_type}`"
 
@@ -295,7 +309,33 @@ class PromptGenerator:
 
     def generate_cot(self):
         if self.actual_bitvector["cot"] == 1:
-            self.strata_7_content = self.strata_7_content + self.template["cot"]
+            optional_1 = (f"{'buggy class, ' if self.actual_strata_bitvector['2'] == 1 else ''}"
+                          f"{'related functions, ' if self.actual_strata_bitvector['3'] == 1 else ''}"
+                          f"{'test code and corresponding error message, ' if self.actual_strata_bitvector['4'] == 1 else ''}"
+                          f"{'the expected and actual input/output variable information, ' if self.actual_strata_bitvector['5'] == 1 else ''}"
+                          f"{'the github issue' if self.actual_strata_bitvector['6'] == 1 else ''}.")
+            if optional_1[-3:-1] == ", ":
+                optional_1 = optional_1[:-3] + optional_1[-1]
+
+            new_line_str = "\n"
+            optional_2 = (f"{'   (b). The buggy class' + new_line_str if self.actual_strata_bitvector['2'] == 1 else ''}"
+                          f"{'   (c). The related functions' + new_line_str  if self.actual_strata_bitvector['3'] == 1 else ''}"
+                          f"{'   (d). The failing test and error message' + new_line_str if self.actual_strata_bitvector['4'] == 1 else ''}"
+                          f"{'   (e). Discrepancies between expected and actual input/output variable value' + new_line_str if self.actual_strata_bitvector['5'] == 1 else ''}"
+                          f"{'   (f). The GitHub Issue information' + new_line_str if self.actual_strata_bitvector['6'] == 1 else ''}")
+
+            optional_3 = (f"{'   (a). Passes the failing test.' + new_line_str if self.actual_strata_bitvector['4'] == 1 else ''}"
+                          f"{'   (b). Satisfies the expected input/output variable information provided.' + new_line_str if self.actual_strata_bitvector['5'] == 1 else ''}"
+                          f"{'   (c). Successfully resolves the issue posted in GitHub' + new_line_str if self.actual_strata_bitvector['6'] == 1 else ''}")
+
+            self.strata_7_content = self.strata_7_content + f"""{"1. Analyze the buggy function and it's relationship with the " + optional_1 if optional_1 != "" else "1. Analyze the buggy function."}
+2. Identify the potential error location within the problematic function.
+3. Elucidate the bug's cause using:
+   (a). The buggy function
+{optional_2}
+4. Suggest possible approaches for fixing the bug.
+{'5. Present the corrected code for the problematic function such that it satisfied the following:' + new_line_str + optional_3 if optional_3 != "" else "5. Present the corrected code"}
+"""
 
         self.prompt = self.prompt + self.strata_7_content
 
@@ -653,8 +693,9 @@ def run_single_bitvector_partition(partition_bitvectors):
                 try:
                     print(f"generate prompt for {project}:{bid}")
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
-                    prompt_generator.generate_prompt()
-                    prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106", 0)
+                    if not prompt_generator.exist_null_strata():
+                        prompt_generator.generate_prompt()
+                        prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106", 0)
                 except Exception as e:
                     print_in_red(str(e))
 
@@ -684,7 +725,7 @@ if __name__ == "__main__":
     strata_bitvectors = []
 
     pattern = "*bitvector*.json"
-    bitvector_files = glob.glob(os.path.join("training-data", "strata-bitvectors", pattern))
+    bitvector_files = glob.glob(os.path.join("experiment-setting", "strata-bitvectors", pattern))
     for file in bitvector_files:
         with open(file, "r") as input_bitvector_file:
             strata_bitvectors.append(json.load(input_bitvector_file))

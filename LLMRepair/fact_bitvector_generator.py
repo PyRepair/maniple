@@ -50,7 +50,7 @@ strata_bitvector = {
     }
 }
 
-database_path = os.path.join("..", "preliminary-study", "strata-bitvectors")
+database_path = os.path.join("..", "experiment-setting", "strata-bitvectors")
 
 if not os.path.exists(database_path):
     os.makedirs(database_path)
