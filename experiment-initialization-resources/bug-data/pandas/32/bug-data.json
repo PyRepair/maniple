@@ -1,0 +1,2163 @@
+{
+    "pandas:32": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/io/sas/sas_xport.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "__init__",
+                    "function_code": "def __init__(\n    self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n):\n\n    self._encoding = encoding\n    self._lines_read = 0\n    self._index = index\n    self._chunksize = chunksize\n\n    if isinstance(filepath_or_buffer, str):\n        (\n            filepath_or_buffer,\n            encoding,\n            compression,\n            should_close,\n        ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n\n    if isinstance(filepath_or_buffer, (str, bytes)):\n        self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n    else:\n        # Copy to BytesIO, and ensure no encoding\n        contents = filepath_or_buffer.read()\n        try:\n            contents = contents.encode(self._encoding)\n        except UnicodeEncodeError:\n            pass\n        self.filepath_or_buffer = BytesIO(contents)\n\n    self._read_header()\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 246,
+                    "end_line": 274,
+                    "variables": {
+                        "self._encoding": [
+                            250,
+                            269
+                        ],
+                        "self": [
+                            264,
+                            269,
+                            272,
+                            274,
+                            250,
+                            251,
+                            252,
+                            253
+                        ],
+                        "encoding": [
+                            250,
+                            258,
+                            261
+                        ],
+                        "self._lines_read": [
+                            251
+                        ],
+                        "self._index": [
+                            252
+                        ],
+                        "index": [
+                            252
+                        ],
+                        "self._chunksize": [
+                            253
+                        ],
+                        "chunksize": [
+                            253
+                        ],
+                        "isinstance": [
+                            263,
+                            255
+                        ],
+                        "filepath_or_buffer": [
+                            257,
+                            261,
+                            263,
+                            264,
+                            267,
+                            255
+                        ],
+                        "str": [
+                            263,
+                            255
+                        ],
+                        "compression": [
+                            259
+                        ],
+                        "should_close": [
+                            260
+                        ],
+                        "get_filepath_or_buffer": [
+                            261
+                        ],
+                        "bytes": [
+                            263
+                        ],
+                        "self.filepath_or_buffer": [
+                            264,
+                            272
+                        ],
+                        "open": [
+                            264
+                        ],
+                        "contents": [
+                            272,
+                            267,
+                            269
+                        ],
+                        "filepath_or_buffer.read": [
+                            267
+                        ],
+                        "contents.encode": [
+                            269
+                        ],
+                        "UnicodeEncodeError": [
+                            270
+                        ],
+                        "BytesIO": [
+                            272
+                        ],
+                        "self._read_header": [
+                            274
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self._encoding": [
+                            250,
+                            269
+                        ],
+                        "self": [
+                            264,
+                            269,
+                            272,
+                            274,
+                            250,
+                            251,
+                            252,
+                            253
+                        ],
+                        "encoding": [
+                            250,
+                            258,
+                            261
+                        ],
+                        "self._lines_read": [
+                            251
+                        ],
+                        "self._index": [
+                            252
+                        ],
+                        "index": [
+                            252
+                        ],
+                        "self._chunksize": [
+                            253
+                        ],
+                        "chunksize": [
+                            253
+                        ],
+                        "filepath_or_buffer": [
+                            257,
+                            261,
+                            263,
+                            264,
+                            267,
+                            255
+                        ],
+                        "compression": [
+                            259
+                        ],
+                        "should_close": [
+                            260
+                        ],
+                        "get_filepath_or_buffer": [
+                            261
+                        ],
+                        "self.filepath_or_buffer": [
+                            264,
+                            272
+                        ],
+                        "contents": [
+                            272,
+                            267,
+                            269
+                        ],
+                        "filepath_or_buffer.read": [
+                            267
+                        ],
+                        "contents.encode": [
+                            269
+                        ],
+                        "BytesIO": [
+                            272
+                        ],
+                        "self._read_header": [
+                            274
+                        ]
+                    },
+                    "diff_line_number": 266,
+                    "class_data": {
+                        "signature": "class XportReader(abc.Iterator)",
+                        "docstring": null,
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, filepath_or_buffer, index=None, encoding='ISO-8859-1', chunksize=None):\n    self._encoding = encoding\n    self._lines_read = 0\n    self._index = index\n    self._chunksize = chunksize\n    if isinstance(filepath_or_buffer, str):\n        filepath_or_buffer, encoding, compression, should_close = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    if isinstance(filepath_or_buffer, (str, bytes)):\n        self.filepath_or_buffer = open(filepath_or_buffer, 'rb')\n    else:\n        contents = filepath_or_buffer.read()\n        try:\n            contents = contents.encode(self._encoding)\n        except UnicodeEncodeError:\n            pass\n        self.filepath_or_buffer = BytesIO(contents)\n    self._read_header()",
+                            "def close(self):\n    self.filepath_or_buffer.close()",
+                            "def _get_row(self):\n    return self.filepath_or_buffer.read(80).decode()",
+                            "def _read_header(self):\n    self.filepath_or_buffer.seek(0)\n    line1 = self._get_row()\n    if line1 != _correct_line1:\n        self.close()\n        raise ValueError('Header record is not an XPORT file.')\n    line2 = self._get_row()\n    fif = [['prefix', 24], ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]\n    file_info = _split_line(line2, fif)\n    if file_info['prefix'] != 'SAS     SAS     SASLIB':\n        self.close()\n        raise ValueError('Header record has invalid prefix.')\n    file_info['created'] = _parse_date(file_info['created'])\n    self.file_info = file_info\n    line3 = self._get_row()\n    file_info['modified'] = _parse_date(line3[:16])\n    header1 = self._get_row()\n    header2 = self._get_row()\n    headflag1 = header1.startswith(_correct_header1)\n    headflag2 = header2 == _correct_header2\n    if not (headflag1 and headflag2):\n        self.close()\n        raise ValueError('Member header not found')\n    fieldnamelength = int(header1[-5:-2])\n    mem = [['prefix', 8], ['set_name', 8], ['sasdata', 8], ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]\n    member_info = _split_line(self._get_row(), mem)\n    mem = [['modified', 16], ['_', 16], ['label', 40], ['type', 8]]\n    member_info.update(_split_line(self._get_row(), mem))\n    member_info['modified'] = _parse_date(member_info['modified'])\n    member_info['created'] = _parse_date(member_info['created'])\n    self.member_info = member_info\n    types = {1: 'numeric', 2: 'char'}\n    fieldcount = int(self._get_row()[54:58])\n    datalength = fieldnamelength * fieldcount\n    if datalength % 80:\n        datalength += 80 - datalength % 80\n    fielddata = self.filepath_or_buffer.read(datalength)\n    fields = []\n    obs_length = 0\n    while len(fielddata) >= fieldnamelength:\n        field, fielddata = (fielddata[:fieldnamelength], fielddata[fieldnamelength:])\n        field = field.ljust(140)\n        fieldstruct = struct.unpack('>hhhh8s40s8shhh2s8shhl52s', field)\n        field = dict(zip(_fieldkeys, fieldstruct))\n        del field['_']\n        field['ntype'] = types[field['ntype']]\n        fl = field['field_length']\n        if field['ntype'] == 'numeric' and (fl < 2 or fl > 8):\n            self.close()\n            msg = f'Floating field width {fl} is not between 2 and 8.'\n            raise TypeError(msg)\n        for k, v in field.items():\n            try:\n                field[k] = v.strip()\n            except AttributeError:\n                pass\n        obs_length += field['field_length']\n        fields += [field]\n    header = self._get_row()\n    if not header == _correct_obs_header:\n        self.close()\n        raise ValueError('Observation header not found.')\n    self.fields = fields\n    self.record_length = obs_length\n    self.record_start = self.filepath_or_buffer.tell()\n    self.nobs = self._record_count()\n    self.columns = [x['name'].decode() for x in self.fields]\n    dtypel = [('s' + str(i), 'S' + str(field['field_length'])) for i, field in enumerate(self.fields)]\n    dtype = np.dtype(dtypel)\n    self._dtype = dtype",
+                            "def __next__(self):\n    return self.read(nrows=self._chunksize or 1)",
+                            "def _record_count(self) -> int:\n    \"\"\"\n    Get number of records in file.\n\n    This is maybe suboptimal because we have to seek to the end of\n    the file.\n\n    Side effect: returns file position to record_start.\n    \"\"\"\n    self.filepath_or_buffer.seek(0, 2)\n    total_records_length = self.filepath_or_buffer.tell() - self.record_start\n    if total_records_length % 80 != 0:\n        warnings.warn('xport file may be corrupted')\n    if self.record_length > 80:\n        self.filepath_or_buffer.seek(self.record_start)\n        return total_records_length // self.record_length\n    self.filepath_or_buffer.seek(-80, 2)\n    last_card = self.filepath_or_buffer.read(80)\n    last_card = np.frombuffer(last_card, dtype=np.uint64)\n    ix = np.flatnonzero(last_card == 2314885530818453536)\n    if len(ix) == 0:\n        tail_pad = 0\n    else:\n        tail_pad = 8 * len(ix)\n    self.filepath_or_buffer.seek(self.record_start)\n    return (total_records_length - tail_pad) // self.record_length",
+                            "def get_chunk(self, size=None):\n    \"\"\"\n    Reads lines from Xport file and returns as dataframe\n\n    Parameters\n    ----------\n    size : int, defaults to None\n        Number of lines to read.  If None, reads whole file.\n\n    Returns\n    -------\n    DataFrame\n    \"\"\"\n    if size is None:\n        size = self._chunksize\n    return self.read(nrows=size)",
+                            "def _missing_double(self, vec):\n    v = vec.view(dtype='u1,u1,u2,u4')\n    miss = (v['f1'] == 0) & (v['f2'] == 0) & (v['f3'] == 0)\n    miss1 = (v['f0'] >= 65) & (v['f0'] <= 90) | (v['f0'] == 95) | (v['f0'] == 46)\n    miss &= miss1\n    return miss",
+                            "@Appender(_read_method_doc)\ndef read(self, nrows=None):\n    if nrows is None:\n        nrows = self.nobs\n    read_lines = min(nrows, self.nobs - self._lines_read)\n    read_len = read_lines * self.record_length\n    if read_len <= 0:\n        self.close()\n        raise StopIteration\n    raw = self.filepath_or_buffer.read(read_len)\n    data = np.frombuffer(raw, dtype=self._dtype, count=read_lines)\n    df = pd.DataFrame(index=range(read_lines))\n    for j, x in enumerate(self.columns):\n        vec = data['s' + str(j)]\n        ntype = self.fields[j]['ntype']\n        if ntype == 'numeric':\n            vec = _handle_truncated_float_vec(vec, self.fields[j]['field_length'])\n            miss = self._missing_double(vec)\n            v = _parse_float_vec(vec)\n            v[miss] = np.nan\n        elif self.fields[j]['ntype'] == 'char':\n            v = [y.rstrip() for y in vec]\n            if self._encoding is not None:\n                v = [y.decode(self._encoding) for y in v]\n        df[x] = v\n    if self._index is None:\n        df.index = range(self._lines_read, self._lines_read + read_lines)\n    else:\n        df = df.set_index(self._index)\n    self._lines_read += read_lines\n    return df"
+                        ],
+                        "constructor_variables": [
+                            "_lines_read",
+                            "_index",
+                            "contents",
+                            "filepath_or_buffer",
+                            "_chunksize",
+                            "_encoding"
+                        ],
+                        "class_level_variables": [
+                            "__doc__"
+                        ],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, filepath_or_buffer, index=None, encoding='ISO-8859-1', chunksize=None)",
+                            "close(self)",
+                            "_get_row(self)",
+                            "_read_header(self)",
+                            "__next__(self)",
+                            "_record_count(self) -> int",
+                            "get_chunk(self, size=None)",
+                            "_missing_double(self, vec)",
+                            "read(self, nrows=None)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "self._encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x11a71bc10>",
+                                    "variable_type": "XportReader",
+                                    "variable_shape": null
+                                },
+                                "encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._lines_read": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer": {
+                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_type": "BufferedReader",
+                                    "variable_shape": null
+                                },
+                                "compression": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "should_close": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "get_filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.filepath_or_buffer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "contents": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer.read": {
+                                    "variable_value": "<built-in method read of _io.BufferedReader object at 0x11a7bb510>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "contents.encode": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "BytesIO": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self._read_header": {
+                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x11a71bc10>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "self._encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>",
+                                    "variable_type": "XportReader",
+                                    "variable_shape": null
+                                },
+                                "encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._lines_read": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer": {
+                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_type": "BufferedReader",
+                                    "variable_shape": null
+                                },
+                                "compression": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "should_close": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "get_filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.filepath_or_buffer": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._read_header": {
+                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "self._encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>",
+                                    "variable_type": "XportReader",
+                                    "variable_shape": null
+                                },
+                                "encoding": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._lines_read": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self._index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self._chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "chunksize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "filepath_or_buffer": {
+                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_type": "BufferedReader",
+                                    "variable_shape": null
+                                },
+                                "compression": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "should_close": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "get_filepath_or_buffer": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.filepath_or_buffer": {
+                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_type": "BufferedReader",
+                                    "variable_shape": null
+                                },
+                                "self._read_header": {
+                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "from io import BytesIO",
+                    "start_line": 12,
+                    "end_line": 12
+                }
+            ],
+            "inscope_functions": [
+                "def _parse_date(datestr: str) -> datetime:\n    \"\"\" Given a date in xport format, return Python date. \"\"\"\n    try:\n        # e.g. \"16FEB11:10:07:55\"\n        return datetime.strptime(datestr, \"%d%b%y:%H:%M:%S\")\n    except ValueError:\n        return pd.NaT",
+                "def _split_line(s: str, parts):\n    \"\"\"\n    Parameters\n    ----------\n    s: str\n        Fixed-length string to split\n    parts: list of (name, length) pairs\n        Used to break up string, name '_' will be filtered from output.\n\n    Returns\n    -------\n    Dict of name:contents of string at given location.\n    \"\"\"\n    out = {}\n    start = 0\n    for name, length in parts:\n        out[name] = s[start : start + length].strip()\n        start += length\n    del out[\"_\"]\n    return out",
+                "def _handle_truncated_float_vec(vec, nbytes):\n    # This feature is not well documented, but some SAS XPORT files\n    # have 2-7 byte \"truncated\" floats.  To read these truncated\n    # floats, pad them with zeros on the right to make 8 byte floats.\n    #\n    # References:\n    # https://github.com/jcushman/xport/pull/3\n    # The R \"foreign\" library\n\n    if nbytes != 8:\n        vec1 = np.zeros(len(vec), np.dtype(\"S8\"))\n        dtype = np.dtype(f\"S{nbytes},S{8 - nbytes}\")\n        vec2 = vec1.view(dtype=dtype)\n        vec2[\"f0\"] = vec\n        return vec2\n\n    return vec",
+                "def _parse_float_vec(vec):\n    \"\"\"\n    Parse a vector of float values representing IBM 8 byte floats into\n    native 8 byte floats.\n    \"\"\"\n    dtype = np.dtype(\">u4,>u4\")\n    vec1 = vec.view(dtype=dtype)\n    xport1 = vec1[\"f0\"]\n    xport2 = vec1[\"f1\"]\n\n    # Start by setting first half of ieee number to first half of IBM\n    # number sans exponent\n    ieee1 = xport1 & 0x00FFFFFF\n\n    # The fraction bit to the left of the binary point in the ieee\n    # format was set and the number was shifted 0, 1, 2, or 3\n    # places. This will tell us how to adjust the ibm exponent to be a\n    # power of 2 ieee exponent and how to shift the fraction bits to\n    # restore the correct magnitude.\n    shift = np.zeros(len(vec), dtype=np.uint8)\n    shift[np.where(xport1 & 0x00200000)] = 1\n    shift[np.where(xport1 & 0x00400000)] = 2\n    shift[np.where(xport1 & 0x00800000)] = 3\n\n    # shift the ieee number down the correct number of places then\n    # set the second half of the ieee number to be the second half\n    # of the ibm number shifted appropriately, ored with the bits\n    # from the first half that would have been shifted in if we\n    # could shift a double. All we are worried about are the low\n    # order 3 bits of the first half since we're only shifting by\n    # 1, 2, or 3.\n    ieee1 >>= shift\n    ieee2 = (xport2 >> shift) | ((xport1 & 0x00000007) << (29 + (3 - shift)))\n\n    # clear the 1 bit to the left of the binary point\n    ieee1 &= 0xFFEFFFFF\n\n    # set the exponent of the ieee number to be the actual exponent\n    # plus the shift count + 1023. Or this into the first half of the\n    # ieee number. The ibm exponent is excess 64 but is adjusted by 65\n    # since during conversion to ibm format the exponent is\n    # incremented by 1 and the fraction bits left 4 positions to the\n    # right of the radix point.  (had to add >> 24 because C treats &\n    # 0x7f as 0x7f000000 and Python doesn't)\n    ieee1 |= ((((((xport1 >> 24) & 0x7F) - 65) << 2) + shift + 1023) << 20) | (\n        xport1 & 0x80000000\n    )\n\n    ieee = np.empty((len(ieee1),), dtype=\">u4,>u4\")\n    ieee[\"f0\"] = ieee1\n    ieee[\"f1\"] = ieee2\n    ieee = ieee.view(dtype=\">f8\")\n    ieee = ieee.astype(\"f8\")\n\n    return ieee",
+                "def __init__(\n    self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n):\n\n    self._encoding = encoding\n    self._lines_read = 0\n    self._index = index\n    self._chunksize = chunksize\n\n    if isinstance(filepath_or_buffer, str):\n        (\n            filepath_or_buffer,\n            encoding,\n            compression,\n            should_close,\n        ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n\n    if isinstance(filepath_or_buffer, (str, bytes)):\n        self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n    else:\n        # Copy to BytesIO, and ensure no encoding\n        contents = filepath_or_buffer.read()\n        try:\n            contents = contents.encode(self._encoding)\n        except UnicodeEncodeError:\n            pass\n        self.filepath_or_buffer = BytesIO(contents)\n\n    self._read_header()",
+                "def close(self):\n    self.filepath_or_buffer.close()",
+                "def _get_row(self):\n    return self.filepath_or_buffer.read(80).decode()",
+                "def _read_header(self):\n    self.filepath_or_buffer.seek(0)\n\n    # read file header\n    line1 = self._get_row()\n    if line1 != _correct_line1:\n        self.close()\n        raise ValueError(\"Header record is not an XPORT file.\")\n\n    line2 = self._get_row()\n    fif = [[\"prefix\", 24], [\"version\", 8], [\"OS\", 8], [\"_\", 24], [\"created\", 16]]\n    file_info = _split_line(line2, fif)\n    if file_info[\"prefix\"] != \"SAS     SAS     SASLIB\":\n        self.close()\n        raise ValueError(\"Header record has invalid prefix.\")\n    file_info[\"created\"] = _parse_date(file_info[\"created\"])\n    self.file_info = file_info\n\n    line3 = self._get_row()\n    file_info[\"modified\"] = _parse_date(line3[:16])\n\n    # read member header\n    header1 = self._get_row()\n    header2 = self._get_row()\n    headflag1 = header1.startswith(_correct_header1)\n    headflag2 = header2 == _correct_header2\n    if not (headflag1 and headflag2):\n        self.close()\n        raise ValueError(\"Member header not found\")\n    # usually 140, could be 135\n    fieldnamelength = int(header1[-5:-2])\n\n    # member info\n    mem = [\n        [\"prefix\", 8],\n        [\"set_name\", 8],\n        [\"sasdata\", 8],\n        [\"version\", 8],\n        [\"OS\", 8],\n        [\"_\", 24],\n        [\"created\", 16],\n    ]\n    member_info = _split_line(self._get_row(), mem)\n    mem = [[\"modified\", 16], [\"_\", 16], [\"label\", 40], [\"type\", 8]]\n    member_info.update(_split_line(self._get_row(), mem))\n    member_info[\"modified\"] = _parse_date(member_info[\"modified\"])\n    member_info[\"created\"] = _parse_date(member_info[\"created\"])\n    self.member_info = member_info\n\n    # read field names\n    types = {1: \"numeric\", 2: \"char\"}\n    fieldcount = int(self._get_row()[54:58])\n    datalength = fieldnamelength * fieldcount\n    # round up to nearest 80\n    if datalength % 80:\n        datalength += 80 - datalength % 80\n    fielddata = self.filepath_or_buffer.read(datalength)\n    fields = []\n    obs_length = 0\n    while len(fielddata) >= fieldnamelength:\n        # pull data for one field\n        field, fielddata = (\n            fielddata[:fieldnamelength],\n            fielddata[fieldnamelength:],\n        )\n\n        # rest at end gets ignored, so if field is short, pad out\n        # to match struct pattern below\n        field = field.ljust(140)\n\n        fieldstruct = struct.unpack(\">hhhh8s40s8shhh2s8shhl52s\", field)\n        field = dict(zip(_fieldkeys, fieldstruct))\n        del field[\"_\"]\n        field[\"ntype\"] = types[field[\"ntype\"]]\n        fl = field[\"field_length\"]\n        if field[\"ntype\"] == \"numeric\" and ((fl < 2) or (fl > 8)):\n            self.close()\n            msg = f\"Floating field width {fl} is not between 2 and 8.\"\n            raise TypeError(msg)\n\n        for k, v in field.items():\n            try:\n                field[k] = v.strip()\n            except AttributeError:\n                pass\n\n        obs_length += field[\"field_length\"]\n        fields += [field]\n\n    header = self._get_row()\n    if not header == _correct_obs_header:\n        self.close()\n        raise ValueError(\"Observation header not found.\")\n\n    self.fields = fields\n    self.record_length = obs_length\n    self.record_start = self.filepath_or_buffer.tell()\n\n    self.nobs = self._record_count()\n    self.columns = [x[\"name\"].decode() for x in self.fields]\n\n    # Setup the dtype.\n    dtypel = [\n        (\"s\" + str(i), \"S\" + str(field[\"field_length\"]))\n        for i, field in enumerate(self.fields)\n    ]\n    dtype = np.dtype(dtypel)\n    self._dtype = dtype",
+                "def __next__(self):\n    return self.read(nrows=self._chunksize or 1)",
+                "def _record_count(self) -> int:\n    \"\"\"\n    Get number of records in file.\n\n    This is maybe suboptimal because we have to seek to the end of\n    the file.\n\n    Side effect: returns file position to record_start.\n    \"\"\"\n    self.filepath_or_buffer.seek(0, 2)\n    total_records_length = self.filepath_or_buffer.tell() - self.record_start\n\n    if total_records_length % 80 != 0:\n        warnings.warn(\"xport file may be corrupted\")\n\n    if self.record_length > 80:\n        self.filepath_or_buffer.seek(self.record_start)\n        return total_records_length // self.record_length\n\n    self.filepath_or_buffer.seek(-80, 2)\n    last_card = self.filepath_or_buffer.read(80)\n    last_card = np.frombuffer(last_card, dtype=np.uint64)\n\n    # 8 byte blank\n    ix = np.flatnonzero(last_card == 2314885530818453536)\n\n    if len(ix) == 0:\n        tail_pad = 0\n    else:\n        tail_pad = 8 * len(ix)\n\n    self.filepath_or_buffer.seek(self.record_start)\n\n    return (total_records_length - tail_pad) // self.record_length",
+                "def get_chunk(self, size=None):\n    \"\"\"\n    Reads lines from Xport file and returns as dataframe\n\n    Parameters\n    ----------\n    size : int, defaults to None\n        Number of lines to read.  If None, reads whole file.\n\n    Returns\n    -------\n    DataFrame\n    \"\"\"\n    if size is None:\n        size = self._chunksize\n    return self.read(nrows=size)",
+                "def _missing_double(self, vec):\n    v = vec.view(dtype=\"u1,u1,u2,u4\")\n    miss = (v[\"f1\"] == 0) & (v[\"f2\"] == 0) & (v[\"f3\"] == 0)\n    miss1 = (\n        ((v[\"f0\"] >= 0x41) & (v[\"f0\"] <= 0x5A))\n        | (v[\"f0\"] == 0x5F)\n        | (v[\"f0\"] == 0x2E)\n    )\n    miss &= miss1\n    return miss",
+                "@Appender(_read_method_doc)\ndef read(self, nrows=None):\n\n    if nrows is None:\n        nrows = self.nobs\n\n    read_lines = min(nrows, self.nobs - self._lines_read)\n    read_len = read_lines * self.record_length\n    if read_len <= 0:\n        self.close()\n        raise StopIteration\n    raw = self.filepath_or_buffer.read(read_len)\n    data = np.frombuffer(raw, dtype=self._dtype, count=read_lines)\n\n    df = pd.DataFrame(index=range(read_lines))\n    for j, x in enumerate(self.columns):\n        vec = data[\"s\" + str(j)]\n        ntype = self.fields[j][\"ntype\"]\n        if ntype == \"numeric\":\n            vec = _handle_truncated_float_vec(vec, self.fields[j][\"field_length\"])\n            miss = self._missing_double(vec)\n            v = _parse_float_vec(vec)\n            v[miss] = np.nan\n        elif self.fields[j][\"ntype\"] == \"char\":\n            v = [y.rstrip() for y in vec]\n\n            if self._encoding is not None:\n                v = [y.decode(self._encoding) for y in v]\n\n        df[x] = v\n\n    if self._index is None:\n        df.index = range(self._lines_read, self._lines_read + read_lines)\n    else:\n        df = df.set_index(self._index)\n\n    self._lines_read += read_lines\n\n    return df"
+            ],
+            "inscope_function_signatures": [
+                "_parse_date(datestr: str) -> datetime",
+                "_split_line(s: str, parts)",
+                "_handle_truncated_float_vec(vec, nbytes)",
+                "_parse_float_vec(vec)",
+                "__init__(self, filepath_or_buffer, index=None, encoding='ISO-8859-1', chunksize=None)",
+                "close(self)",
+                "_get_row(self)",
+                "_read_header(self)",
+                "__next__(self)",
+                "_record_count(self) -> int",
+                "get_chunk(self, size=None)",
+                "_missing_double(self, vec)",
+                "read(self, nrows=None)"
+            ],
+            "variables_in_file": {
+                "_correct_line1": [
+                    24,
+                    287
+                ],
+                "_correct_header1": [
+                    306,
+                    28
+                ],
+                "_correct_header2": [
+                    307,
+                    31
+                ],
+                "_correct_obs_header": [
+                    35,
+                    372
+                ],
+                "_fieldkeys": [
+                    353,
+                    39
+                ],
+                "_base_params_doc": [
+                    59,
+                    84,
+                    110
+                ],
+                "_params2_doc": [
+                    65,
+                    86,
+                    111
+                ],
+                "_format_params_doc": [
+                    73,
+                    85
+                ],
+                "_iterator_doc": [
+                    77,
+                    87
+                ],
+                "_read_sas_doc": [
+                    82
+                ],
+                "_xport_reader_doc": [
+                    107,
+                    244
+                ],
+                "_read_method_doc": [
+                    121,
+                    457
+                ],
+                "str": [
+                    385,
+                    263,
+                    136,
+                    145,
+                    473,
+                    255
+                ],
+                "datetime.strptime": [
+                    140
+                ],
+                "datetime": [
+                    136,
+                    140
+                ],
+                "datestr": [
+                    140
+                ],
+                "ValueError": [
+                    289,
+                    296,
+                    141,
+                    374,
+                    310
+                ],
+                "pd.NaT": [
+                    142
+                ],
+                "pd": [
+                    142,
+                    471
+                ],
+                "out": [
+                    161,
+                    163,
+                    164,
+                    158
+                ],
+                "start": [
+                    161,
+                    162,
+                    159
+                ],
+                "name": [
+                    160,
+                    161
+                ],
+                "length": [
+                    160,
+                    161,
+                    162
+                ],
+                "parts": [
+                    160
+                ],
+                "strip": [
+                    161
+                ],
+                "s": [
+                    161
+                ],
+                "nbytes": [
+                    176,
+                    178
+                ],
+                "vec1": [
+                    192,
+                    193,
+                    194,
+                    177,
+                    179
+                ],
+                "np.zeros": [
+                    177,
+                    205
+                ],
+                "np": [
+                    418,
+                    388,
+                    415,
+                    234,
+                    479,
+                    205,
+                    206,
+                    207,
+                    208,
+                    177,
+                    178,
+                    469,
+                    191
+                ],
+                "len": [
+                    420,
+                    423,
+                    234,
+                    205,
+                    177,
+                    341
+                ],
+                "vec": [
+                    192,
+                    481,
+                    205,
+                    177,
+                    180,
+                    183,
+                    473,
+                    476,
+                    477,
+                    478,
+                    447
+                ],
+                "np.dtype": [
+                    177,
+                    178,
+                    388,
+                    191
+                ],
+                "dtype": [
+                    192,
+                    388,
+                    389,
+                    178,
+                    179,
+                    191
+                ],
+                "vec2": [
+                    179,
+                    180,
+                    181
+                ],
+                "vec1.view": [
+                    179
+                ],
+                "vec.view": [
+                    192,
+                    447
+                ],
+                "xport1": [
+                    193,
+                    198,
+                    230,
+                    231,
+                    206,
+                    207,
+                    208,
+                    218
+                ],
+                "xport2": [
+                    218,
+                    194
+                ],
+                "ieee1": [
+                    198,
+                    230,
+                    234,
+                    235,
+                    217,
+                    221
+                ],
+                "shift": [
+                    230,
+                    205,
+                    206,
+                    207,
+                    208,
+                    217,
+                    218
+                ],
+                "np.uint8": [
+                    205
+                ],
+                "np.where": [
+                    208,
+                    206,
+                    207
+                ],
+                "ieee2": [
+                    218,
+                    236
+                ],
+                "ieee": [
+                    234,
+                    235,
+                    236,
+                    237,
+                    238,
+                    240
+                ],
+                "np.empty": [
+                    234
+                ],
+                "ieee.view": [
+                    237
+                ],
+                "ieee.astype": [
+                    238
+                ],
+                "abc.Iterator": [
+                    243
+                ],
+                "abc": [
+                    243
+                ],
+                "__doc__": [
+                    244
+                ],
+                "self._encoding": [
+                    250,
+                    483,
+                    484,
+                    269
+                ],
+                "self": [
+                    386,
+                    389,
+                    264,
+                    392,
+                    269,
+                    272,
+                    274,
+                    403,
+                    404,
+                    277,
+                    280,
+                    409,
+                    410,
+                    283,
+                    411,
+                    413,
+                    286,
+                    414,
+                    288,
+                    291,
+                    295,
+                    425,
+                    298,
+                    427,
+                    300,
+                    304,
+                    305,
+                    309,
+                    443,
+                    444,
+                    324,
+                    326,
+                    329,
+                    333,
+                    461,
+                    463,
+                    464,
+                    338,
+                    466,
+                    468,
+                    469,
+                    472,
+                    380,
+                    474,
+                    476,
+                    477,
+                    480,
+                    483,
+                    484,
+                    358,
+                    488,
+                    489,
+                    491,
+                    493,
+                    378,
+                    381,
+                    371,
+                    373,
+                    376,
+                    377,
+                    250,
+                    251,
+                    252,
+                    253
+                ],
+                "encoding": [
+                    250,
+                    258,
+                    261
+                ],
+                "self._lines_read": [
+                    489,
+                    251,
+                    493,
+                    463
+                ],
+                "self._index": [
+                    488,
+                    491,
+                    252
+                ],
+                "index": [
+                    252
+                ],
+                "self._chunksize": [
+                    392,
+                    443,
+                    253
+                ],
+                "chunksize": [
+                    253
+                ],
+                "isinstance": [
+                    263,
+                    255
+                ],
+                "filepath_or_buffer": [
+                    257,
+                    261,
+                    263,
+                    264,
+                    267,
+                    255
+                ],
+                "compression": [
+                    259
+                ],
+                "should_close": [
+                    260
+                ],
+                "get_filepath_or_buffer": [
+                    261
+                ],
+                "bytes": [
+                    263
+                ],
+                "self.filepath_or_buffer": [
+                    264,
+                    425,
+                    410,
+                    272,
+                    338,
+                    403,
+                    404,
+                    277,
+                    468,
+                    280,
+                    378,
+                    283,
+                    413,
+                    414
+                ],
+                "open": [
+                    264
+                ],
+                "contents": [
+                    272,
+                    267,
+                    269
+                ],
+                "filepath_or_buffer.read": [
+                    267
+                ],
+                "contents.encode": [
+                    269
+                ],
+                "UnicodeEncodeError": [
+                    270
+                ],
+                "BytesIO": [
+                    272
+                ],
+                "self._read_header": [
+                    274
+                ],
+                "self.filepath_or_buffer.close": [
+                    277
+                ],
+                "decode": [
+                    280,
+                    381
+                ],
+                "self.filepath_or_buffer.read": [
+                    280,
+                    338,
+                    468,
+                    414
+                ],
+                "self.filepath_or_buffer.seek": [
+                    425,
+                    403,
+                    410,
+                    283,
+                    413
+                ],
+                "line1": [
+                    286,
+                    287
+                ],
+                "self._get_row": [
+                    291,
+                    324,
+                    326,
+                    300,
+                    333,
+                    304,
+                    305,
+                    371,
+                    286
+                ],
+                "self.close": [
+                    288,
+                    358,
+                    295,
+                    466,
+                    373,
+                    309
+                ],
+                "line2": [
+                    291,
+                    293
+                ],
+                "fif": [
+                    292,
+                    293
+                ],
+                "file_info": [
+                    293,
+                    294,
+                    297,
+                    298,
+                    301
+                ],
+                "_split_line": [
+                    324,
+                    293,
+                    326
+                ],
+                "_parse_date": [
+                    328,
+                    297,
+                    301,
+                    327
+                ],
+                "self.file_info": [
+                    298
+                ],
+                "line3": [
+                    300,
+                    301
+                ],
+                "header1": [
+                    304,
+                    306,
+                    312
+                ],
+                "header2": [
+                    305,
+                    307
+                ],
+                "headflag1": [
+                    306,
+                    308
+                ],
+                "header1.startswith": [
+                    306
+                ],
+                "headflag2": [
+                    307,
+                    308
+                ],
+                "fieldnamelength": [
+                    344,
+                    334,
+                    341,
+                    312,
+                    345
+                ],
+                "int": [
+                    312,
+                    394,
+                    333
+                ],
+                "mem": [
+                    315,
+                    324,
+                    325,
+                    326
+                ],
+                "member_info": [
+                    324,
+                    326,
+                    327,
+                    328,
+                    329
+                ],
+                "member_info.update": [
+                    326
+                ],
+                "self.member_info": [
+                    329
+                ],
+                "types": [
+                    355,
+                    332
+                ],
+                "fieldcount": [
+                    333,
+                    334
+                ],
+                "datalength": [
+                    336,
+                    337,
+                    338,
+                    334
+                ],
+                "fielddata": [
+                    338,
+                    341,
+                    343,
+                    344,
+                    345
+                ],
+                "fields": [
+                    376,
+                    369,
+                    339
+                ],
+                "obs_length": [
+                    368,
+                    377,
+                    340
+                ],
+                "field": [
+                    352,
+                    353,
+                    354,
+                    355,
+                    356,
+                    357,
+                    385,
+                    386,
+                    362,
+                    364,
+                    368,
+                    369,
+                    343,
+                    350
+                ],
+                "field.ljust": [
+                    350
+                ],
+                "fieldstruct": [
+                    352,
+                    353
+                ],
+                "struct.unpack": [
+                    352
+                ],
+                "struct": [
+                    352
+                ],
+                "dict": [
+                    353
+                ],
+                "zip": [
+                    353
+                ],
+                "fl": [
+                    356,
+                    357,
+                    359
+                ],
+                "msg": [
+                    360,
+                    359
+                ],
+                "TypeError": [
+                    360
+                ],
+                "k": [
+                    362,
+                    364
+                ],
+                "v": [
+                    448,
+                    481,
+                    450,
+                    451,
+                    452,
+                    484,
+                    486,
+                    362,
+                    479,
+                    364,
+                    478,
+                    447
+                ],
+                "field.items": [
+                    362
+                ],
+                "v.strip": [
+                    364
+                ],
+                "AttributeError": [
+                    365
+                ],
+                "header": [
+                    371,
+                    372
+                ],
+                "self.fields": [
+                    480,
+                    386,
+                    376,
+                    474,
+                    476,
+                    381
+                ],
+                "self.record_length": [
+                    409,
+                    427,
+                    464,
+                    377,
+                    411
+                ],
+                "self.record_start": [
+                    425,
+                    378,
+                    404,
+                    410
+                ],
+                "self.filepath_or_buffer.tell": [
+                    378,
+                    404
+                ],
+                "self.nobs": [
+                    380,
+                    461,
+                    463
+                ],
+                "self._record_count": [
+                    380
+                ],
+                "self.columns": [
+                    472,
+                    381
+                ],
+                "x": [
+                    472,
+                    381,
+                    486
+                ],
+                "dtypel": [
+                    384,
+                    388
+                ],
+                "i": [
+                    385,
+                    386
+                ],
+                "enumerate": [
+                    472,
+                    386
+                ],
+                "self._dtype": [
+                    469,
+                    389
+                ],
+                "self.read": [
+                    392,
+                    444
+                ],
+                "total_records_length": [
+                    411,
+                    404,
+                    427,
+                    406
+                ],
+                "warnings.warn": [
+                    407
+                ],
+                "warnings": [
+                    407
+                ],
+                "last_card": [
+                    418,
+                    414,
+                    415
+                ],
+                "np.frombuffer": [
+                    469,
+                    415
+                ],
+                "np.uint64": [
+                    415
+                ],
+                "ix": [
+                    418,
+                    420,
+                    423
+                ],
+                "np.flatnonzero": [
+                    418
+                ],
+                "tail_pad": [
+                    427,
+                    421,
+                    423
+                ],
+                "size": [
+                    442,
+                    443,
+                    444
+                ],
+                "miss": [
+                    448,
+                    454,
+                    455,
+                    477,
+                    479
+                ],
+                "miss1": [
+                    449,
+                    454
+                ],
+                "nrows": [
+                    460,
+                    461,
+                    463
+                ],
+                "read_lines": [
+                    489,
+                    493,
+                    463,
+                    464,
+                    469,
+                    471
+                ],
+                "min": [
+                    463
+                ],
+                "read_len": [
+                    464,
+                    465,
+                    468
+                ],
+                "StopIteration": [
+                    467
+                ],
+                "raw": [
+                    468,
+                    469
+                ],
+                "data": [
+                    473,
+                    469
+                ],
+                "df": [
+                    486,
+                    489,
+                    491,
+                    495,
+                    471
+                ],
+                "pd.DataFrame": [
+                    471
+                ],
+                "range": [
+                    489,
+                    471
+                ],
+                "j": [
+                    480,
+                    472,
+                    473,
+                    474,
+                    476
+                ],
+                "ntype": [
+                    474,
+                    475
+                ],
+                "_handle_truncated_float_vec": [
+                    476
+                ],
+                "self._missing_double": [
+                    477
+                ],
+                "_parse_float_vec": [
+                    478
+                ],
+                "np.nan": [
+                    479
+                ],
+                "y.rstrip": [
+                    481
+                ],
+                "y": [
+                    481,
+                    484
+                ],
+                "y.decode": [
+                    484
+                ],
+                "df.index": [
+                    489
+                ],
+                "df.set_index": [
+                    491
+                ],
+                "Appender": [
+                    457
+                ]
+            },
+            "filtered_variables_in_file": {
+                "_correct_line1": [
+                    24,
+                    287
+                ],
+                "_correct_header1": [
+                    306,
+                    28
+                ],
+                "_correct_header2": [
+                    307,
+                    31
+                ],
+                "_correct_obs_header": [
+                    35,
+                    372
+                ],
+                "_fieldkeys": [
+                    353,
+                    39
+                ],
+                "_base_params_doc": [
+                    59,
+                    84,
+                    110
+                ],
+                "_params2_doc": [
+                    65,
+                    86,
+                    111
+                ],
+                "_format_params_doc": [
+                    73,
+                    85
+                ],
+                "_iterator_doc": [
+                    77,
+                    87
+                ],
+                "_read_sas_doc": [
+                    82
+                ],
+                "_xport_reader_doc": [
+                    107,
+                    244
+                ],
+                "_read_method_doc": [
+                    121,
+                    457
+                ],
+                "datetime.strptime": [
+                    140
+                ],
+                "datetime": [
+                    136,
+                    140
+                ],
+                "datestr": [
+                    140
+                ],
+                "pd.NaT": [
+                    142
+                ],
+                "pd": [
+                    142,
+                    471
+                ],
+                "out": [
+                    161,
+                    163,
+                    164,
+                    158
+                ],
+                "start": [
+                    161,
+                    162,
+                    159
+                ],
+                "name": [
+                    160,
+                    161
+                ],
+                "length": [
+                    160,
+                    161,
+                    162
+                ],
+                "parts": [
+                    160
+                ],
+                "strip": [
+                    161
+                ],
+                "s": [
+                    161
+                ],
+                "nbytes": [
+                    176,
+                    178
+                ],
+                "vec1": [
+                    192,
+                    193,
+                    194,
+                    177,
+                    179
+                ],
+                "np.zeros": [
+                    177,
+                    205
+                ],
+                "np": [
+                    418,
+                    388,
+                    415,
+                    234,
+                    479,
+                    205,
+                    206,
+                    207,
+                    208,
+                    177,
+                    178,
+                    469,
+                    191
+                ],
+                "vec": [
+                    192,
+                    481,
+                    205,
+                    177,
+                    180,
+                    183,
+                    473,
+                    476,
+                    477,
+                    478,
+                    447
+                ],
+                "np.dtype": [
+                    177,
+                    178,
+                    388,
+                    191
+                ],
+                "dtype": [
+                    192,
+                    388,
+                    389,
+                    178,
+                    179,
+                    191
+                ],
+                "vec2": [
+                    179,
+                    180,
+                    181
+                ],
+                "vec1.view": [
+                    179
+                ],
+                "vec.view": [
+                    192,
+                    447
+                ],
+                "xport1": [
+                    193,
+                    198,
+                    230,
+                    231,
+                    206,
+                    207,
+                    208,
+                    218
+                ],
+                "xport2": [
+                    218,
+                    194
+                ],
+                "ieee1": [
+                    198,
+                    230,
+                    234,
+                    235,
+                    217,
+                    221
+                ],
+                "shift": [
+                    230,
+                    205,
+                    206,
+                    207,
+                    208,
+                    217,
+                    218
+                ],
+                "np.uint8": [
+                    205
+                ],
+                "np.where": [
+                    208,
+                    206,
+                    207
+                ],
+                "ieee2": [
+                    218,
+                    236
+                ],
+                "ieee": [
+                    234,
+                    235,
+                    236,
+                    237,
+                    238,
+                    240
+                ],
+                "np.empty": [
+                    234
+                ],
+                "ieee.view": [
+                    237
+                ],
+                "ieee.astype": [
+                    238
+                ],
+                "abc.Iterator": [
+                    243
+                ],
+                "abc": [
+                    243
+                ],
+                "self._encoding": [
+                    250,
+                    483,
+                    484,
+                    269
+                ],
+                "self": [
+                    386,
+                    389,
+                    264,
+                    392,
+                    269,
+                    272,
+                    274,
+                    403,
+                    404,
+                    277,
+                    280,
+                    409,
+                    410,
+                    283,
+                    411,
+                    413,
+                    286,
+                    414,
+                    288,
+                    291,
+                    295,
+                    425,
+                    298,
+                    427,
+                    300,
+                    304,
+                    305,
+                    309,
+                    443,
+                    444,
+                    324,
+                    326,
+                    329,
+                    333,
+                    461,
+                    463,
+                    464,
+                    338,
+                    466,
+                    468,
+                    469,
+                    472,
+                    380,
+                    474,
+                    476,
+                    477,
+                    480,
+                    483,
+                    484,
+                    358,
+                    488,
+                    489,
+                    491,
+                    493,
+                    378,
+                    381,
+                    371,
+                    373,
+                    376,
+                    377,
+                    250,
+                    251,
+                    252,
+                    253
+                ],
+                "encoding": [
+                    250,
+                    258,
+                    261
+                ],
+                "self._lines_read": [
+                    489,
+                    251,
+                    493,
+                    463
+                ],
+                "self._index": [
+                    488,
+                    491,
+                    252
+                ],
+                "index": [
+                    252
+                ],
+                "self._chunksize": [
+                    392,
+                    443,
+                    253
+                ],
+                "chunksize": [
+                    253
+                ],
+                "filepath_or_buffer": [
+                    257,
+                    261,
+                    263,
+                    264,
+                    267,
+                    255
+                ],
+                "compression": [
+                    259
+                ],
+                "should_close": [
+                    260
+                ],
+                "get_filepath_or_buffer": [
+                    261
+                ],
+                "self.filepath_or_buffer": [
+                    264,
+                    425,
+                    410,
+                    272,
+                    338,
+                    403,
+                    404,
+                    277,
+                    468,
+                    280,
+                    378,
+                    283,
+                    413,
+                    414
+                ],
+                "contents": [
+                    272,
+                    267,
+                    269
+                ],
+                "filepath_or_buffer.read": [
+                    267
+                ],
+                "contents.encode": [
+                    269
+                ],
+                "BytesIO": [
+                    272
+                ],
+                "self._read_header": [
+                    274
+                ],
+                "self.filepath_or_buffer.close": [
+                    277
+                ],
+                "decode": [
+                    280,
+                    381
+                ],
+                "self.filepath_or_buffer.read": [
+                    280,
+                    338,
+                    468,
+                    414
+                ],
+                "self.filepath_or_buffer.seek": [
+                    425,
+                    403,
+                    410,
+                    283,
+                    413
+                ],
+                "line1": [
+                    286,
+                    287
+                ],
+                "self._get_row": [
+                    291,
+                    324,
+                    326,
+                    300,
+                    333,
+                    304,
+                    305,
+                    371,
+                    286
+                ],
+                "self.close": [
+                    288,
+                    358,
+                    295,
+                    466,
+                    373,
+                    309
+                ],
+                "line2": [
+                    291,
+                    293
+                ],
+                "fif": [
+                    292,
+                    293
+                ],
+                "file_info": [
+                    293,
+                    294,
+                    297,
+                    298,
+                    301
+                ],
+                "_split_line": [
+                    324,
+                    293,
+                    326
+                ],
+                "_parse_date": [
+                    328,
+                    297,
+                    301,
+                    327
+                ],
+                "self.file_info": [
+                    298
+                ],
+                "line3": [
+                    300,
+                    301
+                ],
+                "header1": [
+                    304,
+                    306,
+                    312
+                ],
+                "header2": [
+                    305,
+                    307
+                ],
+                "headflag1": [
+                    306,
+                    308
+                ],
+                "header1.startswith": [
+                    306
+                ],
+                "headflag2": [
+                    307,
+                    308
+                ],
+                "fieldnamelength": [
+                    344,
+                    334,
+                    341,
+                    312,
+                    345
+                ],
+                "mem": [
+                    315,
+                    324,
+                    325,
+                    326
+                ],
+                "member_info": [
+                    324,
+                    326,
+                    327,
+                    328,
+                    329
+                ],
+                "member_info.update": [
+                    326
+                ],
+                "self.member_info": [
+                    329
+                ],
+                "types": [
+                    355,
+                    332
+                ],
+                "fieldcount": [
+                    333,
+                    334
+                ],
+                "datalength": [
+                    336,
+                    337,
+                    338,
+                    334
+                ],
+                "fielddata": [
+                    338,
+                    341,
+                    343,
+                    344,
+                    345
+                ],
+                "fields": [
+                    376,
+                    369,
+                    339
+                ],
+                "obs_length": [
+                    368,
+                    377,
+                    340
+                ],
+                "field": [
+                    352,
+                    353,
+                    354,
+                    355,
+                    356,
+                    357,
+                    385,
+                    386,
+                    362,
+                    364,
+                    368,
+                    369,
+                    343,
+                    350
+                ],
+                "field.ljust": [
+                    350
+                ],
+                "fieldstruct": [
+                    352,
+                    353
+                ],
+                "struct.unpack": [
+                    352
+                ],
+                "struct": [
+                    352
+                ],
+                "fl": [
+                    356,
+                    357,
+                    359
+                ],
+                "msg": [
+                    360,
+                    359
+                ],
+                "k": [
+                    362,
+                    364
+                ],
+                "v": [
+                    448,
+                    481,
+                    450,
+                    451,
+                    452,
+                    484,
+                    486,
+                    362,
+                    479,
+                    364,
+                    478,
+                    447
+                ],
+                "field.items": [
+                    362
+                ],
+                "v.strip": [
+                    364
+                ],
+                "header": [
+                    371,
+                    372
+                ],
+                "self.fields": [
+                    480,
+                    386,
+                    376,
+                    474,
+                    476,
+                    381
+                ],
+                "self.record_length": [
+                    409,
+                    427,
+                    464,
+                    377,
+                    411
+                ],
+                "self.record_start": [
+                    425,
+                    378,
+                    404,
+                    410
+                ],
+                "self.filepath_or_buffer.tell": [
+                    378,
+                    404
+                ],
+                "self.nobs": [
+                    380,
+                    461,
+                    463
+                ],
+                "self._record_count": [
+                    380
+                ],
+                "self.columns": [
+                    472,
+                    381
+                ],
+                "x": [
+                    472,
+                    381,
+                    486
+                ],
+                "dtypel": [
+                    384,
+                    388
+                ],
+                "i": [
+                    385,
+                    386
+                ],
+                "self._dtype": [
+                    469,
+                    389
+                ],
+                "self.read": [
+                    392,
+                    444
+                ],
+                "total_records_length": [
+                    411,
+                    404,
+                    427,
+                    406
+                ],
+                "warnings.warn": [
+                    407
+                ],
+                "warnings": [
+                    407
+                ],
+                "last_card": [
+                    418,
+                    414,
+                    415
+                ],
+                "np.frombuffer": [
+                    469,
+                    415
+                ],
+                "np.uint64": [
+                    415
+                ],
+                "ix": [
+                    418,
+                    420,
+                    423
+                ],
+                "np.flatnonzero": [
+                    418
+                ],
+                "tail_pad": [
+                    427,
+                    421,
+                    423
+                ],
+                "size": [
+                    442,
+                    443,
+                    444
+                ],
+                "miss": [
+                    448,
+                    454,
+                    455,
+                    477,
+                    479
+                ],
+                "miss1": [
+                    449,
+                    454
+                ],
+                "nrows": [
+                    460,
+                    461,
+                    463
+                ],
+                "read_lines": [
+                    489,
+                    493,
+                    463,
+                    464,
+                    469,
+                    471
+                ],
+                "read_len": [
+                    464,
+                    465,
+                    468
+                ],
+                "raw": [
+                    468,
+                    469
+                ],
+                "data": [
+                    473,
+                    469
+                ],
+                "df": [
+                    486,
+                    489,
+                    491,
+                    495,
+                    471
+                ],
+                "pd.DataFrame": [
+                    471
+                ],
+                "j": [
+                    480,
+                    472,
+                    473,
+                    474,
+                    476
+                ],
+                "ntype": [
+                    474,
+                    475
+                ],
+                "_handle_truncated_float_vec": [
+                    476
+                ],
+                "self._missing_double": [
+                    477
+                ],
+                "_parse_float_vec": [
+                    478
+                ],
+                "np.nan": [
+                    479
+                ],
+                "y.rstrip": [
+                    481
+                ],
+                "y": [
+                    481,
+                    484
+                ],
+                "y.decode": [
+                    484
+                ],
+                "df.index": [
+                    489
+                ],
+                "df.set_index": [
+                    491
+                ],
+                "Appender": [
+                    457
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/test_xport.py",
+                "test_function": "test2_binary",
+                "test_function_code": "    def test2_binary(self):\n        # Test with SSHSV1_A.xpt, read as a binary file\n\n        # Compare to this\n        data_csv = pd.read_csv(self.file02.replace(\".xpt\", \".csv\"))\n        numeric_as_float(data_csv)\n\n        data = read_sas(self.file02b, format=\"xport\")\n        tm.assert_frame_equal(data, data_csv)",
+                "test_error": "AttributeError: 'bytes' object has no attribute 'encode'",
+                "full_test_error": "self = <pandas.tests.io.sas.test_xport.TestXport object at 0x11626e190>\n\n    def test2_binary(self):\n        # Test with SSHSV1_A.xpt, read as a binary file\n    \n        # Compare to this\n        data_csv = pd.read_csv(self.file02.replace(\".xpt\", \".csv\"))\n        numeric_as_float(data_csv)\n    \n>       data = read_sas(self.file02b, format=\"xport\")\n\npandas/tests/io/sas/test_xport.py:130: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/io/sas/sasreader.py:68: in read_sas\n    reader = XportReader(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.io.sas.sas_xport.XportReader object at 0x116257f10>\nfilepath_or_buffer = <_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>\nindex = None, encoding = None, chunksize = None\n\n    def __init__(\n        self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n    ):\n    \n        self._encoding = encoding\n        self._lines_read = 0\n        self._index = index\n        self._chunksize = chunksize\n    \n        if isinstance(filepath_or_buffer, str):\n            (\n                filepath_or_buffer,\n                encoding,\n                compression,\n                should_close,\n            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    \n        if isinstance(filepath_or_buffer, (str, bytes)):\n            self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n        else:\n            # Copy to BytesIO, and ensure no encoding\n            contents = filepath_or_buffer.read()\n            try:\n>               contents = contents.encode(self._encoding)\nE               AttributeError: 'bytes' object has no attribute 'encode'\n\npandas/io/sas/sas_xport.py:269: AttributeError",
+                "traceback": "pandas/io/sas/sasreader.py:68: in read_sas\n    reader = XportReader(",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.io.sas.sas_xport.XportReader object at 0x116257f10>\nfilepath_or_buffer = <_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>\nindex = None, encoding = None, chunksize = None\n\n    def __init__(\n        self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n    ):\n    \n        self._encoding = encoding\n        self._lines_read = 0\n        self._index = index\n        self._chunksize = chunksize\n    \n        if isinstance(filepath_or_buffer, str):\n            (\n                filepath_or_buffer,\n                encoding,\n                compression,\n                should_close,\n            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    \n        if isinstance(filepath_or_buffer, (str, bytes)):\n            self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n        else:\n            # Copy to BytesIO, and ensure no encoding\n            contents = filepath_or_buffer.read()\n            try:\n>               contents = contents.encode(self._encoding)\nE               AttributeError: 'bytes' object has no attribute 'encode'\n\npandas/io/sas/sas_xport.py:269: AttributeError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

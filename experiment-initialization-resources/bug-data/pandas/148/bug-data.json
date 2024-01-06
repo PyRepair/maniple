@@ -1,0 +1,3416 @@
+{
+    "pandas:148": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_148/pandas/core/apply.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "apply_empty_result",
+                    "function_code": "def apply_empty_result(self):\n    \"\"\"\n    we have an empty result; at least 1 axis is 0\n\n    we will try to apply the function to an empty\n    series in order to see if this is a reduction function\n    \"\"\"\n\n    # we are not asked to reduce or infer reduction\n    # so just return a copy of the existing object\n    if self.result_type not in [\"reduce\", None]:\n        return self.obj.copy()\n\n    # we may need to infer\n    should_reduce = self.result_type == \"reduce\"\n\n    from pandas import Series\n\n    if not should_reduce:\n\n        EMPTY_SERIES = Series([])\n        try:\n            r = self.f(EMPTY_SERIES, *self.args, **self.kwds)\n        except Exception:\n            pass\n        else:\n            should_reduce = not isinstance(r, Series)\n\n    if should_reduce:\n        return self.obj._constructor_sliced(np.nan, index=self.agg_axis)\n    else:\n        return self.obj.copy()\n",
+                    "decorators": [],
+                    "docstring": "we have an empty result; at least 1 axis is 0\n\nwe will try to apply the function to an empty\nseries in order to see if this is a reduction function",
+                    "start_line": 188,
+                    "end_line": 219,
+                    "variables": {
+                        "self.result_type": [
+                            202,
+                            198
+                        ],
+                        "self": [
+                            198,
+                            199,
+                            202,
+                            210,
+                            217,
+                            219
+                        ],
+                        "self.obj.copy": [
+                            219,
+                            199
+                        ],
+                        "self.obj": [
+                            217,
+                            219,
+                            199
+                        ],
+                        "should_reduce": [
+                            216,
+                            202,
+                            214,
+                            206
+                        ],
+                        "EMPTY_SERIES": [
+                            208,
+                            210
+                        ],
+                        "Series": [
+                            208,
+                            214
+                        ],
+                        "r": [
+                            210,
+                            214
+                        ],
+                        "self.f": [
+                            210
+                        ],
+                        "self.args": [
+                            210
+                        ],
+                        "self.kwds": [
+                            210
+                        ],
+                        "Exception": [
+                            211
+                        ],
+                        "isinstance": [
+                            214
+                        ],
+                        "self.obj._constructor_sliced": [
+                            217
+                        ],
+                        "np.nan": [
+                            217
+                        ],
+                        "np": [
+                            217
+                        ],
+                        "self.agg_axis": [
+                            217
+                        ]
+                    },
+                    "filtered_variables": {
+                        "self.result_type": [
+                            202,
+                            198
+                        ],
+                        "self": [
+                            198,
+                            199,
+                            202,
+                            210,
+                            217,
+                            219
+                        ],
+                        "self.obj.copy": [
+                            219,
+                            199
+                        ],
+                        "self.obj": [
+                            217,
+                            219,
+                            199
+                        ],
+                        "should_reduce": [
+                            216,
+                            202,
+                            214,
+                            206
+                        ],
+                        "EMPTY_SERIES": [
+                            208,
+                            210
+                        ],
+                        "Series": [
+                            208,
+                            214
+                        ],
+                        "r": [
+                            210,
+                            214
+                        ],
+                        "self.f": [
+                            210
+                        ],
+                        "self.args": [
+                            210
+                        ],
+                        "self.kwds": [
+                            210
+                        ],
+                        "self.obj._constructor_sliced": [
+                            217
+                        ],
+                        "np.nan": [
+                            217
+                        ],
+                        "np": [
+                            217
+                        ],
+                        "self.agg_axis": [
+                            217
+                        ]
+                    },
+                    "diff_line_number": 207,
+                    "class_data": {
+                        "signature": "class FrameApply()",
+                        "docstring": null,
+                        "constructor_docstring": null,
+                        "functions": [
+                            "def __init__(self, obj, func, broadcast, raw, reduce, result_type, ignore_failures, args, kwds):\n    self.obj = obj\n    self.raw = raw\n    self.ignore_failures = ignore_failures\n    self.args = args or ()\n    self.kwds = kwds or {}\n    if result_type not in [None, 'reduce', 'broadcast', 'expand']:\n        raise ValueError(\"invalid value for result_type, must be one of {None, 'reduce', 'broadcast', 'expand'}\")\n    if broadcast is not None:\n        warnings.warn(\"The broadcast argument is deprecated and will be removed in a future version. You can specify result_type='broadcast' to broadcast the result to the original dimensions\", FutureWarning, stacklevel=4)\n        if broadcast:\n            result_type = 'broadcast'\n    if reduce is not None:\n        warnings.warn(\"The reduce argument is deprecated and will be removed in a future version. You can specify result_type='reduce' to try to reduce the result to the original dimensions\", FutureWarning, stacklevel=4)\n        if reduce:\n            if result_type is not None:\n                raise ValueError('cannot pass both reduce=True and result_type')\n            result_type = 'reduce'\n    self.result_type = result_type\n    if (kwds or args) and (not isinstance(func, (np.ufunc, str))):\n\n        def f(x):\n            return func(x, *args, **kwds)\n    else:\n        f = func\n    self.f = f\n    self.result = None\n    self.res_index = None\n    self.res_columns = None",
+                            "@property\ndef columns(self):\n    return self.obj.columns",
+                            "@property\ndef index(self):\n    return self.obj.index",
+                            "@cache_readonly\ndef values(self):\n    return self.obj.values",
+                            "@cache_readonly\ndef dtypes(self):\n    return self.obj.dtypes",
+                            "@property\ndef agg_axis(self):\n    return self.obj._get_agg_axis(self.axis)",
+                            "def get_result(self):\n    \"\"\" compute the results \"\"\"\n    if is_list_like(self.f) or is_dict_like(self.f):\n        return self.obj.aggregate(self.f, *self.args, axis=self.axis, **self.kwds)\n    if len(self.columns) == 0 and len(self.index) == 0:\n        return self.apply_empty_result()\n    if isinstance(self.f, str):\n        func = getattr(self.obj, self.f)\n        sig = inspect.getfullargspec(func)\n        if 'axis' in sig.args:\n            self.kwds['axis'] = self.axis\n        return func(*self.args, **self.kwds)\n    elif isinstance(self.f, np.ufunc):\n        with np.errstate(all='ignore'):\n            results = self.obj._data.apply('apply', func=self.f)\n        return self.obj._constructor(data=results, index=self.index, columns=self.columns, copy=False)\n    if self.result_type == 'broadcast':\n        return self.apply_broadcast()\n    elif not all(self.obj.shape):\n        return self.apply_empty_result()\n    elif self.raw and (not self.obj._is_mixed_type):\n        return self.apply_raw()\n    return self.apply_standard()",
+                            "def apply_empty_result(self):\n    \"\"\"\n    we have an empty result; at least 1 axis is 0\n\n    we will try to apply the function to an empty\n    series in order to see if this is a reduction function\n    \"\"\"\n    if self.result_type not in ['reduce', None]:\n        return self.obj.copy()\n    should_reduce = self.result_type == 'reduce'\n    from pandas import Series\n    if not should_reduce:\n        EMPTY_SERIES = Series([])\n        try:\n            r = self.f(EMPTY_SERIES, *self.args, **self.kwds)\n        except Exception:\n            pass\n        else:\n            should_reduce = not isinstance(r, Series)\n    if should_reduce:\n        return self.obj._constructor_sliced(np.nan, index=self.agg_axis)\n    else:\n        return self.obj.copy()",
+                            "def apply_raw(self):\n    \"\"\" apply to the values as a numpy array \"\"\"\n    try:\n        result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)\n    except Exception:\n        result = np.apply_along_axis(self.f, self.axis, self.values)\n    if result.ndim == 2:\n        return self.obj._constructor(result, index=self.index, columns=self.columns)\n    else:\n        return self.obj._constructor_sliced(result, index=self.agg_axis)",
+                            "def apply_broadcast(self, target):\n    result_values = np.empty_like(target.values)\n    result_compare = target.shape[0]\n    for i, col in enumerate(target.columns):\n        res = self.f(target[col])\n        ares = np.asarray(res).ndim\n        if ares > 1:\n            raise ValueError('too many dims to broadcast')\n        elif ares == 1:\n            if result_compare != len(res):\n                raise ValueError('cannot broadcast result')\n        result_values[:, i] = res\n    result = self.obj._constructor(result_values, index=target.index, columns=target.columns)\n    return result",
+                            "def apply_standard(self):\n    if self.result_type in ['reduce', None] and (not self.dtypes.apply(is_extension_type).any()):\n        from pandas import Series\n        values = self.values\n        index = self.obj._get_axis(self.axis)\n        labels = self.agg_axis\n        empty_arr = np.empty(len(index), dtype=values.dtype)\n        dummy = Series(empty_arr, index=index, dtype=values.dtype)\n        try:\n            result = libreduction.compute_reduction(values, self.f, axis=self.axis, dummy=dummy, labels=labels)\n            return self.obj._constructor_sliced(result, index=labels)\n        except Exception:\n            pass\n    self.apply_series_generator()\n    return self.wrap_results()",
+                            "def apply_series_generator(self):\n    series_gen = self.series_generator\n    res_index = self.result_index\n    i = None\n    keys = []\n    results = {}\n    if self.ignore_failures:\n        successes = []\n        for i, v in enumerate(series_gen):\n            try:\n                results[i] = self.f(v)\n            except Exception:\n                pass\n            else:\n                keys.append(v.name)\n                successes.append(i)\n        if len(successes) < len(res_index):\n            res_index = res_index.take(successes)\n    else:\n        try:\n            for i, v in enumerate(series_gen):\n                results[i] = self.f(v)\n                keys.append(v.name)\n        except Exception as e:\n            if hasattr(e, 'args'):\n                if i is not None:\n                    k = res_index[i]\n                    e.args = e.args + ('occurred at index %s' % pprint_thing(k),)\n            raise\n    self.results = results\n    self.res_index = res_index\n    self.res_columns = self.result_columns",
+                            "def wrap_results(self):\n    results = self.results\n    if len(results) > 0 and is_sequence(results[0]):\n        return self.wrap_results_for_axis()\n    result = self.obj._constructor_sliced(results)\n    result.index = self.res_index\n    return result",
+                            "def f(x):\n    return func(x, *args, **kwds)"
+                        ],
+                        "constructor_variables": [
+                            "ignore_failures",
+                            "raw",
+                            "kwds",
+                            "res_columns",
+                            "result",
+                            "result_type",
+                            "f",
+                            "obj",
+                            "res_index",
+                            "args"
+                        ],
+                        "class_level_variables": [],
+                        "class_decorators": [],
+                        "function_signatures": [
+                            "__init__(self, obj, func, broadcast, raw, reduce, result_type, ignore_failures, args, kwds)",
+                            "columns(self)",
+                            "index(self)",
+                            "values(self)",
+                            "dtypes(self)",
+                            "agg_axis(self)",
+                            "get_result(self)",
+                            "apply_empty_result(self)",
+                            "apply_raw(self)",
+                            "apply_broadcast(self, target)",
+                            "apply_standard(self)",
+                            "apply_series_generator(self)",
+                            "wrap_results(self)",
+                            "f(x)"
+                        ]
+                    },
+                    "variable_values": [
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ea1ea00>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function sum at 0x10d20e550>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ea1ea00>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": "Series([], dtype: float64)",
+                                    "variable_type": "Series",
+                                    "variable_shape": "(0,)"
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x1108632c0>"
+                                },
+                                "r": {
+                                    "variable_value": "0.0",
+                                    "variable_type": "float64",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function sum at 0x10d20e550>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11eab0a30>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function prod at 0x10d213310>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11eab0a30>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": "Series([], dtype: float64)",
+                                    "variable_type": "Series",
+                                    "variable_shape": "(0,)"
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x1108632c0>"
+                                },
+                                "r": {
+                                    "variable_value": "1.0",
+                                    "variable_type": "float64",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function prod at 0x10d213310>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ea657f0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function any at 0x10d20e700>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ea657f0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": "Series([], dtype: float64)",
+                                    "variable_type": "Series",
+                                    "variable_shape": "(0,)"
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x1108632c0>"
+                                },
+                                "r": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool_",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function any at 0x10d20e700>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ec506a0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function all at 0x10d20e8b0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ec506a0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": "Series([], dtype: float64)",
+                                    "variable_type": "Series",
+                                    "variable_shape": "(0,)"
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x1108632c0>"
+                                },
+                                "r": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool_",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function all at 0x10d20e8b0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "0"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ea65a90>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function FrameApply.__init__.<locals>.f at 0x11eaffa60>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{'dropna': True}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11ea65a90>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "EMPTY_SERIES": {
+                                    "variable_value": "Series([], dtype: float64)",
+                                    "variable_type": "Series",
+                                    "variable_shape": "(0,)"
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x1108632c0>"
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function FrameApply.__init__.<locals>.f at 0x11eaffa60>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "self.args": {
+                                    "variable_value": "()",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "0"
+                                },
+                                "self.kwds": {
+                                    "variable_value": "{'dropna': True}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "1"
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11528f6d0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function sum at 0x103889550>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x11528f6d0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": "0.0",
+                                    "variable_type": "float64",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function sum at 0x103889550>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x106edf220>"
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1150e4220>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function prod at 0x10388d310>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1150e4220>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": "1.0",
+                                    "variable_type": "float64",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function prod at 0x10388d310>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x106edf220>"
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1151c1460>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function any at 0x103889700>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1151c1460>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool_",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function any at 0x103889700>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x106edf220>"
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1151c1ac0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function all at 0x1038898b0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1151c1ac0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool_",
+                                    "variable_shape": "()"
+                                },
+                                "self.f": {
+                                    "variable_value": "<function all at 0x1038898b0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x106edf220>"
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1151c14f0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function FrameApply.__init__.<locals>.f at 0x1150521f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x1151c14f0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: [a, b, c]\nIndex: []",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(0, 3)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function FrameApply.__init__.<locals>.f at 0x1150521f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x106edf220>"
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index(['a', 'b', 'c'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(3,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x115293fd0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: []\nIndex: [a, b, c]",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(3, 0)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function FrameApply.__init__.<locals>.f at 0x1150521f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index([], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(0,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "self.result_type": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self": {
+                                    "variable_value": "<pandas.core.apply.FrameRowApply object at 0x115293fd0>",
+                                    "variable_type": "FrameRowApply",
+                                    "variable_shape": null
+                                },
+                                "self.obj.copy": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "self.obj": {
+                                    "variable_value": "Empty DataFrame\nColumns: []\nIndex: [a, b, c]",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(3, 0)"
+                                },
+                                "should_reduce": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "r": {
+                                    "variable_value": "nan",
+                                    "variable_type": "float",
+                                    "variable_shape": null
+                                },
+                                "self.f": {
+                                    "variable_value": "<function FrameApply.__init__.<locals>.f at 0x1150521f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "Series": {
+                                    "variable_value": "<class 'pandas.core.series.Series'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x106edf220>"
+                                },
+                                "self.agg_axis": {
+                                    "variable_value": "Index([], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(0,)"
+                                },
+                                "np.nan": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "self.obj._constructor_sliced": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def frame_apply(\n    obj,\n    func,\n    axis=0,\n    broadcast=None,\n    raw=False,\n    reduce=None,\n    result_type=None,\n    ignore_failures=False,\n    args=None,\n    kwds=None,\n):\n    \"\"\" construct and return a row or column based frame apply object \"\"\"\n\n    axis = obj._get_axis_number(axis)\n    if axis == 0:\n        klass = FrameRowApply\n    elif axis == 1:\n        klass = FrameColumnApply\n\n    return klass(\n        obj,\n        func,\n        broadcast=broadcast,\n        raw=raw,\n        reduce=reduce,\n        result_type=result_type,\n        ignore_failures=ignore_failures,\n        args=args,\n        kwds=kwds,\n    )",
+                "def __init__(\n    self,\n    obj,\n    func,\n    broadcast,\n    raw,\n    reduce,\n    result_type,\n    ignore_failures,\n    args,\n    kwds,\n):\n    self.obj = obj\n    self.raw = raw\n    self.ignore_failures = ignore_failures\n    self.args = args or ()\n    self.kwds = kwds or {}\n\n    if result_type not in [None, \"reduce\", \"broadcast\", \"expand\"]:\n        raise ValueError(\n            \"invalid value for result_type, must be one \"\n            \"of {None, 'reduce', 'broadcast', 'expand'}\"\n        )\n\n    if broadcast is not None:\n        warnings.warn(\n            \"The broadcast argument is deprecated and will \"\n            \"be removed in a future version. You can specify \"\n            \"result_type='broadcast' to broadcast the result \"\n            \"to the original dimensions\",\n            FutureWarning,\n            stacklevel=4,\n        )\n        if broadcast:\n            result_type = \"broadcast\"\n\n    if reduce is not None:\n        warnings.warn(\n            \"The reduce argument is deprecated and will \"\n            \"be removed in a future version. You can specify \"\n            \"result_type='reduce' to try to reduce the result \"\n            \"to the original dimensions\",\n            FutureWarning,\n            stacklevel=4,\n        )\n        if reduce:\n\n            if result_type is not None:\n                raise ValueError(\"cannot pass both reduce=True and result_type\")\n\n            result_type = \"reduce\"\n\n    self.result_type = result_type\n\n    # curry if needed\n    if (kwds or args) and not isinstance(func, (np.ufunc, str)):\n\n        def f(x):\n            return func(x, *args, **kwds)\n\n    else:\n        f = func\n\n    self.f = f\n\n    # results\n    self.result = None\n    self.res_index = None\n    self.res_columns = None",
+                "@property\ndef columns(self):\n    return self.obj.columns",
+                "@property\ndef index(self):\n    return self.obj.index",
+                "@cache_readonly\ndef values(self):\n    return self.obj.values",
+                "@cache_readonly\ndef dtypes(self):\n    return self.obj.dtypes",
+                "@property\ndef agg_axis(self):\n    return self.obj._get_agg_axis(self.axis)",
+                "def get_result(self):\n    \"\"\" compute the results \"\"\"\n\n    # dispatch to agg\n    if is_list_like(self.f) or is_dict_like(self.f):\n        return self.obj.aggregate(self.f, axis=self.axis, *self.args, **self.kwds)\n\n    # all empty\n    if len(self.columns) == 0 and len(self.index) == 0:\n        return self.apply_empty_result()\n\n    # string dispatch\n    if isinstance(self.f, str):\n        # Support for `frame.transform('method')`\n        # Some methods (shift, etc.) require the axis argument, others\n        # don't, so inspect and insert if necessary.\n        func = getattr(self.obj, self.f)\n        sig = inspect.getfullargspec(func)\n        if \"axis\" in sig.args:\n            self.kwds[\"axis\"] = self.axis\n        return func(*self.args, **self.kwds)\n\n    # ufunc\n    elif isinstance(self.f, np.ufunc):\n        with np.errstate(all=\"ignore\"):\n            results = self.obj._data.apply(\"apply\", func=self.f)\n        return self.obj._constructor(\n            data=results, index=self.index, columns=self.columns, copy=False\n        )\n\n    # broadcasting\n    if self.result_type == \"broadcast\":\n        return self.apply_broadcast()\n\n    # one axis empty\n    elif not all(self.obj.shape):\n        return self.apply_empty_result()\n\n    # raw\n    elif self.raw and not self.obj._is_mixed_type:\n        return self.apply_raw()\n\n    return self.apply_standard()",
+                "def apply_empty_result(self):\n    \"\"\"\n    we have an empty result; at least 1 axis is 0\n\n    we will try to apply the function to an empty\n    series in order to see if this is a reduction function\n    \"\"\"\n\n    # we are not asked to reduce or infer reduction\n    # so just return a copy of the existing object\n    if self.result_type not in [\"reduce\", None]:\n        return self.obj.copy()\n\n    # we may need to infer\n    should_reduce = self.result_type == \"reduce\"\n\n    from pandas import Series\n\n    if not should_reduce:\n\n        EMPTY_SERIES = Series([])\n        try:\n            r = self.f(EMPTY_SERIES, *self.args, **self.kwds)\n        except Exception:\n            pass\n        else:\n            should_reduce = not isinstance(r, Series)\n\n    if should_reduce:\n        return self.obj._constructor_sliced(np.nan, index=self.agg_axis)\n    else:\n        return self.obj.copy()",
+                "def apply_raw(self):\n    \"\"\" apply to the values as a numpy array \"\"\"\n\n    try:\n        result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)\n    except Exception:\n        result = np.apply_along_axis(self.f, self.axis, self.values)\n\n    # TODO: mixed type case\n    if result.ndim == 2:\n        return self.obj._constructor(result, index=self.index, columns=self.columns)\n    else:\n        return self.obj._constructor_sliced(result, index=self.agg_axis)",
+                "def apply_broadcast(self, target):\n    result_values = np.empty_like(target.values)\n\n    # axis which we want to compare compliance\n    result_compare = target.shape[0]\n\n    for i, col in enumerate(target.columns):\n        res = self.f(target[col])\n        ares = np.asarray(res).ndim\n\n        # must be a scalar or 1d\n        if ares > 1:\n            raise ValueError(\"too many dims to broadcast\")\n        elif ares == 1:\n\n            # must match return dim\n            if result_compare != len(res):\n                raise ValueError(\"cannot broadcast result\")\n\n        result_values[:, i] = res\n\n    # we *always* preserve the original index / columns\n    result = self.obj._constructor(\n        result_values, index=target.index, columns=target.columns\n    )\n    return result",
+                "def apply_standard(self):\n\n    # try to reduce first (by default)\n    # this only matters if the reduction in values is of different dtype\n    # e.g. if we want to apply to a SparseFrame, then can't directly reduce\n\n    # we cannot reduce using non-numpy dtypes,\n    # as demonstrated in gh-12244\n    if (\n        self.result_type in [\"reduce\", None]\n        and not self.dtypes.apply(is_extension_type).any()\n    ):\n\n        # Create a dummy Series from an empty array\n        from pandas import Series\n\n        values = self.values\n        index = self.obj._get_axis(self.axis)\n        labels = self.agg_axis\n        empty_arr = np.empty(len(index), dtype=values.dtype)\n        dummy = Series(empty_arr, index=index, dtype=values.dtype)\n\n        try:\n            result = libreduction.compute_reduction(\n                values, self.f, axis=self.axis, dummy=dummy, labels=labels\n            )\n            return self.obj._constructor_sliced(result, index=labels)\n        except Exception:\n            pass\n\n    # compute the result using the series generator\n    self.apply_series_generator()\n\n    # wrap results\n    return self.wrap_results()",
+                "def apply_series_generator(self):\n    series_gen = self.series_generator\n    res_index = self.result_index\n\n    i = None\n    keys = []\n    results = {}\n    if self.ignore_failures:\n        successes = []\n        for i, v in enumerate(series_gen):\n            try:\n                results[i] = self.f(v)\n            except Exception:\n                pass\n            else:\n                keys.append(v.name)\n                successes.append(i)\n\n        # so will work with MultiIndex\n        if len(successes) < len(res_index):\n            res_index = res_index.take(successes)\n\n    else:\n        try:\n            for i, v in enumerate(series_gen):\n                results[i] = self.f(v)\n                keys.append(v.name)\n        except Exception as e:\n            if hasattr(e, \"args\"):\n\n                # make sure i is defined\n                if i is not None:\n                    k = res_index[i]\n                    e.args = e.args + (\"occurred at index %s\" % pprint_thing(k),)\n            raise\n\n    self.results = results\n    self.res_index = res_index\n    self.res_columns = self.result_columns",
+                "def wrap_results(self):\n    results = self.results\n\n    # see if we can infer the results\n    if len(results) > 0 and is_sequence(results[0]):\n\n        return self.wrap_results_for_axis()\n\n    # dict of scalars\n    result = self.obj._constructor_sliced(results)\n    result.index = self.res_index\n\n    return result",
+                "def apply_broadcast(self):\n    return super().apply_broadcast(self.obj)",
+                "@property\ndef series_generator(self):\n    return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))",
+                "@property\ndef result_index(self):\n    return self.columns",
+                "@property\ndef result_columns(self):\n    return self.index",
+                "def wrap_results_for_axis(self):\n    \"\"\" return the results for the rows \"\"\"\n\n    results = self.results\n    result = self.obj._constructor(data=results)\n\n    if not isinstance(results[0], ABCSeries):\n        try:\n            result.index = self.res_columns\n        except ValueError:\n            pass\n\n    try:\n        result.columns = self.res_index\n    except ValueError:\n        pass\n\n    return result",
+                "def apply_broadcast(self):\n    result = super().apply_broadcast(self.obj.T)\n    return result.T",
+                "@property\ndef series_generator(self):\n    constructor = self.obj._constructor_sliced\n    return (\n        constructor(arr, index=self.columns, name=name)\n        for i, (arr, name) in enumerate(zip(self.values, self.index))\n    )",
+                "@property\ndef result_index(self):\n    return self.index",
+                "@property\ndef result_columns(self):\n    return self.columns",
+                "def wrap_results_for_axis(self):\n    \"\"\" return the results for the columns \"\"\"\n    results = self.results\n\n    # we have requested to expand\n    if self.result_type == \"expand\":\n        result = self.infer_to_same_shape()\n\n    # we have a non-series and don't want inference\n    elif not isinstance(results[0], ABCSeries):\n        from pandas import Series\n\n        result = Series(results)\n        result.index = self.res_index\n\n    # we may want to infer results\n    else:\n        result = self.infer_to_same_shape()\n\n    return result",
+                "def infer_to_same_shape(self):\n    \"\"\" infer the results to the same shape as the input object \"\"\"\n    results = self.results\n\n    result = self.obj._constructor(data=results)\n    result = result.T\n\n    # set the index\n    result.index = self.res_index\n\n    # infer dtypes\n    result = result.infer_objects()\n\n    return result",
+                "def f(x):\n    return func(x, *args, **kwds)"
+            ],
+            "inscope_function_signatures": [
+                "frame_apply(obj, func, axis=0, broadcast=None, raw=False, reduce=None, result_type=None, ignore_failures=False, args=None, kwds=None)",
+                "__init__(self, obj, func, broadcast, raw, reduce, result_type, ignore_failures, args, kwds)",
+                "columns(self)",
+                "index(self)",
+                "values(self)",
+                "dtypes(self)",
+                "agg_axis(self)",
+                "get_result(self)",
+                "apply_empty_result(self)",
+                "apply_raw(self)",
+                "apply_broadcast(self, target)",
+                "apply_standard(self)",
+                "apply_series_generator(self)",
+                "wrap_results(self)",
+                "apply_broadcast(self)",
+                "series_generator(self)",
+                "result_index(self)",
+                "result_columns(self)",
+                "wrap_results_for_axis(self)",
+                "apply_broadcast(self)",
+                "series_generator(self)",
+                "result_index(self)",
+                "result_columns(self)",
+                "wrap_results_for_axis(self)",
+                "infer_to_same_shape(self)",
+                "f(x)"
+            ],
+            "variables_in_file": {
+                "axis": [
+                    34,
+                    35,
+                    354,
+                    37,
+                    392
+                ],
+                "obj._get_axis_number": [
+                    34
+                ],
+                "obj": [
+                    41,
+                    34,
+                    66
+                ],
+                "klass": [
+                    40,
+                    36,
+                    38
+                ],
+                "FrameRowApply": [
+                    36
+                ],
+                "FrameColumnApply": [
+                    38
+                ],
+                "func": [
+                    160,
+                    161,
+                    164,
+                    42,
+                    109,
+                    112,
+                    115
+                ],
+                "broadcast": [
+                    43,
+                    78,
+                    87
+                ],
+                "raw": [
+                    67,
+                    44
+                ],
+                "reduce": [
+                    90,
+                    99,
+                    45
+                ],
+                "result_type": [
+                    101,
+                    72,
+                    104,
+                    106,
+                    46,
+                    88
+                ],
+                "ignore_failures": [
+                    68,
+                    47
+                ],
+                "args": [
+                    48,
+                    109,
+                    112,
+                    69
+                ],
+                "kwds": [
+                    112,
+                    49,
+                    109,
+                    70
+                ],
+                "self.obj": [
+                    257,
+                    130,
+                    134,
+                    138,
+                    395,
+                    142,
+                    400,
+                    149,
+                    279,
+                    160,
+                    288,
+                    169,
+                    170,
+                    179,
+                    183,
+                    439,
+                    66,
+                    199,
+                    217,
+                    219,
+                    347,
+                    357,
+                    231,
+                    233,
+                    361,
+                    375,
+                    126
+                ],
+                "self": [
+                    66,
+                    67,
+                    68,
+                    69,
+                    70,
+                    106,
+                    117,
+                    120,
+                    121,
+                    122,
+                    126,
+                    130,
+                    134,
+                    138,
+                    142,
+                    148,
+                    149,
+                    152,
+                    153,
+                    156,
+                    160,
+                    163,
+                    164,
+                    167,
+                    169,
+                    170,
+                    171,
+                    175,
+                    176,
+                    179,
+                    180,
+                    183,
+                    184,
+                    186,
+                    198,
+                    199,
+                    202,
+                    210,
+                    217,
+                    219,
+                    225,
+                    227,
+                    231,
+                    233,
+                    242,
+                    257,
+                    271,
+                    272,
+                    278,
+                    279,
+                    280,
+                    286,
+                    288,
+                    293,
+                    296,
+                    299,
+                    300,
+                    305,
+                    309,
+                    323,
+                    334,
+                    335,
+                    336,
+                    339,
+                    344,
+                    347,
+                    348,
+                    357,
+                    361,
+                    365,
+                    369,
+                    374,
+                    375,
+                    379,
+                    384,
+                    395,
+                    400,
+                    402,
+                    403,
+                    408,
+                    412,
+                    416,
+                    419,
+                    420,
+                    427,
+                    431,
+                    437,
+                    439,
+                    443
+                ],
+                "self.raw": [
+                    67,
+                    183
+                ],
+                "self.ignore_failures": [
+                    305,
+                    68
+                ],
+                "self.args": [
+                    210,
+                    164,
+                    69,
+                    149
+                ],
+                "self.kwds": [
+                    163,
+                    164,
+                    70,
+                    210,
+                    149
+                ],
+                "ValueError": [
+                    385,
+                    102,
+                    73,
+                    252,
+                    247,
+                    380
+                ],
+                "warnings.warn": [
+                    91,
+                    79
+                ],
+                "warnings": [
+                    91,
+                    79
+                ],
+                "FutureWarning": [
+                    96,
+                    84
+                ],
+                "self.result_type": [
+                    419,
+                    198,
+                    202,
+                    106,
+                    271,
+                    175
+                ],
+                "isinstance": [
+                    167,
+                    423,
+                    109,
+                    214,
+                    377,
+                    156
+                ],
+                "np.ufunc": [
+                    109,
+                    167
+                ],
+                "np": [
+                    227,
+                    281,
+                    167,
+                    168,
+                    236,
+                    109,
+                    243,
+                    217
+                ],
+                "str": [
+                    156,
+                    109
+                ],
+                "x": [
+                    112
+                ],
+                "f": [
+                    115,
+                    117
+                ],
+                "self.f": [
+                    160,
+                    225,
+                    227,
+                    323,
+                    167,
+                    169,
+                    210,
+                    242,
+                    148,
+                    117,
+                    149,
+                    309,
+                    156,
+                    286
+                ],
+                "self.result": [
+                    120
+                ],
+                "self.res_index": [
+                    384,
+                    427,
+                    335,
+                    121,
+                    443,
+                    348
+                ],
+                "self.res_columns": [
+                    336,
+                    122,
+                    379
+                ],
+                "self.obj.columns": [
+                    126
+                ],
+                "property": [
+                    128,
+                    359,
+                    363,
+                    140,
+                    398,
+                    367,
+                    406,
+                    410,
+                    124
+                ],
+                "self.obj.index": [
+                    130
+                ],
+                "self.obj.values": [
+                    134
+                ],
+                "cache_readonly": [
+                    136,
+                    132
+                ],
+                "self.obj.dtypes": [
+                    138
+                ],
+                "self.obj._get_agg_axis": [
+                    142
+                ],
+                "self.axis": [
+                    225,
+                    163,
+                    227,
+                    142,
+                    149,
+                    279,
+                    286
+                ],
+                "is_list_like": [
+                    148
+                ],
+                "is_dict_like": [
+                    148
+                ],
+                "self.obj.aggregate": [
+                    149
+                ],
+                "len": [
+                    361,
+                    342,
+                    152,
+                    281,
+                    251,
+                    317
+                ],
+                "self.columns": [
+                    231,
+                    361,
+                    171,
+                    365,
+                    402,
+                    152,
+                    412
+                ],
+                "self.index": [
+                    408,
+                    231,
+                    171,
+                    369,
+                    403,
+                    152
+                ],
+                "self.apply_empty_result": [
+                    153,
+                    180
+                ],
+                "getattr": [
+                    160
+                ],
+                "sig": [
+                    161,
+                    162
+                ],
+                "inspect.getfullargspec": [
+                    161
+                ],
+                "inspect": [
+                    161
+                ],
+                "sig.args": [
+                    162
+                ],
+                "np.errstate": [
+                    168
+                ],
+                "results": [
+                    416,
+                    439,
+                    323,
+                    423,
+                    169,
+                    426,
+                    171,
+                    334,
+                    304,
+                    339,
+                    309,
+                    342,
+                    374,
+                    437,
+                    377,
+                    347,
+                    375
+                ],
+                "self.obj._data.apply": [
+                    169
+                ],
+                "self.obj._data": [
+                    169
+                ],
+                "self.obj._constructor": [
+                    257,
+                    439,
+                    231,
+                    170,
+                    375
+                ],
+                "self.apply_broadcast": [
+                    176
+                ],
+                "all": [
+                    179
+                ],
+                "self.obj.shape": [
+                    179
+                ],
+                "self.obj._is_mixed_type": [
+                    183
+                ],
+                "self.apply_raw": [
+                    184
+                ],
+                "self.apply_standard": [
+                    186
+                ],
+                "self.obj.copy": [
+                    219,
+                    199
+                ],
+                "should_reduce": [
+                    216,
+                    202,
+                    214,
+                    206
+                ],
+                "EMPTY_SERIES": [
+                    208,
+                    210
+                ],
+                "Series": [
+                    208,
+                    426,
+                    282,
+                    214
+                ],
+                "r": [
+                    210,
+                    214
+                ],
+                "Exception": [
+                    289,
+                    226,
+                    325,
+                    211,
+                    310
+                ],
+                "self.obj._constructor_sliced": [
+                    288,
+                    233,
+                    400,
+                    217,
+                    347
+                ],
+                "np.nan": [
+                    217
+                ],
+                "self.agg_axis": [
+                    280,
+                    217,
+                    233
+                ],
+                "result": [
+                    384,
+                    257,
+                    260,
+                    388,
+                    395,
+                    396,
+                    285,
+                    288,
+                    420,
+                    426,
+                    427,
+                    431,
+                    433,
+                    439,
+                    440,
+                    443,
+                    446,
+                    448,
+                    347,
+                    348,
+                    350,
+                    225,
+                    227,
+                    230,
+                    231,
+                    233,
+                    375,
+                    379
+                ],
+                "libreduction.compute_reduction": [
+                    225,
+                    285
+                ],
+                "libreduction": [
+                    225,
+                    285
+                ],
+                "self.values": [
+                    225,
+                    227,
+                    403,
+                    278
+                ],
+                "np.apply_along_axis": [
+                    227
+                ],
+                "result.ndim": [
+                    230
+                ],
+                "result_values": [
+                    258,
+                    236,
+                    254
+                ],
+                "np.empty_like": [
+                    236
+                ],
+                "target.values": [
+                    236
+                ],
+                "target": [
+                    258,
+                    236,
+                    239,
+                    241,
+                    242
+                ],
+                "result_compare": [
+                    251,
+                    239
+                ],
+                "target.shape": [
+                    239
+                ],
+                "i": [
+                    322,
+                    323,
+                    329,
+                    330,
+                    361,
+                    302,
+                    241,
+                    307,
+                    403,
+                    309,
+                    314,
+                    254
+                ],
+                "col": [
+                    241,
+                    242
+                ],
+                "enumerate": [
+                    241,
+                    322,
+                    307,
+                    403
+                ],
+                "target.columns": [
+                    241,
+                    258
+                ],
+                "res": [
+                    242,
+                    243,
+                    254,
+                    251
+                ],
+                "ares": [
+                    248,
+                    243,
+                    246
+                ],
+                "ndim": [
+                    243
+                ],
+                "np.asarray": [
+                    243
+                ],
+                "target.index": [
+                    258
+                ],
+                "any": [
+                    272
+                ],
+                "self.dtypes.apply": [
+                    272
+                ],
+                "self.dtypes": [
+                    272
+                ],
+                "is_extension_type": [
+                    272
+                ],
+                "values": [
+                    281,
+                    282,
+                    278,
+                    286
+                ],
+                "index": [
+                    281,
+                    282,
+                    279
+                ],
+                "self.obj._get_axis": [
+                    279
+                ],
+                "labels": [
+                    280,
+                    288,
+                    286
+                ],
+                "empty_arr": [
+                    281,
+                    282
+                ],
+                "np.empty": [
+                    281
+                ],
+                "values.dtype": [
+                    281,
+                    282
+                ],
+                "dummy": [
+                    282,
+                    286
+                ],
+                "self.apply_series_generator": [
+                    293
+                ],
+                "self.wrap_results": [
+                    296
+                ],
+                "series_gen": [
+                    307,
+                    322,
+                    299
+                ],
+                "self.series_generator": [
+                    299
+                ],
+                "res_index": [
+                    330,
+                    300,
+                    335,
+                    317,
+                    318
+                ],
+                "self.result_index": [
+                    300
+                ],
+                "keys": [
+                    313,
+                    324,
+                    303
+                ],
+                "successes": [
+                    306,
+                    314,
+                    317,
+                    318
+                ],
+                "v": [
+                    322,
+                    323,
+                    324,
+                    307,
+                    309,
+                    313
+                ],
+                "keys.append": [
+                    313,
+                    324
+                ],
+                "v.name": [
+                    313,
+                    324
+                ],
+                "successes.append": [
+                    314
+                ],
+                "res_index.take": [
+                    318
+                ],
+                "hasattr": [
+                    326
+                ],
+                "e": [
+                    331,
+                    326
+                ],
+                "k": [
+                    330,
+                    331
+                ],
+                "e.args": [
+                    331
+                ],
+                "pprint_thing": [
+                    331
+                ],
+                "self.results": [
+                    416,
+                    334,
+                    339,
+                    437,
+                    374
+                ],
+                "self.result_columns": [
+                    336
+                ],
+                "is_sequence": [
+                    342
+                ],
+                "self.wrap_results_for_axis": [
+                    344
+                ],
+                "result.index": [
+                    443,
+                    379,
+                    348,
+                    427
+                ],
+                "FrameApply": [
+                    353,
+                    391
+                ],
+                "apply_broadcast": [
+                    395,
+                    357
+                ],
+                "super": [
+                    395,
+                    357
+                ],
+                "self.obj._ixs": [
+                    361
+                ],
+                "range": [
+                    361
+                ],
+                "ABCSeries": [
+                    377,
+                    423
+                ],
+                "result.columns": [
+                    384
+                ],
+                "self.obj.T": [
+                    395
+                ],
+                "result.T": [
+                    440,
+                    396
+                ],
+                "constructor": [
+                    400,
+                    402
+                ],
+                "arr": [
+                    402,
+                    403
+                ],
+                "name": [
+                    402,
+                    403
+                ],
+                "zip": [
+                    403
+                ],
+                "self.infer_to_same_shape": [
+                    420,
+                    431
+                ],
+                "result.infer_objects": [
+                    446
+                ]
+            },
+            "filtered_variables_in_file": {
+                "axis": [
+                    34,
+                    35,
+                    354,
+                    37,
+                    392
+                ],
+                "obj._get_axis_number": [
+                    34
+                ],
+                "obj": [
+                    41,
+                    34,
+                    66
+                ],
+                "klass": [
+                    40,
+                    36,
+                    38
+                ],
+                "FrameRowApply": [
+                    36
+                ],
+                "FrameColumnApply": [
+                    38
+                ],
+                "func": [
+                    160,
+                    161,
+                    164,
+                    42,
+                    109,
+                    112,
+                    115
+                ],
+                "broadcast": [
+                    43,
+                    78,
+                    87
+                ],
+                "raw": [
+                    67,
+                    44
+                ],
+                "reduce": [
+                    90,
+                    99,
+                    45
+                ],
+                "result_type": [
+                    101,
+                    72,
+                    104,
+                    106,
+                    46,
+                    88
+                ],
+                "ignore_failures": [
+                    68,
+                    47
+                ],
+                "args": [
+                    48,
+                    109,
+                    112,
+                    69
+                ],
+                "kwds": [
+                    112,
+                    49,
+                    109,
+                    70
+                ],
+                "self.obj": [
+                    257,
+                    130,
+                    134,
+                    138,
+                    395,
+                    142,
+                    400,
+                    149,
+                    279,
+                    160,
+                    288,
+                    169,
+                    170,
+                    179,
+                    183,
+                    439,
+                    66,
+                    199,
+                    217,
+                    219,
+                    347,
+                    357,
+                    231,
+                    233,
+                    361,
+                    375,
+                    126
+                ],
+                "self": [
+                    66,
+                    67,
+                    68,
+                    69,
+                    70,
+                    106,
+                    117,
+                    120,
+                    121,
+                    122,
+                    126,
+                    130,
+                    134,
+                    138,
+                    142,
+                    148,
+                    149,
+                    152,
+                    153,
+                    156,
+                    160,
+                    163,
+                    164,
+                    167,
+                    169,
+                    170,
+                    171,
+                    175,
+                    176,
+                    179,
+                    180,
+                    183,
+                    184,
+                    186,
+                    198,
+                    199,
+                    202,
+                    210,
+                    217,
+                    219,
+                    225,
+                    227,
+                    231,
+                    233,
+                    242,
+                    257,
+                    271,
+                    272,
+                    278,
+                    279,
+                    280,
+                    286,
+                    288,
+                    293,
+                    296,
+                    299,
+                    300,
+                    305,
+                    309,
+                    323,
+                    334,
+                    335,
+                    336,
+                    339,
+                    344,
+                    347,
+                    348,
+                    357,
+                    361,
+                    365,
+                    369,
+                    374,
+                    375,
+                    379,
+                    384,
+                    395,
+                    400,
+                    402,
+                    403,
+                    408,
+                    412,
+                    416,
+                    419,
+                    420,
+                    427,
+                    431,
+                    437,
+                    439,
+                    443
+                ],
+                "self.raw": [
+                    67,
+                    183
+                ],
+                "self.ignore_failures": [
+                    305,
+                    68
+                ],
+                "self.args": [
+                    210,
+                    164,
+                    69,
+                    149
+                ],
+                "self.kwds": [
+                    163,
+                    164,
+                    70,
+                    210,
+                    149
+                ],
+                "warnings.warn": [
+                    91,
+                    79
+                ],
+                "warnings": [
+                    91,
+                    79
+                ],
+                "self.result_type": [
+                    419,
+                    198,
+                    202,
+                    106,
+                    271,
+                    175
+                ],
+                "np.ufunc": [
+                    109,
+                    167
+                ],
+                "np": [
+                    227,
+                    281,
+                    167,
+                    168,
+                    236,
+                    109,
+                    243,
+                    217
+                ],
+                "x": [
+                    112
+                ],
+                "f": [
+                    115,
+                    117
+                ],
+                "self.f": [
+                    160,
+                    225,
+                    227,
+                    323,
+                    167,
+                    169,
+                    210,
+                    242,
+                    148,
+                    117,
+                    149,
+                    309,
+                    156,
+                    286
+                ],
+                "self.result": [
+                    120
+                ],
+                "self.res_index": [
+                    384,
+                    427,
+                    335,
+                    121,
+                    443,
+                    348
+                ],
+                "self.res_columns": [
+                    336,
+                    122,
+                    379
+                ],
+                "self.obj.columns": [
+                    126
+                ],
+                "self.obj.index": [
+                    130
+                ],
+                "self.obj.values": [
+                    134
+                ],
+                "cache_readonly": [
+                    136,
+                    132
+                ],
+                "self.obj.dtypes": [
+                    138
+                ],
+                "self.obj._get_agg_axis": [
+                    142
+                ],
+                "self.axis": [
+                    225,
+                    163,
+                    227,
+                    142,
+                    149,
+                    279,
+                    286
+                ],
+                "is_list_like": [
+                    148
+                ],
+                "is_dict_like": [
+                    148
+                ],
+                "self.obj.aggregate": [
+                    149
+                ],
+                "self.columns": [
+                    231,
+                    361,
+                    171,
+                    365,
+                    402,
+                    152,
+                    412
+                ],
+                "self.index": [
+                    408,
+                    231,
+                    171,
+                    369,
+                    403,
+                    152
+                ],
+                "self.apply_empty_result": [
+                    153,
+                    180
+                ],
+                "sig": [
+                    161,
+                    162
+                ],
+                "inspect.getfullargspec": [
+                    161
+                ],
+                "inspect": [
+                    161
+                ],
+                "sig.args": [
+                    162
+                ],
+                "np.errstate": [
+                    168
+                ],
+                "results": [
+                    416,
+                    439,
+                    323,
+                    423,
+                    169,
+                    426,
+                    171,
+                    334,
+                    304,
+                    339,
+                    309,
+                    342,
+                    374,
+                    437,
+                    377,
+                    347,
+                    375
+                ],
+                "self.obj._data.apply": [
+                    169
+                ],
+                "self.obj._data": [
+                    169
+                ],
+                "self.obj._constructor": [
+                    257,
+                    439,
+                    231,
+                    170,
+                    375
+                ],
+                "self.apply_broadcast": [
+                    176
+                ],
+                "self.obj.shape": [
+                    179
+                ],
+                "self.obj._is_mixed_type": [
+                    183
+                ],
+                "self.apply_raw": [
+                    184
+                ],
+                "self.apply_standard": [
+                    186
+                ],
+                "self.obj.copy": [
+                    219,
+                    199
+                ],
+                "should_reduce": [
+                    216,
+                    202,
+                    214,
+                    206
+                ],
+                "EMPTY_SERIES": [
+                    208,
+                    210
+                ],
+                "Series": [
+                    208,
+                    426,
+                    282,
+                    214
+                ],
+                "r": [
+                    210,
+                    214
+                ],
+                "self.obj._constructor_sliced": [
+                    288,
+                    233,
+                    400,
+                    217,
+                    347
+                ],
+                "np.nan": [
+                    217
+                ],
+                "self.agg_axis": [
+                    280,
+                    217,
+                    233
+                ],
+                "result": [
+                    384,
+                    257,
+                    260,
+                    388,
+                    395,
+                    396,
+                    285,
+                    288,
+                    420,
+                    426,
+                    427,
+                    431,
+                    433,
+                    439,
+                    440,
+                    443,
+                    446,
+                    448,
+                    347,
+                    348,
+                    350,
+                    225,
+                    227,
+                    230,
+                    231,
+                    233,
+                    375,
+                    379
+                ],
+                "libreduction.compute_reduction": [
+                    225,
+                    285
+                ],
+                "libreduction": [
+                    225,
+                    285
+                ],
+                "self.values": [
+                    225,
+                    227,
+                    403,
+                    278
+                ],
+                "np.apply_along_axis": [
+                    227
+                ],
+                "result.ndim": [
+                    230
+                ],
+                "result_values": [
+                    258,
+                    236,
+                    254
+                ],
+                "np.empty_like": [
+                    236
+                ],
+                "target.values": [
+                    236
+                ],
+                "target": [
+                    258,
+                    236,
+                    239,
+                    241,
+                    242
+                ],
+                "result_compare": [
+                    251,
+                    239
+                ],
+                "target.shape": [
+                    239
+                ],
+                "i": [
+                    322,
+                    323,
+                    329,
+                    330,
+                    361,
+                    302,
+                    241,
+                    307,
+                    403,
+                    309,
+                    314,
+                    254
+                ],
+                "col": [
+                    241,
+                    242
+                ],
+                "target.columns": [
+                    241,
+                    258
+                ],
+                "res": [
+                    242,
+                    243,
+                    254,
+                    251
+                ],
+                "ares": [
+                    248,
+                    243,
+                    246
+                ],
+                "ndim": [
+                    243
+                ],
+                "np.asarray": [
+                    243
+                ],
+                "target.index": [
+                    258
+                ],
+                "self.dtypes.apply": [
+                    272
+                ],
+                "self.dtypes": [
+                    272
+                ],
+                "is_extension_type": [
+                    272
+                ],
+                "values": [
+                    281,
+                    282,
+                    278,
+                    286
+                ],
+                "index": [
+                    281,
+                    282,
+                    279
+                ],
+                "self.obj._get_axis": [
+                    279
+                ],
+                "labels": [
+                    280,
+                    288,
+                    286
+                ],
+                "empty_arr": [
+                    281,
+                    282
+                ],
+                "np.empty": [
+                    281
+                ],
+                "values.dtype": [
+                    281,
+                    282
+                ],
+                "dummy": [
+                    282,
+                    286
+                ],
+                "self.apply_series_generator": [
+                    293
+                ],
+                "self.wrap_results": [
+                    296
+                ],
+                "series_gen": [
+                    307,
+                    322,
+                    299
+                ],
+                "self.series_generator": [
+                    299
+                ],
+                "res_index": [
+                    330,
+                    300,
+                    335,
+                    317,
+                    318
+                ],
+                "self.result_index": [
+                    300
+                ],
+                "keys": [
+                    313,
+                    324,
+                    303
+                ],
+                "successes": [
+                    306,
+                    314,
+                    317,
+                    318
+                ],
+                "v": [
+                    322,
+                    323,
+                    324,
+                    307,
+                    309,
+                    313
+                ],
+                "keys.append": [
+                    313,
+                    324
+                ],
+                "v.name": [
+                    313,
+                    324
+                ],
+                "successes.append": [
+                    314
+                ],
+                "res_index.take": [
+                    318
+                ],
+                "e": [
+                    331,
+                    326
+                ],
+                "k": [
+                    330,
+                    331
+                ],
+                "e.args": [
+                    331
+                ],
+                "pprint_thing": [
+                    331
+                ],
+                "self.results": [
+                    416,
+                    334,
+                    339,
+                    437,
+                    374
+                ],
+                "self.result_columns": [
+                    336
+                ],
+                "is_sequence": [
+                    342
+                ],
+                "self.wrap_results_for_axis": [
+                    344
+                ],
+                "result.index": [
+                    443,
+                    379,
+                    348,
+                    427
+                ],
+                "FrameApply": [
+                    353,
+                    391
+                ],
+                "apply_broadcast": [
+                    395,
+                    357
+                ],
+                "self.obj._ixs": [
+                    361
+                ],
+                "ABCSeries": [
+                    377,
+                    423
+                ],
+                "result.columns": [
+                    384
+                ],
+                "self.obj.T": [
+                    395
+                ],
+                "result.T": [
+                    440,
+                    396
+                ],
+                "constructor": [
+                    400,
+                    402
+                ],
+                "arr": [
+                    402,
+                    403
+                ],
+                "name": [
+                    402,
+                    403
+                ],
+                "self.infer_to_same_shape": [
+                    420,
+                    431
+                ],
+                "result.infer_objects": [
+                    446
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_148/pandas/tests/frame/test_apply.py",
+                "test_function": "test_apply_funcs_over_empty",
+                "test_function_code": "    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n\n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n        assert_series_equal(result, expected)",
+                "test_error": "AssertionError: Series are different  Series values are different (100.0 %) [left]:  [nan, nan, nan] [right]: [0.0, 0.0, 0.0]",
+                "full_test_error": "self = <pandas.tests.frame.test_apply.TestDataFrameApply object at 0x12281eac0>\nfunc = 'sum'\n\n    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n    \n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n>       assert_series_equal(result, expected)\n\npandas/tests/frame/test_apply.py:126: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [nan, nan, nan]\nE   [right]: [0.0, 0.0, 0.0]\n\npandas/_libs/testing.pyx:176: AssertionError",
+                "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [nan, nan, nan]\nE   [right]: [0.0, 0.0, 0.0]\n\npandas/_libs/testing.pyx:176: AssertionError",
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('func', ['sum', 'prod', 'any', 'all'])"
+                ]
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_148/pandas/tests/frame/test_apply.py",
+                "test_function": "test_apply_funcs_over_empty",
+                "test_function_code": "    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n\n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n        assert_series_equal(result, expected)",
+                "test_error": "AssertionError: Series are different  Series values are different (100.0 %) [left]:  [nan, nan, nan] [right]: [1.0, 1.0, 1.0]",
+                "full_test_error": "self = <pandas.tests.frame.test_apply.TestDataFrameApply object at 0x12298f880>\nfunc = 'prod'\n\n    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n    \n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n>       assert_series_equal(result, expected)\n\npandas/tests/frame/test_apply.py:126: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [nan, nan, nan]\nE   [right]: [1.0, 1.0, 1.0]\n\npandas/_libs/testing.pyx:176: AssertionError",
+                "traceback": "pandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)\nE   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [nan, nan, nan]\nE   [right]: [1.0, 1.0, 1.0]\n\npandas/_libs/testing.pyx:176: AssertionError",
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('func', ['sum', 'prod', 'any', 'all'])"
+                ]
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_148/pandas/tests/frame/test_apply.py",
+                "test_function": "test_apply_funcs_over_empty",
+                "test_function_code": "    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n\n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n        assert_series_equal(result, expected)",
+                "test_error": "AssertionError: Attributes are different  Attribute \"dtype\" are different [left]:  float64 [right]: bool",
+                "full_test_error": "self = <pandas.tests.frame.test_apply.TestDataFrameApply object at 0x122a6c550>\nfunc = 'any'\n\n    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n    \n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n>       assert_series_equal(result, expected)\nE       AssertionError: Attributes are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  float64\nE       [right]: bool\n\npandas/tests/frame/test_apply.py:126: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('func', ['sum', 'prod', 'any', 'all'])"
+                ]
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_148/pandas/tests/frame/test_apply.py",
+                "test_function": "test_apply_funcs_over_empty",
+                "test_function_code": "    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n\n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n        assert_series_equal(result, expected)",
+                "test_error": "AssertionError: Attributes are different  Attribute \"dtype\" are different [left]:  float64 [right]: bool",
+                "full_test_error": "self = <pandas.tests.frame.test_apply.TestDataFrameApply object at 0x122a97d90>\nfunc = 'all'\n\n    @pytest.mark.parametrize(\"func\", [\"sum\", \"prod\", \"any\", \"all\"])\n    def test_apply_funcs_over_empty(self, func):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n    \n        result = df.apply(getattr(np, func))\n        expected = getattr(df, func)()\n>       assert_series_equal(result, expected)\nE       AssertionError: Attributes are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  float64\nE       [right]: bool\n\npandas/tests/frame/test_apply.py:126: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": [
+                    "pytest.mark.parametrize('func', ['sum', 'prod', 'any', 'all'])"
+                ]
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_148/pandas/tests/frame/test_apply.py",
+                "test_function": "test_nunique_empty",
+                "test_function_code": "    def test_nunique_empty(self):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n\n        result = df.nunique()\n        expected = Series(0, index=df.columns)\n        assert_series_equal(result, expected)\n\n        result = df.T.nunique()\n        expected = Series([], index=pd.Index([]))\n        assert_series_equal(result, expected)",
+                "test_error": "AssertionError: Series Expected type <class 'pandas.core.series.Series'>, found <class 'pandas.core.frame.DataFrame'> instead",
+                "full_test_error": "self = <pandas.tests.frame.test_apply.TestDataFrameApply object at 0x122a9e580>\n\n    def test_nunique_empty(self):\n        # GH 28213\n        df = DataFrame(columns=[\"a\", \"b\", \"c\"])\n    \n        result = df.nunique()\n        expected = Series(0, index=df.columns)\n>       assert_series_equal(result, expected)\n\npandas/tests/frame/test_apply.py:134: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nleft = Empty DataFrame\nColumns: [a, b, c]\nIndex: []\nright = a    0\nb    0\nc    0\ndtype: int64\ncls = <class 'pandas.core.series.Series'>\n\n    def _check_isinstance(left, right, cls):\n        \"\"\"\n        Helper method for our assert_* methods that ensures that\n        the two objects being compared have the right type before\n        proceeding with the comparison.\n    \n        Parameters\n        ----------\n        left : The first object being compared.\n        right : The second object being compared.\n        cls : The class type to check against.\n    \n        Raises\n        ------\n        AssertionError : Either `left` or `right` is not an instance of `cls`.\n        \"\"\"\n    \n        err_msg = \"{name} Expected type {exp_type}, found {act_type} instead\"\n        cls_name = cls.__name__\n    \n        if not isinstance(left, cls):\n>           raise AssertionError(\n                err_msg.format(name=cls_name, exp_type=cls, act_type=type(left))\n            )\nE           AssertionError: Series Expected type <class 'pandas.core.series.Series'>, found <class 'pandas.core.frame.DataFrame'> instead\n\npandas/util/testing.py:389: AssertionError",
+                "traceback": null,
+                "test_error_location": null,
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

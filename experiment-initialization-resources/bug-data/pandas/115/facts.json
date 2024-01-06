@@ -1,0 +1,562 @@
+{
+    "1.1.1": "def interpolate_1d(\n    xvalues,\n    yvalues,\n    method=\"linear\",\n    limit=None,\n    limit_direction=\"forward\",\n    limit_area=None,\n    fill_value=None,\n    bounds_error=False,\n    order=None,\n    **kwargs,\n):\n    \n    # Treat the original, non-scipy methods first.\n\n    invalid = isna(yvalues)\n    valid = ~invalid\n\n    if not valid.any():\n        # have to call np.asarray(xvalues) since xvalues could be an Index\n        # which can't be mutated\n        result = np.empty_like(np.asarray(xvalues), dtype=np.float64)\n        result.fill(np.nan)\n        return result\n\n    if valid.all():\n        return yvalues\n\n    if method == \"time\":\n        if not getattr(xvalues, \"is_all_dates\", None):\n            # if not issubclass(xvalues.dtype.type, np.datetime64):\n            raise ValueError(\n                \"time-weighted interpolation only works \"\n                \"on Series or DataFrames with a \"\n                \"DatetimeIndex\"\n            )\n        method = \"values\"\n\n    valid_limit_directions = [\"forward\", \"backward\", \"both\"]\n    limit_direction = limit_direction.lower()\n    if limit_direction not in valid_limit_directions:\n        msg = \"Invalid limit_direction: expecting one of {valid!r}, got {invalid!r}.\"\n        raise ValueError(\n            msg.format(valid=valid_limit_directions, invalid=limit_direction)\n        )\n\n    if limit_area is not None:\n        valid_limit_areas = [\"inside\", \"outside\"]\n        limit_area = limit_area.lower()\n        if limit_area not in valid_limit_areas:\n            raise ValueError(\n                \"Invalid limit_area: expecting one of {}, got \"\n                \"{}.\".format(valid_limit_areas, limit_area)\n            )\n\n    # default limit is unlimited GH #16282\n    limit = algos._validate_limit(nobs=None, limit=limit)\n\n    # These are sets of index pointers to invalid values... i.e. {0, 1, etc...\n    all_nans = set(np.flatnonzero(invalid))\n    start_nans = set(range(find_valid_index(yvalues, \"first\")))\n    end_nans = set(range(1 + find_valid_index(yvalues, \"last\"), len(valid)))\n    mid_nans = all_nans - start_nans - end_nans\n\n    # Like the sets above, preserve_nans contains indices of invalid values,\n    # but in this case, it is the final set of indices that need to be\n    # preserved as NaN after the interpolation.\n\n    # For example if limit_direction='forward' then preserve_nans will\n    # contain indices of NaNs at the beginning of the series, and NaNs that\n    # are more than'limit' away from the prior non-NaN.\n\n    # set preserve_nans based on direction using _interp_limit\n    if limit_direction == \"forward\":\n        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))\n    elif limit_direction == \"backward\":\n        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))\n    else:\n        # both directions... just use _interp_limit\n        preserve_nans = set(_interp_limit(invalid, limit, limit))\n\n    # if limit_area is set, add either mid or outside indices\n    # to preserve_nans GH #16284\n    if limit_area == \"inside\":\n        # preserve NaNs on the outside\n        preserve_nans |= start_nans | end_nans\n    elif limit_area == \"outside\":\n        # preserve NaNs on the inside\n        preserve_nans |= mid_nans\n\n    # sort preserve_nans and covert to list\n    preserve_nans = sorted(preserve_nans)\n\n    xvalues = getattr(xvalues, \"values\", xvalues)\n    yvalues = getattr(yvalues, \"values\", yvalues)\n    result = yvalues.copy()\n\n    if method in [\"linear\", \"time\", \"index\", \"values\"]:\n        if method in (\"values\", \"index\"):\n            inds = np.asarray(xvalues)\n            # hack for DatetimeIndex, #1646\n            if needs_i8_conversion(inds.dtype.type):\n                inds = inds.view(np.int64)\n            if inds.dtype == np.object_:\n                inds = lib.maybe_convert_objects(inds)\n        else:\n            inds = xvalues\n        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])\n        result[preserve_nans] = np.nan\n        return result\n\n    sp_methods = [\n        \"nearest\",\n        \"zero\",\n        \"slinear\",\n        \"quadratic\",\n        \"cubic\",\n        \"barycentric\",\n        \"krogh\",\n        \"spline\",\n        \"polynomial\",\n        \"from_derivatives\",\n        \"piecewise_polynomial\",\n        \"pchip\",\n        \"akima\",\n    ]\n\n    if method in sp_methods:\n        inds = np.asarray(xvalues)\n        # hack for DatetimeIndex, #1646\n        if issubclass(inds.dtype.type, np.datetime64):\n            inds = inds.view(np.int64)\n        result[invalid] = _interpolate_scipy_wrapper(\n            inds[valid],\n            yvalues[valid],\n            inds[invalid],\n            method=method,\n            fill_value=fill_value,\n            bounds_error=bounds_error,\n            order=order,\n            **kwargs,\n        )\n        result[preserve_nans] = np.nan\n        return result\n",
+    "1.1.2": "Logic for the 1-d interpolation.  The result should be 1-d, inputs\nxvalues and yvalues will each be 1-d arrays of the same length.\n\nBounds_error is currently hardcoded to False since non-scipy ones don't\ntake it as an argument.",
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.2.4": null,
+    "1.2.5": null,
+    "1.3.1": "pandas/core/missing.py",
+    "1.3.2": [
+        "find_valid_index(values, how: str)",
+        "_interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs)",
+        "_interp_limit(invalid, fw_limit, bw_limit)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.parametrize(\n        \"ascending, expected_values\",\n        [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],\n    )\n    def test_interpolate_unsorted_index(self, ascending, expected_values):\n        # GH 21037\n        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])\n        result = ts.sort_index(ascending=ascending).interpolate(method=\"index\")\n        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)\n        tm.assert_series_equal(result, expected)"
+    ],
+    "1.4.2": [
+        "pandas/tests/series/test_missing.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AssertionError: Series are different\nE   \nE   Series values are different (20.0 %)\nE   [left]:  [10.0, 9.0, 1.0, 2.0, 1.0]\nE   [right]: [10.0, 9.0, 3.0, 2.0, 1.0]"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.series.test_missing.TestSeriesInterpolateData object at 0x116631400>\nascending = False, expected_values = [10, 9, 3, 2, 1]\n\n    @pytest.mark.parametrize(\n        \"ascending, expected_values\",\n        [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],\n    )\n    def test_interpolate_unsorted_index(self, ascending, expected_values):\n        # GH 21037\n        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])\n        result = ts.sort_index(ascending=ascending).interpolate(method=\"index\")\n        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)\n>       tm.assert_series_equal(result, expected)\n\npandas/tests/series/test_missing.py:1662: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)",
+            "\npandas/_libs/testing.pyx:174: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "yvalues": {
+                    "value": "array([ 1.,  2., nan,  9., 10.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "Int64Index([1, 2, 3, 9, 10], dtype='int64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "method": {
+                    "value": "'index'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "limit_direction": {
+                    "value": "'forward'",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "fill_value": {
+                    "value": "nan",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bounds_error": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "invalid": {
+                    "value": "array([False, False,  True, False, False])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid": {
+                    "value": "array([ True,  True, False,  True,  True])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "result": {
+                    "value": "array([ 1.,  2.,  3.,  9., 10.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "array([ 1,  2,  3,  9, 10])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid_limit_directions": {
+                    "value": "['forward', 'backward', 'both']",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "all_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "start_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "end_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "mid_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "preserve_nans": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "inds": {
+                    "value": "array([ 1,  2,  3,  9, 10])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "inds.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "yvalues": {
+                    "value": "array([10.,  9., nan,  2.,  1.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "Int64Index([10, 9, 3, 2, 1], dtype='int64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "method": {
+                    "value": "'index'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "limit_direction": {
+                    "value": "'forward'",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "fill_value": {
+                    "value": "nan",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bounds_error": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "invalid": {
+                    "value": "array([False, False,  True, False, False])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid": {
+                    "value": "array([ True,  True, False,  True,  True])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "result": {
+                    "value": "array([10.,  9.,  1.,  2.,  1.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "array([10,  9,  3,  2,  1])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid_limit_directions": {
+                    "value": "['forward', 'backward', 'both']",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "all_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "start_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "end_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "mid_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "preserve_nans": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "inds": {
+                    "value": "array([10,  9,  3,  2,  1])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "inds.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "yvalues": "ndarray",
+                "xvalues": "Int64Index",
+                "method": "str",
+                "limit_direction": "str",
+                "fill_value": "float",
+                "bounds_error": "bool",
+                "kwargs": "dict"
+            },
+            {
+                "invalid": "ndarray",
+                "valid": "ndarray",
+                "result": "ndarray",
+                "xvalues": "ndarray",
+                "valid_limit_directions": "list",
+                "all_nans": "set",
+                "start_nans": "set",
+                "end_nans": "set",
+                "mid_nans": "set",
+                "preserve_nans": "list",
+                "inds": "ndarray",
+                "inds.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "yvalues": "ndarray",
+                "xvalues": "Int64Index",
+                "method": "str",
+                "limit_direction": "str",
+                "fill_value": "float",
+                "bounds_error": "bool",
+                "kwargs": "dict"
+            },
+            {
+                "invalid": "ndarray",
+                "valid": "ndarray",
+                "result": "ndarray",
+                "xvalues": "ndarray",
+                "valid_limit_directions": "list",
+                "all_nans": "set",
+                "start_nans": "set",
+                "end_nans": "set",
+                "mid_nans": "set",
+                "preserve_nans": "list",
+                "inds": "ndarray",
+                "inds.dtype": "dtype"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "yvalues": {
+                    "value": "array([ 1.,  2., nan,  9., 10.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "Int64Index([1, 2, 3, 9, 10], dtype='int64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "method": {
+                    "value": "'index'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "limit_direction": {
+                    "value": "'forward'",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "fill_value": {
+                    "value": "nan",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bounds_error": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "invalid": {
+                    "value": "array([False, False,  True, False, False])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid": {
+                    "value": "array([ True,  True, False,  True,  True])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "result": {
+                    "value": "array([ 1.,  2.,  3.,  9., 10.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "array([ 1,  2,  3,  9, 10])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid_limit_directions": {
+                    "value": "['forward', 'backward', 'both']",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "all_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "start_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "end_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "mid_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "preserve_nans": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "inds": {
+                    "value": "array([ 1,  2,  3,  9, 10])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "inds.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "indexer": {
+                    "value": "array([0, 1, 2, 3])",
+                    "shape": "(4,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "yvalues": {
+                    "value": "array([10.,  9., nan,  2.,  1.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "Int64Index([10, 9, 3, 2, 1], dtype='int64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "method": {
+                    "value": "'index'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "limit_direction": {
+                    "value": "'forward'",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "fill_value": {
+                    "value": "nan",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bounds_error": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "invalid": {
+                    "value": "array([False, False,  True, False, False])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid": {
+                    "value": "array([ True,  True, False,  True,  True])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "result": {
+                    "value": "array([10.,  9.,  3.,  2.,  1.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "xvalues": {
+                    "value": "array([10,  9,  3,  2,  1])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "valid_limit_directions": {
+                    "value": "['forward', 'backward', 'both']",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "all_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "start_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "end_nans": {
+                    "value": "set()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "mid_nans": {
+                    "value": "{2}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "preserve_nans": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "inds": {
+                    "value": "array([10,  9,  3,  2,  1])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "inds.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "indexer": {
+                    "value": "array([3, 2, 1, 0])",
+                    "shape": "(4,)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "yvalues": "ndarray",
+                "xvalues": "Int64Index",
+                "method": "str",
+                "limit_direction": "str",
+                "fill_value": "float",
+                "bounds_error": "bool",
+                "kwargs": "dict"
+            },
+            {
+                "invalid": "ndarray",
+                "valid": "ndarray",
+                "result": "ndarray",
+                "xvalues": "ndarray",
+                "valid_limit_directions": "list",
+                "all_nans": "set",
+                "start_nans": "set",
+                "end_nans": "set",
+                "mid_nans": "set",
+                "preserve_nans": "list",
+                "inds": "ndarray",
+                "inds.dtype": "dtype",
+                "indexer": "ndarray"
+            }
+        ],
+        [
+            {
+                "yvalues": "ndarray",
+                "xvalues": "Int64Index",
+                "method": "str",
+                "limit_direction": "str",
+                "fill_value": "float",
+                "bounds_error": "bool",
+                "kwargs": "dict"
+            },
+            {
+                "invalid": "ndarray",
+                "valid": "ndarray",
+                "result": "ndarray",
+                "xvalues": "ndarray",
+                "valid_limit_directions": "list",
+                "all_nans": "set",
+                "start_nans": "set",
+                "end_nans": "set",
+                "mid_nans": "set",
+                "preserve_nans": "list",
+                "inds": "ndarray",
+                "inds.dtype": "dtype",
+                "indexer": "ndarray"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "raise warning when calling .interpolate(method='index') when Index is not sorted with ascending=True\n"
+    ],
+    "3.1.2": [
+        "# define a Series to be used with interpolation to fill the NaN value\ns = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10,9,3,2,1])\n# 10    10\n# 9      9\n# 3    nan\n# 2      2\n# 1      1\n\ns.interpolate(method='index')\n# returns the following; a 1 is used to fill the NaN which was not expected\n# 10   10\n# 9     9\n# 3     1\n# 2     2\n# 1     1\n\ns.sort_index(ascending=True).interpolate(method='index')\n# returns the following; a 3 is used to correctly fill the NaN\n# 1     1\n# 2     2\n# 3     3\n# 9     9\n# 10   10\nProblem description\nWhen calling .interpolate(method='index') on a Series or DataFrame where the Index is not sorted with ascending=True I think a warning should be raised to alert the user that errors in the output could be possible.\n"
+    ]
+}

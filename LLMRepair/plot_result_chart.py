@@ -105,7 +105,7 @@ for dataset_name in dataset:
     fixed_bug: dict = list(fixed_bug.keys())
 
     if dataset_name == "106-dataset":
-        with open(os.path.join("..", "training-data", "subsets-list", "30-106-subset.json"), "r") as sample_bug_file:
+        with open(os.path.join("..", "training-data", "subsets-list", "30-106-dataset.json"), "r") as sample_bug_file:
             sample_bugs = json.load(sample_bug_file)
 
             for project in sample_bugs.keys():
@@ -114,7 +114,7 @@ for dataset_name in dataset:
                     if f"{project}:{bid}" not in fixed_bug:
                         print(f"{dataset_name}: {project}-{bid} is not fixed by any bitvector")
     elif dataset_name == "395-dataset":
-        with open(os.path.join("..", "training-data", "subsets-list", "30-395-subset.json"), "r") as sample_bug_file:
+        with open(os.path.join("..", "training-data", "subsets-list", "30-395-dataset.json"), "r") as sample_bug_file:
             sample_bugs = json.load(sample_bug_file)
 
             for project in sample_bugs.keys():

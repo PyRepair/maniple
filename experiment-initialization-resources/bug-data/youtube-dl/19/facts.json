@@ -1,0 +1,3442 @@
+{
+    "1.1.1": "def prepare_filename(self, info_dict):\n    \n    try:\n        template_dict = dict(info_dict)\n\n        template_dict['epoch'] = int(time.time())\n        autonumber_size = self.params.get('autonumber_size')\n        if autonumber_size is None:\n            autonumber_size = 5\n        template_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads\n        if template_dict.get('resolution') is None:\n            if template_dict.get('width') and template_dict.get('height'):\n                template_dict['resolution'] = '%dx%d' % (template_dict['width'], template_dict['height'])\n            elif template_dict.get('height'):\n                template_dict['resolution'] = '%sp' % template_dict['height']\n            elif template_dict.get('width'):\n                template_dict['resolution'] = '%dx?' % template_dict['width']\n\n        sanitize = lambda k, v: sanitize_filename(\n            compat_str(v),\n            restricted=self.params.get('restrictfilenames'),\n            is_id=(k == 'id' or k.endswith('_id')))\n        template_dict = dict((k, v if isinstance(v, compat_numeric_types) else sanitize(k, v))\n                             for k, v in template_dict.items()\n                             if v is not None and not isinstance(v, (list, tuple, dict)))\n        template_dict = collections.defaultdict(lambda: 'NA', template_dict)\n\n        outtmpl = self.params.get('outtmpl', DEFAULT_OUTTMPL)\n\n        # For fields playlist_index and autonumber convert all occurrences\n        # of %(field)s to %(field)0Nd for backward compatibility\n        field_size_compat_map = {\n            'playlist_index': len(str(template_dict['n_entries'])),\n            'autonumber': autonumber_size,\n        }\n        FIELD_SIZE_COMPAT_RE = r'(?<!%)%\\((?P<field>autonumber|playlist_index)\\)s'\n        mobj = re.search(FIELD_SIZE_COMPAT_RE, outtmpl)\n        if mobj:\n            outtmpl = re.sub(\n                FIELD_SIZE_COMPAT_RE,\n                r'%%(\\1)0%dd' % field_size_compat_map[mobj.group('field')],\n                outtmpl)\n\n        # Missing numeric fields used together with integer presentation types\n        # in format specification will break the argument substitution since\n        # string 'NA' is returned for missing fields. We will patch output\n        # template for missing fields to meet string presentation type.\n        for numeric_field in self._NUMERIC_FIELDS:\n            if numeric_field not in template_dict:\n                # As of [1] format syntax is:\n                #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type\n                # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting\n                FORMAT_RE = r\n                outtmpl = re.sub(\n                    FORMAT_RE.format(numeric_field),\n                    r'%({0})s'.format(numeric_field), outtmpl)\n\n        filename = expand_path(outtmpl % template_dict)\n        # Temporary fix for #4787\n        # 'Treat' all problem characters by passing filename through preferredencoding\n        # to workaround encoding issues with subprocess on python2 @ Windows\n        if sys.version_info < (3, 0) and sys.platform == 'win32':\n            filename = encodeFilename(filename, True).decode(preferredencoding())\n        return sanitize_path(filename)\n    except ValueError as err:\n        self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')\n        return None\n",
+    "1.1.2": "Generate the output filename.",
+    "1.2.1": "class YoutubeDL(object)",
+    "1.2.2": "YoutubeDL class.\n\nYoutubeDL objects are the ones responsible of downloading the\nactual video file and writing it to disk if the user has requested\nit, among some other tasks. In most cases there should be one per\nprogram. As, given a video URL, the downloader doesn't know how to\nextract all the needed information, task that InfoExtractors do, it\nhas to pass the URL to one of them.\n\nFor this, YoutubeDL objects have a method that allows\nInfoExtractors to be registered in a given order. When it is passed\na URL, the YoutubeDL object handles it to the first InfoExtractor it\nfinds that reports being able to handle it. The InfoExtractor extracts\nall the information about the video or videos the URL refers to, and\nYoutubeDL process the extracted information, possibly using a File\nDownloader to download the video.\n\nYoutubeDL objects accept a lot of parameters. In order not to saturate\nthe object constructor with arguments, it receives a dictionary of\noptions instead. These options are available through the params\nattribute for the InfoExtractors to use. The YoutubeDL also\nregisters itself as the downloader in charge for the InfoExtractors\nthat are added to it, so this is a \"mutual registration\".\n\nAvailable options:\n\nusername:          Username for authentication purposes.\npassword:          Password for authentication purposes.\nvideopassword:     Password for accessing a video.\nap_mso:            Adobe Pass multiple-system operator identifier.\nap_username:       Multiple-system operator account username.\nap_password:       Multiple-system operator account password.\nusenetrc:          Use netrc for authentication instead.\nverbose:           Print additional info to stdout.\nquiet:             Do not print messages to stdout.\nno_warnings:       Do not print out anything for warnings.\nforceurl:          Force printing final URL.\nforcetitle:        Force printing title.\nforceid:           Force printing ID.\nforcethumbnail:    Force printing thumbnail URL.\nforcedescription:  Force printing description.\nforcefilename:     Force printing final filename.\nforceduration:     Force printing duration.\nforcejson:         Force printing info_dict as JSON.\ndump_single_json:  Force printing the info_dict of the whole playlist\n                   (or video) as a single JSON line.\nsimulate:          Do not download the video files.\nformat:            Video format code. See options.py for more information.\nouttmpl:           Template for output names.\nrestrictfilenames: Do not allow \"&\" and spaces in file names\nignoreerrors:      Do not stop on download errors.\nforce_generic_extractor: Force downloader to use the generic extractor\nnooverwrites:      Prevent overwriting files.\nplayliststart:     Playlist item to start at.\nplaylistend:       Playlist item to end at.\nplaylist_items:    Specific indices of playlist to download.\nplaylistreverse:   Download playlist items in reverse order.\nplaylistrandom:    Download playlist items in random order.\nmatchtitle:        Download only matching titles.\nrejecttitle:       Reject downloads for matching titles.\nlogger:            Log messages to a logging.Logger instance.\nlogtostderr:       Log messages to stderr instead of stdout.\nwritedescription:  Write the video description to a .description file\nwriteinfojson:     Write the video description to a .info.json file\nwriteannotations:  Write the video annotations to a .annotations.xml file\nwritethumbnail:    Write the thumbnail image to a file\nwrite_all_thumbnails:  Write all thumbnail formats to files\nwritesubtitles:    Write the video subtitles to a file\nwriteautomaticsub: Write the automatically generated subtitles to a file\nallsubtitles:      Downloads all the subtitles of the video\n                   (requires writesubtitles or writeautomaticsub)\nlistsubtitles:     Lists all available subtitles for the video\nsubtitlesformat:   The format code for subtitles\nsubtitleslangs:    List of languages of the subtitles to download\nkeepvideo:         Keep the video file after post-processing\ndaterange:         A DateRange object, download only if the upload_date is in the range.\nskip_download:     Skip the actual download of the video file\ncachedir:          Location of the cache files in the filesystem.\n                   False to disable filesystem cache.\nnoplaylist:        Download single video instead of a playlist if in doubt.\nage_limit:         An integer representing the user's age in years.\n                   Unsuitable videos for the given age are skipped.\nmin_views:         An integer representing the minimum view count the video\n                   must have in order to not be skipped.\n                   Videos without view count information are always\n                   downloaded. None for no limit.\nmax_views:         An integer representing the maximum view count.\n                   Videos that are more popular than that are not\n                   downloaded.\n                   Videos without view count information are always\n                   downloaded. None for no limit.\ndownload_archive:  File name of a file where all downloads are recorded.\n                   Videos already present in the file are not downloaded\n                   again.\ncookiefile:        File name where cookies should be read from and dumped to.\nnocheckcertificate:Do not verify SSL certificates\nprefer_insecure:   Use HTTP instead of HTTPS to retrieve information.\n                   At the moment, this is only supported by YouTube.\nproxy:             URL of the proxy server to use\ngeo_verification_proxy:  URL of the proxy to use for IP address verification\n                   on geo-restricted sites. (Experimental)\nsocket_timeout:    Time to wait for unresponsive hosts, in seconds\nbidi_workaround:   Work around buggy terminals without bidirectional text\n                   support, using fridibi\ndebug_printtraffic:Print out sent and received HTTP traffic\ninclude_ads:       Download ads as well\ndefault_search:    Prepend this string if an input url is not valid.\n                   'auto' for elaborate guessing\nencoding:          Use this encoding instead of the system-specified.\nextract_flat:      Do not resolve URLs, return the immediate result.\n                   Pass in 'in_playlist' to only show this behavior for\n                   playlist items.\npostprocessors:    A list of dictionaries, each with an entry\n                   * key:  The name of the postprocessor. See\n                           youtube_dl/postprocessor/__init__.py for a list.\n                   as well as any further keyword arguments for the\n                   postprocessor.\nprogress_hooks:    A list of functions that get called on download\n                   progress, with a dictionary with the entries\n                   * status: One of \"downloading\", \"error\", or \"finished\".\n                             Check this first and ignore unknown values.\n\n                   If status is one of \"downloading\", or \"finished\", the\n                   following properties may also be present:\n                   * filename: The final filename (always present)\n                   * tmpfilename: The filename we're currently writing to\n                   * downloaded_bytes: Bytes on disk\n                   * total_bytes: Size of the whole file, None if unknown\n                   * total_bytes_estimate: Guess of the eventual file size,\n                                           None if unavailable.\n                   * elapsed: The number of seconds since download started.\n                   * eta: The estimated time in seconds, None if unknown\n                   * speed: The download speed in bytes/second, None if\n                            unknown\n                   * fragment_index: The counter of the currently\n                                     downloaded video fragment.\n                   * fragment_count: The number of fragments (= individual\n                                     files that will be merged)\n\n                   Progress hooks are guaranteed to be called at least once\n                   (with status \"finished\") if the download is successful.\nmerge_output_format: Extension to use when merging formats.\nfixup:             Automatically correct known faults of the file.\n                   One of:\n                   - \"never\": do nothing\n                   - \"warn\": only emit a warning\n                   - \"detect_or_warn\": check whether we can do anything\n                                       about it, warn otherwise (default)\nsource_address:    (Experimental) Client-side IP address to bind to.\ncall_home:         Boolean, true iff we are allowed to contact the\n                   youtube-dl servers for debugging.\nsleep_interval:    Number of seconds to sleep before each download when\n                   used alone or a lower bound of a range for randomized\n                   sleep before each download (minimum possible number\n                   of seconds to sleep) when used along with\n                   max_sleep_interval.\nmax_sleep_interval:Upper bound of a range for randomized sleep before each\n                   download (maximum possible number of seconds to sleep).\n                   Must only be used along with sleep_interval.\n                   Actual sleep time will be a random float from range\n                   [sleep_interval; max_sleep_interval].\nlistformats:       Print an overview of available video formats and exit.\nlist_thumbnails:   Print a table of all thumbnails and exit.\nmatch_filter:      A function that gets called with the info_dict of\n                   every video.\n                   If it returns a message, the video is ignored.\n                   If it returns None, the video is downloaded.\n                   match_filter_func in utils.py is one example for this.\nno_color:          Do not emit color codes in output.\ngeo_bypass:        Bypass geographic restriction via faking X-Forwarded-For\n                   HTTP header (experimental)\ngeo_bypass_country:\n                   Two-letter ISO 3166-2 country code that will be used for\n                   explicit geographic restriction bypassing via faking\n                   X-Forwarded-For HTTP header (experimental)\n\nThe following options determine which downloader is picked:\nexternal_downloader: Executable of the external downloader to call.\n                   None or unset for standard (built-in) downloader.\nhls_prefer_native: Use the native HLS downloader instead of ffmpeg/avconv\n                   if True, otherwise use ffmpeg/avconv if False, otherwise\n                   use downloader suggested by extractor if None.\n\nThe following parameters are not used by YoutubeDL itself, they are used by\nthe downloader (see youtube_dl/downloader/common.py):\nnopart, updatetime, buffersize, ratelimit, min_filesize, max_filesize, test,\nnoresizebuffer, retries, continuedl, noprogress, consoletitle,\nxattr_set_filesize, external_downloader_args, hls_use_mpegts.\n\nThe following options are used by the post processors:\nprefer_ffmpeg:     If True, use ffmpeg instead of avconv if both are available,\n                   otherwise prefer avconv.\npostprocessor_args: A list of additional command-line arguments for the\n                    postprocessor.",
+    "1.2.3": [
+        "report_error(self, message, tb=None)"
+    ],
+    "1.2.4": null,
+    "1.2.5": null,
+    "1.3.1": "youtube_dl/YoutubeDL.py",
+    "1.3.2": [
+        "report_error(self, message, tb=None)"
+    ],
+    "1.4.1": [
+        "    def test_prepare_filename(self):\n        info = {\n            'id': '1234',\n            'ext': 'mp4',\n            'width': None,\n            'height': 1080,\n            'title1': '$PATH',\n            'title2': '%PATH%',\n        }\n\n        def fname(templ):\n            ydl = YoutubeDL({'outtmpl': templ})\n            return ydl.prepare_filename(info)\n        self.assertEqual(fname('%(id)s.%(ext)s'), '1234.mp4')\n        self.assertEqual(fname('%(id)s-%(width)s.%(ext)s'), '1234-NA.mp4')\n        # Replace missing fields with 'NA'\n        self.assertEqual(fname('%(uploader_date)s-%(id)s.%(ext)s'), 'NA-1234.mp4')\n        self.assertEqual(fname('%(height)d.%(ext)s'), '1080.mp4')\n        self.assertEqual(fname('%(height)6d.%(ext)s'), '  1080.mp4')\n        self.assertEqual(fname('%(height)-6d.%(ext)s'), '1080  .mp4')\n        self.assertEqual(fname('%(height)06d.%(ext)s'), '001080.mp4')\n        self.assertEqual(fname('%(height) 06d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)   06d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)0 6d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)0   6d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)   0   6d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%%'), '%')\n        self.assertEqual(fname('%%%%'), '%%')\n        self.assertEqual(fname('%%(height)06d.%(ext)s'), '%(height)06d.mp4')\n        self.assertEqual(fname('%(width)06d.%(ext)s'), 'NA.mp4')\n        self.assertEqual(fname('%(width)06d.%%(ext)s'), 'NA.%(ext)s')\n        self.assertEqual(fname('%%(width)06d.%(ext)s'), '%(width)06d.mp4')\n        self.assertEqual(fname('Hello %(title1)s'), 'Hello $PATH')\n        self.assertEqual(fname('Hello %(title2)s'), 'Hello %PATH%')"
+    ],
+    "1.4.2": [
+        "test/test_YoutubeDL.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: 'Hello /Users/jerry/perl5/bin:/Users/jerry/anaco[1121 chars]ac64' != 'Hello $PATH'\nE       Diff is 1190 characters long. Set self.maxDiff to None to see it."
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <test.test_YoutubeDL.TestYoutubeDL testMethod=test_prepare_filename>\n\n    def test_prepare_filename(self):\n        info = {\n            'id': '1234',\n            'ext': 'mp4',\n            'width': None,\n            'height': 1080,\n            'title1': '$PATH',\n            'title2': '%PATH%',\n        }\n    \n        def fname(templ):\n            ydl = YoutubeDL({'outtmpl': templ})\n            return ydl.prepare_filename(info)\n        self.assertEqual(fname('%(id)s.%(ext)s'), '1234.mp4')\n        self.assertEqual(fname('%(id)s-%(width)s.%(ext)s'), '1234-NA.mp4')\n        # Replace missing fields with 'NA'\n        self.assertEqual(fname('%(uploader_date)s-%(id)s.%(ext)s'), 'NA-1234.mp4')\n        self.assertEqual(fname('%(height)d.%(ext)s'), '1080.mp4')\n        self.assertEqual(fname('%(height)6d.%(ext)s'), '  1080.mp4')\n        self.assertEqual(fname('%(height)-6d.%(ext)s'), '1080  .mp4')\n        self.assertEqual(fname('%(height)06d.%(ext)s'), '001080.mp4')\n        self.assertEqual(fname('%(height) 06d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)   06d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)0 6d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)0   6d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%(height)   0   6d.%(ext)s'), ' 01080.mp4')\n        self.assertEqual(fname('%%'), '%')\n        self.assertEqual(fname('%%%%'), '%%')\n        self.assertEqual(fname('%%(height)06d.%(ext)s'), '%(height)06d.mp4')\n        self.assertEqual(fname('%(width)06d.%(ext)s'), 'NA.mp4')\n        self.assertEqual(fname('%(width)06d.%%(ext)s'), 'NA.%(ext)s')\n        self.assertEqual(fname('%%(width)06d.%(ext)s'), '%(width)06d.mp4')\n>       self.assertEqual(fname('Hello %(title1)s'), 'Hello $PATH')",
+            "\ntest/test_YoutubeDL.py:556: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(id)s.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x10334e950>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(id)s.%(ext)s'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1234.mp4'",
+                    "shape": "8",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(id)s-%(width)s.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029b30e0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'width': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(id)s-%(width)s.%(ext)s'",
+                    "shape": "24",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1234-NA.mp4'",
+                    "shape": "11",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(uploader_date)s-%(id)s.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029b38c0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'uploader_date': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(uploader_date)s-%(id)s.%(ext)s'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'NA-1234.mp4'",
+                    "shape": "11",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029b3c20>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)d.%(ext)s'",
+                    "shape": "18",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1080.mp4'",
+                    "shape": "8",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x10334ed40>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)6d.%(ext)s'",
+                    "shape": "19",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'  1080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)-6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x10334e7a0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)-6d.%(ext)s'",
+                    "shape": "20",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1080  .mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029b4440>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)06d.%(ext)s'",
+                    "shape": "20",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'001080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height) 06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029b40e0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height) 06d.%(ext)s'",
+                    "shape": "21",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)   06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029bc320>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)   06d.%(ext)s'",
+                    "shape": "23",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)0 6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029bca70>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)0 6d.%(ext)s'",
+                    "shape": "21",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)0   6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029b4a70>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)0   6d.%(ext)s'",
+                    "shape": "23",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)   0   6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029c3170>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)   0   6d.%(ext)s'",
+                    "shape": "26",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029c38c0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%%'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%'",
+                    "shape": "1",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%%%'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029ad050>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%%%%'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%%'",
+                    "shape": "2",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%(height)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029cb7a0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%%(height)06d.%(ext)s'",
+                    "shape": "21",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%(height)06d.mp4'",
+                    "shape": "16",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(width)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029cb440>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'width': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(width)s.%(ext)s'",
+                    "shape": "17",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'NA.mp4'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(width)06d.%%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x10334e9e0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'width': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(width)s.%%(ext)s'",
+                    "shape": "18",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'NA.%(ext)s'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%(width)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x10334e9e0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%%(width)06d.%(ext)s'",
+                    "shape": "20",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%(width)06d.mp4'",
+                    "shape": "15",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': 'Hello %(title1)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'episode_number', 'comment_count', 'height', 'start_time', 'view_count', 'tbr', 'abr', 'vbr', 'upload_day', 'age_limit', 'duration', 'repost_count', 'dislike_count', 'season_number', 'filesize', 'fps', 'chapter_number', 'like_count', 'release_year', 'width', 'asr', 'track_number', 'timestamp', 'end_time', 'upload_year', 'filesize_approx', 'average_rating', 'disc_number', 'upload_month', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1029b4d40>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318013, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'Hello %(title1)s'",
+                    "shape": "16",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'Hello /Users/jerry/perl5/bin:/ ... sers/jerry/chromedriver_mac64'",
+                    "shape": "1172",
+                    "omitted": true
+                }
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "filename": "str"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(id)s.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x11099ea70>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(id)s.%(ext)s'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'pRzyHVXbiakBlLgvjFHlIkdVYPJVUVNb'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1234.mp4'",
+                    "shape": "8",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(id)s-%(width)s.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1114a7290>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'width': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(id)s-%(width)s.%(ext)s'",
+                    "shape": "24",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'MngPFCooxtaCqhTBNspJwxNHdjFzrOth'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1234-NA.mp4'",
+                    "shape": "11",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(uploader_date)s-%(id)s.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1114a7b00>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'uploader_date': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(uploader_date)s-%(id)s.%(ext)s'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'LIKoaQwmrHACpuhcfjyYhcHYAPbhlRYO'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'NA-1234.mp4'",
+                    "shape": "11",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1114633b0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)d.%(ext)s'",
+                    "shape": "18",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'NlwLvYIxESLajPOuvXvgEugyYExlOMqg'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1080.mp4'",
+                    "shape": "8",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111463b90>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)6d.%(ext)s'",
+                    "shape": "19",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'INenHHjNVeHyCrwcTtVjPtYRTZvPaAPW'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'  1080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)-6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111468290>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)-6d.%(ext)s'",
+                    "shape": "20",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'GTqGCRlVCjPeOAYMHJYnmiiQIHNVHuCB'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'1080  .mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111463560>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)06d.%(ext)s'",
+                    "shape": "20",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'ZzPCzitfrjYfNoeLdaDMBAqUiolndxcD'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'001080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height) 06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x11099e950>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height) 06d.%(ext)s'",
+                    "shape": "21",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'gIDiooYuocaLauuFKDdeldRhQvZCPdZr'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)   06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1114647a0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)   06d.%(ext)s'",
+                    "shape": "23",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'XnMPbhJuukZBQszlqnMWStosdfLgWjYr'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)0 6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111464320>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)0 6d.%(ext)s'",
+                    "shape": "21",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'cgYtcsEQdayjkfbrnIhsuYOOyDACesXW'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)0   6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x11142c7a0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)0   6d.%(ext)s'",
+                    "shape": "23",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'geXxwvCQwwbrCnWhBUuxybquCsGBxXzH'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(height)   0   6d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x11142c320>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(height)   0   6d.%(ext)s'",
+                    "shape": "26",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'bwxfUJnMDpfBcAFpWGVPziPCXRFnnAvO'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "' 01080.mp4'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x11143d7a0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%KViNdmpNjiYXWFJUwOtPtkSgPbrQhGoQ%'",
+                    "shape": "34",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'KViNdmpNjiYXWFJUwOtPtkSgPbrQhGoQ'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%'",
+                    "shape": "1",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%%%'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111464170>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%HnzInGWZvkuEpuFgoWlEPsCJpjuYZmvB%%HnzInGWZvkuEpuFgoWlEPsCJpjuYZmvB%'",
+                    "shape": "68",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'HnzInGWZvkuEpuFgoWlEPsCJpjuYZmvB'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%%'",
+                    "shape": "2",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%(height)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x11144f170>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%XJRtVXYMFWplwkRiKkwnrMcEKBsbCvGe%(height)06d.%(ext)s'",
+                    "shape": "53",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'XJRtVXYMFWplwkRiKkwnrMcEKBsbCvGe'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%(height)06d.mp4'",
+                    "shape": "16",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(width)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x1114645f0>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'width': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(width)s.%(ext)s'",
+                    "shape": "17",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'JtFMeEbzttQtnrxWxLpXGGfRoVnWkIok'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'NA.mp4'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%(width)06d.%%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x11142e170>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA', 'width': 'NA'})",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%(width)s.%CUtRIRCsutPYzGSkBovckjpmfSYEGJIX%(ext)s'",
+                    "shape": "50",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'CUtRIRCsutPYzGSkBovckjpmfSYEGJIX'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'NA.%(ext)s'",
+                    "shape": "10",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': '%%(width)06d.%(ext)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111463560>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'%ujMwdullplPahvFWXALFgBzKyTvWIeyo%(width)06d.%(ext)s'",
+                    "shape": "52",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'ujMwdullplPahvFWXALFgBzKyTvWIeyo'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'%(width)06d.mp4'",
+                    "shape": "15",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': 'Hello %(title1)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111456170>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'Hello %(title1)s'",
+                    "shape": "16",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'BTzyGcavRuFJhqiOtfEFaGyeRgcteTuc'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'Hello $PATH'",
+                    "shape": "11",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "info_dict": {
+                    "value": "{'id': '1234', 'ext': 'mp4', 'width': None, 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self.params": {
+                    "value": "{'nocheckcertificate': False, 'outtmpl': 'Hello %(title2)s'}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self._num_downloads": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._NUMERIC_FIELDS": {
+                    "value": "{'track_number', 'tbr', 'start_time', 'fps', 'duration', 'vbr', 'height', 'upload_day', 'average_rating', 'timestamp', 'dislike_count', 'view_count', 'comment_count', 'release_year', 'like_count', 'upload_year', 'repost_count', 'filesize', 'disc_number', 'abr', 'upload_month', 'episode_number', 'width', 'chapter_number', 'asr', 'age_limit', 'filesize_approx', 'end_time', 'season_number', 'playlist_index'}",
+                    "shape": "30",
+                    "omitted": false
+                }
+            },
+            {
+                "template_dict": {
+                    "value": "defaultdict(<function YoutubeDL.prepare_filename.<locals>.<lambda> at 0x111464440>, {'id': '1234', 'ext': 'mp4', 'height': 1080, 'title1': '$PATH', 'title2': '%PATH%', 'epoch': 1702318015, 'autonumber': 0, 'resolution': '1080p', 'n_entries': 'NA'})",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "autonumber_size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "outtmpl": {
+                    "value": "'Hello %(title2)s'",
+                    "shape": "16",
+                    "omitted": false
+                },
+                "field_size_compat_map": {
+                    "value": "{'playlist_index': 2, 'autonumber': 5}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "FIELD_SIZE_COMPAT_RE": {
+                    "value": "'(?<!%)%\\\\((?P<field>autonumber",
+                    "shape": "playlist_index)\\\\)s'",
+                    "omitted": false
+                },
+                "numeric_field": {
+                    "value": "'playlist_index'",
+                    "shape": "14",
+                    "omitted": false
+                },
+                "FORMAT_RE": {
+                    "value": "'(?x)\\n                        (?<!%)\\n                        %\\n                        \\\\({0}\\\\)  # mapping key\\n                        (?:[#0\\\\-+ ]+)?  # conversion flags (optional)\\n                        (?:\\\\d+)?  # minimum field width (optional)\\n                        (?:\\\\.\\\\d+)?  # precision (optional)\\n                        [hlL]?  # length modifier (optional)\\n                        [diouxXeEfFgGcrs%]  # conversion type\\n                    '",
+                    "shape": "448",
+                    "omitted": false
+                },
+                "sep": {
+                    "value": "'SWEQoZqUNhTZgEkaCdaHEmJYYwvTAVKZ'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "filename": {
+                    "value": "'Hello %PATH%'",
+                    "shape": "12",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ],
+        [
+            {
+                "info_dict": "dict",
+                "self.params": "dict",
+                "self._num_downloads": "int",
+                "self._NUMERIC_FIELDS": "set"
+            },
+            {
+                "template_dict": "defaultdict",
+                "autonumber_size": "int",
+                "outtmpl": "str",
+                "field_size_compat_map": "dict",
+                "FIELD_SIZE_COMPAT_RE": "str",
+                "numeric_field": "str",
+                "FORMAT_RE": "str",
+                "sep": "str",
+                "filename": "str"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Bug when '$PATH' string contained in Video Title\n"
+    ],
+    "3.1.2": [
+        "Please follow the guide below\nYou will be asked some questions and requested to provide some information, please read them carefully and answer honestly\nPut an x into all the boxes [ ] relevant to your issue (like that [x])\nUse Preview tab to see how your issue will actually look like\nMake sure you are using the latest version: run youtube-dl --version and ensure your version is 2017.07.09. If it's not read this FAQ entry and update. Issues with outdated version will be rejected.\n I've verified and I assure that I'm running youtube-dl 2017.07.09\nBefore submitting an issue make sure you have:\n At least skimmed through README and most notably FAQ and BUGS sections\n Searched the bugtracker for similar issues including closed ones\nWhat is the purpose of your issue?\n Bug report (encountered problems with youtube-dl)\n Site support request (request for adding support for a new site)\n Feature request (request for a new functionality)\n Question\n Other\nThe following sections concretize particular purposed issues, you can erase any section (the contents between triple ---) not applicable to your issue\nIf the purpose of this issue is a bug report, site support request or you are not completely sure provide the full verbose output as follows:\nAdd -v flag to your command line you run youtube-dl with, copy the whole output and insert it here. It should look similar to one below (replace it with your log inserted between triple "
+    ]
+}

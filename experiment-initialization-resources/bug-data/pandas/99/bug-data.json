@@ -1,0 +1,3926 @@
+{
+    "pandas:99": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_99/pandas/core/tools/datetimes.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "_convert_listlike_datetimes",
+                    "function_code": "def _convert_listlike_datetimes(\n    arg,\n    format,\n    name=None,\n    tz=None,\n    unit=None,\n    errors=None,\n    infer_datetime_format=None,\n    dayfirst=None,\n    yearfirst=None,\n    exact=None,\n):\n    \"\"\"\n    Helper function for to_datetime. Performs the conversions of 1D listlike\n    of dates\n\n    Parameters\n    ----------\n    arg : list, tuple, ndarray, Series, Index\n        date to be parced\n    name : object\n        None or string for the Index name\n    tz : object\n        None or 'utc'\n    unit : string\n        None or string of the frequency of the passed data\n    errors : string\n        error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'\n    infer_datetime_format : boolean\n        inferring format behavior from to_datetime\n    dayfirst : boolean\n        dayfirst parsing behavior from to_datetime\n    yearfirst : boolean\n        yearfirst parsing behavior from to_datetime\n    exact : boolean\n        exact format matching behavior from to_datetime\n\n    Returns\n    -------\n    Index-like of parsed dates\n    \"\"\"\n    from pandas import DatetimeIndex\n    from pandas.core.arrays import DatetimeArray\n    from pandas.core.arrays.datetimes import (\n        maybe_convert_dtype,\n        objects_to_datetime64ns,\n    )\n\n    if isinstance(arg, (list, tuple)):\n        arg = np.array(arg, dtype=\"O\")\n\n    # these are shortcutable\n    if is_datetime64tz_dtype(arg):\n        if not isinstance(arg, (DatetimeArray, DatetimeIndex)):\n            return DatetimeIndex(arg, tz=tz, name=name)\n        if tz == \"utc\":\n            arg = arg.tz_convert(None).tz_localize(tz)\n        return arg\n\n    elif is_datetime64_ns_dtype(arg):\n        if not isinstance(arg, (DatetimeArray, DatetimeIndex)):\n            try:\n                return DatetimeIndex(arg, tz=tz, name=name)\n            except ValueError:\n                pass\n        elif tz:\n            # DatetimeArray, DatetimeIndex\n            return arg.tz_localize(tz)\n\n        return arg\n\n    elif unit is not None:\n        if format is not None:\n            raise ValueError(\"cannot specify both format and unit\")\n        arg = getattr(arg, \"values\", arg)\n        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)\n        if errors == \"ignore\":\n            from pandas import Index\n\n            result = Index(result, name=name)\n        else:\n            result = DatetimeIndex(result, name=name)\n        # GH 23758: We may still need to localize the result with tz\n        # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)\n        # result will be naive but in UTC\n        try:\n            result = result.tz_localize(\"UTC\").tz_convert(tz_parsed)\n        except AttributeError:\n            # Regular Index from 'ignore' path\n            return result\n        if tz is not None:\n            if result.tz is None:\n                result = result.tz_localize(tz)\n            else:\n                result = result.tz_convert(tz)\n        return result\n    elif getattr(arg, \"ndim\", 1) > 1:\n        raise TypeError(\n            \"arg must be a string, datetime, list, tuple, 1-d array, or Series\"\n        )\n\n    # warn if passing timedelta64, raise for PeriodDtype\n    # NB: this must come after unit transformation\n    orig_arg = arg\n    arg, _ = maybe_convert_dtype(arg, copy=False)\n\n    arg = ensure_object(arg)\n    require_iso8601 = False\n\n    if infer_datetime_format and format is None:\n        format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)\n\n    if format is not None:\n        # There is a special fast-path for iso8601 formatted\n        # datetime strings, so in those cases don't use the inferred\n        # format because this path makes process slower in this\n        # special case\n        format_is_iso8601 = _format_is_iso(format)\n        if format_is_iso8601:\n            require_iso8601 = not infer_datetime_format\n            format = None\n\n    tz_parsed = None\n    result = None\n\n    if format is not None:\n        try:\n            # shortcut formatting here\n            if format == \"%Y%m%d\":\n                try:\n                    # pass orig_arg as float-dtype may have been converted to\n                    # datetime64[ns]\n                    orig_arg = ensure_object(orig_arg)\n                    result = _attempt_YYYYMMDD(orig_arg, errors=errors)\n                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):\n                    raise ValueError(\"cannot convert the input to '%Y%m%d' date format\")\n\n            # fallback\n            if result is None:\n                try:\n                    result, timezones = array_strptime(\n                        arg, format, exact=exact, errors=errors\n                    )\n                    if \"%Z\" in format or \"%z\" in format:\n                        return _return_parsed_timezone_results(\n                            result, timezones, tz, name\n                        )\n                except tslibs.OutOfBoundsDatetime:\n                    if errors == \"raise\":\n                        raise\n                    elif errors == \"coerce\":\n                        result = np.empty(arg.shape, dtype=\"M8[ns]\")\n                        iresult = result.view(\"i8\")\n                        iresult.fill(tslibs.iNaT)\n                    else:\n                        result = arg\n                except ValueError:\n                    # if format was inferred, try falling back\n                    # to array_to_datetime - terminate here\n                    # for specified formats\n                    if not infer_datetime_format:\n                        if errors == \"raise\":\n                            raise\n                        elif errors == \"coerce\":\n                            result = np.empty(arg.shape, dtype=\"M8[ns]\")\n                            iresult = result.view(\"i8\")\n                            iresult.fill(tslibs.iNaT)\n                        else:\n                            result = arg\n        except ValueError as e:\n            # Fallback to try to convert datetime objects if timezone-aware\n            #  datetime objects are found without passing `utc=True`\n            try:\n                values, tz = conversion.datetime_to_datetime64(arg)\n                return DatetimeIndex._simple_new(values, name=name, tz=tz)\n            except (ValueError, TypeError):\n                raise e\n\n    if result is None:\n        assert format is None or infer_datetime_format\n        utc = tz == \"utc\"\n        result, tz_parsed = objects_to_datetime64ns(\n            arg,\n            dayfirst=dayfirst,\n            yearfirst=yearfirst,\n            utc=utc,\n            errors=errors,\n            require_iso8601=require_iso8601,\n            allow_object=True,\n        )\n\n    if tz_parsed is not None:\n        # We can take a shortcut since the datetime64 numpy array\n        # is in UTC\n        return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)\n\n    utc = tz == \"utc\"\n    return _box_as_indexlike(result, utc=utc, name=name)\n",
+                    "decorators": [],
+                    "docstring": "Helper function for to_datetime. Performs the conversions of 1D listlike\nof dates\n\nParameters\n----------\narg : list, tuple, ndarray, Series, Index\n    date to be parced\nname : object\n    None or string for the Index name\ntz : object\n    None or 'utc'\nunit : string\n    None or string of the frequency of the passed data\nerrors : string\n    error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'\ninfer_datetime_format : boolean\n    inferring format behavior from to_datetime\ndayfirst : boolean\n    dayfirst parsing behavior from to_datetime\nyearfirst : boolean\n    yearfirst parsing behavior from to_datetime\nexact : boolean\n    exact format matching behavior from to_datetime\n\nReturns\n-------\nIndex-like of parsed dates",
+                    "start_line": 245,
+                    "end_line": 442,
+                    "variables": {
+                        "isinstance": [
+                            305,
+                            298,
+                            293
+                        ],
+                        "arg": [
+                            386,
+                            396,
+                            400,
+                            409,
+                            413,
+                            418,
+                            293,
+                            294,
+                            297,
+                            298,
+                            299,
+                            427,
+                            301,
+                            302,
+                            304,
+                            305,
+                            307,
+                            312,
+                            314,
+                            319,
+                            320,
+                            341,
+                            348,
+                            349,
+                            351,
+                            355
+                        ],
+                        "list": [
+                            293
+                        ],
+                        "tuple": [
+                            293
+                        ],
+                        "np.array": [
+                            294
+                        ],
+                        "np": [
+                            409,
+                            396,
+                            294
+                        ],
+                        "is_datetime64tz_dtype": [
+                            297
+                        ],
+                        "DatetimeArray": [
+                            305,
+                            298
+                        ],
+                        "DatetimeIndex": [
+                            419,
+                            326,
+                            298,
+                            299,
+                            305,
+                            307,
+                            439
+                        ],
+                        "tz": [
+                            418,
+                            419,
+                            390,
+                            425,
+                            299,
+                            300,
+                            301,
+                            335,
+                            337,
+                            307,
+                            339,
+                            310,
+                            312,
+                            441
+                        ],
+                        "name": [
+                            419,
+                            324,
+                            390,
+                            326,
+                            299,
+                            307,
+                            439,
+                            442
+                        ],
+                        "tz_localize": [
+                            301
+                        ],
+                        "arg.tz_convert": [
+                            301
+                        ],
+                        "is_datetime64_ns_dtype": [
+                            304
+                        ],
+                        "ValueError": [
+                            414,
+                            420,
+                            401,
+                            308,
+                            379,
+                            380,
+                            318
+                        ],
+                        "arg.tz_localize": [
+                            312
+                        ],
+                        "unit": [
+                            320,
+                            316
+                        ],
+                        "format": [
+                            354,
+                            355,
+                            386,
+                            357,
+                            388,
+                            424,
+                            362,
+                            365,
+                            370,
+                            373,
+                            317
+                        ],
+                        "getattr": [
+                            341,
+                            319
+                        ],
+                        "result": [
+                            385,
+                            390,
+                            396,
+                            397,
+                            400,
+                            409,
+                            410,
+                            413,
+                            423,
+                            426,
+                            439,
+                            442,
+                            320,
+                            324,
+                            326,
+                            331,
+                            334,
+                            336,
+                            337,
+                            339,
+                            340,
+                            368,
+                            378,
+                            383
+                        ],
+                        "tz_parsed": [
+                            320,
+                            426,
+                            331,
+                            367,
+                            436,
+                            439
+                        ],
+                        "tslib.array_with_unit_to_datetime": [
+                            320
+                        ],
+                        "tslib": [
+                            320
+                        ],
+                        "errors": [
+                            320,
+                            321,
+                            386,
+                            393,
+                            395,
+                            431,
+                            406,
+                            408,
+                            378
+                        ],
+                        "Index": [
+                            324
+                        ],
+                        "tz_convert": [
+                            331
+                        ],
+                        "result.tz_localize": [
+                            337,
+                            331
+                        ],
+                        "AttributeError": [
+                            332
+                        ],
+                        "result.tz": [
+                            336
+                        ],
+                        "result.tz_convert": [
+                            339
+                        ],
+                        "TypeError": [
+                            379,
+                            420,
+                            342
+                        ],
+                        "orig_arg": [
+                            377,
+                            378,
+                            348
+                        ],
+                        "_": [
+                            349
+                        ],
+                        "maybe_convert_dtype": [
+                            349
+                        ],
+                        "ensure_object": [
+                            377,
+                            351
+                        ],
+                        "require_iso8601": [
+                            352,
+                            364,
+                            432
+                        ],
+                        "infer_datetime_format": [
+                            424,
+                            354,
+                            364,
+                            405
+                        ],
+                        "_guess_datetime_format_for_array": [
+                            355
+                        ],
+                        "dayfirst": [
+                            355,
+                            428
+                        ],
+                        "format_is_iso8601": [
+                            362,
+                            363
+                        ],
+                        "_format_is_iso": [
+                            362
+                        ],
+                        "_attempt_YYYYMMDD": [
+                            378
+                        ],
+                        "tslibs.OutOfBoundsDatetime": [
+                            392,
+                            379
+                        ],
+                        "tslibs": [
+                            392,
+                            379,
+                            411,
+                            398
+                        ],
+                        "timezones": [
+                            385,
+                            390
+                        ],
+                        "array_strptime": [
+                            385
+                        ],
+                        "exact": [
+                            386
+                        ],
+                        "_return_parsed_timezone_results": [
+                            389
+                        ],
+                        "np.empty": [
+                            409,
+                            396
+                        ],
+                        "arg.shape": [
+                            409,
+                            396
+                        ],
+                        "iresult": [
+                            410,
+                            411,
+                            397,
+                            398
+                        ],
+                        "result.view": [
+                            410,
+                            397
+                        ],
+                        "iresult.fill": [
+                            411,
+                            398
+                        ],
+                        "tslibs.iNaT": [
+                            411,
+                            398
+                        ],
+                        "values": [
+                            418,
+                            419
+                        ],
+                        "conversion.datetime_to_datetime64": [
+                            418
+                        ],
+                        "conversion": [
+                            418
+                        ],
+                        "DatetimeIndex._simple_new": [
+                            419,
+                            439
+                        ],
+                        "e": [
+                            421
+                        ],
+                        "utc": [
+                            425,
+                            442,
+                            441,
+                            430
+                        ],
+                        "objects_to_datetime64ns": [
+                            426
+                        ],
+                        "yearfirst": [
+                            429
+                        ],
+                        "_box_as_indexlike": [
+                            442
+                        ]
+                    },
+                    "filtered_variables": {
+                        "arg": [
+                            386,
+                            396,
+                            400,
+                            409,
+                            413,
+                            418,
+                            293,
+                            294,
+                            297,
+                            298,
+                            299,
+                            427,
+                            301,
+                            302,
+                            304,
+                            305,
+                            307,
+                            312,
+                            314,
+                            319,
+                            320,
+                            341,
+                            348,
+                            349,
+                            351,
+                            355
+                        ],
+                        "np.array": [
+                            294
+                        ],
+                        "np": [
+                            409,
+                            396,
+                            294
+                        ],
+                        "is_datetime64tz_dtype": [
+                            297
+                        ],
+                        "DatetimeArray": [
+                            305,
+                            298
+                        ],
+                        "DatetimeIndex": [
+                            419,
+                            326,
+                            298,
+                            299,
+                            305,
+                            307,
+                            439
+                        ],
+                        "tz": [
+                            418,
+                            419,
+                            390,
+                            425,
+                            299,
+                            300,
+                            301,
+                            335,
+                            337,
+                            307,
+                            339,
+                            310,
+                            312,
+                            441
+                        ],
+                        "name": [
+                            419,
+                            324,
+                            390,
+                            326,
+                            299,
+                            307,
+                            439,
+                            442
+                        ],
+                        "tz_localize": [
+                            301
+                        ],
+                        "arg.tz_convert": [
+                            301
+                        ],
+                        "is_datetime64_ns_dtype": [
+                            304
+                        ],
+                        "arg.tz_localize": [
+                            312
+                        ],
+                        "unit": [
+                            320,
+                            316
+                        ],
+                        "result": [
+                            385,
+                            390,
+                            396,
+                            397,
+                            400,
+                            409,
+                            410,
+                            413,
+                            423,
+                            426,
+                            439,
+                            442,
+                            320,
+                            324,
+                            326,
+                            331,
+                            334,
+                            336,
+                            337,
+                            339,
+                            340,
+                            368,
+                            378,
+                            383
+                        ],
+                        "tz_parsed": [
+                            320,
+                            426,
+                            331,
+                            367,
+                            436,
+                            439
+                        ],
+                        "tslib.array_with_unit_to_datetime": [
+                            320
+                        ],
+                        "tslib": [
+                            320
+                        ],
+                        "errors": [
+                            320,
+                            321,
+                            386,
+                            393,
+                            395,
+                            431,
+                            406,
+                            408,
+                            378
+                        ],
+                        "Index": [
+                            324
+                        ],
+                        "tz_convert": [
+                            331
+                        ],
+                        "result.tz_localize": [
+                            337,
+                            331
+                        ],
+                        "result.tz": [
+                            336
+                        ],
+                        "result.tz_convert": [
+                            339
+                        ],
+                        "orig_arg": [
+                            377,
+                            378,
+                            348
+                        ],
+                        "_": [
+                            349
+                        ],
+                        "maybe_convert_dtype": [
+                            349
+                        ],
+                        "ensure_object": [
+                            377,
+                            351
+                        ],
+                        "require_iso8601": [
+                            352,
+                            364,
+                            432
+                        ],
+                        "infer_datetime_format": [
+                            424,
+                            354,
+                            364,
+                            405
+                        ],
+                        "_guess_datetime_format_for_array": [
+                            355
+                        ],
+                        "dayfirst": [
+                            355,
+                            428
+                        ],
+                        "format_is_iso8601": [
+                            362,
+                            363
+                        ],
+                        "_format_is_iso": [
+                            362
+                        ],
+                        "_attempt_YYYYMMDD": [
+                            378
+                        ],
+                        "tslibs.OutOfBoundsDatetime": [
+                            392,
+                            379
+                        ],
+                        "tslibs": [
+                            392,
+                            379,
+                            411,
+                            398
+                        ],
+                        "timezones": [
+                            385,
+                            390
+                        ],
+                        "array_strptime": [
+                            385
+                        ],
+                        "exact": [
+                            386
+                        ],
+                        "_return_parsed_timezone_results": [
+                            389
+                        ],
+                        "np.empty": [
+                            409,
+                            396
+                        ],
+                        "arg.shape": [
+                            409,
+                            396
+                        ],
+                        "iresult": [
+                            410,
+                            411,
+                            397,
+                            398
+                        ],
+                        "result.view": [
+                            410,
+                            397
+                        ],
+                        "iresult.fill": [
+                            411,
+                            398
+                        ],
+                        "tslibs.iNaT": [
+                            411,
+                            398
+                        ],
+                        "values": [
+                            418,
+                            419
+                        ],
+                        "conversion.datetime_to_datetime64": [
+                            418
+                        ],
+                        "conversion": [
+                            418
+                        ],
+                        "DatetimeIndex._simple_new": [
+                            419,
+                            439
+                        ],
+                        "e": [
+                            421
+                        ],
+                        "utc": [
+                            425,
+                            442,
+                            441,
+                            430
+                        ],
+                        "objects_to_datetime64ns": [
+                            426
+                        ],
+                        "yearfirst": [
+                            429
+                        ],
+                        "_box_as_indexlike": [
+                            442
+                        ]
+                    },
+                    "diff_line_number": 319,
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {
+                                "arg": {
+                                    "variable_value": "<IntegerArray>\n[1, 2, NA, 2305843009213693952, NA]\nLength: 5, dtype: Int64",
+                                    "variable_type": "IntegerArray",
+                                    "variable_shape": "(5,)"
+                                },
+                                "np.array": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeArray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tz": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "tz_localize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.tz_convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_ns_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.tz_localize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": "'ns'",
+                                    "variable_type": "str",
+                                    "variable_shape": "2"
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tz_parsed": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslib.array_with_unit_to_datetime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslib": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "errors": {
+                                    "variable_value": "'raise'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tz_convert": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.tz_localize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.tz": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.tz_convert": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "orig_arg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_convert_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "ensure_object": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "require_iso8601": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "infer_datetime_format": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_guess_datetime_format_for_array": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dayfirst": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "format_is_iso8601": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_format_is_iso": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_attempt_YYYYMMDD": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.OutOfBoundsDatetime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "timezones": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "array_strptime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "exact": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_return_parsed_timezone_results": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.shape": {
+                                    "variable_value": "(5,)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "1"
+                                },
+                                "iresult": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.view": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "iresult.fill": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.iNaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "conversion.datetime_to_datetime64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "conversion": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeIndex._simple_new": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "utc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "objects_to_datetime64ns": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "yearfirst": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_box_as_indexlike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "arg": {
+                                    "variable_value": "<IntegerArray>\n[1, 2, NA, 2305843009213693952, NA]\nLength: 5, dtype: Int64",
+                                    "variable_type": "IntegerArray",
+                                    "variable_shape": "(5,)"
+                                },
+                                "np.array": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeArray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tz": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "tz_localize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.tz_convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_ns_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.tz_localize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": "'ns'",
+                                    "variable_type": "str",
+                                    "variable_shape": "2"
+                                },
+                                "IntegerArray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mask": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.isna": {
+                                    "variable_value": "<bound method IntegerArray.isna of <IntegerArray>\n[1, 2, NA, 2305843009213693952, NA]\nLength: 5, dtype: Int64>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "arg._ndarray_values": {
+                                    "variable_value": "array([                  1,                   2,                   1,\n       2305843009213693952,                   1])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5,)"
+                                },
+                                "result": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tz_parsed": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslib.array_with_unit_to_datetime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslib": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "errors": {
+                                    "variable_value": "'raise'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tz_convert": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.tz_localize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.tz": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.tz_convert": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "orig_arg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_convert_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "ensure_object": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "require_iso8601": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "infer_datetime_format": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_guess_datetime_format_for_array": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dayfirst": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "format_is_iso8601": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_format_is_iso": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_attempt_YYYYMMDD": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.OutOfBoundsDatetime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "timezones": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "array_strptime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "exact": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_return_parsed_timezone_results": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.shape": {
+                                    "variable_value": "(5,)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "1"
+                                },
+                                "iresult": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.view": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "iresult.fill": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.iNaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "conversion.datetime_to_datetime64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "conversion": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeIndex._simple_new": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "utc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "objects_to_datetime64ns": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "yearfirst": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_box_as_indexlike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "arg": {
+                                    "variable_value": "array([                  1,                   2,                   1,\n       2305843009213693952,                   1])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5,)"
+                                },
+                                "np.array": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64tz_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeArray": {
+                                    "variable_value": "<class 'pandas.core.arrays.datetimes.DatetimeArray'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x10e1f2630>"
+                                },
+                                "DatetimeIndex": {
+                                    "variable_value": "<class 'pandas.core.indexes.datetimes.DatetimeIndex'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x10e493040>"
+                                },
+                                "tz": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "tz_localize": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.tz_convert": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_datetime64_ns_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.tz_localize": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "unit": {
+                                    "variable_value": "'ns'",
+                                    "variable_type": "str",
+                                    "variable_shape": "2"
+                                },
+                                "IntegerArray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mask": {
+                                    "variable_value": "array([False, False,  True, False,  True])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5,)"
+                                },
+                                "arg.isna": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "arg._ndarray_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "result": {
+                                    "variable_value": "DatetimeIndex(['1970-01-01 00:00:00.000000001',\n               '1970-01-01 00:00:00.000000002',\n                                         'NaT',\n               '2043-01-25 23:56:49.213693952',\n                                         'NaT'],\n              dtype='datetime64[ns]', freq=None)",
+                                    "variable_type": "DatetimeIndex",
+                                    "variable_shape": "(5,)"
+                                },
+                                "tz_parsed": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "tslib.array_with_unit_to_datetime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslib": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "errors": {
+                                    "variable_value": "'raise'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tz_convert": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.tz_localize": {
+                                    "variable_value": "<bound method PandasDelegate._add_delegate_accessors.<locals>._create_delegator_method.<locals>.f of DatetimeIndex(['1970-01-01 00:00:00.000000001',\n               '1970-01-01 00:00:00.000000002',\n                                         'NaT',\n               '2043-01-25 23:56:49.213693952',\n                                         'NaT'],\n              dtype='datetime64[ns]', freq=None)>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "result.tz": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "result.tz_convert": {
+                                    "variable_value": "<bound method PandasDelegate._add_delegate_accessors.<locals>._create_delegator_method.<locals>.f of DatetimeIndex(['1970-01-01 00:00:00.000000001',\n               '1970-01-01 00:00:00.000000002',\n                                         'NaT',\n               '2043-01-25 23:56:49.213693952',\n                                         'NaT'],\n              dtype='datetime64[ns]', freq=None)>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "orig_arg": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_convert_dtype": {
+                                    "variable_value": "<function maybe_convert_dtype at 0x10e2221f0>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "ensure_object": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "require_iso8601": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "infer_datetime_format": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_guess_datetime_format_for_array": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dayfirst": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "format_is_iso8601": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_format_is_iso": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_attempt_YYYYMMDD": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.OutOfBoundsDatetime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "timezones": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "array_strptime": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "exact": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_return_parsed_timezone_results": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arg.shape": {
+                                    "variable_value": "(5,)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "1"
+                                },
+                                "iresult": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "result.view": {
+                                    "variable_value": "<bound method Index.view of DatetimeIndex(['1970-01-01 00:00:00.000000001',\n               '1970-01-01 00:00:00.000000002',\n                                         'NaT',\n               '2043-01-25 23:56:49.213693952',\n                                         'NaT'],\n              dtype='datetime64[ns]', freq=None)>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "iresult.fill": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "tslibs.iNaT": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "conversion.datetime_to_datetime64": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "conversion": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "DatetimeIndex._simple_new": {
+                                    "variable_value": "<bound method DatetimeIndex._simple_new of <class 'pandas.core.indexes.datetimes.DatetimeIndex'>>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "e": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "utc": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "objects_to_datetime64ns": {
+                                    "variable_value": "<function objects_to_datetime64ns at 0x10e222160>",
+                                    "variable_type": "function",
+                                    "variable_shape": null
+                                },
+                                "yearfirst": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "_box_as_indexlike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "from pandas.core import algorithms",
+                    "start_line": 40,
+                    "end_line": 41
+                }
+            ],
+            "inscope_functions": [
+                "def _guess_datetime_format_for_array(arr, **kwargs):\n    # Try to guess the format based on the first non-NaN element\n    non_nan_elements = notna(arr).nonzero()[0]\n    if len(non_nan_elements):\n        return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)",
+                "def should_cache(\n    arg: ArrayConvertible, unique_share: float = 0.7, check_count: Optional[int] = None\n) -> bool:\n    \"\"\"\n    Decides whether to do caching.\n\n    If the percent of unique elements among `check_count` elements less\n    than `unique_share * 100` then we can do caching.\n\n    Parameters\n    ----------\n    arg: listlike, tuple, 1-d array, Series\n    unique_share: float, default=0.7, optional\n        0 < unique_share < 1\n    check_count: int, optional\n        0 <= check_count <= len(arg)\n\n    Returns\n    -------\n    do_caching: bool\n\n    Notes\n    -----\n    By default for a sequence of less than 50 items in size, we don't do\n    caching; for the number of elements less than 5000, we take ten percent of\n    all elements to check for a uniqueness share; if the sequence size is more\n    than 5000, then we check only the first 500 elements.\n    All constants were chosen empirically by.\n    \"\"\"\n    do_caching = True\n\n    # default realization\n    if check_count is None:\n        # in this case, the gain from caching is negligible\n        if len(arg) <= 50:\n            return False\n\n        if len(arg) <= 5000:\n            check_count = int(len(arg) * 0.1)\n        else:\n            check_count = 500\n    else:\n        assert (\n            0 <= check_count <= len(arg)\n        ), \"check_count must be in next bounds: [0; len(arg)]\"\n        if check_count == 0:\n            return False\n\n    assert 0 < unique_share < 1, \"unique_share must be in next bounds: (0; 1)\"\n\n    unique_elements = set(islice(arg, check_count))\n    if len(unique_elements) > check_count * unique_share:\n        do_caching = False\n    return do_caching",
+                "def _maybe_cache(arg, format, cache, convert_listlike):\n    \"\"\"\n    Create a cache of unique dates from an array of dates\n\n    Parameters\n    ----------\n    arg : listlike, tuple, 1-d array, Series\n    format : string\n        Strftime format to parse time\n    cache : boolean\n        True attempts to create a cache of converted values\n    convert_listlike : function\n        Conversion function to apply on dates\n\n    Returns\n    -------\n    cache_array : Series\n        Cache of converted, unique dates. Can be empty\n    \"\"\"\n    from pandas import Series\n\n    cache_array = Series(dtype=object)\n\n    if cache:\n        # Perform a quicker unique check\n        if not should_cache(arg):\n            return cache_array\n\n        unique_dates = unique(arg)\n        if len(unique_dates) < len(arg):\n            cache_dates = convert_listlike(unique_dates, format)\n            cache_array = Series(cache_dates, index=unique_dates)\n    return cache_array",
+                "def _box_as_indexlike(\n    dt_array: ArrayLike, utc: Optional[bool] = None, name: Optional[str] = None\n) -> Union[ABCIndex, ABCDatetimeIndex]:\n    \"\"\"\n    Properly boxes the ndarray of datetimes to DatetimeIndex\n    if it is possible or to generic Index instead\n\n    Parameters\n    ----------\n    dt_array: 1-d array\n        Array of datetimes to be wrapped in an Index.\n    tz : object\n        None or 'utc'\n    name : string, default None\n        Name for a resulting index\n\n    Returns\n    -------\n    result : datetime of converted dates\n        - DatetimeIndex if convertible to sole datetime64 type\n        - general Index otherwise\n    \"\"\"\n    from pandas import DatetimeIndex, Index\n\n    if is_datetime64_dtype(dt_array):\n        tz = \"utc\" if utc else None\n        return DatetimeIndex(dt_array, tz=tz, name=name)\n    return Index(dt_array, name=name)",
+                "def _convert_and_box_cache(\n    arg: DatetimeScalarOrArrayConvertible,\n    cache_array: ABCSeries,\n    name: Optional[str] = None,\n) -> ABCIndexClass:\n    \"\"\"\n    Convert array of dates with a cache and wrap the result in an Index.\n\n    Parameters\n    ----------\n    arg : integer, float, string, datetime, list, tuple, 1-d array, Series\n    cache_array : Series\n        Cache of converted, unique dates\n    name : string, default None\n        Name for a DatetimeIndex\n\n    Returns\n    -------\n    result : Index-like of converted dates\n    \"\"\"\n    from pandas import Series\n\n    result = Series(arg).map(cache_array)\n    return _box_as_indexlike(result, utc=None, name=name)",
+                "def _return_parsed_timezone_results(result, timezones, tz, name):\n    \"\"\"\n    Return results from array_strptime if a %z or %Z directive was passed.\n\n    Parameters\n    ----------\n    result : ndarray\n        int64 date representations of the dates\n    timezones : ndarray\n        pytz timezone objects\n    tz : object\n        None or pytz timezone object\n    name : string, default None\n        Name for a DatetimeIndex\n\n    Returns\n    -------\n    tz_result : Index-like of parsed dates with timezone\n    \"\"\"\n    if tz is not None:\n        raise ValueError(\n            \"Cannot pass a tz argument when \"\n            \"parsing strings with timezone \"\n            \"information.\"\n        )\n    tz_results = np.array(\n        [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]\n    )\n    from pandas import Index\n\n    return Index(tz_results, name=name)",
+                "def _convert_listlike_datetimes(\n    arg,\n    format,\n    name=None,\n    tz=None,\n    unit=None,\n    errors=None,\n    infer_datetime_format=None,\n    dayfirst=None,\n    yearfirst=None,\n    exact=None,\n):\n    \"\"\"\n    Helper function for to_datetime. Performs the conversions of 1D listlike\n    of dates\n\n    Parameters\n    ----------\n    arg : list, tuple, ndarray, Series, Index\n        date to be parced\n    name : object\n        None or string for the Index name\n    tz : object\n        None or 'utc'\n    unit : string\n        None or string of the frequency of the passed data\n    errors : string\n        error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'\n    infer_datetime_format : boolean\n        inferring format behavior from to_datetime\n    dayfirst : boolean\n        dayfirst parsing behavior from to_datetime\n    yearfirst : boolean\n        yearfirst parsing behavior from to_datetime\n    exact : boolean\n        exact format matching behavior from to_datetime\n\n    Returns\n    -------\n    Index-like of parsed dates\n    \"\"\"\n    from pandas import DatetimeIndex\n    from pandas.core.arrays import DatetimeArray\n    from pandas.core.arrays.datetimes import (\n        maybe_convert_dtype,\n        objects_to_datetime64ns,\n    )\n\n    if isinstance(arg, (list, tuple)):\n        arg = np.array(arg, dtype=\"O\")\n\n    # these are shortcutable\n    if is_datetime64tz_dtype(arg):\n        if not isinstance(arg, (DatetimeArray, DatetimeIndex)):\n            return DatetimeIndex(arg, tz=tz, name=name)\n        if tz == \"utc\":\n            arg = arg.tz_convert(None).tz_localize(tz)\n        return arg\n\n    elif is_datetime64_ns_dtype(arg):\n        if not isinstance(arg, (DatetimeArray, DatetimeIndex)):\n            try:\n                return DatetimeIndex(arg, tz=tz, name=name)\n            except ValueError:\n                pass\n        elif tz:\n            # DatetimeArray, DatetimeIndex\n            return arg.tz_localize(tz)\n\n        return arg\n\n    elif unit is not None:\n        if format is not None:\n            raise ValueError(\"cannot specify both format and unit\")\n        arg = getattr(arg, \"values\", arg)\n        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)\n        if errors == \"ignore\":\n            from pandas import Index\n\n            result = Index(result, name=name)\n        else:\n            result = DatetimeIndex(result, name=name)\n        # GH 23758: We may still need to localize the result with tz\n        # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)\n        # result will be naive but in UTC\n        try:\n            result = result.tz_localize(\"UTC\").tz_convert(tz_parsed)\n        except AttributeError:\n            # Regular Index from 'ignore' path\n            return result\n        if tz is not None:\n            if result.tz is None:\n                result = result.tz_localize(tz)\n            else:\n                result = result.tz_convert(tz)\n        return result\n    elif getattr(arg, \"ndim\", 1) > 1:\n        raise TypeError(\n            \"arg must be a string, datetime, list, tuple, 1-d array, or Series\"\n        )\n\n    # warn if passing timedelta64, raise for PeriodDtype\n    # NB: this must come after unit transformation\n    orig_arg = arg\n    arg, _ = maybe_convert_dtype(arg, copy=False)\n\n    arg = ensure_object(arg)\n    require_iso8601 = False\n\n    if infer_datetime_format and format is None:\n        format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)\n\n    if format is not None:\n        # There is a special fast-path for iso8601 formatted\n        # datetime strings, so in those cases don't use the inferred\n        # format because this path makes process slower in this\n        # special case\n        format_is_iso8601 = _format_is_iso(format)\n        if format_is_iso8601:\n            require_iso8601 = not infer_datetime_format\n            format = None\n\n    tz_parsed = None\n    result = None\n\n    if format is not None:\n        try:\n            # shortcut formatting here\n            if format == \"%Y%m%d\":\n                try:\n                    # pass orig_arg as float-dtype may have been converted to\n                    # datetime64[ns]\n                    orig_arg = ensure_object(orig_arg)\n                    result = _attempt_YYYYMMDD(orig_arg, errors=errors)\n                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):\n                    raise ValueError(\"cannot convert the input to '%Y%m%d' date format\")\n\n            # fallback\n            if result is None:\n                try:\n                    result, timezones = array_strptime(\n                        arg, format, exact=exact, errors=errors\n                    )\n                    if \"%Z\" in format or \"%z\" in format:\n                        return _return_parsed_timezone_results(\n                            result, timezones, tz, name\n                        )\n                except tslibs.OutOfBoundsDatetime:\n                    if errors == \"raise\":\n                        raise\n                    elif errors == \"coerce\":\n                        result = np.empty(arg.shape, dtype=\"M8[ns]\")\n                        iresult = result.view(\"i8\")\n                        iresult.fill(tslibs.iNaT)\n                    else:\n                        result = arg\n                except ValueError:\n                    # if format was inferred, try falling back\n                    # to array_to_datetime - terminate here\n                    # for specified formats\n                    if not infer_datetime_format:\n                        if errors == \"raise\":\n                            raise\n                        elif errors == \"coerce\":\n                            result = np.empty(arg.shape, dtype=\"M8[ns]\")\n                            iresult = result.view(\"i8\")\n                            iresult.fill(tslibs.iNaT)\n                        else:\n                            result = arg\n        except ValueError as e:\n            # Fallback to try to convert datetime objects if timezone-aware\n            #  datetime objects are found without passing `utc=True`\n            try:\n                values, tz = conversion.datetime_to_datetime64(arg)\n                return DatetimeIndex._simple_new(values, name=name, tz=tz)\n            except (ValueError, TypeError):\n                raise e\n\n    if result is None:\n        assert format is None or infer_datetime_format\n        utc = tz == \"utc\"\n        result, tz_parsed = objects_to_datetime64ns(\n            arg,\n            dayfirst=dayfirst,\n            yearfirst=yearfirst,\n            utc=utc,\n            errors=errors,\n            require_iso8601=require_iso8601,\n            allow_object=True,\n        )\n\n    if tz_parsed is not None:\n        # We can take a shortcut since the datetime64 numpy array\n        # is in UTC\n        return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)\n\n    utc = tz == \"utc\"\n    return _box_as_indexlike(result, utc=utc, name=name)",
+                "def _adjust_to_origin(arg, origin, unit):\n    \"\"\"\n    Helper function for to_datetime.\n    Adjust input argument to the specified origin\n\n    Parameters\n    ----------\n    arg : list, tuple, ndarray, Series, Index\n        date to be adjusted\n    origin : 'julian' or Timestamp\n        origin offset for the arg\n    unit : string\n        passed unit from to_datetime, must be 'D'\n\n    Returns\n    -------\n    ndarray or scalar of adjusted date(s)\n    \"\"\"\n    if origin == \"julian\":\n        original = arg\n        j0 = Timestamp(0).to_julian_date()\n        if unit != \"D\":\n            raise ValueError(\"unit must be 'D' for origin='julian'\")\n        try:\n            arg = arg - j0\n        except TypeError:\n            raise ValueError(\"incompatible 'arg' type for given 'origin'='julian'\")\n\n        # preemptively check this for a nice range\n        j_max = Timestamp.max.to_julian_date() - j0\n        j_min = Timestamp.min.to_julian_date() - j0\n        if np.any(arg > j_max) or np.any(arg < j_min):\n            raise tslibs.OutOfBoundsDatetime(\n                f\"{original} is Out of Bounds for origin='julian'\"\n            )\n    else:\n        # arg must be numeric\n        if not (\n            (is_scalar(arg) and (is_integer(arg) or is_float(arg)))\n            or is_numeric_dtype(np.asarray(arg))\n        ):\n            raise ValueError(\n                f\"'{arg}' is not compatible with origin='{origin}'; \"\n                \"it must be numeric with a unit specified\"\n            )\n\n        # we are going to offset back to unix / epoch time\n        try:\n            offset = Timestamp(origin)\n        except tslibs.OutOfBoundsDatetime:\n            raise tslibs.OutOfBoundsDatetime(f\"origin {origin} is Out of Bounds\")\n        except ValueError:\n            raise ValueError(f\"origin {origin} cannot be converted to a Timestamp\")\n\n        if offset.tz is not None:\n            raise ValueError(f\"origin offset {offset} must be tz-naive\")\n        offset -= Timestamp(0)\n\n        # convert the offset to the unit of the arg\n        # this should be lossless in terms of precision\n        offset = offset // tslibs.Timedelta(1, unit=unit)\n\n        # scalars & ndarray-like can handle the addition\n        if is_list_like(arg) and not isinstance(\n            arg, (ABCSeries, ABCIndexClass, np.ndarray)\n        ):\n            arg = np.asarray(arg)\n        arg = arg + offset\n    return arg",
+                "def to_datetime(\n    arg,\n    errors=\"raise\",\n    dayfirst=False,\n    yearfirst=False,\n    utc=None,\n    format=None,\n    exact=True,\n    unit=None,\n    infer_datetime_format=False,\n    origin=\"unix\",\n    cache=True,\n):\n    \"\"\"\n    Convert argument to datetime.\n\n    Parameters\n    ----------\n    arg : int, float, str, datetime, list, tuple, 1-d array, Series DataFrame/dict-like\n        The object to convert to a datetime.\n    errors : {'ignore', 'raise', 'coerce'}, default 'raise'\n        - If 'raise', then invalid parsing will raise an exception.\n        - If 'coerce', then invalid parsing will be set as NaT.\n        - If 'ignore', then invalid parsing will return the input.\n    dayfirst : bool, default False\n        Specify a date parse order if `arg` is str or its list-likes.\n        If True, parses dates with the day first, eg 10/11/12 is parsed as\n        2012-11-10.\n        Warning: dayfirst=True is not strict, but will prefer to parse\n        with day first (this is a known bug, based on dateutil behavior).\n    yearfirst : bool, default False\n        Specify a date parse order if `arg` is str or its list-likes.\n\n        - If True parses dates with the year first, eg 10/11/12 is parsed as\n          2010-11-12.\n        - If both dayfirst and yearfirst are True, yearfirst is preceded (same\n          as dateutil).\n\n        Warning: yearfirst=True is not strict, but will prefer to parse\n        with year first (this is a known bug, based on dateutil behavior).\n    utc : bool, default None\n        Return UTC DatetimeIndex if True (converting any tz-aware\n        datetime.datetime objects as well).\n    format : str, default None\n        The strftime to parse time, eg \"%d/%m/%Y\", note that \"%f\" will parse\n        all the way up to nanoseconds.\n        See strftime documentation for more information on choices:\n        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.\n    exact : bool, True by default\n        Behaves as:\n        - If True, require an exact format match.\n        - If False, allow the format to match anywhere in the target string.\n\n    unit : str, default 'ns'\n        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an\n        integer or float number. This will be based off the origin.\n        Example, with unit='ms' and origin='unix' (the default), this\n        would calculate the number of milliseconds to the unix epoch start.\n    infer_datetime_format : bool, default False\n        If True and no `format` is given, attempt to infer the format of the\n        datetime strings, and if it can be inferred, switch to a faster\n        method of parsing them. In some cases this can increase the parsing\n        speed by ~5-10x.\n    origin : scalar, default 'unix'\n        Define the reference date. The numeric values would be parsed as number\n        of units (defined by `unit`) since this reference date.\n\n        - If 'unix' (or POSIX) time; origin is set to 1970-01-01.\n        - If 'julian', unit must be 'D', and origin is set to beginning of\n          Julian Calendar. Julian day number 0 is assigned to the day starting\n          at noon on January 1, 4713 BC.\n        - If Timestamp convertible, origin is set to Timestamp identified by\n          origin.\n    cache : bool, default True\n        If True, use a cache of unique, converted dates to apply the datetime\n        conversion. May produce significant speed-up when parsing duplicate\n        date strings, especially ones with timezone offsets.\n\n        .. versionadded:: 0.23.0\n\n        .. versionchanged:: 0.25.0\n            - changed default value from False to True.\n\n    Returns\n    -------\n    datetime\n        If parsing succeeded.\n        Return type depends on input:\n\n        - list-like: DatetimeIndex\n        - Series: Series of datetime64 dtype\n        - scalar: Timestamp\n\n        In case when it is not possible to return designated types (e.g. when\n        any element of input is before Timestamp.min or after Timestamp.max)\n        return will have datetime.datetime type (or corresponding\n        array/Series).\n\n    See Also\n    --------\n    DataFrame.astype : Cast argument to a specified dtype.\n    to_timedelta : Convert argument to timedelta.\n\n    Examples\n    --------\n    Assembling a datetime from multiple columns of a DataFrame. The keys can be\n    common abbreviations like ['year', 'month', 'day', 'minute', 'second',\n    'ms', 'us', 'ns']) or plurals of the same\n\n    >>> df = pd.DataFrame({'year': [2015, 2016],\n    ...                    'month': [2, 3],\n    ...                    'day': [4, 5]})\n    >>> pd.to_datetime(df)\n    0   2015-02-04\n    1   2016-03-05\n    dtype: datetime64[ns]\n\n    If a date does not meet the `timestamp limitations\n    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html\n    #timeseries-timestamp-limits>`_, passing errors='ignore'\n    will return the original input instead of raising any exception.\n\n    Passing errors='coerce' will force an out-of-bounds date to NaT,\n    in addition to forcing non-dates (or non-parseable dates) to NaT.\n\n    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')\n    datetime.datetime(1300, 1, 1, 0, 0)\n    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')\n    NaT\n\n    Passing infer_datetime_format=True can often-times speedup a parsing\n    if its not an ISO8601 format exactly, but in a regular format.\n\n    >>> s = pd.Series(['3/11/2000', '3/12/2000', '3/13/2000'] * 1000)\n    >>> s.head()\n    0    3/11/2000\n    1    3/12/2000\n    2    3/13/2000\n    3    3/11/2000\n    4    3/12/2000\n    dtype: object\n\n    >>> %timeit pd.to_datetime(s, infer_datetime_format=True)  # doctest: +SKIP\n    100 loops, best of 3: 10.4 ms per loop\n\n    >>> %timeit pd.to_datetime(s, infer_datetime_format=False)  # doctest: +SKIP\n    1 loop, best of 3: 471 ms per loop\n\n    Using a unix epoch time\n\n    >>> pd.to_datetime(1490195805, unit='s')\n    Timestamp('2017-03-22 15:16:45')\n    >>> pd.to_datetime(1490195805433502912, unit='ns')\n    Timestamp('2017-03-22 15:16:45.433502912')\n\n    .. warning:: For float arg, precision rounding might happen. To prevent\n        unexpected behavior use a fixed-width exact type.\n\n    Using a non-unix epoch origin\n\n    >>> pd.to_datetime([1, 2, 3], unit='D',\n    ...                origin=pd.Timestamp('1960-01-01'))\n    DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'], \\\ndtype='datetime64[ns]', freq=None)\n    \"\"\"\n    if arg is None:\n        return None\n\n    if origin != \"unix\":\n        arg = _adjust_to_origin(arg, origin, unit)\n\n    tz = \"utc\" if utc else None\n    convert_listlike = partial(\n        _convert_listlike_datetimes,\n        tz=tz,\n        unit=unit,\n        dayfirst=dayfirst,\n        yearfirst=yearfirst,\n        errors=errors,\n        exact=exact,\n        infer_datetime_format=infer_datetime_format,\n    )\n\n    if isinstance(arg, Timestamp):\n        result = arg\n        if tz is not None:\n            if arg.tz is not None:\n                result = result.tz_convert(tz)\n            else:\n                result = result.tz_localize(tz)\n    elif isinstance(arg, ABCSeries):\n        cache_array = _maybe_cache(arg, format, cache, convert_listlike)\n        if not cache_array.empty:\n            result = arg.map(cache_array)\n        else:\n            values = convert_listlike(arg._values, format)\n            result = arg._constructor(values, index=arg.index, name=arg.name)\n    elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):\n        result = _assemble_from_unit_mappings(arg, errors, tz)\n    elif isinstance(arg, ABCIndexClass):\n        cache_array = _maybe_cache(arg, format, cache, convert_listlike)\n        if not cache_array.empty:\n            result = _convert_and_box_cache(arg, cache_array, name=arg.name)\n        else:\n            convert_listlike = partial(convert_listlike, name=arg.name)\n            result = convert_listlike(arg, format)\n    elif is_list_like(arg):\n        cache_array = _maybe_cache(arg, format, cache, convert_listlike)\n        if not cache_array.empty:\n            result = _convert_and_box_cache(arg, cache_array)\n        else:\n            result = convert_listlike(arg, format)\n    else:\n        result = convert_listlike(np.array([arg]), format)[0]\n\n    return result",
+                "def _assemble_from_unit_mappings(arg, errors, tz):\n    \"\"\"\n    assemble the unit specified fields from the arg (DataFrame)\n    Return a Series for actual parsing\n\n    Parameters\n    ----------\n    arg : DataFrame\n    errors : {'ignore', 'raise', 'coerce'}, default 'raise'\n\n        - If 'raise', then invalid parsing will raise an exception\n        - If 'coerce', then invalid parsing will be set as NaT\n        - If 'ignore', then invalid parsing will return the input\n    tz : None or 'utc'\n\n    Returns\n    -------\n    Series\n    \"\"\"\n    from pandas import to_timedelta, to_numeric, DataFrame\n\n    arg = DataFrame(arg)\n    if not arg.columns.is_unique:\n        raise ValueError(\"cannot assemble with duplicate keys\")\n\n    # replace passed unit with _unit_map\n    def f(value):\n        if value in _unit_map:\n            return _unit_map[value]\n\n        # m is case significant\n        if value.lower() in _unit_map:\n            return _unit_map[value.lower()]\n\n        return value\n\n    unit = {k: f(k) for k in arg.keys()}\n    unit_rev = {v: k for k, v in unit.items()}\n\n    # we require at least Ymd\n    required = [\"year\", \"month\", \"day\"]\n    req = sorted(set(required) - set(unit_rev.keys()))\n    if len(req):\n        required = \",\".join(req)\n        raise ValueError(\n            \"to assemble mappings requires at least that \"\n            f\"[year, month, day] be specified: [{required}] \"\n            \"is missing\"\n        )\n\n    # keys we don't recognize\n    excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))\n    if len(excess):\n        excess = \",\".join(excess)\n        raise ValueError(\n            f\"extra keys have been passed to the datetime assemblage: [{excess}]\"\n        )\n\n    def coerce(values):\n        # we allow coercion to if errors allows\n        values = to_numeric(values, errors=errors)\n\n        # prevent overflow in case of int8 or int16\n        if is_integer_dtype(values):\n            values = values.astype(\"int64\", copy=False)\n        return values\n\n    values = (\n        coerce(arg[unit_rev[\"year\"]]) * 10000\n        + coerce(arg[unit_rev[\"month\"]]) * 100\n        + coerce(arg[unit_rev[\"day\"]])\n    )\n    try:\n        values = to_datetime(values, format=\"%Y%m%d\", errors=errors, utc=tz)\n    except (TypeError, ValueError) as err:\n        raise ValueError(f\"cannot assemble the datetimes: {err}\")\n\n    for u in [\"h\", \"m\", \"s\", \"ms\", \"us\", \"ns\"]:\n        value = unit_rev.get(u)\n        if value is not None and value in arg:\n            try:\n                values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)\n            except (TypeError, ValueError) as err:\n                raise ValueError(f\"cannot assemble the datetimes [{value}]: {err}\")\n    return values",
+                "def _attempt_YYYYMMDD(arg, errors):\n    \"\"\"\n    try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,\n    arg is a passed in as an object dtype, but could really be ints/strings\n    with nan-like/or floats (e.g. with nan)\n\n    Parameters\n    ----------\n    arg : passed value\n    errors : 'raise','ignore','coerce'\n    \"\"\"\n\n    def calc(carg):\n        # calculate the actual result\n        carg = carg.astype(object)\n        parsed = parsing.try_parse_year_month_day(\n            carg / 10000, carg / 100 % 100, carg % 100\n        )\n        return tslib.array_to_datetime(parsed, errors=errors)[0]\n\n    def calc_with_mask(carg, mask):\n        result = np.empty(carg.shape, dtype=\"M8[ns]\")\n        iresult = result.view(\"i8\")\n        iresult[~mask] = tslibs.iNaT\n\n        masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))\n        result[mask] = masked_result.astype(\"M8[ns]\")\n        return result\n\n    # try intlike / strings that are ints\n    try:\n        return calc(arg.astype(np.int64))\n    except (ValueError, OverflowError, TypeError):\n        pass\n\n    # a float with actual np.nan\n    try:\n        carg = arg.astype(np.float64)\n        return calc_with_mask(carg, notna(carg))\n    except (ValueError, OverflowError, TypeError):\n        pass\n\n    # string with NaN-like\n    try:\n        mask = ~algorithms.isin(arg, list(tslib.nat_strings))\n        return calc_with_mask(arg, mask)\n    except (ValueError, OverflowError, TypeError):\n        pass\n\n    return None",
+                "def _guess_time_format_for_array(arr):\n    # Try to guess the format based on the first non-NaN element\n    non_nan_elements = notna(arr).nonzero()[0]\n    if len(non_nan_elements):\n        element = arr[non_nan_elements[0]]\n        for time_format in _time_formats:\n            try:\n                datetime.strptime(element, time_format)\n                return time_format\n            except ValueError:\n                pass\n\n    return None",
+                "def to_time(arg, format=None, infer_time_format=False, errors=\"raise\"):\n    \"\"\"\n    Parse time strings to time objects using fixed strptime formats (\"%H:%M\",\n    \"%H%M\", \"%I:%M%p\", \"%I%M%p\", \"%H:%M:%S\", \"%H%M%S\", \"%I:%M:%S%p\",\n    \"%I%M%S%p\")\n\n    Use infer_time_format if all the strings are in the same format to speed\n    up conversion.\n\n    Parameters\n    ----------\n    arg : string in time format, datetime.time, list, tuple, 1-d array,  Series\n    format : str, default None\n        Format used to convert arg into a time object.  If None, fixed formats\n        are used.\n    infer_time_format: bool, default False\n        Infer the time format based on the first non-NaN element.  If all\n        strings are in the same format, this will speed up conversion.\n    errors : {'ignore', 'raise', 'coerce'}, default 'raise'\n        - If 'raise', then invalid parsing will raise an exception\n        - If 'coerce', then invalid parsing will be set as None\n        - If 'ignore', then invalid parsing will return the input\n\n    Returns\n    -------\n    datetime.time\n    \"\"\"\n\n    def _convert_listlike(arg, format):\n\n        if isinstance(arg, (list, tuple)):\n            arg = np.array(arg, dtype=\"O\")\n\n        elif getattr(arg, \"ndim\", 1) > 1:\n            raise TypeError(\n                \"arg must be a string, datetime, list, tuple, 1-d array, or Series\"\n            )\n\n        arg = ensure_object(arg)\n\n        if infer_time_format and format is None:\n            format = _guess_time_format_for_array(arg)\n\n        times = []\n        if format is not None:\n            for element in arg:\n                try:\n                    times.append(datetime.strptime(element, format).time())\n                except (ValueError, TypeError):\n                    if errors == \"raise\":\n                        msg = (\n                            f\"Cannot convert {element} to a time with given \"\n                            f\"format {format}\"\n                        )\n                        raise ValueError(msg)\n                    elif errors == \"ignore\":\n                        return arg\n                    else:\n                        times.append(None)\n        else:\n            formats = _time_formats[:]\n            format_found = False\n            for element in arg:\n                time_object = None\n                for time_format in formats:\n                    try:\n                        time_object = datetime.strptime(element, time_format).time()\n                        if not format_found:\n                            # Put the found format in front\n                            fmt = formats.pop(formats.index(time_format))\n                            formats.insert(0, fmt)\n                            format_found = True\n                        break\n                    except (ValueError, TypeError):\n                        continue\n\n                if time_object is not None:\n                    times.append(time_object)\n                elif errors == \"raise\":\n                    raise ValueError(f\"Cannot convert arg {arg} to a time\")\n                elif errors == \"ignore\":\n                    return arg\n                else:\n                    times.append(None)\n\n        return times\n\n    if arg is None:\n        return arg\n    elif isinstance(arg, time):\n        return arg\n    elif isinstance(arg, ABCSeries):\n        values = _convert_listlike(arg._values, format)\n        return arg._constructor(values, index=arg.index, name=arg.name)\n    elif isinstance(arg, ABCIndexClass):\n        return _convert_listlike(arg, format)\n    elif is_list_like(arg):\n        return _convert_listlike(arg, format)\n\n    return _convert_listlike(np.array([arg]), format)[0]",
+                "def f(value):\n    if value in _unit_map:\n        return _unit_map[value]\n\n    # m is case significant\n    if value.lower() in _unit_map:\n        return _unit_map[value.lower()]\n\n    return value",
+                "def coerce(values):\n    # we allow coercion to if errors allows\n    values = to_numeric(values, errors=errors)\n\n    # prevent overflow in case of int8 or int16\n    if is_integer_dtype(values):\n        values = values.astype(\"int64\", copy=False)\n    return values",
+                "def calc(carg):\n    # calculate the actual result\n    carg = carg.astype(object)\n    parsed = parsing.try_parse_year_month_day(\n        carg / 10000, carg / 100 % 100, carg % 100\n    )\n    return tslib.array_to_datetime(parsed, errors=errors)[0]",
+                "def calc_with_mask(carg, mask):\n    result = np.empty(carg.shape, dtype=\"M8[ns]\")\n    iresult = result.view(\"i8\")\n    iresult[~mask] = tslibs.iNaT\n\n    masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))\n    result[mask] = masked_result.astype(\"M8[ns]\")\n    return result",
+                "def _convert_listlike(arg, format):\n\n    if isinstance(arg, (list, tuple)):\n        arg = np.array(arg, dtype=\"O\")\n\n    elif getattr(arg, \"ndim\", 1) > 1:\n        raise TypeError(\n            \"arg must be a string, datetime, list, tuple, 1-d array, or Series\"\n        )\n\n    arg = ensure_object(arg)\n\n    if infer_time_format and format is None:\n        format = _guess_time_format_for_array(arg)\n\n    times = []\n    if format is not None:\n        for element in arg:\n            try:\n                times.append(datetime.strptime(element, format).time())\n            except (ValueError, TypeError):\n                if errors == \"raise\":\n                    msg = (\n                        f\"Cannot convert {element} to a time with given \"\n                        f\"format {format}\"\n                    )\n                    raise ValueError(msg)\n                elif errors == \"ignore\":\n                    return arg\n                else:\n                    times.append(None)\n    else:\n        formats = _time_formats[:]\n        format_found = False\n        for element in arg:\n            time_object = None\n            for time_format in formats:\n                try:\n                    time_object = datetime.strptime(element, time_format).time()\n                    if not format_found:\n                        # Put the found format in front\n                        fmt = formats.pop(formats.index(time_format))\n                        formats.insert(0, fmt)\n                        format_found = True\n                    break\n                except (ValueError, TypeError):\n                    continue\n\n            if time_object is not None:\n                times.append(time_object)\n            elif errors == \"raise\":\n                raise ValueError(f\"Cannot convert arg {arg} to a time\")\n            elif errors == \"ignore\":\n                return arg\n            else:\n                times.append(None)\n\n    return times"
+            ],
+            "inscope_function_signatures": [
+                "_guess_datetime_format_for_array(arr, **kwargs)",
+                "should_cache(arg: ArrayConvertible, unique_share: float=0.7, check_count: Optional[int]=None) -> bool",
+                "_maybe_cache(arg, format, cache, convert_listlike)",
+                "_box_as_indexlike(dt_array: ArrayLike, utc: Optional[bool]=None, name: Optional[str]=None) -> Union[ABCIndex, ABCDatetimeIndex]",
+                "_convert_and_box_cache(arg: DatetimeScalarOrArrayConvertible, cache_array: ABCSeries, name: Optional[str]=None) -> ABCIndexClass",
+                "_return_parsed_timezone_results(result, timezones, tz, name)",
+                "_convert_listlike_datetimes(arg, format, name=None, tz=None, unit=None, errors=None, infer_datetime_format=None, dayfirst=None, yearfirst=None, exact=None)",
+                "_adjust_to_origin(arg, origin, unit)",
+                "to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False, utc=None, format=None, exact=True, unit=None, infer_datetime_format=False, origin='unix', cache=True)",
+                "_assemble_from_unit_mappings(arg, errors, tz)",
+                "_attempt_YYYYMMDD(arg, errors)",
+                "_guess_time_format_for_array(arr)",
+                "to_time(arg, format=None, infer_time_format=False, errors='raise')",
+                "f(value)",
+                "coerce(values)",
+                "calc(carg)",
+                "calc_with_mask(carg, mask)",
+                "_convert_listlike(arg, format)"
+            ],
+            "variables_in_file": {
+                "ArrayConvertible": [
+                    66,
+                    47
+                ],
+                "Union": [
+                    48,
+                    50,
+                    158,
+                    47
+                ],
+                "list": [
+                    293,
+                    47,
+                    51,
+                    891,
+                    957
+                ],
+                "tuple": [
+                    51,
+                    957,
+                    293,
+                    47
+                ],
+                "ArrayLike": [
+                    51,
+                    157,
+                    47
+                ],
+                "ABCSeries": [
+                    706,
+                    47,
+                    51,
+                    1018,
+                    188,
+                    509
+                ],
+                "Scalar": [
+                    48,
+                    49
+                ],
+                "int": [
+                    48,
+                    66,
+                    103
+                ],
+                "float": [
+                    48,
+                    66
+                ],
+                "str": [
+                    48,
+                    157,
+                    189
+                ],
+                "DatetimeScalar": [
+                    49,
+                    51
+                ],
+                "TypeVar": [
+                    49
+                ],
+                "datetime": [
+                    49,
+                    993,
+                    974,
+                    919
+                ],
+                "DatetimeScalarOrArrayConvertible": [
+                    50,
+                    187
+                ],
+                "non_nan_elements": [
+                    914,
+                    915,
+                    916,
+                    60,
+                    61,
+                    62
+                ],
+                "nonzero": [
+                    914,
+                    60
+                ],
+                "notna": [
+                    914,
+                    60,
+                    885
+                ],
+                "arr": [
+                    916,
+                    914,
+                    60,
+                    62
+                ],
+                "len": [
+                    802,
+                    99,
+                    102,
+                    103,
+                    108,
+                    812,
+                    915,
+                    116,
+                    150,
+                    61
+                ],
+                "_guess_datetime_format": [
+                    62
+                ],
+                "kwargs": [
+                    62
+                ],
+                "Optional": [
+                    66,
+                    157,
+                    189
+                ],
+                "do_caching": [
+                    118,
+                    117,
+                    94
+                ],
+                "check_count": [
+                    97,
+                    103,
+                    105,
+                    108,
+                    110,
+                    115,
+                    116
+                ],
+                "arg": [
+                    512,
+                    513,
+                    1024,
+                    1026,
+                    1020,
+                    1021,
+                    1023,
+                    99,
+                    102,
+                    103,
+                    108,
+                    115,
+                    146,
+                    149,
+                    150,
+                    681,
+                    685,
+                    699,
+                    700,
+                    702,
+                    706,
+                    707,
+                    709,
+                    711,
+                    712,
+                    713,
+                    714,
+                    715,
+                    716,
+                    718,
+                    208,
+                    720,
+                    721,
+                    722,
+                    723,
+                    725,
+                    727,
+                    729,
+                    781,
+                    782,
+                    796,
+                    293,
+                    294,
+                    297,
+                    298,
+                    299,
+                    301,
+                    302,
+                    304,
+                    305,
+                    307,
+                    312,
+                    314,
+                    828,
+                    829,
+                    830,
+                    319,
+                    320,
+                    839,
+                    841,
+                    341,
+                    348,
+                    349,
+                    351,
+                    355,
+                    878,
+                    884,
+                    891,
+                    892,
+                    386,
+                    396,
+                    400,
+                    409,
+                    413,
+                    418,
+                    427,
+                    957,
+                    958,
+                    960,
+                    965,
+                    968,
+                    972,
+                    464,
+                    469,
+                    983,
+                    476,
+                    989,
+                    483,
+                    484,
+                    487,
+                    1006,
+                    1008,
+                    1014,
+                    1015,
+                    1016,
+                    1017,
+                    1018,
+                    1019,
+                    508,
+                    509,
+                    1022,
+                    511
+                ],
+                "unique_share": [
+                    113,
+                    116
+                ],
+                "unique_elements": [
+                    115,
+                    116
+                ],
+                "set": [
+                    801,
+                    115,
+                    811
+                ],
+                "islice": [
+                    115
+                ],
+                "bool": [
+                    67,
+                    157
+                ],
+                "cache_array": [
+                    707,
+                    708,
+                    709,
+                    716,
+                    717,
+                    142,
+                    718,
+                    208,
+                    147,
+                    723,
+                    724,
+                    725,
+                    152,
+                    153
+                ],
+                "Series": [
+                    152,
+                    142,
+                    208
+                ],
+                "object": [
+                    861,
+                    142
+                ],
+                "cache": [
+                    144,
+                    707,
+                    716,
+                    723
+                ],
+                "should_cache": [
+                    146
+                ],
+                "unique_dates": [
+                    152,
+                    149,
+                    150,
+                    151
+                ],
+                "unique": [
+                    149
+                ],
+                "cache_dates": [
+                    152,
+                    151
+                ],
+                "convert_listlike": [
+                    707,
+                    711,
+                    727,
+                    716,
+                    688,
+                    720,
+                    721,
+                    723,
+                    151,
+                    729
+                ],
+                "format": [
+                    1024,
+                    386,
+                    1026,
+                    388,
+                    151,
+                    424,
+                    317,
+                    707,
+                    711,
+                    967,
+                    968,
+                    971,
+                    716,
+                    974,
+                    721,
+                    723,
+                    979,
+                    727,
+                    729,
+                    354,
+                    355,
+                    357,
+                    362,
+                    365,
+                    370,
+                    373,
+                    1019,
+                    1022
+                ],
+                "is_datetime64_dtype": [
+                    180
+                ],
+                "dt_array": [
+                    180,
+                    182,
+                    183
+                ],
+                "tz": [
+                    390,
+                    418,
+                    419,
+                    425,
+                    299,
+                    300,
+                    301,
+                    687,
+                    690,
+                    307,
+                    181,
+                    182,
+                    310,
+                    312,
+                    441,
+                    701,
+                    703,
+                    705,
+                    833,
+                    714,
+                    335,
+                    337,
+                    339,
+                    231
+                ],
+                "utc": [
+                    425,
+                    430,
+                    687,
+                    181,
+                    441,
+                    442
+                ],
+                "DatetimeIndex": [
+                    419,
+                    326,
+                    298,
+                    299,
+                    305,
+                    307,
+                    182,
+                    439
+                ],
+                "name": [
+                    439,
+                    419,
+                    324,
+                    326,
+                    390,
+                    299,
+                    209,
+                    242,
+                    307,
+                    182,
+                    183,
+                    442
+                ],
+                "Index": [
+                    242,
+                    324,
+                    183
+                ],
+                "ABCIndex": [
+                    158
+                ],
+                "ABCDatetimeIndex": [
+                    158
+                ],
+                "result": [
+                    385,
+                    390,
+                    396,
+                    397,
+                    400,
+                    409,
+                    410,
+                    413,
+                    423,
+                    426,
+                    439,
+                    442,
+                    700,
+                    703,
+                    320,
+                    705,
+                    324,
+                    709,
+                    326,
+                    712,
+                    714,
+                    331,
+                    334,
+                    718,
+                    208,
+                    209,
+                    336,
+                    337,
+                    339,
+                    340,
+                    721,
+                    725,
+                    727,
+                    729,
+                    731,
+                    868,
+                    869,
+                    873,
+                    874,
+                    238,
+                    368,
+                    378,
+                    383
+                ],
+                "map": [
+                    208
+                ],
+                "_box_as_indexlike": [
+                    209,
+                    442
+                ],
+                "ABCIndexClass": [
+                    1021,
+                    715,
+                    509,
+                    190
+                ],
+                "ValueError": [
+                    783,
+                    401,
+                    921,
+                    414,
+                    420,
+                    804,
+                    814,
+                    308,
+                    318,
+                    834,
+                    835,
+                    842,
+                    843,
+                    975,
+                    467,
+                    981,
+                    471,
+                    486,
+                    232,
+                    1000,
+                    1006,
+                    879,
+                    496,
+                    497,
+                    500,
+                    886,
+                    379,
+                    380,
+                    893
+                ],
+                "tz_results": [
+                    242,
+                    237
+                ],
+                "np.array": [
+                    1026,
+                    294,
+                    237,
+                    729,
+                    958
+                ],
+                "np": [
+                    1026,
+                    484,
+                    868,
+                    294,
+                    872,
+                    396,
+                    237,
+                    878,
+                    729,
+                    884,
+                    409,
+                    476,
+                    509,
+                    958,
+                    511
+                ],
+                "tz_localize": [
+                    301,
+                    238
+                ],
+                "Timestamp": [
+                    493,
+                    238,
+                    465,
+                    501,
+                    474,
+                    475,
+                    699
+                ],
+                "res": [
+                    238
+                ],
+                "zone": [
+                    238
+                ],
+                "zip": [
+                    238
+                ],
+                "timezones": [
+                    385,
+                    390,
+                    238
+                ],
+                "isinstance": [
+                    706,
+                    293,
+                    713,
+                    298,
+                    715,
+                    305,
+                    1021,
+                    1016,
+                    1018,
+                    699,
+                    508,
+                    957
+                ],
+                "is_datetime64tz_dtype": [
+                    297
+                ],
+                "DatetimeArray": [
+                    305,
+                    298
+                ],
+                "arg.tz_convert": [
+                    301
+                ],
+                "is_datetime64_ns_dtype": [
+                    304
+                ],
+                "arg.tz_localize": [
+                    312
+                ],
+                "unit": [
+                    320,
+                    796,
+                    685,
+                    466,
+                    691,
+                    505,
+                    316,
+                    797
+                ],
+                "getattr": [
+                    960,
+                    341,
+                    319
+                ],
+                "tz_parsed": [
+                    320,
+                    426,
+                    331,
+                    367,
+                    436,
+                    439
+                ],
+                "tslib.array_with_unit_to_datetime": [
+                    320
+                ],
+                "tslib": [
+                    320,
+                    865,
+                    891
+                ],
+                "errors": [
+                    386,
+                    393,
+                    395,
+                    406,
+                    408,
+                    431,
+                    820,
+                    694,
+                    320,
+                    321,
+                    833,
+                    841,
+                    714,
+                    976,
+                    982,
+                    865,
+                    1005,
+                    1007,
+                    378
+                ],
+                "tz_convert": [
+                    331
+                ],
+                "result.tz_localize": [
+                    337,
+                    331,
+                    705
+                ],
+                "AttributeError": [
+                    332
+                ],
+                "result.tz": [
+                    336
+                ],
+                "result.tz_convert": [
+                    339,
+                    703
+                ],
+                "TypeError": [
+                    961,
+                    834,
+                    420,
+                    1000,
+                    842,
+                    879,
+                    975,
+                    470,
+                    342,
+                    886,
+                    379,
+                    893
+                ],
+                "orig_arg": [
+                    377,
+                    378,
+                    348
+                ],
+                "_": [
+                    349
+                ],
+                "maybe_convert_dtype": [
+                    349
+                ],
+                "ensure_object": [
+                    377,
+                    965,
+                    351
+                ],
+                "require_iso8601": [
+                    352,
+                    364,
+                    432
+                ],
+                "infer_datetime_format": [
+                    354,
+                    424,
+                    364,
+                    405,
+                    696
+                ],
+                "_guess_datetime_format_for_array": [
+                    355
+                ],
+                "dayfirst": [
+                    692,
+                    355,
+                    428
+                ],
+                "format_is_iso8601": [
+                    362,
+                    363
+                ],
+                "_format_is_iso": [
+                    362
+                ],
+                "_attempt_YYYYMMDD": [
+                    378
+                ],
+                "tslibs.OutOfBoundsDatetime": [
+                    392,
+                    494,
+                    495,
+                    379,
+                    477
+                ],
+                "tslibs": [
+                    870,
+                    392,
+                    398,
+                    494,
+                    495,
+                    411,
+                    505,
+                    379,
+                    477
+                ],
+                "array_strptime": [
+                    385
+                ],
+                "exact": [
+                    386,
+                    695
+                ],
+                "_return_parsed_timezone_results": [
+                    389
+                ],
+                "np.empty": [
+                    868,
+                    409,
+                    396
+                ],
+                "arg.shape": [
+                    409,
+                    396
+                ],
+                "iresult": [
+                    869,
+                    870,
+                    397,
+                    398,
+                    410,
+                    411
+                ],
+                "result.view": [
+                    410,
+                    869,
+                    397
+                ],
+                "iresult.fill": [
+                    411,
+                    398
+                ],
+                "tslibs.iNaT": [
+                    870,
+                    411,
+                    398
+                ],
+                "values": [
+                    833,
+                    418,
+                    419,
+                    711,
+                    712,
+                    841,
+                    1019,
+                    844,
+                    820,
+                    823,
+                    824,
+                    825,
+                    827,
+                    1020
+                ],
+                "conversion.datetime_to_datetime64": [
+                    418
+                ],
+                "conversion": [
+                    418
+                ],
+                "DatetimeIndex._simple_new": [
+                    419,
+                    439
+                ],
+                "e": [
+                    421
+                ],
+                "objects_to_datetime64ns": [
+                    426
+                ],
+                "yearfirst": [
+                    429,
+                    693
+                ],
+                "origin": [
+                    487,
+                    684,
+                    493,
+                    685,
+                    495,
+                    463,
+                    497
+                ],
+                "original": [
+                    464,
+                    478
+                ],
+                "j0": [
+                    465,
+                    474,
+                    475,
+                    469
+                ],
+                "to_julian_date": [
+                    465
+                ],
+                "j_max": [
+                    474,
+                    476
+                ],
+                "Timestamp.max.to_julian_date": [
+                    474
+                ],
+                "Timestamp.max": [
+                    474
+                ],
+                "j_min": [
+                    475,
+                    476
+                ],
+                "Timestamp.min.to_julian_date": [
+                    475
+                ],
+                "Timestamp.min": [
+                    475
+                ],
+                "np.any": [
+                    476
+                ],
+                "is_scalar": [
+                    483
+                ],
+                "is_integer": [
+                    483
+                ],
+                "is_float": [
+                    483
+                ],
+                "is_numeric_dtype": [
+                    484
+                ],
+                "np.asarray": [
+                    484,
+                    511
+                ],
+                "offset": [
+                    512,
+                    493,
+                    499,
+                    500,
+                    501,
+                    505
+                ],
+                "offset.tz": [
+                    499
+                ],
+                "tslibs.Timedelta": [
+                    505
+                ],
+                "is_list_like": [
+                    722,
+                    508,
+                    1023
+                ],
+                "np.ndarray": [
+                    509
+                ],
+                "_adjust_to_origin": [
+                    685
+                ],
+                "partial": [
+                    688,
+                    720
+                ],
+                "_convert_listlike_datetimes": [
+                    689
+                ],
+                "arg.tz": [
+                    702
+                ],
+                "_maybe_cache": [
+                    707,
+                    716,
+                    723
+                ],
+                "cache_array.empty": [
+                    724,
+                    708,
+                    717
+                ],
+                "arg.map": [
+                    709
+                ],
+                "arg._values": [
+                    1019,
+                    711
+                ],
+                "arg._constructor": [
+                    712,
+                    1020
+                ],
+                "arg.index": [
+                    712,
+                    1020
+                ],
+                "arg.name": [
+                    712,
+                    1020,
+                    718,
+                    720
+                ],
+                "ABCDataFrame": [
+                    713
+                ],
+                "abc.MutableMapping": [
+                    713
+                ],
+                "abc": [
+                    713
+                ],
+                "_assemble_from_unit_mappings": [
+                    714
+                ],
+                "_convert_and_box_cache": [
+                    725,
+                    718
+                ],
+                "_unit_map": [
+                    811,
+                    787,
+                    788,
+                    791,
+                    792,
+                    735
+                ],
+                "DataFrame": [
+                    781
+                ],
+                "arg.columns.is_unique": [
+                    782
+                ],
+                "arg.columns": [
+                    782
+                ],
+                "value": [
+                    838,
+                    839,
+                    841,
+                    843,
+                    787,
+                    788,
+                    791,
+                    792,
+                    794
+                ],
+                "value.lower": [
+                    792,
+                    791
+                ],
+                "k": [
+                    796,
+                    797
+                ],
+                "f": [
+                    796
+                ],
+                "arg.keys": [
+                    796
+                ],
+                "unit_rev": [
+                    801,
+                    838,
+                    797,
+                    811,
+                    828,
+                    829,
+                    830
+                ],
+                "v": [
+                    797
+                ],
+                "unit.items": [
+                    797
+                ],
+                "required": [
+                    800,
+                    801,
+                    803,
+                    806
+                ],
+                "req": [
+                    801,
+                    802,
+                    803
+                ],
+                "sorted": [
+                    801,
+                    811
+                ],
+                "unit_rev.keys": [
+                    801,
+                    811
+                ],
+                "join": [
+                    803,
+                    813
+                ],
+                "excess": [
+                    811,
+                    812,
+                    813,
+                    815
+                ],
+                "_unit_map.values": [
+                    811
+                ],
+                "to_numeric": [
+                    820
+                ],
+                "is_integer_dtype": [
+                    823
+                ],
+                "values.astype": [
+                    824
+                ],
+                "coerce": [
+                    841,
+                    828,
+                    829,
+                    830
+                ],
+                "to_datetime": [
+                    833
+                ],
+                "err": [
+                    843,
+                    835
+                ],
+                "u": [
+                    841,
+                    837,
+                    838
+                ],
+                "unit_rev.get": [
+                    838
+                ],
+                "to_timedelta": [
+                    841
+                ],
+                "carg": [
+                    868,
+                    872,
+                    884,
+                    885,
+                    861,
+                    863
+                ],
+                "carg.astype": [
+                    861
+                ],
+                "parsed": [
+                    865,
+                    862
+                ],
+                "parsing.try_parse_year_month_day": [
+                    862
+                ],
+                "parsing": [
+                    862
+                ],
+                "tslib.array_to_datetime": [
+                    865
+                ],
+                "carg.shape": [
+                    868
+                ],
+                "mask": [
+                    870,
+                    872,
+                    873,
+                    891,
+                    892
+                ],
+                "masked_result": [
+                    872,
+                    873
+                ],
+                "calc": [
+                    872,
+                    878
+                ],
+                "astype": [
+                    872
+                ],
+                "np.float64": [
+                    872,
+                    884
+                ],
+                "np.int64": [
+                    872,
+                    878
+                ],
+                "masked_result.astype": [
+                    873
+                ],
+                "arg.astype": [
+                    884,
+                    878
+                ],
+                "OverflowError": [
+                    893,
+                    886,
+                    879
+                ],
+                "calc_with_mask": [
+                    892,
+                    885
+                ],
+                "algorithms.isin": [
+                    891
+                ],
+                "algorithms": [
+                    891
+                ],
+                "tslib.nat_strings": [
+                    891
+                ],
+                "_time_formats": [
+                    987,
+                    900,
+                    917
+                ],
+                "element": [
+                    993,
+                    972,
+                    974,
+                    978,
+                    916,
+                    919,
+                    989
+                ],
+                "time_format": [
+                    993,
+                    996,
+                    917,
+                    919,
+                    920,
+                    991
+                ],
+                "datetime.strptime": [
+                    993,
+                    974,
+                    919
+                ],
+                "infer_time_format": [
+                    967
+                ],
+                "_guess_time_format_for_array": [
+                    968
+                ],
+                "times": [
+                    970,
+                    1004,
+                    974,
+                    1010,
+                    1012,
+                    985
+                ],
+                "times.append": [
+                    985,
+                    1010,
+                    1004,
+                    974
+                ],
+                "time": [
+                    1016,
+                    993,
+                    974
+                ],
+                "msg": [
+                    977,
+                    981
+                ],
+                "formats": [
+                    987,
+                    996,
+                    997,
+                    991
+                ],
+                "format_found": [
+                    994,
+                    988,
+                    998
+                ],
+                "time_object": [
+                    993,
+                    1003,
+                    1004,
+                    990
+                ],
+                "fmt": [
+                    996,
+                    997
+                ],
+                "formats.pop": [
+                    996
+                ],
+                "formats.index": [
+                    996
+                ],
+                "formats.insert": [
+                    997
+                ],
+                "_convert_listlike": [
+                    1024,
+                    1026,
+                    1019,
+                    1022
+                ]
+            },
+            "filtered_variables_in_file": {
+                "ArrayConvertible": [
+                    66,
+                    47
+                ],
+                "Union": [
+                    48,
+                    50,
+                    158,
+                    47
+                ],
+                "ArrayLike": [
+                    51,
+                    157,
+                    47
+                ],
+                "ABCSeries": [
+                    706,
+                    47,
+                    51,
+                    1018,
+                    188,
+                    509
+                ],
+                "Scalar": [
+                    48,
+                    49
+                ],
+                "DatetimeScalar": [
+                    49,
+                    51
+                ],
+                "TypeVar": [
+                    49
+                ],
+                "datetime": [
+                    49,
+                    993,
+                    974,
+                    919
+                ],
+                "DatetimeScalarOrArrayConvertible": [
+                    50,
+                    187
+                ],
+                "non_nan_elements": [
+                    914,
+                    915,
+                    916,
+                    60,
+                    61,
+                    62
+                ],
+                "nonzero": [
+                    914,
+                    60
+                ],
+                "notna": [
+                    914,
+                    60,
+                    885
+                ],
+                "arr": [
+                    916,
+                    914,
+                    60,
+                    62
+                ],
+                "_guess_datetime_format": [
+                    62
+                ],
+                "kwargs": [
+                    62
+                ],
+                "Optional": [
+                    66,
+                    157,
+                    189
+                ],
+                "do_caching": [
+                    118,
+                    117,
+                    94
+                ],
+                "check_count": [
+                    97,
+                    103,
+                    105,
+                    108,
+                    110,
+                    115,
+                    116
+                ],
+                "arg": [
+                    512,
+                    513,
+                    1024,
+                    1026,
+                    1020,
+                    1021,
+                    1023,
+                    99,
+                    102,
+                    103,
+                    108,
+                    115,
+                    146,
+                    149,
+                    150,
+                    681,
+                    685,
+                    699,
+                    700,
+                    702,
+                    706,
+                    707,
+                    709,
+                    711,
+                    712,
+                    713,
+                    714,
+                    715,
+                    716,
+                    718,
+                    208,
+                    720,
+                    721,
+                    722,
+                    723,
+                    725,
+                    727,
+                    729,
+                    781,
+                    782,
+                    796,
+                    293,
+                    294,
+                    297,
+                    298,
+                    299,
+                    301,
+                    302,
+                    304,
+                    305,
+                    307,
+                    312,
+                    314,
+                    828,
+                    829,
+                    830,
+                    319,
+                    320,
+                    839,
+                    841,
+                    341,
+                    348,
+                    349,
+                    351,
+                    355,
+                    878,
+                    884,
+                    891,
+                    892,
+                    386,
+                    396,
+                    400,
+                    409,
+                    413,
+                    418,
+                    427,
+                    957,
+                    958,
+                    960,
+                    965,
+                    968,
+                    972,
+                    464,
+                    469,
+                    983,
+                    476,
+                    989,
+                    483,
+                    484,
+                    487,
+                    1006,
+                    1008,
+                    1014,
+                    1015,
+                    1016,
+                    1017,
+                    1018,
+                    1019,
+                    508,
+                    509,
+                    1022,
+                    511
+                ],
+                "unique_share": [
+                    113,
+                    116
+                ],
+                "unique_elements": [
+                    115,
+                    116
+                ],
+                "islice": [
+                    115
+                ],
+                "cache_array": [
+                    707,
+                    708,
+                    709,
+                    716,
+                    717,
+                    142,
+                    718,
+                    208,
+                    147,
+                    723,
+                    724,
+                    725,
+                    152,
+                    153
+                ],
+                "Series": [
+                    152,
+                    142,
+                    208
+                ],
+                "cache": [
+                    144,
+                    707,
+                    716,
+                    723
+                ],
+                "should_cache": [
+                    146
+                ],
+                "unique_dates": [
+                    152,
+                    149,
+                    150,
+                    151
+                ],
+                "unique": [
+                    149
+                ],
+                "cache_dates": [
+                    152,
+                    151
+                ],
+                "convert_listlike": [
+                    707,
+                    711,
+                    727,
+                    716,
+                    688,
+                    720,
+                    721,
+                    723,
+                    151,
+                    729
+                ],
+                "is_datetime64_dtype": [
+                    180
+                ],
+                "dt_array": [
+                    180,
+                    182,
+                    183
+                ],
+                "tz": [
+                    390,
+                    418,
+                    419,
+                    425,
+                    299,
+                    300,
+                    301,
+                    687,
+                    690,
+                    307,
+                    181,
+                    182,
+                    310,
+                    312,
+                    441,
+                    701,
+                    703,
+                    705,
+                    833,
+                    714,
+                    335,
+                    337,
+                    339,
+                    231
+                ],
+                "utc": [
+                    425,
+                    430,
+                    687,
+                    181,
+                    441,
+                    442
+                ],
+                "DatetimeIndex": [
+                    419,
+                    326,
+                    298,
+                    299,
+                    305,
+                    307,
+                    182,
+                    439
+                ],
+                "name": [
+                    439,
+                    419,
+                    324,
+                    326,
+                    390,
+                    299,
+                    209,
+                    242,
+                    307,
+                    182,
+                    183,
+                    442
+                ],
+                "Index": [
+                    242,
+                    324,
+                    183
+                ],
+                "ABCIndex": [
+                    158
+                ],
+                "ABCDatetimeIndex": [
+                    158
+                ],
+                "result": [
+                    385,
+                    390,
+                    396,
+                    397,
+                    400,
+                    409,
+                    410,
+                    413,
+                    423,
+                    426,
+                    439,
+                    442,
+                    700,
+                    703,
+                    320,
+                    705,
+                    324,
+                    709,
+                    326,
+                    712,
+                    714,
+                    331,
+                    334,
+                    718,
+                    208,
+                    209,
+                    336,
+                    337,
+                    339,
+                    340,
+                    721,
+                    725,
+                    727,
+                    729,
+                    731,
+                    868,
+                    869,
+                    873,
+                    874,
+                    238,
+                    368,
+                    378,
+                    383
+                ],
+                "_box_as_indexlike": [
+                    209,
+                    442
+                ],
+                "ABCIndexClass": [
+                    1021,
+                    715,
+                    509,
+                    190
+                ],
+                "tz_results": [
+                    242,
+                    237
+                ],
+                "np.array": [
+                    1026,
+                    294,
+                    237,
+                    729,
+                    958
+                ],
+                "np": [
+                    1026,
+                    484,
+                    868,
+                    294,
+                    872,
+                    396,
+                    237,
+                    878,
+                    729,
+                    884,
+                    409,
+                    476,
+                    509,
+                    958,
+                    511
+                ],
+                "tz_localize": [
+                    301,
+                    238
+                ],
+                "Timestamp": [
+                    493,
+                    238,
+                    465,
+                    501,
+                    474,
+                    475,
+                    699
+                ],
+                "res": [
+                    238
+                ],
+                "zone": [
+                    238
+                ],
+                "timezones": [
+                    385,
+                    390,
+                    238
+                ],
+                "is_datetime64tz_dtype": [
+                    297
+                ],
+                "DatetimeArray": [
+                    305,
+                    298
+                ],
+                "arg.tz_convert": [
+                    301
+                ],
+                "is_datetime64_ns_dtype": [
+                    304
+                ],
+                "arg.tz_localize": [
+                    312
+                ],
+                "unit": [
+                    320,
+                    796,
+                    685,
+                    466,
+                    691,
+                    505,
+                    316,
+                    797
+                ],
+                "tz_parsed": [
+                    320,
+                    426,
+                    331,
+                    367,
+                    436,
+                    439
+                ],
+                "tslib.array_with_unit_to_datetime": [
+                    320
+                ],
+                "tslib": [
+                    320,
+                    865,
+                    891
+                ],
+                "errors": [
+                    386,
+                    393,
+                    395,
+                    406,
+                    408,
+                    431,
+                    820,
+                    694,
+                    320,
+                    321,
+                    833,
+                    841,
+                    714,
+                    976,
+                    982,
+                    865,
+                    1005,
+                    1007,
+                    378
+                ],
+                "tz_convert": [
+                    331
+                ],
+                "result.tz_localize": [
+                    337,
+                    331,
+                    705
+                ],
+                "result.tz": [
+                    336
+                ],
+                "result.tz_convert": [
+                    339,
+                    703
+                ],
+                "orig_arg": [
+                    377,
+                    378,
+                    348
+                ],
+                "_": [
+                    349
+                ],
+                "maybe_convert_dtype": [
+                    349
+                ],
+                "ensure_object": [
+                    377,
+                    965,
+                    351
+                ],
+                "require_iso8601": [
+                    352,
+                    364,
+                    432
+                ],
+                "infer_datetime_format": [
+                    354,
+                    424,
+                    364,
+                    405,
+                    696
+                ],
+                "_guess_datetime_format_for_array": [
+                    355
+                ],
+                "dayfirst": [
+                    692,
+                    355,
+                    428
+                ],
+                "format_is_iso8601": [
+                    362,
+                    363
+                ],
+                "_format_is_iso": [
+                    362
+                ],
+                "_attempt_YYYYMMDD": [
+                    378
+                ],
+                "tslibs.OutOfBoundsDatetime": [
+                    392,
+                    494,
+                    495,
+                    379,
+                    477
+                ],
+                "tslibs": [
+                    870,
+                    392,
+                    398,
+                    494,
+                    495,
+                    411,
+                    505,
+                    379,
+                    477
+                ],
+                "array_strptime": [
+                    385
+                ],
+                "exact": [
+                    386,
+                    695
+                ],
+                "_return_parsed_timezone_results": [
+                    389
+                ],
+                "np.empty": [
+                    868,
+                    409,
+                    396
+                ],
+                "arg.shape": [
+                    409,
+                    396
+                ],
+                "iresult": [
+                    869,
+                    870,
+                    397,
+                    398,
+                    410,
+                    411
+                ],
+                "result.view": [
+                    410,
+                    869,
+                    397
+                ],
+                "iresult.fill": [
+                    411,
+                    398
+                ],
+                "tslibs.iNaT": [
+                    870,
+                    411,
+                    398
+                ],
+                "values": [
+                    833,
+                    418,
+                    419,
+                    711,
+                    712,
+                    841,
+                    1019,
+                    844,
+                    820,
+                    823,
+                    824,
+                    825,
+                    827,
+                    1020
+                ],
+                "conversion.datetime_to_datetime64": [
+                    418
+                ],
+                "conversion": [
+                    418
+                ],
+                "DatetimeIndex._simple_new": [
+                    419,
+                    439
+                ],
+                "e": [
+                    421
+                ],
+                "objects_to_datetime64ns": [
+                    426
+                ],
+                "yearfirst": [
+                    429,
+                    693
+                ],
+                "origin": [
+                    487,
+                    684,
+                    493,
+                    685,
+                    495,
+                    463,
+                    497
+                ],
+                "original": [
+                    464,
+                    478
+                ],
+                "j0": [
+                    465,
+                    474,
+                    475,
+                    469
+                ],
+                "to_julian_date": [
+                    465
+                ],
+                "j_max": [
+                    474,
+                    476
+                ],
+                "Timestamp.max.to_julian_date": [
+                    474
+                ],
+                "Timestamp.max": [
+                    474
+                ],
+                "j_min": [
+                    475,
+                    476
+                ],
+                "Timestamp.min.to_julian_date": [
+                    475
+                ],
+                "Timestamp.min": [
+                    475
+                ],
+                "np.any": [
+                    476
+                ],
+                "is_scalar": [
+                    483
+                ],
+                "is_integer": [
+                    483
+                ],
+                "is_float": [
+                    483
+                ],
+                "is_numeric_dtype": [
+                    484
+                ],
+                "np.asarray": [
+                    484,
+                    511
+                ],
+                "offset": [
+                    512,
+                    493,
+                    499,
+                    500,
+                    501,
+                    505
+                ],
+                "offset.tz": [
+                    499
+                ],
+                "tslibs.Timedelta": [
+                    505
+                ],
+                "is_list_like": [
+                    722,
+                    508,
+                    1023
+                ],
+                "np.ndarray": [
+                    509
+                ],
+                "_adjust_to_origin": [
+                    685
+                ],
+                "partial": [
+                    688,
+                    720
+                ],
+                "_convert_listlike_datetimes": [
+                    689
+                ],
+                "arg.tz": [
+                    702
+                ],
+                "_maybe_cache": [
+                    707,
+                    716,
+                    723
+                ],
+                "cache_array.empty": [
+                    724,
+                    708,
+                    717
+                ],
+                "arg.map": [
+                    709
+                ],
+                "arg._values": [
+                    1019,
+                    711
+                ],
+                "arg._constructor": [
+                    712,
+                    1020
+                ],
+                "arg.index": [
+                    712,
+                    1020
+                ],
+                "arg.name": [
+                    712,
+                    1020,
+                    718,
+                    720
+                ],
+                "ABCDataFrame": [
+                    713
+                ],
+                "abc.MutableMapping": [
+                    713
+                ],
+                "abc": [
+                    713
+                ],
+                "_assemble_from_unit_mappings": [
+                    714
+                ],
+                "_convert_and_box_cache": [
+                    725,
+                    718
+                ],
+                "_unit_map": [
+                    811,
+                    787,
+                    788,
+                    791,
+                    792,
+                    735
+                ],
+                "DataFrame": [
+                    781
+                ],
+                "arg.columns.is_unique": [
+                    782
+                ],
+                "arg.columns": [
+                    782
+                ],
+                "value": [
+                    838,
+                    839,
+                    841,
+                    843,
+                    787,
+                    788,
+                    791,
+                    792,
+                    794
+                ],
+                "value.lower": [
+                    792,
+                    791
+                ],
+                "k": [
+                    796,
+                    797
+                ],
+                "f": [
+                    796
+                ],
+                "arg.keys": [
+                    796
+                ],
+                "unit_rev": [
+                    801,
+                    838,
+                    797,
+                    811,
+                    828,
+                    829,
+                    830
+                ],
+                "v": [
+                    797
+                ],
+                "unit.items": [
+                    797
+                ],
+                "required": [
+                    800,
+                    801,
+                    803,
+                    806
+                ],
+                "req": [
+                    801,
+                    802,
+                    803
+                ],
+                "unit_rev.keys": [
+                    801,
+                    811
+                ],
+                "join": [
+                    803,
+                    813
+                ],
+                "excess": [
+                    811,
+                    812,
+                    813,
+                    815
+                ],
+                "_unit_map.values": [
+                    811
+                ],
+                "to_numeric": [
+                    820
+                ],
+                "is_integer_dtype": [
+                    823
+                ],
+                "values.astype": [
+                    824
+                ],
+                "coerce": [
+                    841,
+                    828,
+                    829,
+                    830
+                ],
+                "to_datetime": [
+                    833
+                ],
+                "err": [
+                    843,
+                    835
+                ],
+                "u": [
+                    841,
+                    837,
+                    838
+                ],
+                "unit_rev.get": [
+                    838
+                ],
+                "to_timedelta": [
+                    841
+                ],
+                "carg": [
+                    868,
+                    872,
+                    884,
+                    885,
+                    861,
+                    863
+                ],
+                "carg.astype": [
+                    861
+                ],
+                "parsed": [
+                    865,
+                    862
+                ],
+                "parsing.try_parse_year_month_day": [
+                    862
+                ],
+                "parsing": [
+                    862
+                ],
+                "tslib.array_to_datetime": [
+                    865
+                ],
+                "carg.shape": [
+                    868
+                ],
+                "mask": [
+                    870,
+                    872,
+                    873,
+                    891,
+                    892
+                ],
+                "masked_result": [
+                    872,
+                    873
+                ],
+                "calc": [
+                    872,
+                    878
+                ],
+                "astype": [
+                    872
+                ],
+                "np.float64": [
+                    872,
+                    884
+                ],
+                "np.int64": [
+                    872,
+                    878
+                ],
+                "masked_result.astype": [
+                    873
+                ],
+                "arg.astype": [
+                    884,
+                    878
+                ],
+                "calc_with_mask": [
+                    892,
+                    885
+                ],
+                "algorithms.isin": [
+                    891
+                ],
+                "algorithms": [
+                    891
+                ],
+                "tslib.nat_strings": [
+                    891
+                ],
+                "_time_formats": [
+                    987,
+                    900,
+                    917
+                ],
+                "element": [
+                    993,
+                    972,
+                    974,
+                    978,
+                    916,
+                    919,
+                    989
+                ],
+                "time_format": [
+                    993,
+                    996,
+                    917,
+                    919,
+                    920,
+                    991
+                ],
+                "datetime.strptime": [
+                    993,
+                    974,
+                    919
+                ],
+                "infer_time_format": [
+                    967
+                ],
+                "_guess_time_format_for_array": [
+                    968
+                ],
+                "times": [
+                    970,
+                    1004,
+                    974,
+                    1010,
+                    1012,
+                    985
+                ],
+                "times.append": [
+                    985,
+                    1010,
+                    1004,
+                    974
+                ],
+                "time": [
+                    1016,
+                    993,
+                    974
+                ],
+                "msg": [
+                    977,
+                    981
+                ],
+                "formats": [
+                    987,
+                    996,
+                    997,
+                    991
+                ],
+                "format_found": [
+                    994,
+                    988,
+                    998
+                ],
+                "time_object": [
+                    993,
+                    1003,
+                    1004,
+                    990
+                ],
+                "fmt": [
+                    996,
+                    997
+                ],
+                "formats.pop": [
+                    996
+                ],
+                "formats.index": [
+                    996
+                ],
+                "formats.insert": [
+                    997
+                ],
+                "_convert_listlike": [
+                    1024,
+                    1026,
+                    1019,
+                    1022
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_99/pandas/tests/indexes/datetimes/test_tools.py",
+                "test_function": "test_nullable_integer_to_datetime",
+                "test_function_code": "def test_nullable_integer_to_datetime():\n    # Test for #30050\n    ser = pd.Series([1, 2, None, 2 ** 61, None])\n    ser = ser.astype(\"Int64\")\n    ser_copy = ser.copy()\n\n    res = pd.to_datetime(ser, unit=\"ns\")\n\n    expected = pd.Series(\n        [\n            np.datetime64(\"1970-01-01 00:00:00.000000001\"),\n            np.datetime64(\"1970-01-01 00:00:00.000000002\"),\n            np.datetime64(\"NaT\"),\n            np.datetime64(\"2043-01-25 23:56:49.213693952\"),\n            np.datetime64(\"NaT\"),\n        ]\n    )\n    tm.assert_series_equal(res, expected)\n    # Check that ser isn't mutated\n    tm.assert_series_equal(ser, ser_copy)",
+                "test_error": "TypeError: array_with_unit_to_datetime() takes at least 3 positional arguments (2 given)",
+                "full_test_error": "def test_nullable_integer_to_datetime():\n        # Test for #30050\n        ser = pd.Series([1, 2, None, 2 ** 61, None])\n        ser = ser.astype(\"Int64\")\n        ser_copy = ser.copy()\n    \n>       res = pd.to_datetime(ser, unit=\"ns\")\n\npandas/tests/indexes/datetimes/test_tools.py:2302: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/tools/datetimes.py:711: in to_datetime\n    values = convert_listlike(arg._values, format)\npandas/core/tools/datetimes.py:320: in _convert_listlike_datetimes\n    result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   def array_with_unit_to_datetime(ndarray values, object unit,\nE   TypeError: array_with_unit_to_datetime() takes at least 3 positional arguments (2 given)\n\npandas/_libs/tslib.pyx:299: TypeError",
+                "traceback": "pandas/core/tools/datetimes.py:711: in to_datetime\n    values = convert_listlike(arg._values, format)\npandas/core/tools/datetimes.py:320: in _convert_listlike_datetimes\n    result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   def array_with_unit_to_datetime(ndarray values, object unit,\nE   TypeError: array_with_unit_to_datetime() takes at least 3 positional arguments (2 given)\n\npandas/_libs/tslib.pyx:299: TypeError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

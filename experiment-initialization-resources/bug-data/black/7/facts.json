@@ -1,0 +1,322 @@
+{
+    "1.1.1": "def normalize_invisible_parens(node: Node, parens_after: Set[str]) -> None:\n    \n    for pc in list_comments(node.prefix, is_endmarker=False):\n        if pc.value in FMT_OFF:\n            # This `node` has a prefix with `# fmt: off`, don't mess with parens.\n            return\n\n    check_lpar = False\n    for index, child in enumerate(list(node.children)):\n        if check_lpar:\n            if child.type == syms.atom:\n                if maybe_make_parens_invisible_in_atom(child, parent=node):\n                    lpar = Leaf(token.LPAR, \"\")\n                    rpar = Leaf(token.RPAR, \"\")\n                    index = child.remove() or 0\n                    node.insert_child(index, Node(syms.atom, [lpar, child, rpar]))\n            elif is_one_tuple(child):\n                # wrap child in visible parentheses\n                lpar = Leaf(token.LPAR, \"(\")\n                rpar = Leaf(token.RPAR, \")\")\n                child.remove()\n                node.insert_child(index, Node(syms.atom, [lpar, child, rpar]))\n            elif node.type == syms.import_from:\n                # \"import from\" nodes store parentheses directly as part of\n                # the statement\n                if child.type == token.LPAR:\n                    # make parentheses invisible\n                    child.value = \"\"  # type: ignore\n                    node.children[-1].value = \"\"  # type: ignore\n                elif child.type != token.STAR:\n                    # insert invisible parentheses\n                    node.insert_child(index, Leaf(token.LPAR, \"\"))\n                    node.append_child(Leaf(token.RPAR, \"\"))\n                break\n\n            elif not (isinstance(child, Leaf) and is_multiline_string(child)):\n                # wrap child in invisible parentheses\n                lpar = Leaf(token.LPAR, \"\")\n                rpar = Leaf(token.RPAR, \"\")\n                index = child.remove() or 0\n                node.insert_child(index, Node(syms.atom, [lpar, child, rpar]))\n\n        check_lpar = isinstance(child, Leaf) and child.value in parens_after\n",
+    "1.1.2": "Make existing optional parentheses invisible or create new ones.\n\n`parens_after` is a set of string leaf values immeditely after which parens\nshould be put.\n\nStandardizes on visible parentheses for single-element tuples, and keeps\nexisting visible parentheses for other tuples and generator expressions.",
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.2.4": null,
+    "1.2.5": null,
+    "1.3.1": "black.py",
+    "1.3.2": [
+        "list_comments(prefix: str) -> List[ProtoComment]",
+        "maybe_make_parens_invisible_in_atom(node: LN, parent: LN) -> bool",
+        "is_one_tuple(node: LN) -> bool",
+        "is_multiline_string(leaf: Leaf) -> bool"
+    ],
+    "1.4.1": [
+        "    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_tuple_assign(self) -> None:\n        source, expected = read_data(\"tupleassign\")\n        actual = fs(source)\n        self.assertFormatEqual(expected, actual)\n        black.assert_equivalent(source, actual)\n        black.assert_stable(source, actual, black.FileMode())"
+    ],
+    "1.4.2": [
+        "tests/test_black.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AssertionError: '(\\n    sdfjklsdfsjldkflkjsf,\\n    sdfjsdf[81 chars]3)\\n' != 'sdfjklsdfsjldkflkjsf, sdfjsdfjlksdljkfsdl[74 chars]n)\\n'\nE   + sdfjklsdfsjldkflkjsf, sdfjsdfjlksdljkfsdlkf, sdfsdjfklsdfjlksdljkf, sdsfsdfjskdflsfsdf = (\nE   +     1,\nE   +     2,\nE   +     3,\nE   + )\nE   - (\nE   -     sdfjklsdfsjldkflkjsf,\nE   -     sdfjsdfjlksdljkfsdlkf,\nE   -     sdfsdjfklsdfjlksdljkf,\nE   -     sdsfsdfjskdflsfsdf,\nE   - ) = (1, 2, 3)"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <test_black.BlackTestCase testMethod=test_tuple_assign>\n\n    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_tuple_assign(self) -> None:\n        source, expected = read_data(\"tupleassign\")\n        actual = fs(source)\n>       self.assertFormatEqual(expected, actual)\n\ntests/test_black.py:549: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntests/test_black.py:159: in assertFormatEqual\n    self.assertEqual(expected, actual)"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "node.prefix": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "node": {
+                    "value": "Node(expr_stmt, [Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(EQUAL, '='), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')])])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "node.children": {
+                    "value": "[Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(EQUAL, '='), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')])]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "node.type": {
+                    "value": "290",
+                    "shape": null,
+                    "omitted": false
+                },
+                "parens_after": {
+                    "value": "{'%=', '&=', '**=', '*=', '@=', '^=', '=', '",
+                    "shape": "=', '/=', '>>=', '+=', '-=', '//=', '<<='}",
+                    "omitted": false
+                }
+            },
+            {
+                "node": {
+                    "value": "Node(expr_stmt, [Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(EQUAL, '='), Node(atom, [Leaf(LPAR, ''), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, '')])])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "check_lpar": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "index": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "child": {
+                    "value": "Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "node.children": {
+                    "value": "[Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(EQUAL, '='), Node(atom, [Leaf(LPAR, ''), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, '')])]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "child.type": {
+                    "value": "334",
+                    "shape": null,
+                    "omitted": false
+                },
+                "lpar": {
+                    "value": "Leaf(LPAR, '')",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rpar": {
+                    "value": "Leaf(RPAR, '')",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "node.prefix": "str",
+                "node": "Node",
+                "node.children": "list",
+                "node.type": "int",
+                "parens_after": "set"
+            },
+            {
+                "node": "Node",
+                "check_lpar": "bool",
+                "index": "int",
+                "child": "Node",
+                "node.children": "list",
+                "child.type": "int",
+                "lpar": "Leaf",
+                "rpar": "Leaf"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "node.prefix": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "node": {
+                    "value": "Node(expr_stmt, [Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(EQUAL, '='), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')])])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "node.children": {
+                    "value": "[Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(EQUAL, '='), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')])]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "node.type": {
+                    "value": "290",
+                    "shape": null,
+                    "omitted": false
+                },
+                "parens_after": {
+                    "value": "{'%=', '^=', '//=', '&=', '=', '",
+                    "shape": "=', '<<=', '/=', '>>=', '+=', '@=', '-=', '**=', '*='}",
+                    "omitted": false
+                }
+            },
+            {
+                "node": {
+                    "value": "Node(expr_stmt, [Node(atom, [Leaf(LPAR, ''), Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(RPAR, '')]), Leaf(EQUAL, '='), Node(atom, [Leaf(LPAR, ''), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, '')])])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "check_lpar": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "index": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "child": {
+                    "value": "Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "node.children": {
+                    "value": "[Node(atom, [Leaf(LPAR, ''), Node(testlist_star_expr, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf')]), Leaf(RPAR, '')]), Leaf(EQUAL, '='), Node(atom, [Leaf(LPAR, ''), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, '')])]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "child.type": {
+                    "value": "334",
+                    "shape": null,
+                    "omitted": false
+                },
+                "lpar": {
+                    "value": "Leaf(LPAR, '')",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rpar": {
+                    "value": "Leaf(RPAR, '')",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prefix": {
+                    "value": "' '",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "child.prefix": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "new_child": {
+                    "value": "Node(atom, [Leaf(LPAR, ''), Node(testlist_star_expr, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, '')])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "new_child.prefix": {
+                    "value": "' '",
+                    "shape": "1",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "node.prefix": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "node": {
+                    "value": "Node(expr_stmt, [Node(atom, [Leaf(LPAR, '('), Node(testlist_gexp, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf'), Leaf(COMMA, ',')]), Leaf(RPAR, ')')]), Leaf(EQUAL, '='), Node(atom, [Leaf(LPAR, '('), Node(testlist_gexp, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, ')')])])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "node.children": {
+                    "value": "[Node(atom, [Leaf(LPAR, '('), Node(testlist_gexp, [Leaf(NAME, 'sdfjklsdfsjldkflkjsf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfjsdfjlksdljkfsdlkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdfsdjfklsdfjlksdljkf'), Leaf(COMMA, ','), Leaf(NAME, 'sdsfsdfjskdflsfsdf'), Leaf(COMMA, ',')]), Leaf(RPAR, ')')]), Leaf(EQUAL, '='), Node(atom, [Leaf(LPAR, '('), Node(testlist_gexp, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, ')')])]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "node.type": {
+                    "value": "290",
+                    "shape": null,
+                    "omitted": false
+                },
+                "parens_after": {
+                    "value": "{'%=', '^=', '//=', '&=', '=', '",
+                    "shape": "=', '<<=', '/=', '>>=', '+=', '@=', '-=', '**=', '*='}",
+                    "omitted": false
+                }
+            },
+            {
+                "check_lpar": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "index": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "child": {
+                    "value": "Node(atom, [Leaf(LPAR, '('), Node(testlist_gexp, [Leaf(NUMBER, '1'), Leaf(COMMA, ','), Leaf(NUMBER, '2'), Leaf(COMMA, ','), Leaf(NUMBER, '3')]), Leaf(RPAR, ')')])",
+                    "shape": null,
+                    "omitted": false
+                },
+                "child.type": {
+                    "value": "266",
+                    "shape": null,
+                    "omitted": false
+                },
+                "child.prefix": {
+                    "value": "' '",
+                    "shape": "1",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "node.prefix": "str",
+                "node": "Node",
+                "node.children": "list",
+                "node.type": "int",
+                "parens_after": "set"
+            },
+            {
+                "node": "Node",
+                "check_lpar": "bool",
+                "index": "int",
+                "child": "Node",
+                "node.children": "list",
+                "child.type": "int",
+                "lpar": "Leaf",
+                "rpar": "Leaf",
+                "prefix": "str",
+                "child.prefix": "str",
+                "new_child": "Node",
+                "new_child.prefix": "str"
+            }
+        ],
+        [
+            {
+                "node.prefix": "str",
+                "node": "Node",
+                "node.children": "list",
+                "node.type": "int",
+                "parens_after": "set"
+            },
+            {
+                "check_lpar": "bool",
+                "index": "int",
+                "child": "Node",
+                "child.type": "int",
+                "child.prefix": "str"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "line not shortened if it starts as a backslashed tuple assignment left side\n"
+    ],
+    "3.1.2": [
+        "Operating system: Fedora 29\nPython version: 3.7.0\nBlack version: 18.9b0\nDoes also happen on master: seems that way, reproduces on web tool as well\n\ngiven code:\n\ndef test_of_type(self):\n    JuniorEngineer, Company, companies, Manager, \\\n        Employee, employees, Engineer, Programmer = (\n         self.classes.JuniorEngineer,\n         self.classes.Company,\n         self.tables.companies,\n         self.classes.Manager,\n         self.classes.Employee,\n         self.tables.employees,\n         self.classes.Engineer,\n         self.classes.Programmer)\ncomes out as:\n\ndef test_of_type(self):\n    JuniorEngineer, Company, companies, Manager, Employee, employees, Engineer, Programmer = (\n        self.classes.JuniorEngineer,\n        self.classes.Company,\n        self.tables.companies,\n        self.classes.Manager,\n        self.classes.Employee,\n        self.tables.employees,\n        self.classes.Engineer,\n        self.classes.Programmer,\n    )\nlong line is 95 characters.\n"
+    ]
+}

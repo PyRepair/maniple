@@ -157,13 +157,13 @@ def _load_bugids_from_dataset_impl(
     elif dataset == "first-stratum":
         dataset_indices_file_path = os.path.join(
             subset_list_path,
-            "30-106-subset.json",
+            "30-106-dataset.json",
         )
 
     elif dataset == "second-stratum":
         dataset_indices_file_path = os.path.join(
             subset_list_path,
-            "30-395-subset.json",
+            "30-395-dataset.json",
         )
 
     else:

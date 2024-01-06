@@ -1,0 +1,190 @@
+{
+    "1.1.1": "def match(command):\n    for pattern in patterns:\n        if pattern.lower() in command.stderr.lower()\\\n                or pattern.lower() in command.stdout.lower():\n            return True\n    return False\n",
+    "1.1.2": null,
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.2.4": null,
+    "1.2.5": null,
+    "1.3.1": "thefuck/rules/sudo.py",
+    "1.3.2": null,
+    "1.4.1": [
+        "def test_not_match():\n    assert not match(Command())\n    assert not match(Command(script='sudo ls', stderr='Permission denied'))"
+    ],
+    "1.4.2": [
+        "tests/rules/test_sudo.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: assert not True\nE        +  where True = match(Command(script=sudo ls, stdout=, stderr=Permission denied))\nE        +    where Command(script=sudo ls, stdout=, stderr=Permission denied) = Command(script='sudo ls', stderr='Permission denied')"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "def test_not_match():\n        assert not match(Command())\n>       assert not match(Command(script='sudo ls', stderr='Permission denied'))",
+            "\ntests/rules/test_sudo.py:22: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "command.stderr": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "command": {
+                    "value": "Command(script=, stdout=, stderr=)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "command.stdout": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "pattern": {
+                    "value": "'eDSPermissionError'",
+                    "shape": "18",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "command.stderr": {
+                    "value": "'Permission denied'",
+                    "shape": "17",
+                    "omitted": false
+                },
+                "command": {
+                    "value": "Command(script=sudo ls, stdout=, stderr=Permission denied)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "command.stdout": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "pattern": {
+                    "value": "'permission denied'",
+                    "shape": "17",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "command.stderr": "str",
+                "command": "Command",
+                "command.stdout": "str"
+            },
+            {
+                "pattern": "str"
+            }
+        ],
+        [
+            {
+                "command.stderr": "str",
+                "command": "Command",
+                "command.stdout": "str"
+            },
+            {
+                "pattern": "str"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "command.script_parts": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "command": {
+                    "value": "Command(script=, stdout=, stderr=)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "command.stderr": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "command.stdout": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "pattern": {
+                    "value": "'eDSPermissionError'",
+                    "shape": "18",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "command.script_parts": {
+                    "value": "['sudo', 'ls']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "command": {
+                    "value": "Command(script=sudo ls, stdout=, stderr=Permission denied)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "command.stderr": {
+                    "value": "'Permission denied'",
+                    "shape": "17",
+                    "omitted": false
+                },
+                "command.stdout": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {}
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "command.script_parts": "list",
+                "command": "Command",
+                "command.stderr": "str",
+                "command.stdout": "str"
+            },
+            {
+                "pattern": "str"
+            }
+        ],
+        [
+            {
+                "command.script_parts": "list",
+                "command": "Command",
+                "command.stderr": "str",
+                "command.stdout": "str"
+            },
+            {}
+        ]
+    ],
+    "3.1.1": [
+        "Simple prepending of \"sudo\" is not always helps\n"
+    ],
+    "3.1.2": [
+        "user@machine:/$ mkdir /var/www\nmkdir: cannot create directory \u2018/var/www\u2019: Permission denied\nuser@machine:/$ fuck\nsudo mkdir /var/www [enter/\u2191/\u2193/ctrl+c]\nroot is owner of /var/www\n\nuser@machine:/$ touch /var/www/1/2/3\ntouch: cannot touch \u2018/var/www/1/2/3\u2019: No such file or directory\nuser@machine:/$ fuck\nmkdir -p /var/www/1/2 && touch /var/www/1/2/3 [enter/\u2191/\u2193/ctrl+c]\nthe command is ok, we have permission error\n\nmkdir: cannot create directory \u2018/var/www/1\u2019: Permission denied\nuser@machine:/$ fuck\nsudo mkdir -p /var/www/1/2 && touch /var/www/1/2/3 [enter/\u2191/\u2193/ctrl+c]\ntouch: cannot touch \u2018/var/www/1/2/3\u2019: Permission denied\npermission error related to touch, but accroding to common pattern (\"sudo + command\") we have double sudo\n\nuser@machine:/$ fuck\nsudo sudo mkdir -p /var/www/1/2 && touch /var/www/1/2/3 [enter/\u2191/\u2193/ctrl+c]\ntouch: cannot touch \u2018/var/www/1/2/3\u2019: Permission denied\n"
+    ]
+}

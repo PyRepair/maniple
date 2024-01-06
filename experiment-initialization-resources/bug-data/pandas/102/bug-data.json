@@ -1,0 +1,3898 @@
+{
+    "pandas:102": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_102/pandas/core/internals/construction.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "init_ndarray",
+                    "function_code": "def init_ndarray(values, index, columns, dtype=None, copy=False):\n    # input must be a ndarray, list, Series, index\n\n    if isinstance(values, ABCSeries):\n        if columns is None:\n            if values.name is not None:\n                columns = [values.name]\n        if index is None:\n            index = values.index\n        else:\n            values = values.reindex(index)\n\n        # zero len case (GH #2234)\n        if not len(values) and columns is not None and len(columns):\n            values = np.empty((0, 1), dtype=object)\n\n    # we could have a categorical type passed or coerced to 'category'\n    # recast this to an arrays_to_mgr\n    if is_categorical_dtype(getattr(values, \"dtype\", None)) or is_categorical_dtype(\n        dtype\n    ):\n\n        if not hasattr(values, \"dtype\"):\n            values = prep_ndarray(values, copy=copy)\n            values = values.ravel()\n        elif copy:\n            values = values.copy()\n\n        index, columns = _get_axes(len(values), 1, index, columns)\n        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\n    elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):\n        # GH#19157\n        if columns is None:\n            columns = [0]\n        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\n\n    # by definition an array here\n    # the dtypes will be coerced to a single dtype\n    values = prep_ndarray(values, copy=copy)\n\n    if dtype is not None:\n        if not is_dtype_equal(values.dtype, dtype):\n            try:\n                values = values.astype(dtype)\n            except Exception as orig:\n                # e.g. ValueError when trying to cast object dtype to float64\n                raise ValueError(\n                    f\"failed to cast to '{dtype}' (Exception was: {orig})\"\n                ) from orig\n\n    index, columns = _get_axes(*values.shape, index=index, columns=columns)\n    values = values.T\n\n    # if we don't have a dtype specified, then try to convert objects\n    # on the entire block; this is to convert if we have datetimelike's\n    # embedded in an object type\n    if dtype is None and is_object_dtype(values):\n\n        if values.ndim == 2 and values.shape[0] != 1:\n            # transpose and separate blocks\n\n            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]\n            for n in range(len(dvals_list)):\n                if isinstance(dvals_list[n], np.ndarray):\n                    dvals_list[n] = dvals_list[n].reshape(1, -1)\n\n            from pandas.core.internals.blocks import make_block\n\n            # TODO: What about re-joining object columns?\n            block_values = [\n                make_block(dvals_list[n], placement=[n]) for n in range(len(dvals_list))\n            ]\n\n        else:\n            datelike_vals = maybe_infer_to_datetimelike(values)\n            block_values = [datelike_vals]\n    else:\n        block_values = [values]\n\n    return create_block_manager_from_blocks(block_values, [columns, index])\n",
+                    "decorators": [],
+                    "docstring": null,
+                    "start_line": 123,
+                    "end_line": 202,
+                    "variables": {
+                        "isinstance": [
+                            186,
+                            126
+                        ],
+                        "values": [
+                            128,
+                            129,
+                            131,
+                            133,
+                            136,
+                            137,
+                            141,
+                            145,
+                            146,
+                            147,
+                            149,
+                            151,
+                            152,
+                            153,
+                            157,
+                            161,
+                            164,
+                            166,
+                            173,
+                            174,
+                            179,
+                            181,
+                            184,
+                            197,
+                            200,
+                            126
+                        ],
+                        "ABCSeries": [
+                            126
+                        ],
+                        "columns": [
+                            129,
+                            136,
+                            202,
+                            173,
+                            151,
+                            152,
+                            155,
+                            156,
+                            157,
+                            127
+                        ],
+                        "values.name": [
+                            128,
+                            129
+                        ],
+                        "index": [
+                            130,
+                            131,
+                            133,
+                            202,
+                            173,
+                            151,
+                            152,
+                            157
+                        ],
+                        "values.index": [
+                            131
+                        ],
+                        "values.reindex": [
+                            133
+                        ],
+                        "len": [
+                            136,
+                            185,
+                            193,
+                            151
+                        ],
+                        "np.empty": [
+                            137
+                        ],
+                        "np": [
+                            137,
+                            186
+                        ],
+                        "object": [
+                            137
+                        ],
+                        "is_categorical_dtype": [
+                            141
+                        ],
+                        "getattr": [
+                            141
+                        ],
+                        "dtype": [
+                            163,
+                            164,
+                            166,
+                            170,
+                            142,
+                            179,
+                            152,
+                            153,
+                            157
+                        ],
+                        "hasattr": [
+                            145
+                        ],
+                        "prep_ndarray": [
+                            161,
+                            146
+                        ],
+                        "copy": [
+                            161,
+                            146,
+                            148
+                        ],
+                        "values.ravel": [
+                            147
+                        ],
+                        "values.copy": [
+                            149
+                        ],
+                        "_get_axes": [
+                            173,
+                            151
+                        ],
+                        "arrays_to_mgr": [
+                            152,
+                            157
+                        ],
+                        "is_extension_array_dtype": [
+                            153
+                        ],
+                        "is_dtype_equal": [
+                            164
+                        ],
+                        "values.dtype": [
+                            164
+                        ],
+                        "values.astype": [
+                            166
+                        ],
+                        "Exception": [
+                            167
+                        ],
+                        "ValueError": [
+                            169
+                        ],
+                        "orig": [
+                            170,
+                            171
+                        ],
+                        "values.shape": [
+                            173,
+                            181
+                        ],
+                        "values.T": [
+                            174
+                        ],
+                        "is_object_dtype": [
+                            179
+                        ],
+                        "values.ndim": [
+                            181
+                        ],
+                        "dvals_list": [
+                            193,
+                            184,
+                            185,
+                            186,
+                            187
+                        ],
+                        "maybe_infer_to_datetimelike": [
+                            184,
+                            197
+                        ],
+                        "row": [
+                            184
+                        ],
+                        "n": [
+                            185,
+                            186,
+                            187,
+                            193
+                        ],
+                        "range": [
+                            185,
+                            193
+                        ],
+                        "np.ndarray": [
+                            186
+                        ],
+                        "reshape": [
+                            187
+                        ],
+                        "block_values": [
+                            192,
+                            202,
+                            198,
+                            200
+                        ],
+                        "make_block": [
+                            193
+                        ],
+                        "datelike_vals": [
+                            197,
+                            198
+                        ],
+                        "create_block_manager_from_blocks": [
+                            202
+                        ]
+                    },
+                    "filtered_variables": {
+                        "values": [
+                            128,
+                            129,
+                            131,
+                            133,
+                            136,
+                            137,
+                            141,
+                            145,
+                            146,
+                            147,
+                            149,
+                            151,
+                            152,
+                            153,
+                            157,
+                            161,
+                            164,
+                            166,
+                            173,
+                            174,
+                            179,
+                            181,
+                            184,
+                            197,
+                            200,
+                            126
+                        ],
+                        "ABCSeries": [
+                            126
+                        ],
+                        "columns": [
+                            129,
+                            136,
+                            202,
+                            173,
+                            151,
+                            152,
+                            155,
+                            156,
+                            157,
+                            127
+                        ],
+                        "values.name": [
+                            128,
+                            129
+                        ],
+                        "index": [
+                            130,
+                            131,
+                            133,
+                            202,
+                            173,
+                            151,
+                            152,
+                            157
+                        ],
+                        "values.index": [
+                            131
+                        ],
+                        "values.reindex": [
+                            133
+                        ],
+                        "np.empty": [
+                            137
+                        ],
+                        "np": [
+                            137,
+                            186
+                        ],
+                        "is_categorical_dtype": [
+                            141
+                        ],
+                        "dtype": [
+                            163,
+                            164,
+                            166,
+                            170,
+                            142,
+                            179,
+                            152,
+                            153,
+                            157
+                        ],
+                        "prep_ndarray": [
+                            161,
+                            146
+                        ],
+                        "copy": [
+                            161,
+                            146,
+                            148
+                        ],
+                        "values.ravel": [
+                            147
+                        ],
+                        "values.copy": [
+                            149
+                        ],
+                        "_get_axes": [
+                            173,
+                            151
+                        ],
+                        "arrays_to_mgr": [
+                            152,
+                            157
+                        ],
+                        "is_extension_array_dtype": [
+                            153
+                        ],
+                        "is_dtype_equal": [
+                            164
+                        ],
+                        "values.dtype": [
+                            164
+                        ],
+                        "values.astype": [
+                            166
+                        ],
+                        "orig": [
+                            170,
+                            171
+                        ],
+                        "values.shape": [
+                            173,
+                            181
+                        ],
+                        "values.T": [
+                            174
+                        ],
+                        "is_object_dtype": [
+                            179
+                        ],
+                        "values.ndim": [
+                            181
+                        ],
+                        "dvals_list": [
+                            193,
+                            184,
+                            185,
+                            186,
+                            187
+                        ],
+                        "maybe_infer_to_datetimelike": [
+                            184,
+                            197
+                        ],
+                        "row": [
+                            184
+                        ],
+                        "n": [
+                            185,
+                            186,
+                            187,
+                            193
+                        ],
+                        "np.ndarray": [
+                            186
+                        ],
+                        "reshape": [
+                            187
+                        ],
+                        "block_values": [
+                            192,
+                            202,
+                            198,
+                            200
+                        ],
+                        "make_block": [
+                            193
+                        ],
+                        "datelike_vals": [
+                            197,
+                            198
+                        ],
+                        "create_block_manager_from_blocks": [
+                            202
+                        ]
+                    },
+                    "diff_line_number": 154,
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {
+                                "values": {
+                                    "variable_value": "array([[0, 1],\n       [2, 3],\n       [4, 5],\n       [6, 7],\n       [8, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5, 2)"
+                                },
+                                "ABCSeries": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "columns": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.reindex": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "datetime64[ns, UTC]",
+                                    "variable_type": "DatetimeTZDtype",
+                                    "variable_shape": "()"
+                                },
+                                "prep_ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "values.ravel": {
+                                    "variable_value": "<built-in method ravel of numpy.ndarray object at 0x11d4a5e40>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "values.copy": {
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11d4a5e40>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "_get_axes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arrays_to_mgr": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_dtype_equal": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.dtype": {
+                                    "variable_value": "dtype('int64')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "values.astype": {
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11d4a5e40>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "orig": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.shape": {
+                                    "variable_value": "(5, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "values.T": {
+                                    "variable_value": "array([[0, 2, 4, 6, 8],\n       [1, 3, 5, 7, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(2, 5)"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.ndim": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "dvals_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_infer_to_datetimelike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "row": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "reshape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block_values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "make_block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "datelike_vals": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "create_block_manager_from_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "values": {
+                                    "variable_value": "array([[0, 1],\n       [2, 3],\n       [4, 5],\n       [6, 7],\n       [8, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5, 2)"
+                                },
+                                "ABCSeries": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "columns": {
+                                    "variable_value": "[0]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "values.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.reindex": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "datetime64[ns, UTC]",
+                                    "variable_type": "DatetimeTZDtype",
+                                    "variable_shape": "()"
+                                },
+                                "prep_ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "values.ravel": {
+                                    "variable_value": "<built-in method ravel of numpy.ndarray object at 0x11d4a5e40>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "values.copy": {
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x11d4a5e40>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "_get_axes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arrays_to_mgr": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_dtype_equal": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.dtype": {
+                                    "variable_value": "dtype('int64')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "values.astype": {
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11d4a5e40>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "orig": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.shape": {
+                                    "variable_value": "(5, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "values.T": {
+                                    "variable_value": "array([[0, 2, 4, 6, 8],\n       [1, 3, 5, 7, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(2, 5)"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.ndim": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "dvals_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_infer_to_datetimelike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "row": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "reshape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block_values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "make_block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "datelike_vals": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "create_block_manager_from_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "values": {
+                                    "variable_value": "array([[0, 1],\n       [2, 3],\n       [4, 5],\n       [6, 7],\n       [8, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5, 2)"
+                                },
+                                "ABCSeries": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "columns": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.reindex": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "datetime64[ns, UTC]",
+                                    "variable_type": "DatetimeTZDtype",
+                                    "variable_shape": "()"
+                                },
+                                "prep_ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "values.ravel": {
+                                    "variable_value": "<built-in method ravel of numpy.ndarray object at 0x129298bc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "values.copy": {
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x129298bc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "_get_axes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arrays_to_mgr": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.ndim": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.shape": {
+                                    "variable_value": "(5, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "is_dtype_equal": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.dtype": {
+                                    "variable_value": "dtype('int64')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "values.astype": {
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x129298bc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "orig": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.T": {
+                                    "variable_value": "array([[0, 2, 4, 6, 8],\n       [1, 3, 5, 7, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(2, 5)"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dvals_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_infer_to_datetimelike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "row": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "reshape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block_values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "make_block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "datelike_vals": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "create_block_manager_from_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "values": {
+                                    "variable_value": "[array([0, 2, 4, 6, 8]), array([1, 3, 5, 7, 9])]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "ABCSeries": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "columns": {
+                                    "variable_value": "[0, 1]",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "values.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.index": {
+                                    "variable_value": "<built-in method index of list object at 0x129241200>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "values.reindex": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "datetime64[ns, UTC]",
+                                    "variable_type": "DatetimeTZDtype",
+                                    "variable_shape": "()"
+                                },
+                                "prep_ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "values.ravel": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.copy": {
+                                    "variable_value": "<built-in method copy of list object at 0x129241200>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "_get_axes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arrays_to_mgr": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.ndim": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.shape": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_dtype_equal": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.astype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "orig": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.T": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dvals_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_infer_to_datetimelike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "row": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "reshape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block_values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "make_block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "datelike_vals": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "create_block_manager_from_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "values": {
+                                    "variable_value": "array([[0, 1],\n       [2, 3],\n       [4, 5],\n       [6, 7],\n       [8, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5, 2)"
+                                },
+                                "ABCSeries": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "columns": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.reindex": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "prep_ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "values.ravel": {
+                                    "variable_value": "<built-in method ravel of numpy.ndarray object at 0x129298bc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "values.copy": {
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x129298bc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "_get_axes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arrays_to_mgr": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.ndim": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.shape": {
+                                    "variable_value": "(5, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "is_dtype_equal": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.dtype": {
+                                    "variable_value": "dtype('int64')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "values.astype": {
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x129298bc0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "orig": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.T": {
+                                    "variable_value": "array([[0, 2, 4, 6, 8],\n       [1, 3, 5, 7, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(2, 5)"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dvals_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_infer_to_datetimelike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "row": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "reshape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block_values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "make_block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "datelike_vals": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "create_block_manager_from_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "values": {
+                                    "variable_value": "array([[0, 2, 4, 6, 8],\n       [1, 3, 5, 7, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(2, 5)"
+                                },
+                                "ABCSeries": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "columns": {
+                                    "variable_value": "RangeIndex(start=0, stop=2, step=1)",
+                                    "variable_type": "RangeIndex",
+                                    "variable_shape": "(2,)"
+                                },
+                                "values.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "index": {
+                                    "variable_value": "RangeIndex(start=0, stop=5, step=1)",
+                                    "variable_type": "RangeIndex",
+                                    "variable_shape": "(5,)"
+                                },
+                                "values.index": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "values.reindex": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "np.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_categorical_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dtype": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "prep_ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "copy": {
+                                    "variable_value": "False",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "values.ravel": {
+                                    "variable_value": "<built-in method ravel of numpy.ndarray object at 0x121213da0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "values.copy": {
+                                    "variable_value": "<built-in method copy of numpy.ndarray object at 0x121213da0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "_get_axes": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "arrays_to_mgr": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.ndarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.ndim": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "n": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.shape": {
+                                    "variable_value": "(2, 5)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "is_dtype_equal": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.dtype": {
+                                    "variable_value": "dtype('int64')",
+                                    "variable_type": "dtype",
+                                    "variable_shape": "()"
+                                },
+                                "values.astype": {
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x121213da0>",
+                                    "variable_type": "builtin_function_or_method",
+                                    "variable_shape": null
+                                },
+                                "orig": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "values.T": {
+                                    "variable_value": "array([[0, 1],\n       [2, 3],\n       [4, 5],\n       [6, 7],\n       [8, 9]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(5, 2)"
+                                },
+                                "is_object_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "dvals_list": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "maybe_infer_to_datetimelike": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "row": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "reshape": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "block_values": {
+                                    "variable_value": "[array([[0, 2, 4, 6, 8],\n       [1, 3, 5, 7, 9]])]",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "make_block": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "datelike_vals": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "create_block_manager_from_blocks": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "inscope_functions": [
+                "def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):\n    \"\"\"\n    Segregate Series based on type and coerce into matrices.\n\n    Needs to handle a lot of exceptional cases.\n    \"\"\"\n    # figure out the index, if necessary\n    if index is None:\n        index = extract_index(arrays)\n    else:\n        index = ensure_index(index)\n\n    # don't force copy because getting jammed in an ndarray anyway\n    arrays = _homogenize(arrays, index, dtype)\n\n    # from BlockManager perspective\n    axes = [ensure_index(columns), index]\n\n    return create_block_manager_from_arrays(arrays, arr_names, axes)",
+                "def masked_rec_array_to_mgr(data, index, columns, dtype, copy):\n    \"\"\"\n    Extract from a masked rec array and create the manager.\n    \"\"\"\n\n    # essentially process a record array then fill it\n    fill_value = data.fill_value\n    fdata = ma.getdata(data)\n    if index is None:\n        index = get_names_from_index(fdata)\n        if index is None:\n            index = ibase.default_index(len(data))\n    index = ensure_index(index)\n\n    if columns is not None:\n        columns = ensure_index(columns)\n    arrays, arr_columns = to_arrays(fdata, columns)\n\n    # fill if needed\n    new_arrays = []\n    for fv, arr, col in zip(fill_value, arrays, arr_columns):\n        # TODO: numpy docs suggest fv must be scalar, but could it be\n        #  non-scalar for object dtype?\n        assert lib.is_scalar(fv), fv\n        mask = ma.getmaskarray(data[col])\n        if mask.any():\n            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)\n            arr[mask] = fv\n        new_arrays.append(arr)\n\n    # create the manager\n    arrays, arr_columns = reorder_arrays(new_arrays, arr_columns, columns)\n    if columns is None:\n        columns = arr_columns\n\n    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)\n\n    if copy:\n        mgr = mgr.copy()\n    return mgr",
+                "def init_ndarray(values, index, columns, dtype=None, copy=False):\n    # input must be a ndarray, list, Series, index\n\n    if isinstance(values, ABCSeries):\n        if columns is None:\n            if values.name is not None:\n                columns = [values.name]\n        if index is None:\n            index = values.index\n        else:\n            values = values.reindex(index)\n\n        # zero len case (GH #2234)\n        if not len(values) and columns is not None and len(columns):\n            values = np.empty((0, 1), dtype=object)\n\n    # we could have a categorical type passed or coerced to 'category'\n    # recast this to an arrays_to_mgr\n    if is_categorical_dtype(getattr(values, \"dtype\", None)) or is_categorical_dtype(\n        dtype\n    ):\n\n        if not hasattr(values, \"dtype\"):\n            values = prep_ndarray(values, copy=copy)\n            values = values.ravel()\n        elif copy:\n            values = values.copy()\n\n        index, columns = _get_axes(len(values), 1, index, columns)\n        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\n    elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):\n        # GH#19157\n        if columns is None:\n            columns = [0]\n        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\n\n    # by definition an array here\n    # the dtypes will be coerced to a single dtype\n    values = prep_ndarray(values, copy=copy)\n\n    if dtype is not None:\n        if not is_dtype_equal(values.dtype, dtype):\n            try:\n                values = values.astype(dtype)\n            except Exception as orig:\n                # e.g. ValueError when trying to cast object dtype to float64\n                raise ValueError(\n                    f\"failed to cast to '{dtype}' (Exception was: {orig})\"\n                ) from orig\n\n    index, columns = _get_axes(*values.shape, index=index, columns=columns)\n    values = values.T\n\n    # if we don't have a dtype specified, then try to convert objects\n    # on the entire block; this is to convert if we have datetimelike's\n    # embedded in an object type\n    if dtype is None and is_object_dtype(values):\n\n        if values.ndim == 2 and values.shape[0] != 1:\n            # transpose and separate blocks\n\n            dvals_list = [maybe_infer_to_datetimelike(row) for row in values]\n            for n in range(len(dvals_list)):\n                if isinstance(dvals_list[n], np.ndarray):\n                    dvals_list[n] = dvals_list[n].reshape(1, -1)\n\n            from pandas.core.internals.blocks import make_block\n\n            # TODO: What about re-joining object columns?\n            block_values = [\n                make_block(dvals_list[n], placement=[n]) for n in range(len(dvals_list))\n            ]\n\n        else:\n            datelike_vals = maybe_infer_to_datetimelike(values)\n            block_values = [datelike_vals]\n    else:\n        block_values = [values]\n\n    return create_block_manager_from_blocks(block_values, [columns, index])",
+                "def init_dict(data, index, columns, dtype=None):\n    \"\"\"\n    Segregate Series based on type and coerce into matrices.\n    Needs to handle a lot of exceptional cases.\n    \"\"\"\n    if columns is not None:\n        from pandas.core.series import Series\n\n        arrays = Series(data, index=columns, dtype=object)\n        data_names = arrays.index\n\n        missing = arrays.isna()\n        if index is None:\n            # GH10856\n            # raise ValueError if only scalars in dict\n            index = extract_index(arrays[~missing])\n        else:\n            index = ensure_index(index)\n\n        # no obvious \"empty\" int column\n        if missing.any() and not is_integer_dtype(dtype):\n            if dtype is None or np.issubdtype(dtype, np.flexible):\n                # GH#1783\n                nan_dtype = object\n            else:\n                nan_dtype = dtype\n            val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)\n            arrays.loc[missing] = [val] * missing.sum()\n\n    else:\n        keys = list(data.keys())\n        columns = data_names = Index(keys)\n        arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)\n        # GH#24096 need copy to be deep for datetime64tz case\n        # TODO: See if we can avoid these copies\n        arrays = [\n            arr if not isinstance(arr, ABCIndexClass) else arr._data for arr in arrays\n        ]\n        arrays = [\n            arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays\n        ]\n    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)",
+                "def prep_ndarray(values, copy=True) -> np.ndarray:\n    if not isinstance(values, (np.ndarray, ABCSeries, Index)):\n        if len(values) == 0:\n            return np.empty((0, 0), dtype=object)\n        elif isinstance(values, range):\n            arr = np.arange(values.start, values.stop, values.step, dtype=\"int64\")\n            return arr[..., np.newaxis]\n\n        def convert(v):\n            return maybe_convert_platform(v)\n\n        # we could have a 1-dim or 2-dim list here\n        # this is equiv of np.asarray, but does object conversion\n        # and platform dtype preservation\n        try:\n            if is_list_like(values[0]) or hasattr(values[0], \"len\"):\n                values = np.array([convert(v) for v in values])\n            elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:\n                # GH#21861\n                values = np.array([convert(v) for v in values])\n            else:\n                values = convert(values)\n        except (ValueError, TypeError):\n            values = convert(values)\n\n    else:\n\n        # drop subclass info, do not copy data\n        values = np.asarray(values)\n        if copy:\n            values = values.copy()\n\n    if values.ndim == 1:\n        values = values.reshape((values.shape[0], 1))\n    elif values.ndim != 2:\n        raise ValueError(\"Must pass 2-d input\")\n\n    return values",
+                "def _homogenize(data, index, dtype=None):\n    oindex = None\n    homogenized = []\n\n    for val in data:\n        if isinstance(val, ABCSeries):\n            if dtype is not None:\n                val = val.astype(dtype)\n            if val.index is not index:\n                # Forces alignment. No need to copy data since we\n                # are putting it into an ndarray later\n                val = val.reindex(index, copy=False)\n        else:\n            if isinstance(val, dict):\n                if oindex is None:\n                    oindex = index.astype(\"O\")\n\n                if isinstance(index, (ABCDatetimeIndex, ABCTimedeltaIndex)):\n                    val = com.dict_compat(val)\n                else:\n                    val = dict(val)\n                val = lib.fast_multiget(val, oindex.values, default=np.nan)\n            val = sanitize_array(\n                val, index, dtype=dtype, copy=False, raise_cast_failure=False\n            )\n\n        homogenized.append(val)\n\n    return homogenized",
+                "def extract_index(data):\n    index = None\n    if len(data) == 0:\n        index = Index([])\n    elif len(data) > 0:\n        raw_lengths = []\n        indexes = []\n\n        have_raw_arrays = False\n        have_series = False\n        have_dicts = False\n\n        for val in data:\n            if isinstance(val, ABCSeries):\n                have_series = True\n                indexes.append(val.index)\n            elif isinstance(val, dict):\n                have_dicts = True\n                indexes.append(list(val.keys()))\n            elif is_list_like(val) and getattr(val, \"ndim\", 1) == 1:\n                have_raw_arrays = True\n                raw_lengths.append(len(val))\n\n        if not indexes and not raw_lengths:\n            raise ValueError(\"If using all scalar values, you must pass an index\")\n\n        if have_series:\n            index = union_indexes(indexes)\n        elif have_dicts:\n            index = union_indexes(indexes, sort=False)\n\n        if have_raw_arrays:\n            lengths = list(set(raw_lengths))\n            if len(lengths) > 1:\n                raise ValueError(\"arrays must all be same length\")\n\n            if have_dicts:\n                raise ValueError(\n                    \"Mixing dicts with non-Series may lead to ambiguous ordering.\"\n                )\n\n            if have_series:\n                if lengths[0] != len(index):\n                    msg = (\n                        f\"array length {lengths[0]} does not match index \"\n                        f\"length {len(index)}\"\n                    )\n                    raise ValueError(msg)\n            else:\n                index = ibase.default_index(lengths[0])\n\n    return ensure_index(index)",
+                "def reorder_arrays(arrays, arr_columns, columns):\n    # reorder according to the columns\n    if (\n        columns is not None\n        and len(columns)\n        and arr_columns is not None\n        and len(arr_columns)\n    ):\n        indexer = ensure_index(arr_columns).get_indexer(columns)\n        arr_columns = ensure_index([arr_columns[i] for i in indexer])\n        arrays = [arrays[i] for i in indexer]\n    return arrays, arr_columns",
+                "def get_names_from_index(data):\n    has_some_name = any(getattr(s, \"name\", None) is not None for s in data)\n    if not has_some_name:\n        return ibase.default_index(len(data))\n\n    index = list(range(len(data)))\n    count = 0\n    for i, s in enumerate(data):\n        n = getattr(s, \"name\", None)\n        if n is not None:\n            index[i] = n\n        else:\n            index[i] = f\"Unnamed {count}\"\n            count += 1\n\n    return index",
+                "def _get_axes(N, K, index, columns):\n    # helper to create the axes as indexes\n    # return axes or defaults\n\n    if index is None:\n        index = ibase.default_index(N)\n    else:\n        index = ensure_index(index)\n\n    if columns is None:\n        columns = ibase.default_index(K)\n    else:\n        columns = ensure_index(columns)\n    return index, columns",
+                "def to_arrays(data, columns, coerce_float=False, dtype=None):\n    \"\"\"\n    Return list of arrays, columns.\n    \"\"\"\n    if isinstance(data, ABCDataFrame):\n        if columns is not None:\n            arrays = [\n                data._ixs(i, axis=1).values\n                for i, col in enumerate(data.columns)\n                if col in columns\n            ]\n        else:\n            columns = data.columns\n            arrays = [data._ixs(i, axis=1).values for i in range(len(columns))]\n\n        return arrays, columns\n\n    if not len(data):\n        if isinstance(data, np.ndarray):\n            columns = data.dtype.names\n            if columns is not None:\n                return [[]] * len(columns), columns\n        return [], []  # columns if columns is not None else []\n    if isinstance(data[0], (list, tuple)):\n        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)\n    elif isinstance(data[0], abc.Mapping):\n        return _list_of_dict_to_arrays(\n            data, columns, coerce_float=coerce_float, dtype=dtype\n        )\n    elif isinstance(data[0], ABCSeries):\n        return _list_of_series_to_arrays(\n            data, columns, coerce_float=coerce_float, dtype=dtype\n        )\n    elif isinstance(data[0], Categorical):\n        if columns is None:\n            columns = ibase.default_index(len(data))\n        return data, columns\n    elif (\n        isinstance(data, (np.ndarray, ABCSeries, Index))\n        and data.dtype.names is not None\n    ):\n\n        columns = list(data.dtype.names)\n        arrays = [data[k] for k in columns]\n        return arrays, columns\n    else:\n        # last ditch effort\n        data = [tuple(x) for x in data]\n        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)",
+                "def _list_to_arrays(data, columns, coerce_float=False, dtype=None):\n    if len(data) > 0 and isinstance(data[0], tuple):\n        content = list(lib.to_object_array_tuples(data).T)\n    else:\n        # list of lists\n        content = list(lib.to_object_array(data).T)\n    # gh-26429 do not raise user-facing AssertionError\n    try:\n        result = _convert_object_array(\n            content, columns, dtype=dtype, coerce_float=coerce_float\n        )\n    except AssertionError as e:\n        raise ValueError(e) from e\n    return result",
+                "def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):\n    if columns is None:\n        # We know pass_data is non-empty because data[0] is a Series\n        pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]\n        columns = get_objs_combined_axis(pass_data, sort=False)\n\n    indexer_cache = {}\n\n    aligned_values = []\n    for s in data:\n        index = getattr(s, \"index\", None)\n        if index is None:\n            index = ibase.default_index(len(s))\n\n        if id(index) in indexer_cache:\n            indexer = indexer_cache[id(index)]\n        else:\n            indexer = indexer_cache[id(index)] = index.get_indexer(columns)\n\n        values = com.values_from_object(s)\n        aligned_values.append(algorithms.take_1d(values, indexer))\n\n    values = np.vstack(aligned_values)\n\n    if values.dtype == np.object_:\n        content = list(values.T)\n        return _convert_object_array(\n            content, columns, dtype=dtype, coerce_float=coerce_float\n        )\n    else:\n        return values.T, columns",
+                "def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):\n    \"\"\"Convert list of dicts to numpy arrays\n\n    if `columns` is not passed, column names are inferred from the records\n    - for OrderedDict and dicts, the column names match\n      the key insertion-order from the first record to the last.\n    - For other kinds of dict-likes, the keys are lexically sorted.\n\n    Parameters\n    ----------\n    data : iterable\n        collection of records (OrderedDict, dict)\n    columns: iterables or None\n    coerce_float : bool\n    dtype : np.dtype\n\n    Returns\n    -------\n    tuple\n        arrays, columns\n    \"\"\"\n\n    if columns is None:\n        gen = (list(x.keys()) for x in data)\n        sort = not any(isinstance(d, dict) for d in data)\n        columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)\n\n    # assure that they are of the base dict class and not of derived\n    # classes\n    data = [(type(d) is dict) and d or dict(d) for d in data]\n\n    content = list(lib.dicts_to_array(data, list(columns)).T)\n    return _convert_object_array(\n        content, columns, dtype=dtype, coerce_float=coerce_float\n    )",
+                "def _convert_object_array(content, columns, coerce_float=False, dtype=None):\n    if columns is None:\n        columns = ibase.default_index(len(content))\n    else:\n        if len(columns) != len(content):  # pragma: no cover\n            # caller's responsibility to check for this...\n            raise AssertionError(\n                f\"{len(columns)} columns passed, passed data had \"\n                f\"{len(content)} columns\"\n            )\n\n    # provide soft conversion of object dtypes\n    def convert(arr):\n        if dtype != object and dtype != np.object:\n            arr = lib.maybe_convert_objects(arr, try_float=coerce_float)\n            arr = maybe_cast_to_datetime(arr, dtype)\n        return arr\n\n    arrays = [convert(arr) for arr in content]\n\n    return arrays, columns",
+                "def sanitize_index(data, index, copy=False):\n    \"\"\"\n    Sanitize an index type to return an ndarray of the underlying, pass\n    through a non-Index.\n    \"\"\"\n\n    if index is None:\n        return data\n\n    if len(data) != len(index):\n        raise ValueError(\"Length of values does not match length of index\")\n\n    if isinstance(data, ABCIndexClass) and not copy:\n        pass\n    elif isinstance(data, (ABCPeriodIndex, ABCDatetimeIndex)):\n        data = data._values\n        if copy:\n            data = data.copy()\n\n    elif isinstance(data, np.ndarray):\n\n        # coerce datetimelike types\n        if data.dtype.kind in [\"M\", \"m\"]:\n            data = sanitize_array(data, index, copy=copy)\n\n    return data",
+                "def convert(arr):\n    if dtype != object and dtype != np.object:\n        arr = lib.maybe_convert_objects(arr, try_float=coerce_float)\n        arr = maybe_cast_to_datetime(arr, dtype)\n    return arr",
+                "def convert(v):\n    return maybe_convert_platform(v)"
+            ],
+            "inscope_function_signatures": [
+                "arrays_to_mgr(arrays, arr_names, index, columns, dtype=None)",
+                "masked_rec_array_to_mgr(data, index, columns, dtype, copy)",
+                "init_ndarray(values, index, columns, dtype=None, copy=False)",
+                "init_dict(data, index, columns, dtype=None)",
+                "prep_ndarray(values, copy=True) -> np.ndarray",
+                "_homogenize(data, index, dtype=None)",
+                "extract_index(data)",
+                "reorder_arrays(arrays, arr_columns, columns)",
+                "get_names_from_index(data)",
+                "_get_axes(N, K, index, columns)",
+                "to_arrays(data, columns, coerce_float=False, dtype=None)",
+                "_list_to_arrays(data, columns, coerce_float=False, dtype=None)",
+                "_list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None)",
+                "_list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None)",
+                "_convert_object_array(content, columns, coerce_float=False, dtype=None)",
+                "sanitize_index(data, index, copy=False)",
+                "convert(arr)",
+                "convert(v)"
+            ],
+            "variables_in_file": {
+                "index": [
+                    513,
+                    130,
+                    131,
+                    133,
+                    396,
+                    401,
+                    403,
+                    406,
+                    151,
+                    152,
+                    157,
+                    413,
+                    414,
+                    416,
+                    422,
+                    300,
+                    173,
+                    303,
+                    307,
+                    309,
+                    315,
+                    63,
+                    64,
+                    66,
+                    324,
+                    69,
+                    326,
+                    72,
+                    202,
+                    85,
+                    86,
+                    87,
+                    88,
+                    89,
+                    217,
+                    599,
+                    220,
+                    602,
+                    222,
+                    350,
+                    352,
+                    231,
+                    616,
+                    365,
+                    112,
+                    368,
+                    372,
+                    246,
+                    374,
+                    506,
+                    507,
+                    508,
+                    510,
+                    511
+                ],
+                "extract_index": [
+                    64,
+                    220
+                ],
+                "arrays": [
+                    387,
+                    388,
+                    435,
+                    442,
+                    444,
+                    64,
+                    69,
+                    584,
+                    74,
+                    586,
+                    213,
+                    214,
+                    216,
+                    472,
+                    473,
+                    220,
+                    93,
+                    97,
+                    232,
+                    108,
+                    237,
+                    112,
+                    240,
+                    241,
+                    243,
+                    244,
+                    246
+                ],
+                "ensure_index": [
+                    416,
+                    385,
+                    66,
+                    386,
+                    421,
+                    72,
+                    374,
+                    89,
+                    92,
+                    222
+                ],
+                "_homogenize": [
+                    69
+                ],
+                "dtype": [
+                    523,
+                    142,
+                    152,
+                    153,
+                    157,
+                    163,
+                    164,
+                    166,
+                    170,
+                    298,
+                    299,
+                    562,
+                    179,
+                    315,
+                    579,
+                    69,
+                    453,
+                    581,
+                    456,
+                    460,
+                    477,
+                    225,
+                    226,
+                    230,
+                    489,
+                    112,
+                    246
+                ],
+                "axes": [
+                    72,
+                    74
+                ],
+                "columns": [
+                    129,
+                    385,
+                    513,
+                    136,
+                    523,
+                    526,
+                    151,
+                    152,
+                    155,
+                    156,
+                    157,
+                    418,
+                    419,
+                    421,
+                    422,
+                    551,
+                    554,
+                    173,
+                    560,
+                    434,
+                    562,
+                    438,
+                    567,
+                    568,
+                    441,
+                    442,
+                    570,
+                    444,
+                    573,
+                    448,
+                    449,
+                    450,
+                    453,
+                    72,
+                    456,
+                    202,
+                    586,
+                    460,
+                    463,
+                    464,
+                    465,
+                    210,
+                    213,
+                    471,
+                    472,
+                    473,
+                    91,
+                    92,
+                    93,
+                    477,
+                    489,
+                    108,
+                    109,
+                    110,
+                    236,
+                    112,
+                    497,
+                    500,
+                    246,
+                    380,
+                    381,
+                    127
+                ],
+                "create_block_manager_from_arrays": [
+                    74
+                ],
+                "arr_names": [
+                    74
+                ],
+                "fill_value": [
+                    97,
+                    83
+                ],
+                "data.fill_value": [
+                    83
+                ],
+                "data": [
+                    392,
+                    394,
+                    396,
+                    398,
+                    296,
+                    552,
+                    553,
+                    558,
+                    560,
+                    433,
+                    436,
+                    437,
+                    441,
+                    442,
+                    446,
+                    447,
+                    448,
+                    452,
+                    325,
+                    453,
+                    327,
+                    454,
+                    456,
+                    458,
+                    460,
+                    462,
+                    335,
+                    464,
+                    465,
+                    83,
+                    84,
+                    213,
+                    467,
+                    468,
+                    88,
+                    471,
+                    472,
+                    600,
+                    476,
+                    477,
+                    602,
+                    605,
+                    607,
+                    481,
+                    482,
+                    608,
+                    610,
+                    101,
+                    485,
+                    612,
+                    615,
+                    616,
+                    618,
+                    235,
+                    237,
+                    499,
+                    505
+                ],
+                "fdata": [
+                    84,
+                    93,
+                    86
+                ],
+                "ma.getdata": [
+                    84
+                ],
+                "ma": [
+                    84,
+                    101
+                ],
+                "get_names_from_index": [
+                    86
+                ],
+                "ibase.default_index": [
+                    419,
+                    394,
+                    568,
+                    464,
+                    372,
+                    88,
+                    508,
+                    414
+                ],
+                "ibase": [
+                    419,
+                    394,
+                    568,
+                    464,
+                    372,
+                    88,
+                    508,
+                    414
+                ],
+                "len": [
+                    136,
+                    394,
+                    396,
+                    151,
+                    568,
+                    185,
+                    442,
+                    570,
+                    573,
+                    446,
+                    574,
+                    193,
+                    450,
+                    325,
+                    327,
+                    464,
+                    344,
+                    88,
+                    602,
+                    481,
+                    356,
+                    231,
+                    365,
+                    368,
+                    508,
+                    381,
+                    254,
+                    383
+                ],
+                "arr_columns": [
+                    97,
+                    385,
+                    386,
+                    388,
+                    108,
+                    110,
+                    112,
+                    93,
+                    382,
+                    383
+                ],
+                "to_arrays": [
+                    93
+                ],
+                "new_arrays": [
+                    96,
+                    105,
+                    108
+                ],
+                "fv": [
+                    104,
+                    97,
+                    100,
+                    103
+                ],
+                "arr": [
+                    97,
+                    257,
+                    258,
+                    580,
+                    581,
+                    582,
+                    103,
+                    104,
+                    105,
+                    584,
+                    241,
+                    244
+                ],
+                "col": [
+                    97,
+                    101,
+                    438,
+                    437
+                ],
+                "zip": [
+                    97
+                ],
+                "lib.is_scalar": [
+                    100
+                ],
+                "lib": [
+                    482,
+                    100,
+                    485,
+                    580,
+                    554,
+                    560,
+                    313
+                ],
+                "mask": [
+                    104,
+                    101,
+                    102
+                ],
+                "ma.getmaskarray": [
+                    101
+                ],
+                "mask.any": [
+                    102
+                ],
+                "maybe_upcast": [
+                    103
+                ],
+                "new_arrays.append": [
+                    105
+                ],
+                "reorder_arrays": [
+                    108
+                ],
+                "mgr": [
+                    112,
+                    115,
+                    116
+                ],
+                "arrays_to_mgr": [
+                    112,
+                    152,
+                    157,
+                    246
+                ],
+                "copy": [
+                    161,
+                    609,
+                    616,
+                    114,
+                    146,
+                    148,
+                    281,
+                    605
+                ],
+                "mgr.copy": [
+                    115
+                ],
+                "isinstance": [
+                    256,
+                    269,
+                    297,
+                    553,
+                    305,
+                    433,
+                    309,
+                    186,
+                    447,
+                    452,
+                    454,
+                    458,
+                    462,
+                    336,
+                    339,
+                    467,
+                    605,
+                    607,
+                    481,
+                    612,
+                    241,
+                    499,
+                    253,
+                    126
+                ],
+                "values": [
+                    128,
+                    129,
+                    256,
+                    131,
+                    257,
+                    133,
+                    515,
+                    516,
+                    136,
+                    137,
+                    518,
+                    267,
+                    268,
+                    141,
+                    269,
+                    271,
+                    520,
+                    145,
+                    146,
+                    147,
+                    273,
+                    149,
+                    275,
+                    151,
+                    152,
+                    153,
+                    280,
+                    282,
+                    284,
+                    157,
+                    285,
+                    286,
+                    161,
+                    289,
+                    164,
+                    166,
+                    173,
+                    174,
+                    179,
+                    436,
+                    181,
+                    184,
+                    442,
+                    521,
+                    197,
+                    200,
+                    526,
+                    254,
+                    253,
+                    126
+                ],
+                "ABCSeries": [
+                    297,
+                    458,
+                    336,
+                    467,
+                    499,
+                    253,
+                    126
+                ],
+                "values.name": [
+                    128,
+                    129
+                ],
+                "values.index": [
+                    131
+                ],
+                "values.reindex": [
+                    133
+                ],
+                "np.empty": [
+                    137,
+                    255
+                ],
+                "np": [
+                    257,
+                    258,
+                    518,
+                    520,
+                    137,
+                    268,
+                    269,
+                    271,
+                    280,
+                    313,
+                    186,
+                    447,
+                    579,
+                    467,
+                    226,
+                    612,
+                    231,
+                    252,
+                    253,
+                    255
+                ],
+                "object": [
+                    579,
+                    228,
+                    137,
+                    213,
+                    255
+                ],
+                "is_categorical_dtype": [
+                    141
+                ],
+                "getattr": [
+                    392,
+                    141,
+                    399,
+                    342,
+                    506
+                ],
+                "hasattr": [
+                    145,
+                    267
+                ],
+                "prep_ndarray": [
+                    161,
+                    146
+                ],
+                "values.ravel": [
+                    147
+                ],
+                "values.copy": [
+                    282,
+                    149
+                ],
+                "_get_axes": [
+                    173,
+                    151
+                ],
+                "is_extension_array_dtype": [
+                    153
+                ],
+                "is_dtype_equal": [
+                    164
+                ],
+                "values.dtype": [
+                    520,
+                    164
+                ],
+                "values.astype": [
+                    166
+                ],
+                "Exception": [
+                    167
+                ],
+                "ValueError": [
+                    357,
+                    360,
+                    169,
+                    492,
+                    274,
+                    370,
+                    603,
+                    347,
+                    287
+                ],
+                "orig": [
+                    170,
+                    171
+                ],
+                "values.shape": [
+                    285,
+                    173,
+                    181
+                ],
+                "values.T": [
+                    521,
+                    174,
+                    526
+                ],
+                "is_object_dtype": [
+                    179
+                ],
+                "values.ndim": [
+                    284,
+                    181,
+                    286
+                ],
+                "dvals_list": [
+                    193,
+                    184,
+                    185,
+                    186,
+                    187
+                ],
+                "maybe_infer_to_datetimelike": [
+                    184,
+                    197
+                ],
+                "row": [
+                    184
+                ],
+                "n": [
+                    193,
+                    399,
+                    400,
+                    401,
+                    185,
+                    186,
+                    187
+                ],
+                "range": [
+                    256,
+                    193,
+                    396,
+                    185,
+                    442
+                ],
+                "np.ndarray": [
+                    612,
+                    269,
+                    467,
+                    186,
+                    252,
+                    253,
+                    447
+                ],
+                "reshape": [
+                    187
+                ],
+                "block_values": [
+                    192,
+                    202,
+                    198,
+                    200
+                ],
+                "make_block": [
+                    193
+                ],
+                "datelike_vals": [
+                    197,
+                    198
+                ],
+                "create_block_manager_from_blocks": [
+                    202
+                ],
+                "Series": [
+                    213
+                ],
+                "data_names": [
+                    236,
+                    214,
+                    246
+                ],
+                "arrays.index": [
+                    214
+                ],
+                "missing": [
+                    216,
+                    225,
+                    220,
+                    232
+                ],
+                "arrays.isna": [
+                    216
+                ],
+                "missing.any": [
+                    225
+                ],
+                "is_integer_dtype": [
+                    225
+                ],
+                "np.issubdtype": [
+                    226
+                ],
+                "np.flexible": [
+                    226
+                ],
+                "nan_dtype": [
+                    228,
+                    230,
+                    231
+                ],
+                "val": [
+                    296,
+                    297,
+                    299,
+                    300,
+                    303,
+                    305,
+                    310,
+                    312,
+                    313,
+                    314,
+                    315,
+                    318,
+                    335,
+                    336,
+                    338,
+                    339,
+                    341,
+                    342,
+                    344,
+                    231,
+                    232
+                ],
+                "construct_1d_arraylike_from_scalar": [
+                    231
+                ],
+                "np.nan": [
+                    313,
+                    231
+                ],
+                "arrays.loc": [
+                    232
+                ],
+                "missing.sum": [
+                    232
+                ],
+                "keys": [
+                    235,
+                    236,
+                    237
+                ],
+                "list": [
+                    482,
+                    355,
+                    452,
+                    485,
+                    552,
+                    521,
+                    235,
+                    396,
+                    560,
+                    341,
+                    471
+                ],
+                "data.keys": [
+                    235
+                ],
+                "Index": [
+                    467,
+                    236,
+                    253,
+                    326
+                ],
+                "com.maybe_iterable_to_list": [
+                    237
+                ],
+                "com": [
+                    515,
+                    237,
+                    310
+                ],
+                "k": [
+                    472,
+                    237
+                ],
+                "ABCIndexClass": [
+                    241,
+                    605
+                ],
+                "arr._data": [
+                    241
+                ],
+                "is_datetime64tz_dtype": [
+                    244
+                ],
+                "arr.copy": [
+                    244
+                ],
+                "np.arange": [
+                    257
+                ],
+                "values.start": [
+                    257
+                ],
+                "values.stop": [
+                    257
+                ],
+                "values.step": [
+                    257
+                ],
+                "np.newaxis": [
+                    258
+                ],
+                "maybe_convert_platform": [
+                    261
+                ],
+                "v": [
+                    268,
+                    261,
+                    271
+                ],
+                "is_list_like": [
+                    267,
+                    342
+                ],
+                "np.array": [
+                    268,
+                    271
+                ],
+                "convert": [
+                    584,
+                    268,
+                    271,
+                    273,
+                    275
+                ],
+                "ndim": [
+                    269
+                ],
+                "TypeError": [
+                    274
+                ],
+                "np.asarray": [
+                    280
+                ],
+                "values.reshape": [
+                    285
+                ],
+                "oindex": [
+                    313,
+                    306,
+                    307,
+                    293
+                ],
+                "homogenized": [
+                    318,
+                    320,
+                    294
+                ],
+                "val.astype": [
+                    299
+                ],
+                "val.index": [
+                    338,
+                    300
+                ],
+                "val.reindex": [
+                    303
+                ],
+                "dict": [
+                    553,
+                    558,
+                    305,
+                    339,
+                    312
+                ],
+                "index.astype": [
+                    307
+                ],
+                "ABCDatetimeIndex": [
+                    309,
+                    607
+                ],
+                "ABCTimedeltaIndex": [
+                    309
+                ],
+                "com.dict_compat": [
+                    310
+                ],
+                "lib.fast_multiget": [
+                    313
+                ],
+                "oindex.values": [
+                    313
+                ],
+                "sanitize_array": [
+                    616,
+                    314
+                ],
+                "homogenized.append": [
+                    318
+                ],
+                "raw_lengths": [
+                    328,
+                    355,
+                    346,
+                    344
+                ],
+                "indexes": [
+                    352,
+                    329,
+                    338,
+                    341,
+                    346,
+                    350
+                ],
+                "have_raw_arrays": [
+                    354,
+                    331,
+                    343
+                ],
+                "have_series": [
+                    364,
+                    337,
+                    332,
+                    349
+                ],
+                "have_dicts": [
+                    359,
+                    340,
+                    333,
+                    351
+                ],
+                "indexes.append": [
+                    338,
+                    341
+                ],
+                "val.keys": [
+                    341
+                ],
+                "raw_lengths.append": [
+                    344
+                ],
+                "union_indexes": [
+                    352,
+                    350
+                ],
+                "lengths": [
+                    355,
+                    356,
+                    365,
+                    367,
+                    372
+                ],
+                "set": [
+                    355
+                ],
+                "msg": [
+                    370,
+                    366
+                ],
+                "indexer": [
+                    385,
+                    386,
+                    387,
+                    513,
+                    516,
+                    511
+                ],
+                "get_indexer": [
+                    385
+                ],
+                "i": [
+                    386,
+                    387,
+                    398,
+                    401,
+                    403,
+                    436,
+                    437,
+                    442
+                ],
+                "has_some_name": [
+                    392,
+                    393
+                ],
+                "any": [
+                    392,
+                    553
+                ],
+                "s": [
+                    515,
+                    392,
+                    398,
+                    399,
+                    505,
+                    506,
+                    508
+                ],
+                "count": [
+                    403,
+                    404,
+                    397
+                ],
+                "enumerate": [
+                    437,
+                    398
+                ],
+                "N": [
+                    414
+                ],
+                "K": [
+                    419
+                ],
+                "ABCDataFrame": [
+                    433,
+                    499
+                ],
+                "data._ixs": [
+                    442,
+                    436
+                ],
+                "data.columns": [
+                    441,
+                    437
+                ],
+                "data.dtype.names": [
+                    448,
+                    468,
+                    471
+                ],
+                "data.dtype": [
+                    448,
+                    468,
+                    615,
+                    471
+                ],
+                "tuple": [
+                    481,
+                    476,
+                    452
+                ],
+                "_list_to_arrays": [
+                    477,
+                    453
+                ],
+                "coerce_float": [
+                    580,
+                    453,
+                    456,
+                    489,
+                    523,
+                    460,
+                    562,
+                    477
+                ],
+                "abc.Mapping": [
+                    454
+                ],
+                "abc": [
+                    454
+                ],
+                "_list_of_dict_to_arrays": [
+                    455
+                ],
+                "_list_of_series_to_arrays": [
+                    459
+                ],
+                "Categorical": [
+                    462
+                ],
+                "x": [
+                    552,
+                    499,
+                    476
+                ],
+                "content": [
+                    482,
+                    485,
+                    584,
+                    489,
+                    521,
+                    523,
+                    560,
+                    562,
+                    568,
+                    570,
+                    574
+                ],
+                "T": [
+                    560,
+                    482,
+                    485
+                ],
+                "lib.to_object_array_tuples": [
+                    482
+                ],
+                "lib.to_object_array": [
+                    485
+                ],
+                "result": [
+                    488,
+                    493
+                ],
+                "_convert_object_array": [
+                    488,
+                    561,
+                    522
+                ],
+                "AssertionError": [
+                    491,
+                    572
+                ],
+                "e": [
+                    492
+                ],
+                "pass_data": [
+                    499,
+                    500
+                ],
+                "get_objs_combined_axis": [
+                    500
+                ],
+                "indexer_cache": [
+                    513,
+                    511,
+                    502,
+                    510
+                ],
+                "aligned_values": [
+                    504,
+                    516,
+                    518
+                ],
+                "id": [
+                    513,
+                    510,
+                    511
+                ],
+                "index.get_indexer": [
+                    513
+                ],
+                "com.values_from_object": [
+                    515
+                ],
+                "aligned_values.append": [
+                    516
+                ],
+                "algorithms.take_1d": [
+                    516
+                ],
+                "algorithms": [
+                    516
+                ],
+                "np.vstack": [
+                    518
+                ],
+                "np.object_": [
+                    520
+                ],
+                "gen": [
+                    552,
+                    554
+                ],
+                "x.keys": [
+                    552
+                ],
+                "sort": [
+                    553,
+                    554
+                ],
+                "d": [
+                    553,
+                    558
+                ],
+                "lib.fast_unique_multiple_list_gen": [
+                    554
+                ],
+                "type": [
+                    558
+                ],
+                "lib.dicts_to_array": [
+                    560
+                ],
+                "np.object": [
+                    579
+                ],
+                "lib.maybe_convert_objects": [
+                    580
+                ],
+                "maybe_cast_to_datetime": [
+                    581
+                ],
+                "ABCPeriodIndex": [
+                    607
+                ],
+                "data._values": [
+                    608
+                ],
+                "data.copy": [
+                    610
+                ],
+                "data.dtype.kind": [
+                    615
+                ]
+            },
+            "filtered_variables_in_file": {
+                "index": [
+                    513,
+                    130,
+                    131,
+                    133,
+                    396,
+                    401,
+                    403,
+                    406,
+                    151,
+                    152,
+                    157,
+                    413,
+                    414,
+                    416,
+                    422,
+                    300,
+                    173,
+                    303,
+                    307,
+                    309,
+                    315,
+                    63,
+                    64,
+                    66,
+                    324,
+                    69,
+                    326,
+                    72,
+                    202,
+                    85,
+                    86,
+                    87,
+                    88,
+                    89,
+                    217,
+                    599,
+                    220,
+                    602,
+                    222,
+                    350,
+                    352,
+                    231,
+                    616,
+                    365,
+                    112,
+                    368,
+                    372,
+                    246,
+                    374,
+                    506,
+                    507,
+                    508,
+                    510,
+                    511
+                ],
+                "extract_index": [
+                    64,
+                    220
+                ],
+                "arrays": [
+                    387,
+                    388,
+                    435,
+                    442,
+                    444,
+                    64,
+                    69,
+                    584,
+                    74,
+                    586,
+                    213,
+                    214,
+                    216,
+                    472,
+                    473,
+                    220,
+                    93,
+                    97,
+                    232,
+                    108,
+                    237,
+                    112,
+                    240,
+                    241,
+                    243,
+                    244,
+                    246
+                ],
+                "ensure_index": [
+                    416,
+                    385,
+                    66,
+                    386,
+                    421,
+                    72,
+                    374,
+                    89,
+                    92,
+                    222
+                ],
+                "_homogenize": [
+                    69
+                ],
+                "dtype": [
+                    523,
+                    142,
+                    152,
+                    153,
+                    157,
+                    163,
+                    164,
+                    166,
+                    170,
+                    298,
+                    299,
+                    562,
+                    179,
+                    315,
+                    579,
+                    69,
+                    453,
+                    581,
+                    456,
+                    460,
+                    477,
+                    225,
+                    226,
+                    230,
+                    489,
+                    112,
+                    246
+                ],
+                "axes": [
+                    72,
+                    74
+                ],
+                "columns": [
+                    129,
+                    385,
+                    513,
+                    136,
+                    523,
+                    526,
+                    151,
+                    152,
+                    155,
+                    156,
+                    157,
+                    418,
+                    419,
+                    421,
+                    422,
+                    551,
+                    554,
+                    173,
+                    560,
+                    434,
+                    562,
+                    438,
+                    567,
+                    568,
+                    441,
+                    442,
+                    570,
+                    444,
+                    573,
+                    448,
+                    449,
+                    450,
+                    453,
+                    72,
+                    456,
+                    202,
+                    586,
+                    460,
+                    463,
+                    464,
+                    465,
+                    210,
+                    213,
+                    471,
+                    472,
+                    473,
+                    91,
+                    92,
+                    93,
+                    477,
+                    489,
+                    108,
+                    109,
+                    110,
+                    236,
+                    112,
+                    497,
+                    500,
+                    246,
+                    380,
+                    381,
+                    127
+                ],
+                "create_block_manager_from_arrays": [
+                    74
+                ],
+                "arr_names": [
+                    74
+                ],
+                "fill_value": [
+                    97,
+                    83
+                ],
+                "data.fill_value": [
+                    83
+                ],
+                "data": [
+                    392,
+                    394,
+                    396,
+                    398,
+                    296,
+                    552,
+                    553,
+                    558,
+                    560,
+                    433,
+                    436,
+                    437,
+                    441,
+                    442,
+                    446,
+                    447,
+                    448,
+                    452,
+                    325,
+                    453,
+                    327,
+                    454,
+                    456,
+                    458,
+                    460,
+                    462,
+                    335,
+                    464,
+                    465,
+                    83,
+                    84,
+                    213,
+                    467,
+                    468,
+                    88,
+                    471,
+                    472,
+                    600,
+                    476,
+                    477,
+                    602,
+                    605,
+                    607,
+                    481,
+                    482,
+                    608,
+                    610,
+                    101,
+                    485,
+                    612,
+                    615,
+                    616,
+                    618,
+                    235,
+                    237,
+                    499,
+                    505
+                ],
+                "fdata": [
+                    84,
+                    93,
+                    86
+                ],
+                "ma.getdata": [
+                    84
+                ],
+                "ma": [
+                    84,
+                    101
+                ],
+                "get_names_from_index": [
+                    86
+                ],
+                "ibase.default_index": [
+                    419,
+                    394,
+                    568,
+                    464,
+                    372,
+                    88,
+                    508,
+                    414
+                ],
+                "ibase": [
+                    419,
+                    394,
+                    568,
+                    464,
+                    372,
+                    88,
+                    508,
+                    414
+                ],
+                "arr_columns": [
+                    97,
+                    385,
+                    386,
+                    388,
+                    108,
+                    110,
+                    112,
+                    93,
+                    382,
+                    383
+                ],
+                "to_arrays": [
+                    93
+                ],
+                "new_arrays": [
+                    96,
+                    105,
+                    108
+                ],
+                "fv": [
+                    104,
+                    97,
+                    100,
+                    103
+                ],
+                "arr": [
+                    97,
+                    257,
+                    258,
+                    580,
+                    581,
+                    582,
+                    103,
+                    104,
+                    105,
+                    584,
+                    241,
+                    244
+                ],
+                "col": [
+                    97,
+                    101,
+                    438,
+                    437
+                ],
+                "lib.is_scalar": [
+                    100
+                ],
+                "lib": [
+                    482,
+                    100,
+                    485,
+                    580,
+                    554,
+                    560,
+                    313
+                ],
+                "mask": [
+                    104,
+                    101,
+                    102
+                ],
+                "ma.getmaskarray": [
+                    101
+                ],
+                "mask.any": [
+                    102
+                ],
+                "maybe_upcast": [
+                    103
+                ],
+                "new_arrays.append": [
+                    105
+                ],
+                "reorder_arrays": [
+                    108
+                ],
+                "mgr": [
+                    112,
+                    115,
+                    116
+                ],
+                "arrays_to_mgr": [
+                    112,
+                    152,
+                    157,
+                    246
+                ],
+                "copy": [
+                    161,
+                    609,
+                    616,
+                    114,
+                    146,
+                    148,
+                    281,
+                    605
+                ],
+                "mgr.copy": [
+                    115
+                ],
+                "values": [
+                    128,
+                    129,
+                    256,
+                    131,
+                    257,
+                    133,
+                    515,
+                    516,
+                    136,
+                    137,
+                    518,
+                    267,
+                    268,
+                    141,
+                    269,
+                    271,
+                    520,
+                    145,
+                    146,
+                    147,
+                    273,
+                    149,
+                    275,
+                    151,
+                    152,
+                    153,
+                    280,
+                    282,
+                    284,
+                    157,
+                    285,
+                    286,
+                    161,
+                    289,
+                    164,
+                    166,
+                    173,
+                    174,
+                    179,
+                    436,
+                    181,
+                    184,
+                    442,
+                    521,
+                    197,
+                    200,
+                    526,
+                    254,
+                    253,
+                    126
+                ],
+                "ABCSeries": [
+                    297,
+                    458,
+                    336,
+                    467,
+                    499,
+                    253,
+                    126
+                ],
+                "values.name": [
+                    128,
+                    129
+                ],
+                "values.index": [
+                    131
+                ],
+                "values.reindex": [
+                    133
+                ],
+                "np.empty": [
+                    137,
+                    255
+                ],
+                "np": [
+                    257,
+                    258,
+                    518,
+                    520,
+                    137,
+                    268,
+                    269,
+                    271,
+                    280,
+                    313,
+                    186,
+                    447,
+                    579,
+                    467,
+                    226,
+                    612,
+                    231,
+                    252,
+                    253,
+                    255
+                ],
+                "is_categorical_dtype": [
+                    141
+                ],
+                "prep_ndarray": [
+                    161,
+                    146
+                ],
+                "values.ravel": [
+                    147
+                ],
+                "values.copy": [
+                    282,
+                    149
+                ],
+                "_get_axes": [
+                    173,
+                    151
+                ],
+                "is_extension_array_dtype": [
+                    153
+                ],
+                "is_dtype_equal": [
+                    164
+                ],
+                "values.dtype": [
+                    520,
+                    164
+                ],
+                "values.astype": [
+                    166
+                ],
+                "orig": [
+                    170,
+                    171
+                ],
+                "values.shape": [
+                    285,
+                    173,
+                    181
+                ],
+                "values.T": [
+                    521,
+                    174,
+                    526
+                ],
+                "is_object_dtype": [
+                    179
+                ],
+                "values.ndim": [
+                    284,
+                    181,
+                    286
+                ],
+                "dvals_list": [
+                    193,
+                    184,
+                    185,
+                    186,
+                    187
+                ],
+                "maybe_infer_to_datetimelike": [
+                    184,
+                    197
+                ],
+                "row": [
+                    184
+                ],
+                "n": [
+                    193,
+                    399,
+                    400,
+                    401,
+                    185,
+                    186,
+                    187
+                ],
+                "np.ndarray": [
+                    612,
+                    269,
+                    467,
+                    186,
+                    252,
+                    253,
+                    447
+                ],
+                "reshape": [
+                    187
+                ],
+                "block_values": [
+                    192,
+                    202,
+                    198,
+                    200
+                ],
+                "make_block": [
+                    193
+                ],
+                "datelike_vals": [
+                    197,
+                    198
+                ],
+                "create_block_manager_from_blocks": [
+                    202
+                ],
+                "Series": [
+                    213
+                ],
+                "data_names": [
+                    236,
+                    214,
+                    246
+                ],
+                "arrays.index": [
+                    214
+                ],
+                "missing": [
+                    216,
+                    225,
+                    220,
+                    232
+                ],
+                "arrays.isna": [
+                    216
+                ],
+                "missing.any": [
+                    225
+                ],
+                "is_integer_dtype": [
+                    225
+                ],
+                "np.issubdtype": [
+                    226
+                ],
+                "np.flexible": [
+                    226
+                ],
+                "nan_dtype": [
+                    228,
+                    230,
+                    231
+                ],
+                "val": [
+                    296,
+                    297,
+                    299,
+                    300,
+                    303,
+                    305,
+                    310,
+                    312,
+                    313,
+                    314,
+                    315,
+                    318,
+                    335,
+                    336,
+                    338,
+                    339,
+                    341,
+                    342,
+                    344,
+                    231,
+                    232
+                ],
+                "construct_1d_arraylike_from_scalar": [
+                    231
+                ],
+                "np.nan": [
+                    313,
+                    231
+                ],
+                "arrays.loc": [
+                    232
+                ],
+                "missing.sum": [
+                    232
+                ],
+                "keys": [
+                    235,
+                    236,
+                    237
+                ],
+                "data.keys": [
+                    235
+                ],
+                "Index": [
+                    467,
+                    236,
+                    253,
+                    326
+                ],
+                "com.maybe_iterable_to_list": [
+                    237
+                ],
+                "com": [
+                    515,
+                    237,
+                    310
+                ],
+                "k": [
+                    472,
+                    237
+                ],
+                "ABCIndexClass": [
+                    241,
+                    605
+                ],
+                "arr._data": [
+                    241
+                ],
+                "is_datetime64tz_dtype": [
+                    244
+                ],
+                "arr.copy": [
+                    244
+                ],
+                "np.arange": [
+                    257
+                ],
+                "values.start": [
+                    257
+                ],
+                "values.stop": [
+                    257
+                ],
+                "values.step": [
+                    257
+                ],
+                "np.newaxis": [
+                    258
+                ],
+                "maybe_convert_platform": [
+                    261
+                ],
+                "v": [
+                    268,
+                    261,
+                    271
+                ],
+                "is_list_like": [
+                    267,
+                    342
+                ],
+                "np.array": [
+                    268,
+                    271
+                ],
+                "convert": [
+                    584,
+                    268,
+                    271,
+                    273,
+                    275
+                ],
+                "ndim": [
+                    269
+                ],
+                "np.asarray": [
+                    280
+                ],
+                "values.reshape": [
+                    285
+                ],
+                "oindex": [
+                    313,
+                    306,
+                    307,
+                    293
+                ],
+                "homogenized": [
+                    318,
+                    320,
+                    294
+                ],
+                "val.astype": [
+                    299
+                ],
+                "val.index": [
+                    338,
+                    300
+                ],
+                "val.reindex": [
+                    303
+                ],
+                "index.astype": [
+                    307
+                ],
+                "ABCDatetimeIndex": [
+                    309,
+                    607
+                ],
+                "ABCTimedeltaIndex": [
+                    309
+                ],
+                "com.dict_compat": [
+                    310
+                ],
+                "lib.fast_multiget": [
+                    313
+                ],
+                "oindex.values": [
+                    313
+                ],
+                "sanitize_array": [
+                    616,
+                    314
+                ],
+                "homogenized.append": [
+                    318
+                ],
+                "raw_lengths": [
+                    328,
+                    355,
+                    346,
+                    344
+                ],
+                "indexes": [
+                    352,
+                    329,
+                    338,
+                    341,
+                    346,
+                    350
+                ],
+                "have_raw_arrays": [
+                    354,
+                    331,
+                    343
+                ],
+                "have_series": [
+                    364,
+                    337,
+                    332,
+                    349
+                ],
+                "have_dicts": [
+                    359,
+                    340,
+                    333,
+                    351
+                ],
+                "indexes.append": [
+                    338,
+                    341
+                ],
+                "val.keys": [
+                    341
+                ],
+                "raw_lengths.append": [
+                    344
+                ],
+                "union_indexes": [
+                    352,
+                    350
+                ],
+                "lengths": [
+                    355,
+                    356,
+                    365,
+                    367,
+                    372
+                ],
+                "msg": [
+                    370,
+                    366
+                ],
+                "indexer": [
+                    385,
+                    386,
+                    387,
+                    513,
+                    516,
+                    511
+                ],
+                "get_indexer": [
+                    385
+                ],
+                "i": [
+                    386,
+                    387,
+                    398,
+                    401,
+                    403,
+                    436,
+                    437,
+                    442
+                ],
+                "has_some_name": [
+                    392,
+                    393
+                ],
+                "s": [
+                    515,
+                    392,
+                    398,
+                    399,
+                    505,
+                    506,
+                    508
+                ],
+                "count": [
+                    403,
+                    404,
+                    397
+                ],
+                "N": [
+                    414
+                ],
+                "K": [
+                    419
+                ],
+                "ABCDataFrame": [
+                    433,
+                    499
+                ],
+                "data._ixs": [
+                    442,
+                    436
+                ],
+                "data.columns": [
+                    441,
+                    437
+                ],
+                "data.dtype.names": [
+                    448,
+                    468,
+                    471
+                ],
+                "data.dtype": [
+                    448,
+                    468,
+                    615,
+                    471
+                ],
+                "_list_to_arrays": [
+                    477,
+                    453
+                ],
+                "coerce_float": [
+                    580,
+                    453,
+                    456,
+                    489,
+                    523,
+                    460,
+                    562,
+                    477
+                ],
+                "abc.Mapping": [
+                    454
+                ],
+                "abc": [
+                    454
+                ],
+                "_list_of_dict_to_arrays": [
+                    455
+                ],
+                "_list_of_series_to_arrays": [
+                    459
+                ],
+                "Categorical": [
+                    462
+                ],
+                "x": [
+                    552,
+                    499,
+                    476
+                ],
+                "content": [
+                    482,
+                    485,
+                    584,
+                    489,
+                    521,
+                    523,
+                    560,
+                    562,
+                    568,
+                    570,
+                    574
+                ],
+                "T": [
+                    560,
+                    482,
+                    485
+                ],
+                "lib.to_object_array_tuples": [
+                    482
+                ],
+                "lib.to_object_array": [
+                    485
+                ],
+                "result": [
+                    488,
+                    493
+                ],
+                "_convert_object_array": [
+                    488,
+                    561,
+                    522
+                ],
+                "e": [
+                    492
+                ],
+                "pass_data": [
+                    499,
+                    500
+                ],
+                "get_objs_combined_axis": [
+                    500
+                ],
+                "indexer_cache": [
+                    513,
+                    511,
+                    502,
+                    510
+                ],
+                "aligned_values": [
+                    504,
+                    516,
+                    518
+                ],
+                "index.get_indexer": [
+                    513
+                ],
+                "com.values_from_object": [
+                    515
+                ],
+                "aligned_values.append": [
+                    516
+                ],
+                "algorithms.take_1d": [
+                    516
+                ],
+                "algorithms": [
+                    516
+                ],
+                "np.vstack": [
+                    518
+                ],
+                "np.object_": [
+                    520
+                ],
+                "gen": [
+                    552,
+                    554
+                ],
+                "x.keys": [
+                    552
+                ],
+                "sort": [
+                    553,
+                    554
+                ],
+                "d": [
+                    553,
+                    558
+                ],
+                "lib.fast_unique_multiple_list_gen": [
+                    554
+                ],
+                "lib.dicts_to_array": [
+                    560
+                ],
+                "np.object": [
+                    579
+                ],
+                "lib.maybe_convert_objects": [
+                    580
+                ],
+                "maybe_cast_to_datetime": [
+                    581
+                ],
+                "ABCPeriodIndex": [
+                    607
+                ],
+                "data._values": [
+                    608
+                ],
+                "data.copy": [
+                    610
+                ],
+                "data.dtype.kind": [
+                    615
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_102/pandas/tests/frame/test_constructors.py",
+                "test_function": "test_from_2d_ndarray_with_dtype",
+                "test_function_code": "    def test_from_2d_ndarray_with_dtype(self):\n        # GH#12513\n        array_dim2 = np.arange(10).reshape((5, 2))\n        df = pd.DataFrame(array_dim2, dtype=\"datetime64[ns, UTC]\")\n\n        expected = pd.DataFrame(array_dim2).astype(\"datetime64[ns, UTC]\")\n        tm.assert_frame_equal(df, expected)",
+                "test_error": "ValueError: If using all scalar values, you must pass an index",
+                "full_test_error": "self = <pandas.tests.frame.test_constructors.TestDataFrameConstructorWithDatetimeTZ object at 0x11d6a4dc0>\n\n    def test_from_2d_ndarray_with_dtype(self):\n        # GH#12513\n        array_dim2 = np.arange(10).reshape((5, 2))\n>       df = pd.DataFrame(array_dim2, dtype=\"datetime64[ns, UTC]\")\n\npandas/tests/frame/test_constructors.py:2558: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/frame.py:458: in __init__\n    mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)\npandas/core/internals/construction.py:157: in init_ndarray\n    return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\npandas/core/internals/construction.py:64: in arrays_to_mgr\n    index = extract_index(arrays)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ndata = [array([[0, 1],\n       [2, 3],\n       [4, 5],\n       [6, 7],\n       [8, 9]])]\n\n    def extract_index(data):\n        index = None\n        if len(data) == 0:\n            index = Index([])\n        elif len(data) > 0:\n            raw_lengths = []\n            indexes = []\n    \n            have_raw_arrays = False\n            have_series = False\n            have_dicts = False\n    \n            for val in data:\n                if isinstance(val, ABCSeries):\n                    have_series = True\n                    indexes.append(val.index)\n                elif isinstance(val, dict):\n                    have_dicts = True\n                    indexes.append(list(val.keys()))\n                elif is_list_like(val) and getattr(val, \"ndim\", 1) == 1:\n                    have_raw_arrays = True\n                    raw_lengths.append(len(val))\n    \n            if not indexes and not raw_lengths:\n>               raise ValueError(\"If using all scalar values, you must pass an index\")\nE               ValueError: If using all scalar values, you must pass an index\n\npandas/core/internals/construction.py:347: ValueError",
+                "traceback": "pandas/core/frame.py:458: in __init__\n    mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)\npandas/core/internals/construction.py:157: in init_ndarray\n    return arrays_to_mgr([values], columns, index, columns, dtype=dtype)\npandas/core/internals/construction.py:64: in arrays_to_mgr\n    index = extract_index(arrays)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ndata = [array([[0, 1],\n       [2, 3],\n       [4, 5],\n       [6, 7],\n       [8, 9]])]\n\n    def extract_index(data):\n        index = None\n        if len(data) == 0:\n            index = Index([])\n        elif len(data) > 0:\n            raw_lengths = []\n            indexes = []\n    \n            have_raw_arrays = False\n            have_series = False\n            have_dicts = False\n    \n            for val in data:\n                if isinstance(val, ABCSeries):\n                    have_series = True\n                    indexes.append(val.index)\n                elif isinstance(val, dict):\n                    have_dicts = True\n                    indexes.append(list(val.keys()))\n                elif is_list_like(val) and getattr(val, \"ndim\", 1) == 1:\n                    have_raw_arrays = True\n                    raw_lengths.append(len(val))\n    \n            if not indexes and not raw_lengths:\n>               raise ValueError(\"If using all scalar values, you must pass an index\")\nE               ValueError: If using all scalar values, you must pass an index\n\npandas/core/internals/construction.py:347: ValueError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

@@ -1,0 +1,3699 @@
+{
+    "1.1.1": "def __new__(\n    cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,\n) -> \"Index\":\n\n    from .range import RangeIndex\n    from pandas import PeriodIndex, DatetimeIndex, TimedeltaIndex\n    from .numeric import Float64Index, Int64Index, UInt64Index\n    from .interval import IntervalIndex\n    from .category import CategoricalIndex\n\n    name = maybe_extract_name(name, data, cls)\n\n    if isinstance(data, ABCPandasArray):\n        # ensure users don't accidentally put a PandasArray in an index.\n        data = data.to_numpy()\n\n    # range\n    if isinstance(data, RangeIndex):\n        return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)\n    elif isinstance(data, range):\n        return RangeIndex.from_range(data, dtype=dtype, name=name)\n\n    # categorical\n    elif is_categorical_dtype(data) or is_categorical_dtype(dtype):\n        return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)\n\n    # interval\n    elif (\n        is_interval_dtype(data) or is_interval_dtype(dtype)\n    ) and not is_object_dtype(dtype):\n        closed = kwargs.get(\"closed\", None)\n        return IntervalIndex(data, dtype=dtype, name=name, copy=copy, closed=closed)\n\n    elif (\n        is_datetime64_any_dtype(data)\n        or is_datetime64_any_dtype(dtype)\n        or \"tz\" in kwargs\n    ):\n        if is_dtype_equal(_o_dtype, dtype):\n            # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,\n            #  will raise in the where `data` is already tz-aware.  So\n            #  we leave it out of this step and cast to object-dtype after\n            #  the DatetimeIndex construction.\n            # Note we can pass copy=False because the .astype below\n            #  will always make a copy\n            return DatetimeIndex(data, copy=False, name=name, **kwargs).astype(\n                object\n            )\n        else:\n            return DatetimeIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)\n\n    elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):\n        if is_dtype_equal(_o_dtype, dtype):\n            # Note we can pass copy=False because the .astype below\n            #  will always make a copy\n            return TimedeltaIndex(data, copy=False, name=name, **kwargs).astype(\n                object\n            )\n        else:\n            return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)\n\n    elif is_period_dtype(data) and not is_object_dtype(dtype):\n        return PeriodIndex(data, copy=copy, name=name, **kwargs)\n\n    # extension dtype\n    elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):\n        if not (dtype is None or is_object_dtype(dtype)):\n            # coerce to the provided dtype\n            ea_cls = dtype.construct_array_type()\n            data = ea_cls._from_sequence(data, dtype=dtype, copy=False)\n        else:\n            data = np.asarray(data, dtype=object)\n\n        # coerce to the object dtype\n        data = data.astype(object)\n        return Index(data, dtype=object, copy=copy, name=name, **kwargs)\n\n    # index-like\n    elif isinstance(data, (np.ndarray, Index, ABCSeries)):\n        if dtype is not None:\n            # we need to avoid having numpy coerce\n            # things that look like ints/floats to ints unless\n            # they are actually ints, e.g. '0' and 0.0\n            # should not be coerced\n            # GH 11836\n            data = _maybe_cast_with_dtype(data, dtype, copy)\n            dtype = data.dtype  # TODO: maybe not for object?\n\n        # maybe coerce to a sub-class\n        if is_signed_integer_dtype(data.dtype):\n            return Int64Index(data, copy=copy, dtype=dtype, name=name)\n        elif is_unsigned_integer_dtype(data.dtype):\n            return UInt64Index(data, copy=copy, dtype=dtype, name=name)\n        elif is_float_dtype(data.dtype):\n            return Float64Index(data, copy=copy, dtype=dtype, name=name)\n        elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):\n            subarr = data.astype(\"object\")\n        else:\n            subarr = com.asarray_tuplesafe(data, dtype=object)\n\n        # asarray_tuplesafe does not always copy underlying data,\n        # so need to make sure that this happens\n        if copy:\n            subarr = subarr.copy()\n\n        if dtype is None:\n            new_data, new_dtype = _maybe_cast_data_without_dtype(subarr)\n            if new_dtype is not None:\n                return cls(\n                    new_data, dtype=new_dtype, copy=False, name=name, **kwargs\n                )\n\n        if kwargs:\n            raise TypeError(f\"Unexpected keyword arguments {repr(set(kwargs))}\")\n        return cls._simple_new(subarr, name, **kwargs)\n\n    elif hasattr(data, \"__array__\"):\n        return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)\n    elif data is None or is_scalar(data):\n        raise cls._scalar_data_error(data)\n    else:\n        if tupleize_cols and is_list_like(data):\n            # GH21470: convert iterable to list before determining if empty\n            if is_iterator(data):\n                data = list(data)\n\n            if data and all(isinstance(e, tuple) for e in data):\n                # we must be all tuples, otherwise don't construct\n                # 10697\n                from .multi import MultiIndex\n\n                return MultiIndex.from_tuples(\n                    data, names=name or kwargs.get(\"names\")\n                )\n        # other iterable of some kind\n        subarr = com.asarray_tuplesafe(data, dtype=object)\n        return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)\n",
+    "1.1.2": null,
+    "1.2.1": "class Index(IndexOpsMixin, PandasObject)",
+    "1.2.2": "Immutable ndarray implementing an ordered, sliceable set. The basic object\nstoring axis labels for all pandas objects.\n\nParameters\n----------\ndata : array-like (1-dimensional)\ndtype : NumPy dtype (default: object)\n    If dtype is None, we find the dtype that best fits the data.\n    If an actual dtype is provided, we coerce to that dtype if it's safe.\n    Otherwise, an error will be raised.\ncopy : bool\n    Make a copy of input ndarray.\nname : object\n    Name to be stored in the index.\ntupleize_cols : bool (default: True)\n    When True, attempt to create a MultiIndex if possible.\n\nSee Also\n--------\nRangeIndex : Index implementing a monotonic integer range.\nCategoricalIndex : Index of :class:`Categorical` s.\nMultiIndex : A multi-level, or hierarchical, Index.\nIntervalIndex : An Index of :class:`Interval` s.\nDatetimeIndex, TimedeltaIndex, PeriodIndex\nInt64Index, UInt64Index,  Float64Index\n\nNotes\n-----\nAn Index instance can **only** contain hashable objects\n\nExamples\n--------\n>>> pd.Index([1, 2, 3])\nInt64Index([1, 2, 3], dtype='int64')\n\n>>> pd.Index(list('abc'))\nIndex(['a', 'b', 'c'], dtype='object')",
+    "1.2.3": [
+        "_simple_new(cls, values, name=None, dtype=None)",
+        "dtype(self)",
+        "astype(self, dtype, copy=True)",
+        "copy(self, name=None, deep=False, dtype=None, **kwargs)",
+        "name(self)",
+        "name(self, value)",
+        "_scalar_data_error(cls, data)"
+    ],
+    "1.2.4": null,
+    "1.2.5": null,
+    "1.3.1": "pandas/core/indexes/base.py",
+    "1.3.2": [
+        "maybe_extract_name(name, obj, cls) -> Optional[Hashable]",
+        "_maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray",
+        "_maybe_cast_data_without_dtype(subarr)",
+        "_simple_new(cls, values, name=None, dtype=None)",
+        "dtype(self)",
+        "astype(self, dtype, copy=True)",
+        "copy(self, name=None, deep=False, dtype=None, **kwargs)",
+        "name(self)",
+        "name(self, value)",
+        "_scalar_data_error(cls, data)"
+    ],
+    "1.4.1": [
+        "    def test_base_constructor_with_period_dtype(self):\n        dtype = PeriodDtype(\"D\")\n        values = [\"2011-01-01\", \"2012-03-04\", \"2014-05-01\"]\n        result = pd.Index(values, dtype=dtype)\n\n        expected = pd.PeriodIndex(values, dtype=dtype)\n        tm.assert_index_equal(result, expected)"
+    ],
+    "1.4.2": [
+        "pandas/tests/indexes/period/test_constructors.py"
+    ],
+    "2.1.1": [
+        [
+            "E           AssertionError: Index are different\nE           \nE           Index classes are not equivalent\nE           [left]:  Index([2011-01-01, 2012-03-04, 2014-05-01], dtype='object')\nE           [right]: PeriodIndex(['2011-01-01', '2012-03-04', '2014-05-01'], dtype='period[D]', freq='D')"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.indexes.period.test_constructors.TestPeriodIndex object at 0x113b933a0>\n\n    def test_base_constructor_with_period_dtype(self):\n        dtype = PeriodDtype(\"D\")\n        values = [\"2011-01-01\", \"2012-03-04\", \"2014-05-01\"]\n        result = pd.Index(values, dtype=dtype)\n    \n        expected = pd.PeriodIndex(values, dtype=dtype)\n>       tm.assert_index_equal(result, expected)\n\npandas/tests/indexes/period/test_constructors.py:38: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nl = Index([2011-01-01, 2012-03-04, 2014-05-01], dtype='object')\nr = PeriodIndex(['2011-01-01', '2012-03-04', '2014-05-01'], dtype='period[D]', freq='D')\nobj = 'Index'\n\n    def _check_types(l, r, obj=\"Index\"):\n        if exact:\n>           assert_class_equal(l, r, exact=exact, obj=obj)",
+            "\npandas/util/testing.py:606: AssertionError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "data": {
+                    "value": "array(['\u05d0\u05d7\u05e3\u05da\u05d7\u05d1\u05e5\u05d278', '\u05d8\u05d5\u05e23\u05df\u05e02\u05d3\u05e51', ... , '\u05d7\u05d5\u05d71152\u05dc18'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['\u05d0\u05d7\u05e3\u05da\u05d7\u05d1\u05e5\u05d278', '\u05d8\u05d5\u05e23\u05df\u05e02\u05d3\u05e51', ... , '\u05d7\u05d5\u05d71152\u05dc18'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_data": {
+                    "value": "array(['\u05d0\u05d7\u05e3\u05da\u05d7\u05d1\u05e5\u05d278', '\u05d8\u05d5\u05e23\u05df\u05e02\u05d3\u05e51', ... , '\u05d7\u05d5\u05d71152\u05dc18'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['\u05d0\u05d7\u05e3\u05da\u05d7\u05d1\u05e5\u05d278', '\u05d8\u05d5\u05e23\u05df\u05e02\u05d3\u05e51', ... , '\u05d7\u05d5\u05d71152\u05dc18'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['\u05d0\u05d7\u05e3\u05da\u05d7\u05d1\u05e5\u05d278', '\u05d8\u05d5\u05e23\u05df\u05e02\u05d3\u05e51', ... , '\u05d7\u05d5\u05d71152\u05dc18'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['8MxMEbMUyq', 'f36CzG0wBf', ... , 'JL3JY55l5w'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['8MxMEbMUyq', 'f36CzG0wBf', ... , 'JL3JY55l5w'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_data": {
+                    "value": "array(['8MxMEbMUyq', 'f36CzG0wBf', ... , 'JL3JY55l5w'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['8MxMEbMUyq', 'f36CzG0wBf', ... , 'JL3JY55l5w'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['8MxMEbMUyq', 'f36CzG0wBf', ... , 'JL3JY55l5w'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]",
+                    "shape": "100",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,\n       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,\n       36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,\n       70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,\n       87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,\n       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,\n       36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,\n       70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,\n       87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,\n       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,\n       36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,\n       70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,\n       87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,\n       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,\n       34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,\n       51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,\n       68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,\n       85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99])",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,\n       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,\n       34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,\n       51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,\n       68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,\n       85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99])",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[9223372036854775808, 9223372036854775809, ... , 9223372036854775906, 9223372036854775907]",
+                    "shape": "100",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_data": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=uint64)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=uint64)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([-600.36677636, -595.70959263, ... ,  388.24051119,  390.02903287])",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[True, False]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['lw7Q', 'vKfx', 'rXpX'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['lw7Q', 'vKfx', 'rXpX'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array(['lw7Q', 'vKfx', 'rXpX'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['lw7Q', 'vKfx', 'rXpX'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['lw7Q', 'vKfx', 'rXpX'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([ 0.,  1.,  2.,  3.,  4., ... , 94., 95., 96., 97., 98., 99.])",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([  1.,   2.,   3.,   4.,   5., ... ,  97.,  98.,  99.,\n       100.])",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([1, 2, 3], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([1, 2, 3], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([1, 2, 3])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([1, 2, 3])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 1, 1, 2, 2]",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 1, 1, 2, 2], dtype=object)",
+                    "shape": "(6,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 1, 1, 2, 2], dtype=object)",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 1, 1, 2, 2], dtype=object)",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([0, 0, 1, 1, 2, 2])",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 1, 1, 2, 2])",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 0, 0, 0]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 0, 0, 0]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=uint64)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 0, 0, 0]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "data": {
+                    "value": "array([0., 0., 0., 0., 0.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "['2011-01-01', '2012-03-04', '2014-05-01']",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "period[D]",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "data": {
+                    "value": "array([Period('2011-01-01', 'D'), Period('2012-03-04', 'D'),\n       Period('2014-05-01', 'D')], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([Period('2011-01-01', 'D'), Period('2012-03-04', 'D'),\n       Period('2014-05-01', 'D')], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "subarr": {
+                    "value": "array([Period('2011-01-01', 'D'), Period('2012-03-04', 'D'),\n       Period('2014-05-01', 'D')], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "data": "ndarray",
+                "dtype": "dtype",
+                "data.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "data": "ndarray",
+                "dtype": "dtype",
+                "data.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "data": "ndarray",
+                "dtype": "dtype",
+                "data.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "dtype": "PeriodDtype",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "data": "ndarray",
+                "data.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "dtype": "dtype",
+                "subarr": "ndarray"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "data": {
+                    "value": "array(['\u05d2\u05e1\u05da0\u05e9\u05d0\u05d81\u05d5\u05e1', '\u05e2\u05e2\u05e46\u05e4\u05d28\u05e8\u05e75', ... , '\u05db\u05d99\u05e9\u05e690\u05dd\u05e6\u05e6'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['\u05d2\u05e1\u05da0\u05e9\u05d0\u05d81\u05d5\u05e1', '\u05e2\u05e2\u05e46\u05e4\u05d28\u05e8\u05e75', ... , '\u05db\u05d99\u05e9\u05e690\u05dd\u05e6\u05e6'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_data": {
+                    "value": "array(['\u05d2\u05e1\u05da0\u05e9\u05d0\u05d81\u05d5\u05e1', '\u05e2\u05e2\u05e46\u05e4\u05d28\u05e8\u05e75', ... , '\u05db\u05d99\u05e9\u05e690\u05dd\u05e6\u05e6'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['\u05d2\u05e1\u05da0\u05e9\u05d0\u05d81\u05d5\u05e1', '\u05e2\u05e2\u05e46\u05e4\u05d28\u05e8\u05e75', ... , '\u05db\u05d99\u05e9\u05e690\u05dd\u05e6\u05e6'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['\u05d2\u05e1\u05da0\u05e9\u05d0\u05d81\u05d5\u05e1', '\u05e2\u05e2\u05e46\u05e4\u05d28\u05e8\u05e75', ... , '\u05db\u05d99\u05e9\u05e690\u05dd\u05e6\u05e6'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['vWqNkEVGSf', '33bXugeJe7', ... , 'fCEF1z2yCY'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['vWqNkEVGSf', '33bXugeJe7', ... , 'fCEF1z2yCY'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_data": {
+                    "value": "array(['vWqNkEVGSf', '33bXugeJe7', ... , 'fCEF1z2yCY'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['vWqNkEVGSf', '33bXugeJe7', ... , 'fCEF1z2yCY'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['vWqNkEVGSf', '33bXugeJe7', ... , 'fCEF1z2yCY'],\n      dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]",
+                    "shape": "100",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,\n       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,\n       36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,\n       70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,\n       87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,\n       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,\n       36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,\n       70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,\n       87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,\n       19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,\n       36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,\n       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,\n       70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,\n       87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,\n       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,\n       34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,\n       51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,\n       68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,\n       85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99])",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,\n       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,\n       34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,\n       51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,\n       68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,\n       85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99])",
+                    "shape": "(100,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[9223372036854775808, 9223372036854775809, ... , 9223372036854775906, 9223372036854775907]",
+                    "shape": "100",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=object)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_data": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=uint64)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "new_dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([9223372036854775808, 9223372036854775809, ... ,\n       9223372036854775907], dtype=uint64)",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([-3016529.42801396, -2980160.9230675 , ... ,  6553503.68181018,\n        6767483.44783642])",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[True, False]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([True, False], dtype=object)",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['mlO4', 'GV86', 'eeIA'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['mlO4', 'GV86', 'eeIA'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array(['mlO4', 'GV86', 'eeIA'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['mlO4', 'GV86', 'eeIA'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['mlO4', 'GV86', 'eeIA'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([ 0.,  1.,  2.,  3.,  4., ... , 94., 95., 96., 97., 98., 99.])",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([  1.,   2.,   3.,   4.,   5., ... ,  97.,  98.,  99.,\n       100.])",
+                    "shape": "(100,)",
+                    "omitted": true
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([], dtype=object)",
+                    "shape": "(0,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array(['bar', 'baz', 'foo'], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([1, 2, 3], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([1, 2, 3], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([1, 2, 3])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([1, 2, 3])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 1, 1, 2, 2]",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 1, 1, 2, 2], dtype=object)",
+                    "shape": "(6,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 1, 1, 2, 2], dtype=object)",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 1, 1, 2, 2], dtype=object)",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "new_data": {
+                    "value": "array([0, 0, 1, 1, 2, 2])",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "new_dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 1, 1, 2, 2])",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 0, 0, 0]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 0, 0, 0]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=uint64)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('uint64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "[0, 0, 0, 0, 0]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "subarr": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "array([0, 0, 0, 0, 0], dtype=object)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "data": {
+                    "value": "array([0., 0., 0., 0., 0.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "data.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "data": {
+                    "value": "['2011-01-01', '2012-03-04', '2014-05-01']",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "copy": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "dtype": {
+                    "value": "period[D]",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tupleize_cols": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray",
+                "new_data": "ndarray",
+                "new_dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "dtype": "dtype",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "data": "ndarray",
+                "dtype": "dtype",
+                "data.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "data": "ndarray",
+                "dtype": "dtype",
+                "data.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {
+                "subarr": "ndarray"
+            }
+        ],
+        [
+            {
+                "data": "ndarray",
+                "copy": "bool",
+                "kwargs": "dict",
+                "data.dtype": "dtype",
+                "tupleize_cols": "bool"
+            },
+            {
+                "data": "ndarray",
+                "dtype": "dtype",
+                "data.dtype": "dtype"
+            }
+        ],
+        [
+            {
+                "data": "list",
+                "copy": "bool",
+                "dtype": "PeriodDtype",
+                "kwargs": "dict",
+                "tupleize_cols": "bool"
+            },
+            {}
+        ]
+    ],
+    "3.1.1": [
+        "BUG/API: Index constructor does not enforce specified dtype\n",
+        "Index Constructors inferring output from data\n"
+    ],
+    "3.1.2": [
+        "Code Sample, a copy-pastable example if possible\nManually specifying a dtype does not garantuee the output is in that dtype. Eg with Series if incompatible data is passed, an error is raised, while for Index it just silently outputs another dtype:\n\nIn [11]: pd.Series(['a', 'b', 'c'], dtype='int64')\n...\nValueError: invalid literal for int() with base 10: 'a'\n\nIn [12]: pd.Index(['a', 'b', 'c'], dtype='int64')\nOut[12]: Index(['a', 'b', 'c'], dtype='object')\n",
+        "Two proposals:\n\nConsolidate all inference to the Index constructor\nRetain Index(...) inferring the best container for the data passed\nRemove MultiIndex(data) returning an Index when data is a list of length-1 tuples (xref API: Have MultiIndex consturctors always return a MI #17236)\nPassing dtype=object disables inference\nIndex(..., dtype=object) disable all inference. So Index([1, 2], dtype=object) will give you an Index instead of Int64Index, and Index([(1, 'a'), (2, 'b')], dtype=object) an Index instead of MultiIndex, etc.\n\n(original post follows)\n\nOr how much magic should we have in the Index constructors? Currently we infer the index type from the data, which is often convenient, but sometime difficult to reason able behavior. e.g. hash_tuples currently doesn't work if your tuples all happen to be length 1, since it uses a MultiIndex internally.\n\nDo we want to make our Index constructors more predictable? For reference, here are some examples:\n\n>>> import pandas as pd\n# 1.) Index -> MultiIndex\n>>> pd.Index([(1, 2), (3, 4)])\nMultiIndex(levels=[[1, 3], [2, 4]],\n           labels=[[0, 1], [0, 1]])\n\n>>> pd.Index([(1, 2), (3, 4)], tupleize_cols=False)\nIndex([(1, 2), (3, 4)], dtype='object')\n\n# 2.) Index -> Int64Index\n>>> pd.Index([1, 2, 3, 4, 5])\nInt64Index([1, 2, 3, 4, 5], dtype='int64')\n\n# 3.) Index -> RangeIndex\n>>> pd.Index(range(1, 5))\nRangeIndex(start=1, stop=5, step=1)\n\n# 4.) Index -> DatetimeIndex\n>>> pd.Index([pd.Timestamp('2017'), pd.Timestamp('2018')])\nDatetimeIndex(['2017-01-01', '2018-01-01'], dtype='datetime64[ns]', freq=None)\n\n# 5.) Index -> IntervalIndex\n>>> pd.Index([pd.Interval(3, 4), pd.Interval(4, 5)])\nIntervalIndex([(3, 4], (4, 5]]\n              closed='right',\n              dtype='interval[int64]')\n\n# 5.) MultiIndex -> Index\n>>> pd.MultiIndex.from_tuples([(1,), (2,), (3,)])\nInt64Index([1, 2, 3], dtype='int64')\nOf these, I think the first (Index -> MultiIndex if you have tuples) and the last (MultiIndex -> Index if you're tuples are all length 1) are undesirable. The Index -> MultiIndex one has the tupleize_cols keyword to control this behavior. In #17236 I add an analogous keyword to the MI constructor. The rest are probably fine, but I don't have any real reason for saying that [1, 2, 3] magically returning an Int64Index is ok, but [(1, 2), (3, 4)] returning a MI isn't (maybe the difference between a MI and Index is larger than the difference between an Int64Index and Index?). I believe that in either the RangeIndex or IntervalIndex someone (@shoyer?) had objections to overloading the Index constructor to return the specialized type.\n\nSo, what should we do about these? Leave them as is? Deprecate the type inference? My vote is for merging #17236 and leaving everything else as is. To me, it's not worth breaking API over.\n\ncc @jreback, @jorisvandenbossche, @shoyer\n"
+    ]
+}

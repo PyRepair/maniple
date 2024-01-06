@@ -1,0 +1,95 @@
+{
+    "1.1.1": "def astype(self, dtype, copy=True):\n    \n\n    # if we are astyping to an existing IntegerDtype we can fastpath\n    if isinstance(dtype, _IntegerDtype):\n        result = self._data.astype(dtype.numpy_dtype, copy=False)\n        return type(self)(result, mask=self._mask, copy=False)\n\n    # coerce\n    if is_float_dtype(dtype):\n        # In astype, we consider dtype=float to also mean na_value=np.nan\n        kwargs = dict(na_value=np.nan)\n    else:\n        kwargs = {}\n\n    data = self.to_numpy(dtype=dtype, **kwargs)\n    return astype_nansafe(data, dtype, copy=False)\n",
+    "1.1.2": "Cast to a NumPy array or IntegerArray with 'dtype'.\n\nParameters\n----------\ndtype : str or dtype\n    Typecode or data-type to which the array is cast.\ncopy : bool, default True\n    Whether to copy the data, even if not necessary. If False,\n    a copy is made only if the old dtype does not match the\n    new dtype.\n\nReturns\n-------\narray : ndarray or IntegerArray\n    NumPy ndarray or IntergerArray with 'dtype' for its dtype.\n\nRaises\n------\nTypeError\n    if incompatible type with an IntegerDtype, equivalent of same_kind\n    casting",
+    "1.2.1": "class IntegerArray(BaseMaskedArray)",
+    "1.2.2": "Array of integer (optional missing) values.\n\n.. versionadded:: 0.24.0\n\n.. versionchanged:: 1.0.0\n\n   Now uses :attr:`pandas.NA` as the missing value rather\n   than :attr:`numpy.nan`.\n\n.. warning::\n\n   IntegerArray is currently experimental, and its API or internal\n   implementation may change without warning.\n\nWe represent an IntegerArray with 2 numpy arrays:\n\n- data: contains a numpy integer array of the appropriate dtype\n- mask: a boolean array holding a mask on the data, True is missing\n\nTo construct an IntegerArray from generic array-like input, use\n:func:`pandas.array` with one of the integer dtypes (see examples).\n\nSee :ref:`integer_na` for more.\n\nParameters\n----------\nvalues : numpy.ndarray\n    A 1-d integer-dtype array.\nmask : numpy.ndarray\n    A 1-d boolean-dtype array indicating missing values.\ncopy : bool, default False\n    Whether to copy the `values` and `mask`.\n\nAttributes\n----------\nNone\n\nMethods\n-------\nNone\n\nReturns\n-------\nIntegerArray\n\nExamples\n--------\nCreate an IntegerArray with :func:`pandas.array`.\n\n>>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())\n>>> int_array\n<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: Int32\n\nString aliases for the dtypes are also available. They are capitalized.\n\n>>> pd.array([1, None, 3], dtype='Int32')\n<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: Int32\n\n>>> pd.array([1, None, 3], dtype='UInt16')\n<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: UInt16",
+    "1.2.3": [
+        "dtype(self)",
+        "astype(self, dtype, copy=True)"
+    ],
+    "1.2.4": null,
+    "1.2.5": null,
+    "1.3.1": "pandas/core/arrays/integer.py",
+    "1.3.2": [
+        "numpy_dtype(self)",
+        "dtype(self)",
+        "astype(self, dtype, copy=True)"
+    ],
+    "1.4.1": [
+        "    def test_astype_boolean(self):\n        # https://github.com/pandas-dev/pandas/issues/31102\n        a = pd.array([1, 0, -1, 2, None], dtype=\"Int64\")\n        result = a.astype(\"boolean\")\n        expected = pd.array([True, False, True, True, None], dtype=\"boolean\")\n        tm.assert_extension_array_equal(result, expected)"
+    ],
+    "1.4.2": [
+        "pandas/tests/arrays/test_integer.py"
+    ],
+    "2.1.1": [
+        [
+            "E               ValueError: cannot convert to 'boolean'-dtype NumPy array with missing values. Specify an appropriate 'na_value' for this dtype."
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.arrays.test_integer.TestCasting object at 0x11dc44b20>\n\n    def test_astype_boolean(self):\n        # https://github.com/pandas-dev/pandas/issues/31102\n        a = pd.array([1, 0, -1, 2, None], dtype=\"Int64\")\n>       result = a.astype(\"boolean\")\n\npandas/tests/arrays/test_integer.py:686: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/arrays/integer.py:456: in astype\n    data = self.to_numpy(dtype=dtype, **kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64\ndtype = 'boolean', copy = False, na_value = <NA>\n\n    def to_numpy(\n        self, dtype=None, copy=False, na_value: \"Scalar\" = lib.no_default,\n    ):\n        \"\"\"\n        Convert to a NumPy Array.\n    \n        By default converts to an object-dtype NumPy array. Specify the `dtype` and\n        `na_value` keywords to customize the conversion.\n    \n        Parameters\n        ----------\n        dtype : dtype, default object\n            The numpy dtype to convert to.\n        copy : bool, default False\n            Whether to ensure that the returned value is a not a view on\n            the array. Note that ``copy=False`` does not *ensure* that\n            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that\n            a copy is made, even if not strictly necessary. This is typically\n            only possible when no missing values are present and `dtype`\n            is the equivalent numpy dtype.\n        na_value : scalar, optional\n             Scalar missing value indicator to use in numpy array. Defaults\n             to the native missing value indicator of this array (pd.NA).\n    \n        Returns\n        -------\n        numpy.ndarray\n    \n        Examples\n        --------\n        An object-dtype is the default result\n    \n        >>> a = pd.array([True, False, pd.NA], dtype=\"boolean\")\n        >>> a.to_numpy()\n        array([True, False, NA], dtype=object)\n    \n        When no missing values are present, an equivalent dtype can be used.\n    \n        >>> pd.array([True, False], dtype=\"boolean\").to_numpy(dtype=\"bool\")\n        array([ True, False])\n        >>> pd.array([1, 2], dtype=\"Int64\").to_numpy(\"int64\")\n        array([1, 2])\n    \n        However, requesting such dtype will raise a ValueError if\n        missing values are present and the default missing value :attr:`NA`\n        is used.\n    \n        >>> a = pd.array([True, False, pd.NA], dtype=\"boolean\")\n        >>> a\n        <BooleanArray>\n        [True, False, NA]\n        Length: 3, dtype: boolean\n    \n        >>> a.to_numpy(dtype=\"bool\")\n        Traceback (most recent call last):\n        ...\n        ValueError: cannot convert to bool numpy array in presence of missing values\n    \n        Specify a valid `na_value` instead\n    \n        >>> a.to_numpy(dtype=\"bool\", na_value=False)\n        array([ True, False, False])\n        \"\"\"\n        if na_value is lib.no_default:\n            na_value = libmissing.NA\n        if dtype is None:\n            dtype = object\n        if self._hasna:\n            if (\n                not (is_object_dtype(dtype) or is_string_dtype(dtype))\n                and na_value is libmissing.NA\n            ):\n>               raise ValueError(\n                    f\"cannot convert to '{dtype}'-dtype NumPy array \"\n                    \"with missing values. Specify an appropriate 'na_value' \"\n                    \"for this dtype.\"\n                )",
+            "\npandas/core/arrays/masked.py:125: ValueError"
+        ]
+    ],
+    "2.1.3": null,
+    "2.1.4": null,
+    "2.1.5": [
+        [
+            {
+                "dtype": {
+                    "value": "'boolean'",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "self._data": {
+                    "value": "array([ 1,  0, -1,  2,  1])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "<IntegerArray>\n[1, 0, -1, 2, <NA>]\nLength: 5, dtype: Int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self._mask": {
+                    "value": "array([False, False, False, False,  True])",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "dtype": {
+                    "value": "BooleanDtype",
+                    "shape": null,
+                    "omitted": false
+                },
+                "result": {
+                    "value": "array([ True, False,  True,  True,  True])",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "dtype": "str",
+                "self._data": "ndarray",
+                "self": "IntegerArray",
+                "self._mask": "ndarray"
+            },
+            {
+                "dtype": "BooleanDtype",
+                "result": "ndarray"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "BUG: Cannot astype from IntegerArray to BooleanArray with missing values\n"
+    ],
+    "3.1.2": [
+        "For the boolean -> integer array conversion, I added a special path for that. But astypeing integer to boolean is currently not working:\n\nIn [23]: a = pd.array([1, 0, pd.NA])  \n\nIn [24]: a  \nOut[24]: \n<IntegerArray>\n[1, 0, <NA>]\nLength: 3, dtype: Int64\n\nIn [25]: a.astype(\"boolean\")  \n---------------------------------------------------------------------------\nValueError                                Traceback (most recent call last)\n<ipython-input-25-41973ed53ee3> in <module>\n----> 1 a.astype(\"boolean\")\n\n~/scipy/pandas/pandas/core/arrays/integer.py in astype(self, dtype, copy)\n    454             kwargs = {}\n    455 \n--> 456         data = self.to_numpy(dtype=dtype, **kwargs)\n    457         return astype_nansafe(data, dtype, copy=False)\n    458 \n\n~/scipy/pandas/pandas/core/arrays/masked.py in to_numpy(self, dtype, copy, na_value)\n    124             ):\n    125                 raise ValueError(\n--> 126                     f\"cannot convert to '{dtype}'-dtype NumPy array \"\n    127                     \"with missing values. Specify an appropriate 'na_value' \"\n    128                     \"for this dtype.\"\n\nValueError: cannot convert to 'boolean'-dtype NumPy array with missing values. Specify an appropriate 'na_value' for this dtype.\n\nIn [26]: a.astype(pd.BooleanDtype()) \n...\nValueError: cannot convert to 'boolean'-dtype NumPy array with missing values. Specify an appropriate 'na_value' for this dtype.\nwhile for conversions to other nullable dtypes, this should be possible.\n"
+    ]
+}

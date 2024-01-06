@@ -1,0 +1,2907 @@
+{
+    "pandas:118": {
+        "/Volumes/JerrySSD/bgp_envs/repos/pandas_118/pandas/core/reshape/melt.py": {
+            "buggy_functions": [
+                {
+                    "function_name": "melt",
+                    "function_code": "@Appender(\n    _shared_docs[\"melt\"]\n    % dict(caller=\"pd.melt(df, \", versionadded=\"\", other=\"DataFrame.melt\")\n)\ndef melt(\n    frame: DataFrame,\n    id_vars=None,\n    value_vars=None,\n    var_name=None,\n    value_name=\"value\",\n    col_level=None,\n) -> DataFrame:\n    # TODO: what about the existing index?\n    # If multiindex, gather names of columns on all level for checking presence\n    # of `id_vars` and `value_vars`\n    if isinstance(frame.columns, ABCMultiIndex):\n        cols = [x for c in frame.columns for x in c]\n    else:\n        cols = list(frame.columns)\n\n    if id_vars is not None:\n        if not is_list_like(id_vars):\n            id_vars = [id_vars]\n        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):\n            raise ValueError(\n                \"id_vars must be a list of tuples when columns are a MultiIndex\"\n            )\n        else:\n            # Check that `id_vars` are in frame\n            id_vars = list(id_vars)\n            missing = Index(np.ravel(id_vars)).difference(cols)\n            if not missing.empty:\n                raise KeyError(\n                    \"The following 'id_vars' are not present\"\n                    \" in the DataFrame: {missing}\"\n                    \"\".format(missing=list(missing))\n                )\n    else:\n        id_vars = []\n\n    if value_vars is not None:\n        if not is_list_like(value_vars):\n            value_vars = [value_vars]\n        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(\n            value_vars, list\n        ):\n            raise ValueError(\n                \"value_vars must be a list of tuples when columns are a MultiIndex\"\n            )\n        else:\n            value_vars = list(value_vars)\n            # Check that `value_vars` are in frame\n            missing = Index(np.ravel(value_vars)).difference(cols)\n            if not missing.empty:\n                raise KeyError(\n                    \"The following 'value_vars' are not present in\"\n                    \" the DataFrame: {missing}\"\n                    \"\".format(missing=list(missing))\n                )\n        frame = frame.loc[:, id_vars + value_vars]\n    else:\n        frame = frame.copy()\n\n    if col_level is not None:  # allow list or other?\n        # frame is a copy\n        frame.columns = frame.columns.get_level_values(col_level)\n\n    if var_name is None:\n        if isinstance(frame.columns, ABCMultiIndex):\n            if len(frame.columns.names) == len(set(frame.columns.names)):\n                var_name = frame.columns.names\n            else:\n                var_name = [\n                    \"variable_{i}\".format(i=i) for i in range(len(frame.columns.names))\n                ]\n        else:\n            var_name = [\n                frame.columns.name if frame.columns.name is not None else \"variable\"\n            ]\n    if isinstance(var_name, str):\n        var_name = [var_name]\n\n    N, K = frame.shape\n    K -= len(id_vars)\n\n    mdata = {}\n    for col in id_vars:\n        id_data = frame.pop(col)\n        if is_extension_array_dtype(id_data):\n            id_data = concat([id_data] * K, ignore_index=True)\n        else:\n            id_data = np.tile(id_data.values, K)\n        mdata[col] = id_data\n\n    mcolumns = id_vars + var_name + [value_name]\n\n    mdata[value_name] = frame.values.ravel(\"F\")\n    for i, col in enumerate(var_name):\n        # asanyarray will keep the columns as an Index\n        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)\n\n    return frame._constructor(mdata, columns=mcolumns)\n",
+                    "decorators": [
+                        "Appender(_shared_docs['melt'] % dict(caller='pd.melt(df, ', versionadded='', other='DataFrame.melt'))"
+                    ],
+                    "docstring": null,
+                    "start_line": 20,
+                    "end_line": 121,
+                    "variables": {
+                        "DataFrame": [
+                            25,
+                            31
+                        ],
+                        "isinstance": [
+                            35,
+                            99,
+                            43,
+                            88,
+                            63
+                        ],
+                        "frame.columns": [
+                            97,
+                            35,
+                            36,
+                            38,
+                            43,
+                            85,
+                            119,
+                            88,
+                            89,
+                            90,
+                            93,
+                            63
+                        ],
+                        "frame": [
+                            97,
+                            121,
+                            35,
+                            36,
+                            38,
+                            102,
+                            43,
+                            107,
+                            79,
+                            81,
+                            116,
+                            85,
+                            119,
+                            88,
+                            89,
+                            90,
+                            93,
+                            63
+                        ],
+                        "ABCMultiIndex": [
+                            88,
+                            43,
+                            35,
+                            63
+                        ],
+                        "cols": [
+                            72,
+                            50,
+                            36,
+                            38
+                        ],
+                        "x": [
+                            36
+                        ],
+                        "c": [
+                            36
+                        ],
+                        "list": [
+                            64,
+                            38,
+                            70,
+                            43,
+                            77,
+                            49,
+                            55
+                        ],
+                        "id_vars": [
+                            103,
+                            40,
+                            41,
+                            42,
+                            43,
+                            106,
+                            79,
+                            49,
+                            50,
+                            114,
+                            58
+                        ],
+                        "is_list_like": [
+                            41,
+                            61
+                        ],
+                        "ValueError": [
+                            66,
+                            44
+                        ],
+                        "missing": [
+                            72,
+                            73,
+                            77,
+                            50,
+                            51,
+                            55
+                        ],
+                        "difference": [
+                            72,
+                            50
+                        ],
+                        "Index": [
+                            72,
+                            50
+                        ],
+                        "np.ravel": [
+                            72,
+                            50
+                        ],
+                        "np": [
+                            72,
+                            50,
+                            119,
+                            111
+                        ],
+                        "missing.empty": [
+                            73,
+                            51
+                        ],
+                        "KeyError": [
+                            74,
+                            52
+                        ],
+                        "format": [
+                            75,
+                            93,
+                            53
+                        ],
+                        "value_vars": [
+                            64,
+                            70,
+                            72,
+                            79,
+                            60,
+                            61,
+                            62
+                        ],
+                        "frame.loc": [
+                            79
+                        ],
+                        "frame.copy": [
+                            81
+                        ],
+                        "col_level": [
+                            83,
+                            85
+                        ],
+                        "frame.columns.get_level_values": [
+                            85
+                        ],
+                        "var_name": [
+                            96,
+                            99,
+                            100,
+                            114,
+                            117,
+                            87,
+                            90,
+                            92
+                        ],
+                        "len": [
+                            89,
+                            93,
+                            103
+                        ],
+                        "frame.columns.names": [
+                            89,
+                            90,
+                            93
+                        ],
+                        "set": [
+                            89
+                        ],
+                        "i": [
+                            117,
+                            93,
+                            119
+                        ],
+                        "range": [
+                            93
+                        ],
+                        "frame.columns.name": [
+                            97
+                        ],
+                        "str": [
+                            99
+                        ],
+                        "N": [
+                            102,
+                            119
+                        ],
+                        "K": [
+                            111,
+                            109,
+                            102,
+                            103
+                        ],
+                        "frame.shape": [
+                            102
+                        ],
+                        "mdata": [
+                            105,
+                            112,
+                            116,
+                            119,
+                            121
+                        ],
+                        "col": [
+                            106,
+                            107,
+                            112,
+                            117,
+                            119
+                        ],
+                        "id_data": [
+                            107,
+                            108,
+                            109,
+                            111,
+                            112
+                        ],
+                        "frame.pop": [
+                            107
+                        ],
+                        "is_extension_array_dtype": [
+                            108
+                        ],
+                        "concat": [
+                            109
+                        ],
+                        "np.tile": [
+                            111
+                        ],
+                        "id_data.values": [
+                            111
+                        ],
+                        "mcolumns": [
+                            121,
+                            114
+                        ],
+                        "value_name": [
+                            114,
+                            116
+                        ],
+                        "frame.values.ravel": [
+                            116
+                        ],
+                        "frame.values": [
+                            116
+                        ],
+                        "enumerate": [
+                            117
+                        ],
+                        "repeat": [
+                            119
+                        ],
+                        "np.asanyarray": [
+                            119
+                        ],
+                        "frame.columns._get_level_values": [
+                            119
+                        ],
+                        "frame._constructor": [
+                            121
+                        ],
+                        "Appender": [
+                            20
+                        ],
+                        "_shared_docs": [
+                            21
+                        ],
+                        "dict": [
+                            22
+                        ]
+                    },
+                    "filtered_variables": {
+                        "DataFrame": [
+                            25,
+                            31
+                        ],
+                        "frame.columns": [
+                            97,
+                            35,
+                            36,
+                            38,
+                            43,
+                            85,
+                            119,
+                            88,
+                            89,
+                            90,
+                            93,
+                            63
+                        ],
+                        "frame": [
+                            97,
+                            121,
+                            35,
+                            36,
+                            38,
+                            102,
+                            43,
+                            107,
+                            79,
+                            81,
+                            116,
+                            85,
+                            119,
+                            88,
+                            89,
+                            90,
+                            93,
+                            63
+                        ],
+                        "ABCMultiIndex": [
+                            88,
+                            43,
+                            35,
+                            63
+                        ],
+                        "cols": [
+                            72,
+                            50,
+                            36,
+                            38
+                        ],
+                        "x": [
+                            36
+                        ],
+                        "c": [
+                            36
+                        ],
+                        "id_vars": [
+                            103,
+                            40,
+                            41,
+                            42,
+                            43,
+                            106,
+                            79,
+                            49,
+                            50,
+                            114,
+                            58
+                        ],
+                        "is_list_like": [
+                            41,
+                            61
+                        ],
+                        "missing": [
+                            72,
+                            73,
+                            77,
+                            50,
+                            51,
+                            55
+                        ],
+                        "difference": [
+                            72,
+                            50
+                        ],
+                        "Index": [
+                            72,
+                            50
+                        ],
+                        "np.ravel": [
+                            72,
+                            50
+                        ],
+                        "np": [
+                            72,
+                            50,
+                            119,
+                            111
+                        ],
+                        "missing.empty": [
+                            73,
+                            51
+                        ],
+                        "value_vars": [
+                            64,
+                            70,
+                            72,
+                            79,
+                            60,
+                            61,
+                            62
+                        ],
+                        "frame.loc": [
+                            79
+                        ],
+                        "frame.copy": [
+                            81
+                        ],
+                        "col_level": [
+                            83,
+                            85
+                        ],
+                        "frame.columns.get_level_values": [
+                            85
+                        ],
+                        "var_name": [
+                            96,
+                            99,
+                            100,
+                            114,
+                            117,
+                            87,
+                            90,
+                            92
+                        ],
+                        "frame.columns.names": [
+                            89,
+                            90,
+                            93
+                        ],
+                        "i": [
+                            117,
+                            93,
+                            119
+                        ],
+                        "frame.columns.name": [
+                            97
+                        ],
+                        "N": [
+                            102,
+                            119
+                        ],
+                        "K": [
+                            111,
+                            109,
+                            102,
+                            103
+                        ],
+                        "frame.shape": [
+                            102
+                        ],
+                        "mdata": [
+                            105,
+                            112,
+                            116,
+                            119,
+                            121
+                        ],
+                        "col": [
+                            106,
+                            107,
+                            112,
+                            117,
+                            119
+                        ],
+                        "id_data": [
+                            107,
+                            108,
+                            109,
+                            111,
+                            112
+                        ],
+                        "frame.pop": [
+                            107
+                        ],
+                        "is_extension_array_dtype": [
+                            108
+                        ],
+                        "concat": [
+                            109
+                        ],
+                        "np.tile": [
+                            111
+                        ],
+                        "id_data.values": [
+                            111
+                        ],
+                        "mcolumns": [
+                            121,
+                            114
+                        ],
+                        "value_name": [
+                            114,
+                            116
+                        ],
+                        "frame.values.ravel": [
+                            116
+                        ],
+                        "frame.values": [
+                            116
+                        ],
+                        "repeat": [
+                            119
+                        ],
+                        "np.asanyarray": [
+                            119
+                        ],
+                        "frame.columns._get_level_values": [
+                            119
+                        ],
+                        "frame._constructor": [
+                            121
+                        ],
+                        "Appender": [
+                            20
+                        ],
+                        "_shared_docs": [
+                            21
+                        ]
+                    },
+                    "diff_line_number": 50,
+                    "class_data": null,
+                    "variable_values": [
+                        [
+                            {
+                                "DataFrame": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns": {
+                                    "variable_value": "Index([0, 'a'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(2,)"
+                                },
+                                "frame": {
+                                    "variable_value": "     0    a\n0  foo  bar",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "ABCMultiIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cols": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_vars": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_list_like": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "difference": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.ravel": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value_vars": {
+                                    "variable_value": "[0, 'a']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "frame.loc": {
+                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x1221dc590>",
+                                    "variable_type": "_LocIndexer",
+                                    "variable_shape": null
+                                },
+                                "frame.copy": {
+                                    "variable_value": "<bound method NDFrame.copy of      0    a\n0  foo  bar>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "col_level": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "var_name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.names": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "N": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "K": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.shape": {
+                                    "variable_value": "(1, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "mdata": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "col": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.pop": {
+                                    "variable_value": "<bound method NDFrame.pop of      0    a\n0  foo  bar>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.tile": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mcolumns": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value_name": {
+                                    "variable_value": "'value'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "frame.values.ravel": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.values": {
+                                    "variable_value": "array([['foo', 'bar']], dtype=object)",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "repeat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.asanyarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns._get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame._constructor": {
+                                    "variable_value": "<class 'pandas.core.frame.DataFrame'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x114a2cf40>"
+                                },
+                                "Appender": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_shared_docs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {}
+                        ]
+                    ],
+                    "angelic_variable_values": [
+                        [
+                            {
+                                "DataFrame": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns": {
+                                    "variable_value": "Index([0, 'a', 'b', 'd'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(4,)"
+                                },
+                                "frame": {
+                                    "variable_value": "     0    a  b  d\n0  foo  bar  1  2",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(1, 4)"
+                                },
+                                "ABCMultiIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cols": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_vars": {
+                                    "variable_value": "[0, 'a']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "is_list_like": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "difference": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com.flatten": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value_vars": {
+                                    "variable_value": "['b', 'd']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "frame.loc": {
+                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x11d11e0e0>",
+                                    "variable_type": "_LocIndexer",
+                                    "variable_shape": null
+                                },
+                                "frame.copy": {
+                                    "variable_value": "<bound method NDFrame.copy of      0    a  b  d\n0  foo  bar  1  2>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "col_level": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "var_name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.names": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "N": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "K": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.shape": {
+                                    "variable_value": "(1, 4)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "mdata": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "col": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.pop": {
+                                    "variable_value": "<bound method NDFrame.pop of      0    a  b  d\n0  foo  bar  1  2>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.tile": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mcolumns": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value_name": {
+                                    "variable_value": "'value'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "frame.values.ravel": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.values": {
+                                    "variable_value": "array([['foo', 'bar', 1, 2]], dtype=object)",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(1, 4)"
+                                },
+                                "repeat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.asanyarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns._get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame._constructor": {
+                                    "variable_value": "<class 'pandas.core.frame.DataFrame'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x10fab3f90>"
+                                },
+                                "Appender": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_shared_docs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "DataFrame": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns": {
+                                    "variable_value": "Index(['b', 'd'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(2,)"
+                                },
+                                "frame": {
+                                    "variable_value": "   b  d\n0  1  2",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "ABCMultiIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cols": {
+                                    "variable_value": "[0, 'a', 'b', 'd']",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_vars": {
+                                    "variable_value": "[0, 'a']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "is_list_like": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing": {
+                                    "variable_value": "Index([], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(0,)"
+                                },
+                                "difference": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com.flatten": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing.empty": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "value_vars": {
+                                    "variable_value": "['b', 'd']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "frame.loc": {
+                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x11d11ecc0>",
+                                    "variable_type": "_LocIndexer",
+                                    "variable_shape": null
+                                },
+                                "frame.copy": {
+                                    "variable_value": "<bound method NDFrame.copy of    b  d\n0  1  2>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "col_level": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "var_name": {
+                                    "variable_value": "['variable']",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "frame.columns.names": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "N": {
+                                    "variable_value": "1",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "K": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "frame.shape": {
+                                    "variable_value": "(1, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "mdata": {
+                                    "variable_value": "{0: array(['foo', 'foo'], dtype=object), 'a': array(['bar', 'bar'], dtype=object), 'value': array([1, 2]), 'variable': array(['b', 'd'], dtype=object)}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "4"
+                                },
+                                "col": {
+                                    "variable_value": "'variable'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "id_data": {
+                                    "variable_value": "array(['bar', 'bar'], dtype=object)",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(2,)"
+                                },
+                                "frame.pop": {
+                                    "variable_value": "<bound method NDFrame.pop of    b  d\n0  1  2>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.tile": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data.values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "mcolumns": {
+                                    "variable_value": "[0, 'a', 'variable', 'value']",
+                                    "variable_type": "list",
+                                    "variable_shape": "4"
+                                },
+                                "value_name": {
+                                    "variable_value": "'value'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "frame.values.ravel": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.values": {
+                                    "variable_value": "array([[1, 2]])",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "repeat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.asanyarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns._get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame._constructor": {
+                                    "variable_value": "<class 'pandas.core.frame.DataFrame'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x10fab3f90>"
+                                },
+                                "Appender": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_shared_docs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ],
+                        [
+                            {
+                                "DataFrame": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns": {
+                                    "variable_value": "Index([0, 'a'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(2,)"
+                                },
+                                "frame": {
+                                    "variable_value": "     0    a\n0  foo  bar",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "ABCMultiIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cols": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_vars": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "is_list_like": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "difference": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com.flatten": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing.empty": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value_vars": {
+                                    "variable_value": "[0, 'a']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "frame.loc": {
+                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x11d0f8ae0>",
+                                    "variable_type": "_LocIndexer",
+                                    "variable_shape": null
+                                },
+                                "frame.copy": {
+                                    "variable_value": "<bound method NDFrame.copy of      0    a\n0  foo  bar>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "col_level": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "var_name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.names": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "N": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "K": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.shape": {
+                                    "variable_value": "(1, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "mdata": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "col": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.pop": {
+                                    "variable_value": "<bound method NDFrame.pop of      0    a\n0  foo  bar>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.tile": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mcolumns": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "value_name": {
+                                    "variable_value": "'value'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "frame.values.ravel": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.values": {
+                                    "variable_value": "array([['foo', 'bar']], dtype=object)",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "repeat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.asanyarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns._get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame._constructor": {
+                                    "variable_value": "<class 'pandas.core.frame.DataFrame'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x10fab3f90>"
+                                },
+                                "Appender": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_shared_docs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            },
+                            {
+                                "DataFrame": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns": {
+                                    "variable_value": "Index([0, 'a'], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(2,)"
+                                },
+                                "frame": {
+                                    "variable_value": "     0    a\n0  foo  bar",
+                                    "variable_type": "DataFrame",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "ABCMultiIndex": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "cols": {
+                                    "variable_value": "[0, 'a']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "x": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "c": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_vars": {
+                                    "variable_value": "[]",
+                                    "variable_type": "list",
+                                    "variable_shape": "0"
+                                },
+                                "is_list_like": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing": {
+                                    "variable_value": "Index([], dtype='object')",
+                                    "variable_type": "Index",
+                                    "variable_shape": "(0,)"
+                                },
+                                "difference": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "Index": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com.flatten": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "com": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "missing.empty": {
+                                    "variable_value": "True",
+                                    "variable_type": "bool",
+                                    "variable_shape": null
+                                },
+                                "value_vars": {
+                                    "variable_value": "[0, 'a']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "frame.loc": {
+                                    "variable_value": "<pandas.core.indexing._LocIndexer object at 0x11d0f8450>",
+                                    "variable_type": "_LocIndexer",
+                                    "variable_shape": null
+                                },
+                                "frame.copy": {
+                                    "variable_value": "<bound method NDFrame.copy of      0    a\n0  foo  bar>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "col_level": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "var_name": {
+                                    "variable_value": "['variable']",
+                                    "variable_type": "list",
+                                    "variable_shape": "1"
+                                },
+                                "frame.columns.names": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "i": {
+                                    "variable_value": "0",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "frame.columns.name": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "N": {
+                                    "variable_value": "1",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "K": {
+                                    "variable_value": "2",
+                                    "variable_type": "int",
+                                    "variable_shape": null
+                                },
+                                "frame.shape": {
+                                    "variable_value": "(1, 2)",
+                                    "variable_type": "tuple",
+                                    "variable_shape": "2"
+                                },
+                                "mdata": {
+                                    "variable_value": "{'value': array(['foo', 'bar'], dtype=object), 'variable': array([0, 'a'], dtype=object)}",
+                                    "variable_type": "dict",
+                                    "variable_shape": "2"
+                                },
+                                "col": {
+                                    "variable_value": "'variable'",
+                                    "variable_type": "str",
+                                    "variable_shape": "8"
+                                },
+                                "id_data": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.pop": {
+                                    "variable_value": "<bound method NDFrame.pop of      0    a\n0  foo  bar>",
+                                    "variable_type": "method",
+                                    "variable_shape": null
+                                },
+                                "is_extension_array_dtype": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "concat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.tile": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "id_data.values": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "mcolumns": {
+                                    "variable_value": "['variable', 'value']",
+                                    "variable_type": "list",
+                                    "variable_shape": "2"
+                                },
+                                "value_name": {
+                                    "variable_value": "'value'",
+                                    "variable_type": "str",
+                                    "variable_shape": "5"
+                                },
+                                "frame.values.ravel": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame.values": {
+                                    "variable_value": "array([['foo', 'bar']], dtype=object)",
+                                    "variable_type": "ndarray",
+                                    "variable_shape": "(1, 2)"
+                                },
+                                "repeat": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "np.asanyarray": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "frame.columns._get_level_values": {
+                                    "variable_value": "None",
+                                    "variable_type": "NoneType",
+                                    "variable_shape": null
+                                },
+                                "frame._constructor": {
+                                    "variable_value": "<class 'pandas.core.frame.DataFrame'>",
+                                    "variable_type": "type",
+                                    "variable_shape": "<property object at 0x10fab3f90>"
+                                },
+                                "Appender": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                },
+                                "_shared_docs": {
+                                    "variable_value": null,
+                                    "variable_type": "None",
+                                    "variable_shape": null
+                                }
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "snippets": [
+                {
+                    "snippet_code": "from pandas.core.arrays import Categorical\nfrom pandas.core.frame import DataFrame, _shared_docs",
+                    "start_line": 13,
+                    "end_line": 14
+                }
+            ],
+            "inscope_functions": [
+                "@Appender(\n    _shared_docs[\"melt\"]\n    % dict(caller=\"pd.melt(df, \", versionadded=\"\", other=\"DataFrame.melt\")\n)\ndef melt(\n    frame: DataFrame,\n    id_vars=None,\n    value_vars=None,\n    var_name=None,\n    value_name=\"value\",\n    col_level=None,\n) -> DataFrame:\n    # TODO: what about the existing index?\n    # If multiindex, gather names of columns on all level for checking presence\n    # of `id_vars` and `value_vars`\n    if isinstance(frame.columns, ABCMultiIndex):\n        cols = [x for c in frame.columns for x in c]\n    else:\n        cols = list(frame.columns)\n\n    if id_vars is not None:\n        if not is_list_like(id_vars):\n            id_vars = [id_vars]\n        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):\n            raise ValueError(\n                \"id_vars must be a list of tuples when columns are a MultiIndex\"\n            )\n        else:\n            # Check that `id_vars` are in frame\n            id_vars = list(id_vars)\n            missing = Index(np.ravel(id_vars)).difference(cols)\n            if not missing.empty:\n                raise KeyError(\n                    \"The following 'id_vars' are not present\"\n                    \" in the DataFrame: {missing}\"\n                    \"\".format(missing=list(missing))\n                )\n    else:\n        id_vars = []\n\n    if value_vars is not None:\n        if not is_list_like(value_vars):\n            value_vars = [value_vars]\n        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(\n            value_vars, list\n        ):\n            raise ValueError(\n                \"value_vars must be a list of tuples when columns are a MultiIndex\"\n            )\n        else:\n            value_vars = list(value_vars)\n            # Check that `value_vars` are in frame\n            missing = Index(np.ravel(value_vars)).difference(cols)\n            if not missing.empty:\n                raise KeyError(\n                    \"The following 'value_vars' are not present in\"\n                    \" the DataFrame: {missing}\"\n                    \"\".format(missing=list(missing))\n                )\n        frame = frame.loc[:, id_vars + value_vars]\n    else:\n        frame = frame.copy()\n\n    if col_level is not None:  # allow list or other?\n        # frame is a copy\n        frame.columns = frame.columns.get_level_values(col_level)\n\n    if var_name is None:\n        if isinstance(frame.columns, ABCMultiIndex):\n            if len(frame.columns.names) == len(set(frame.columns.names)):\n                var_name = frame.columns.names\n            else:\n                var_name = [\n                    \"variable_{i}\".format(i=i) for i in range(len(frame.columns.names))\n                ]\n        else:\n            var_name = [\n                frame.columns.name if frame.columns.name is not None else \"variable\"\n            ]\n    if isinstance(var_name, str):\n        var_name = [var_name]\n\n    N, K = frame.shape\n    K -= len(id_vars)\n\n    mdata = {}\n    for col in id_vars:\n        id_data = frame.pop(col)\n        if is_extension_array_dtype(id_data):\n            id_data = concat([id_data] * K, ignore_index=True)\n        else:\n            id_data = np.tile(id_data.values, K)\n        mdata[col] = id_data\n\n    mcolumns = id_vars + var_name + [value_name]\n\n    mdata[value_name] = frame.values.ravel(\"F\")\n    for i, col in enumerate(var_name):\n        # asanyarray will keep the columns as an Index\n        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)\n\n    return frame._constructor(mdata, columns=mcolumns)",
+                "def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:\n    \"\"\"\n    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot\n\n    Parameters\n    ----------\n    data : DataFrame\n    groups : dict\n        {new_name : list_of_columns}\n    dropna : boolean, default True\n    label : object, default None\n        Dummy kwarg, not used.\n\n    Examples\n    --------\n    >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],\n    ...                      'team': ['Red Sox', 'Yankees'],\n    ...                      'year1': [2007, 2007], 'year2': [2008, 2008]})\n    >>> data\n       hr1  hr2     team  year1  year2\n    0  514  545  Red Sox   2007   2008\n    1  573  526  Yankees   2007   2008\n\n    >>> pd.lreshape(data, {'year': ['year1', 'year2'], 'hr': ['hr1', 'hr2']})\n          team  year   hr\n    0  Red Sox  2007  514\n    1  Yankees  2007  573\n    2  Red Sox  2008  545\n    3  Yankees  2008  526\n\n    Returns\n    -------\n    reshaped : DataFrame\n    \"\"\"\n    if isinstance(groups, dict):\n        keys = list(groups.keys())\n        values = list(groups.values())\n    else:\n        keys, values = zip(*groups)\n\n    all_cols = list(set.union(*[set(x) for x in values]))\n    id_cols = list(data.columns.difference(all_cols))\n\n    K = len(values[0])\n\n    for seq in values:\n        if len(seq) != K:\n            raise ValueError(\"All column lists must be same length\")\n\n    mdata = {}\n    pivot_cols = []\n\n    for target, names in zip(keys, values):\n        to_concat = [data[col].values for col in names]\n\n        mdata[target] = concat_compat(to_concat)\n        pivot_cols.append(target)\n\n    for col in id_cols:\n        mdata[col] = np.tile(data[col].values, K)\n\n    if dropna:\n        mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)\n        for c in pivot_cols:\n            mask &= notna(mdata[c])\n        if not mask.all():\n            mdata = {k: v[mask] for k, v in mdata.items()}\n\n    return data._constructor(mdata, columns=id_cols + pivot_cols)",
+                "def wide_to_long(df: DataFrame, stubnames, i, j, sep: str = \"\", suffix: str = r\"\\d+\"):\n    r\"\"\"\n    Wide panel to long format. Less flexible but more user-friendly than melt.\n\n    With stubnames ['A', 'B'], this function expects to find one or more\n    group of columns with format\n    A-suffix1, A-suffix2,..., B-suffix1, B-suffix2,...\n    You specify what you want to call this suffix in the resulting long format\n    with `j` (for example `j='year'`)\n\n    Each row of these wide variables are assumed to be uniquely identified by\n    `i` (can be a single column name or a list of column names)\n\n    All remaining variables in the data frame are left intact.\n\n    Parameters\n    ----------\n    df : DataFrame\n        The wide-format DataFrame.\n    stubnames : str or list-like\n        The stub name(s). The wide format variables are assumed to\n        start with the stub names.\n    i : str or list-like\n        Column(s) to use as id variable(s).\n    j : str\n        The name of the sub-observation variable. What you wish to name your\n        suffix in the long format.\n    sep : str, default \"\"\n        A character indicating the separation of the variable names\n        in the wide format, to be stripped from the names in the long format.\n        For example, if your column names are A-suffix1, A-suffix2, you\n        can strip the hyphen by specifying `sep='-'`.\n    suffix : str, default '\\\\d+'\n        A regular expression capturing the wanted suffixes. '\\\\d+' captures\n        numeric suffixes. Suffixes with no numbers could be specified with the\n        negated character class '\\\\D+'. You can also further disambiguate\n        suffixes, for example, if your wide variables are of the form\n        A-one, B-two,.., and you have an unrelated column A-rating, you can\n        ignore the last one by specifying `suffix='(!?one|two)'`.\n\n        .. versionchanged:: 0.23.0\n            When all suffixes are numeric, they are cast to int64/float64.\n\n    Returns\n    -------\n    DataFrame\n        A DataFrame that contains each stub name as a variable, with new index\n        (i, j).\n\n    Notes\n    -----\n    All extra variables are left untouched. This simply uses\n    `pandas.melt` under the hood, but is hard-coded to \"do the right thing\"\n    in a typical case.\n\n    Examples\n    --------\n    >>> np.random.seed(123)\n    >>> df = pd.DataFrame({\"A1970\" : {0 : \"a\", 1 : \"b\", 2 : \"c\"},\n    ...                    \"A1980\" : {0 : \"d\", 1 : \"e\", 2 : \"f\"},\n    ...                    \"B1970\" : {0 : 2.5, 1 : 1.2, 2 : .7},\n    ...                    \"B1980\" : {0 : 3.2, 1 : 1.3, 2 : .1},\n    ...                    \"X\"     : dict(zip(range(3), np.random.randn(3)))\n    ...                   })\n    >>> df[\"id\"] = df.index\n    >>> df\n      A1970 A1980  B1970  B1980         X  id\n    0     a     d    2.5    3.2 -1.085631   0\n    1     b     e    1.2    1.3  0.997345   1\n    2     c     f    0.7    0.1  0.282978   2\n    >>> pd.wide_to_long(df, [\"A\", \"B\"], i=\"id\", j=\"year\")\n    ... # doctest: +NORMALIZE_WHITESPACE\n                    X  A    B\n    id year\n    0  1970 -1.085631  a  2.5\n    1  1970  0.997345  b  1.2\n    2  1970  0.282978  c  0.7\n    0  1980 -1.085631  d  3.2\n    1  1980  0.997345  e  1.3\n    2  1980  0.282978  f  0.1\n\n    With multiple id columns\n\n    >>> df = pd.DataFrame({\n    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],\n    ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],\n    ...     'ht1': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],\n    ...     'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]\n    ... })\n    >>> df\n       famid  birth  ht1  ht2\n    0      1      1  2.8  3.4\n    1      1      2  2.9  3.8\n    2      1      3  2.2  2.9\n    3      2      1  2.0  3.2\n    4      2      2  1.8  2.8\n    5      2      3  1.9  2.4\n    6      3      1  2.2  3.3\n    7      3      2  2.3  3.4\n    8      3      3  2.1  2.9\n    >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')\n    >>> l\n    ... # doctest: +NORMALIZE_WHITESPACE\n                      ht\n    famid birth age\n    1     1     1    2.8\n                2    3.4\n          2     1    2.9\n                2    3.8\n          3     1    2.2\n                2    2.9\n    2     1     1    2.0\n                2    3.2\n          2     1    1.8\n                2    2.8\n          3     1    1.9\n                2    2.4\n    3     1     1    2.2\n                2    3.3\n          2     1    2.3\n                2    3.4\n          3     1    2.1\n                2    2.9\n\n    Going from long back to wide just takes some creative use of `unstack`\n\n    >>> w = l.unstack()\n    >>> w.columns = w.columns.map('{0[0]}{0[1]}'.format)\n    >>> w.reset_index()\n       famid  birth  ht1  ht2\n    0      1      1  2.8  3.4\n    1      1      2  2.9  3.8\n    2      1      3  2.2  2.9\n    3      2      1  2.0  3.2\n    4      2      2  1.8  2.8\n    5      2      3  1.9  2.4\n    6      3      1  2.2  3.3\n    7      3      2  2.3  3.4\n    8      3      3  2.1  2.9\n\n    Less wieldy column names are also handled\n\n    >>> np.random.seed(0)\n    >>> df = pd.DataFrame({'A(weekly)-2010': np.random.rand(3),\n    ...                    'A(weekly)-2011': np.random.rand(3),\n    ...                    'B(weekly)-2010': np.random.rand(3),\n    ...                    'B(weekly)-2011': np.random.rand(3),\n    ...                    'X' : np.random.randint(3, size=3)})\n    >>> df['id'] = df.index\n    >>> df # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS\n       A(weekly)-2010  A(weekly)-2011  B(weekly)-2010  B(weekly)-2011  X  id\n    0        0.548814        0.544883        0.437587        0.383442  0   0\n    1        0.715189        0.423655        0.891773        0.791725  1   1\n    2        0.602763        0.645894        0.963663        0.528895  1   2\n\n    >>> pd.wide_to_long(df, ['A(weekly)', 'B(weekly)'], i='id',\n    ...                 j='year', sep='-')\n    ... # doctest: +NORMALIZE_WHITESPACE\n             X  A(weekly)  B(weekly)\n    id year\n    0  2010  0   0.548814   0.437587\n    1  2010  1   0.715189   0.891773\n    2  2010  1   0.602763   0.963663\n    0  2011  0   0.544883   0.383442\n    1  2011  1   0.423655   0.791725\n    2  2011  1   0.645894   0.528895\n\n    If we have many columns, we could also use a regex to find our\n    stubnames and pass that list on to wide_to_long\n\n    >>> stubnames = sorted(\n    ...     set([match[0] for match in df.columns.str.findall(\n    ...         r'[A-B]\\(.*\\)').values if match != []])\n    ... )\n    >>> list(stubnames)\n    ['A(weekly)', 'B(weekly)']\n\n    All of the above examples have integers as suffixes. It is possible to\n    have non-integers as suffixes.\n\n    >>> df = pd.DataFrame({\n    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],\n    ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],\n    ...     'ht_one': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],\n    ...     'ht_two': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]\n    ... })\n    >>> df\n       famid  birth  ht_one  ht_two\n    0      1      1     2.8     3.4\n    1      1      2     2.9     3.8\n    2      1      3     2.2     2.9\n    3      2      1     2.0     3.2\n    4      2      2     1.8     2.8\n    5      2      3     1.9     2.4\n    6      3      1     2.2     3.3\n    7      3      2     2.3     3.4\n    8      3      3     2.1     2.9\n\n    >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',\n    ...                     sep='_', suffix='\\w+')\n    >>> l\n    ... # doctest: +NORMALIZE_WHITESPACE\n                      ht\n    famid birth age\n    1     1     one  2.8\n                two  3.4\n          2     one  2.9\n                two  3.8\n          3     one  2.2\n                two  2.9\n    2     1     one  2.0\n                two  3.2\n          2     one  1.8\n                two  2.8\n          3     one  1.9\n                two  2.4\n    3     1     one  2.2\n                two  3.3\n          2     one  2.3\n                two  3.4\n          3     one  2.1\n                two  2.9\n    \"\"\"\n\n    def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:\n        regex = r\"^{stub}{sep}{suffix}$\".format(\n            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix\n        )\n        pattern = re.compile(regex)\n        return [col for col in df.columns if pattern.match(col)]\n\n    def melt_stub(df, stub: str, i, j, value_vars, sep: str):\n        newdf = melt(\n            df,\n            id_vars=i,\n            value_vars=value_vars,\n            value_name=stub.rstrip(sep),\n            var_name=j,\n        )\n        newdf[j] = Categorical(newdf[j])\n        newdf[j] = newdf[j].str.replace(re.escape(stub + sep), \"\")\n\n        # GH17627 Cast numerics suffixes to int/float\n        newdf[j] = to_numeric(newdf[j], errors=\"ignore\")\n\n        return newdf.set_index(i + [j])\n\n    if not is_list_like(stubnames):\n        stubnames = [stubnames]\n    else:\n        stubnames = list(stubnames)\n\n    if any(col in stubnames for col in df.columns):\n        raise ValueError(\"stubname can't be identical to a column name\")\n\n    if not is_list_like(i):\n        i = [i]\n    else:\n        i = list(i)\n\n    if df[i].duplicated().any():\n        raise ValueError(\"the id variables need to uniquely identify each row\")\n\n    value_vars = [get_var_names(df, stub, sep, suffix) for stub in stubnames]\n\n    value_vars_flattened = [e for sublist in value_vars for e in sublist]\n    id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))\n\n    _melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]\n    melted = _melted[0].join(_melted[1:], how=\"outer\")\n\n    if len(i) == 1:\n        new = df[id_vars].set_index(i).join(melted)\n        return new\n\n    new = df[id_vars].merge(melted.reset_index(), on=i).set_index(i + [j])\n\n    return new",
+                "def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:\n    regex = r\"^{stub}{sep}{suffix}$\".format(\n        stub=re.escape(stub), sep=re.escape(sep), suffix=suffix\n    )\n    pattern = re.compile(regex)\n    return [col for col in df.columns if pattern.match(col)]",
+                "def melt_stub(df, stub: str, i, j, value_vars, sep: str):\n    newdf = melt(\n        df,\n        id_vars=i,\n        value_vars=value_vars,\n        value_name=stub.rstrip(sep),\n        var_name=j,\n    )\n    newdf[j] = Categorical(newdf[j])\n    newdf[j] = newdf[j].str.replace(re.escape(stub + sep), \"\")\n\n    # GH17627 Cast numerics suffixes to int/float\n    newdf[j] = to_numeric(newdf[j], errors=\"ignore\")\n\n    return newdf.set_index(i + [j])"
+            ],
+            "inscope_function_signatures": [
+                "melt(frame: DataFrame, id_vars=None, value_vars=None, var_name=None, value_name='value', col_level=None) -> DataFrame",
+                "lreshape(data: DataFrame, groups, dropna: bool=True, label=None) -> DataFrame",
+                "wide_to_long(df: DataFrame, stubnames, i, j, sep: str='', suffix: str='\\\\d+')",
+                "get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]",
+                "melt_stub(df, stub: str, i, j, value_vars, sep: str)"
+            ],
+            "variables_in_file": {
+                "DataFrame": [
+                    25,
+                    195,
+                    124,
+                    31
+                ],
+                "isinstance": [
+                    35,
+                    99,
+                    43,
+                    88,
+                    158,
+                    63
+                ],
+                "frame.columns": [
+                    97,
+                    35,
+                    36,
+                    38,
+                    43,
+                    85,
+                    119,
+                    88,
+                    89,
+                    90,
+                    93,
+                    63
+                ],
+                "frame": [
+                    97,
+                    121,
+                    35,
+                    36,
+                    38,
+                    102,
+                    43,
+                    107,
+                    79,
+                    81,
+                    116,
+                    85,
+                    119,
+                    88,
+                    89,
+                    90,
+                    93,
+                    63
+                ],
+                "ABCMultiIndex": [
+                    88,
+                    43,
+                    35,
+                    63
+                ],
+                "cols": [
+                    72,
+                    50,
+                    36,
+                    38
+                ],
+                "x": [
+                    164,
+                    36
+                ],
+                "c": [
+                    188,
+                    187,
+                    36
+                ],
+                "list": [
+                    64,
+                    160,
+                    164,
+                    165,
+                    38,
+                    70,
+                    453,
+                    43,
+                    77,
+                    461,
+                    49,
+                    55,
+                    445,
+                    159
+                ],
+                "id_vars": [
+                    103,
+                    40,
+                    41,
+                    42,
+                    43,
+                    106,
+                    461,
+                    79,
+                    49,
+                    50,
+                    114,
+                    467,
+                    470,
+                    58
+                ],
+                "is_list_like": [
+                    41,
+                    442,
+                    61,
+                    450
+                ],
+                "ValueError": [
+                    448,
+                    66,
+                    456,
+                    171,
+                    44
+                ],
+                "missing": [
+                    72,
+                    73,
+                    77,
+                    50,
+                    51,
+                    55
+                ],
+                "difference": [
+                    72,
+                    50,
+                    461
+                ],
+                "Index": [
+                    72,
+                    50
+                ],
+                "np.ravel": [
+                    72,
+                    50
+                ],
+                "np": [
+                    72,
+                    111,
+                    50,
+                    119,
+                    183,
+                    186
+                ],
+                "missing.empty": [
+                    73,
+                    51
+                ],
+                "KeyError": [
+                    74,
+                    52
+                ],
+                "format": [
+                    420,
+                    75,
+                    93,
+                    53
+                ],
+                "value_vars": [
+                    64,
+                    70,
+                    72,
+                    458,
+                    460,
+                    430,
+                    79,
+                    463,
+                    60,
+                    61,
+                    62
+                ],
+                "frame.loc": [
+                    79
+                ],
+                "frame.copy": [
+                    81
+                ],
+                "col_level": [
+                    83,
+                    85
+                ],
+                "frame.columns.get_level_values": [
+                    85
+                ],
+                "var_name": [
+                    96,
+                    99,
+                    100,
+                    114,
+                    117,
+                    87,
+                    90,
+                    92
+                ],
+                "len": [
+                    167,
+                    103,
+                    170,
+                    466,
+                    89,
+                    186,
+                    93
+                ],
+                "frame.columns.names": [
+                    89,
+                    90,
+                    93
+                ],
+                "set": [
+                    89,
+                    164,
+                    461
+                ],
+                "i": [
+                    450,
+                    451,
+                    453,
+                    455,
+                    429,
+                    463,
+                    466,
+                    467,
+                    117,
+                    470,
+                    119,
+                    440,
+                    93
+                ],
+                "range": [
+                    93
+                ],
+                "frame.columns.name": [
+                    97
+                ],
+                "str": [
+                    99,
+                    419,
+                    195,
+                    426,
+                    435
+                ],
+                "N": [
+                    102,
+                    119
+                ],
+                "K": [
+                    102,
+                    167,
+                    103,
+                    170,
+                    109,
+                    111,
+                    183
+                ],
+                "frame.shape": [
+                    102
+                ],
+                "mdata": [
+                    192,
+                    105,
+                    173,
+                    190,
+                    112,
+                    179,
+                    116,
+                    119,
+                    121,
+                    186,
+                    188,
+                    183
+                ],
+                "col": [
+                    424,
+                    106,
+                    107,
+                    112,
+                    177,
+                    117,
+                    182,
+                    119,
+                    183,
+                    447
+                ],
+                "id_data": [
+                    107,
+                    108,
+                    109,
+                    111,
+                    112
+                ],
+                "frame.pop": [
+                    107
+                ],
+                "is_extension_array_dtype": [
+                    108
+                ],
+                "concat": [
+                    109
+                ],
+                "np.tile": [
+                    183,
+                    111
+                ],
+                "id_data.values": [
+                    111
+                ],
+                "mcolumns": [
+                    121,
+                    114
+                ],
+                "value_name": [
+                    114,
+                    116
+                ],
+                "frame.values.ravel": [
+                    116
+                ],
+                "frame.values": [
+                    116
+                ],
+                "enumerate": [
+                    117
+                ],
+                "repeat": [
+                    119
+                ],
+                "np.asanyarray": [
+                    119
+                ],
+                "frame.columns._get_level_values": [
+                    119
+                ],
+                "frame._constructor": [
+                    121
+                ],
+                "Appender": [
+                    20
+                ],
+                "_shared_docs": [
+                    21
+                ],
+                "dict": [
+                    158,
+                    22
+                ],
+                "bool": [
+                    186,
+                    124
+                ],
+                "groups": [
+                    160,
+                    162,
+                    158,
+                    159
+                ],
+                "keys": [
+                    176,
+                    162,
+                    159
+                ],
+                "groups.keys": [
+                    159
+                ],
+                "values": [
+                    160,
+                    162,
+                    164,
+                    167,
+                    169,
+                    176,
+                    177,
+                    183
+                ],
+                "groups.values": [
+                    160
+                ],
+                "zip": [
+                    176,
+                    162,
+                    463
+                ],
+                "all_cols": [
+                    164,
+                    165
+                ],
+                "set.union": [
+                    164
+                ],
+                "id_cols": [
+                    192,
+                    165,
+                    182
+                ],
+                "data.columns.difference": [
+                    165
+                ],
+                "data.columns": [
+                    165
+                ],
+                "data": [
+                    192,
+                    177,
+                    165,
+                    183
+                ],
+                "seq": [
+                    169,
+                    170
+                ],
+                "pivot_cols": [
+                    192,
+                    174,
+                    180,
+                    186,
+                    187
+                ],
+                "target": [
+                    176,
+                    179,
+                    180
+                ],
+                "names": [
+                    176,
+                    177
+                ],
+                "to_concat": [
+                    177,
+                    179
+                ],
+                "concat_compat": [
+                    179
+                ],
+                "pivot_cols.append": [
+                    180
+                ],
+                "dropna": [
+                    185
+                ],
+                "mask": [
+                    186,
+                    188,
+                    189,
+                    190
+                ],
+                "np.ones": [
+                    186
+                ],
+                "notna": [
+                    188
+                ],
+                "mask.all": [
+                    189
+                ],
+                "k": [
+                    190
+                ],
+                "v": [
+                    190,
+                    463
+                ],
+                "mdata.items": [
+                    190
+                ],
+                "data._constructor": [
+                    192
+                ],
+                "regex": [
+                    420,
+                    423
+                ],
+                "re.escape": [
+                    435,
+                    421
+                ],
+                "re": [
+                    435,
+                    421,
+                    423
+                ],
+                "stub": [
+                    458,
+                    435,
+                    421,
+                    431
+                ],
+                "sep": [
+                    421,
+                    458,
+                    463,
+                    431,
+                    435
+                ],
+                "suffix": [
+                    458,
+                    421
+                ],
+                "pattern": [
+                    424,
+                    423
+                ],
+                "re.compile": [
+                    423
+                ],
+                "df.columns": [
+                    424,
+                    461,
+                    447
+                ],
+                "df": [
+                    455,
+                    424,
+                    458,
+                    428,
+                    461,
+                    463,
+                    467,
+                    470,
+                    447
+                ],
+                "pattern.match": [
+                    424
+                ],
+                "List": [
+                    419
+                ],
+                "newdf": [
+                    427,
+                    434,
+                    435,
+                    438,
+                    440
+                ],
+                "melt": [
+                    427
+                ],
+                "stub.rstrip": [
+                    431
+                ],
+                "j": [
+                    463,
+                    432,
+                    434,
+                    435,
+                    438,
+                    470,
+                    440
+                ],
+                "Categorical": [
+                    434
+                ],
+                "str.replace": [
+                    435
+                ],
+                "to_numeric": [
+                    438
+                ],
+                "newdf.set_index": [
+                    440
+                ],
+                "stubnames": [
+                    458,
+                    463,
+                    442,
+                    443,
+                    445,
+                    447
+                ],
+                "any": [
+                    455,
+                    447
+                ],
+                "duplicated": [
+                    455
+                ],
+                "get_var_names": [
+                    458
+                ],
+                "value_vars_flattened": [
+                    460,
+                    461
+                ],
+                "e": [
+                    460
+                ],
+                "sublist": [
+                    460
+                ],
+                "df.columns.tolist": [
+                    461
+                ],
+                "_melted": [
+                    464,
+                    463
+                ],
+                "melt_stub": [
+                    463
+                ],
+                "s": [
+                    463
+                ],
+                "melted": [
+                    464,
+                    467,
+                    470
+                ],
+                "join": [
+                    464,
+                    467
+                ],
+                "new": [
+                    472,
+                    467,
+                    468,
+                    470
+                ],
+                "set_index": [
+                    467,
+                    470
+                ],
+                "merge": [
+                    470
+                ],
+                "melted.reset_index": [
+                    470
+                ]
+            },
+            "filtered_variables_in_file": {
+                "DataFrame": [
+                    25,
+                    195,
+                    124,
+                    31
+                ],
+                "frame.columns": [
+                    97,
+                    35,
+                    36,
+                    38,
+                    43,
+                    85,
+                    119,
+                    88,
+                    89,
+                    90,
+                    93,
+                    63
+                ],
+                "frame": [
+                    97,
+                    121,
+                    35,
+                    36,
+                    38,
+                    102,
+                    43,
+                    107,
+                    79,
+                    81,
+                    116,
+                    85,
+                    119,
+                    88,
+                    89,
+                    90,
+                    93,
+                    63
+                ],
+                "ABCMultiIndex": [
+                    88,
+                    43,
+                    35,
+                    63
+                ],
+                "cols": [
+                    72,
+                    50,
+                    36,
+                    38
+                ],
+                "x": [
+                    164,
+                    36
+                ],
+                "c": [
+                    188,
+                    187,
+                    36
+                ],
+                "id_vars": [
+                    103,
+                    40,
+                    41,
+                    42,
+                    43,
+                    106,
+                    461,
+                    79,
+                    49,
+                    50,
+                    114,
+                    467,
+                    470,
+                    58
+                ],
+                "is_list_like": [
+                    41,
+                    442,
+                    61,
+                    450
+                ],
+                "missing": [
+                    72,
+                    73,
+                    77,
+                    50,
+                    51,
+                    55
+                ],
+                "difference": [
+                    72,
+                    50,
+                    461
+                ],
+                "Index": [
+                    72,
+                    50
+                ],
+                "np.ravel": [
+                    72,
+                    50
+                ],
+                "np": [
+                    72,
+                    111,
+                    50,
+                    119,
+                    183,
+                    186
+                ],
+                "missing.empty": [
+                    73,
+                    51
+                ],
+                "value_vars": [
+                    64,
+                    70,
+                    72,
+                    458,
+                    460,
+                    430,
+                    79,
+                    463,
+                    60,
+                    61,
+                    62
+                ],
+                "frame.loc": [
+                    79
+                ],
+                "frame.copy": [
+                    81
+                ],
+                "col_level": [
+                    83,
+                    85
+                ],
+                "frame.columns.get_level_values": [
+                    85
+                ],
+                "var_name": [
+                    96,
+                    99,
+                    100,
+                    114,
+                    117,
+                    87,
+                    90,
+                    92
+                ],
+                "frame.columns.names": [
+                    89,
+                    90,
+                    93
+                ],
+                "i": [
+                    450,
+                    451,
+                    453,
+                    455,
+                    429,
+                    463,
+                    466,
+                    467,
+                    117,
+                    470,
+                    119,
+                    440,
+                    93
+                ],
+                "frame.columns.name": [
+                    97
+                ],
+                "N": [
+                    102,
+                    119
+                ],
+                "K": [
+                    102,
+                    167,
+                    103,
+                    170,
+                    109,
+                    111,
+                    183
+                ],
+                "frame.shape": [
+                    102
+                ],
+                "mdata": [
+                    192,
+                    105,
+                    173,
+                    190,
+                    112,
+                    179,
+                    116,
+                    119,
+                    121,
+                    186,
+                    188,
+                    183
+                ],
+                "col": [
+                    424,
+                    106,
+                    107,
+                    112,
+                    177,
+                    117,
+                    182,
+                    119,
+                    183,
+                    447
+                ],
+                "id_data": [
+                    107,
+                    108,
+                    109,
+                    111,
+                    112
+                ],
+                "frame.pop": [
+                    107
+                ],
+                "is_extension_array_dtype": [
+                    108
+                ],
+                "concat": [
+                    109
+                ],
+                "np.tile": [
+                    183,
+                    111
+                ],
+                "id_data.values": [
+                    111
+                ],
+                "mcolumns": [
+                    121,
+                    114
+                ],
+                "value_name": [
+                    114,
+                    116
+                ],
+                "frame.values.ravel": [
+                    116
+                ],
+                "frame.values": [
+                    116
+                ],
+                "repeat": [
+                    119
+                ],
+                "np.asanyarray": [
+                    119
+                ],
+                "frame.columns._get_level_values": [
+                    119
+                ],
+                "frame._constructor": [
+                    121
+                ],
+                "Appender": [
+                    20
+                ],
+                "_shared_docs": [
+                    21
+                ],
+                "groups": [
+                    160,
+                    162,
+                    158,
+                    159
+                ],
+                "keys": [
+                    176,
+                    162,
+                    159
+                ],
+                "groups.keys": [
+                    159
+                ],
+                "values": [
+                    160,
+                    162,
+                    164,
+                    167,
+                    169,
+                    176,
+                    177,
+                    183
+                ],
+                "groups.values": [
+                    160
+                ],
+                "all_cols": [
+                    164,
+                    165
+                ],
+                "set.union": [
+                    164
+                ],
+                "id_cols": [
+                    192,
+                    165,
+                    182
+                ],
+                "data.columns.difference": [
+                    165
+                ],
+                "data.columns": [
+                    165
+                ],
+                "data": [
+                    192,
+                    177,
+                    165,
+                    183
+                ],
+                "seq": [
+                    169,
+                    170
+                ],
+                "pivot_cols": [
+                    192,
+                    174,
+                    180,
+                    186,
+                    187
+                ],
+                "target": [
+                    176,
+                    179,
+                    180
+                ],
+                "names": [
+                    176,
+                    177
+                ],
+                "to_concat": [
+                    177,
+                    179
+                ],
+                "concat_compat": [
+                    179
+                ],
+                "pivot_cols.append": [
+                    180
+                ],
+                "dropna": [
+                    185
+                ],
+                "mask": [
+                    186,
+                    188,
+                    189,
+                    190
+                ],
+                "np.ones": [
+                    186
+                ],
+                "notna": [
+                    188
+                ],
+                "mask.all": [
+                    189
+                ],
+                "k": [
+                    190
+                ],
+                "v": [
+                    190,
+                    463
+                ],
+                "mdata.items": [
+                    190
+                ],
+                "data._constructor": [
+                    192
+                ],
+                "regex": [
+                    420,
+                    423
+                ],
+                "re.escape": [
+                    435,
+                    421
+                ],
+                "re": [
+                    435,
+                    421,
+                    423
+                ],
+                "stub": [
+                    458,
+                    435,
+                    421,
+                    431
+                ],
+                "sep": [
+                    421,
+                    458,
+                    463,
+                    431,
+                    435
+                ],
+                "suffix": [
+                    458,
+                    421
+                ],
+                "pattern": [
+                    424,
+                    423
+                ],
+                "re.compile": [
+                    423
+                ],
+                "df.columns": [
+                    424,
+                    461,
+                    447
+                ],
+                "df": [
+                    455,
+                    424,
+                    458,
+                    428,
+                    461,
+                    463,
+                    467,
+                    470,
+                    447
+                ],
+                "pattern.match": [
+                    424
+                ],
+                "List": [
+                    419
+                ],
+                "newdf": [
+                    427,
+                    434,
+                    435,
+                    438,
+                    440
+                ],
+                "melt": [
+                    427
+                ],
+                "stub.rstrip": [
+                    431
+                ],
+                "j": [
+                    463,
+                    432,
+                    434,
+                    435,
+                    438,
+                    470,
+                    440
+                ],
+                "Categorical": [
+                    434
+                ],
+                "str.replace": [
+                    435
+                ],
+                "to_numeric": [
+                    438
+                ],
+                "newdf.set_index": [
+                    440
+                ],
+                "stubnames": [
+                    458,
+                    463,
+                    442,
+                    443,
+                    445,
+                    447
+                ],
+                "duplicated": [
+                    455
+                ],
+                "get_var_names": [
+                    458
+                ],
+                "value_vars_flattened": [
+                    460,
+                    461
+                ],
+                "e": [
+                    460
+                ],
+                "sublist": [
+                    460
+                ],
+                "df.columns.tolist": [
+                    461
+                ],
+                "_melted": [
+                    464,
+                    463
+                ],
+                "melt_stub": [
+                    463
+                ],
+                "s": [
+                    463
+                ],
+                "melted": [
+                    464,
+                    467,
+                    470
+                ],
+                "join": [
+                    464,
+                    467
+                ],
+                "new": [
+                    472,
+                    467,
+                    468,
+                    470
+                ],
+                "set_index": [
+                    467,
+                    470
+                ],
+                "merge": [
+                    470
+                ],
+                "melted.reset_index": [
+                    470
+                ]
+            }
+        },
+        "test_data": [
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_118/pandas/tests/reshape/test_melt.py",
+                "test_function": "test_melt_mixed_int_str_id_vars",
+                "test_function_code": "    def test_melt_mixed_int_str_id_vars(self):\n        # GH 29718\n        df = DataFrame({0: [\"foo\"], \"a\": [\"bar\"], \"b\": [1], \"d\": [2]})\n        result = melt(df, id_vars=[0, \"a\"], value_vars=[\"b\", \"d\"])\n        expected = DataFrame(\n            {0: [\"foo\"] * 2, \"a\": [\"bar\"] * 2, \"variable\": list(\"bd\"), \"value\": [1, 2]}\n        )\n        tm.assert_frame_equal(result, expected)",
+                "test_error": "KeyError: \"The following 'id_vars' are not present in the DataFrame: ['0']\"",
+                "full_test_error": "self = <pandas.tests.reshape.test_melt.TestMelt object at 0x11cee1610>\n\n    def test_melt_mixed_int_str_id_vars(self):\n        # GH 29718\n        df = DataFrame({0: [\"foo\"], \"a\": [\"bar\"], \"b\": [1], \"d\": [2]})\n>       result = melt(df, id_vars=[0, \"a\"], value_vars=[\"b\", \"d\"])\n\npandas/tests/reshape/test_melt.py:323: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nframe =      0    a  b  d\n0  foo  bar  1  2, id_vars = [0, 'a']\nvalue_vars = ['b', 'd'], var_name = None, value_name = 'value', col_level = None\n\n    @Appender(\n        _shared_docs[\"melt\"]\n        % dict(caller=\"pd.melt(df, \", versionadded=\"\", other=\"DataFrame.melt\")\n    )\n    def melt(\n        frame: DataFrame,\n        id_vars=None,\n        value_vars=None,\n        var_name=None,\n        value_name=\"value\",\n        col_level=None,\n    ) -> DataFrame:\n        # TODO: what about the existing index?\n        # If multiindex, gather names of columns on all level for checking presence\n        # of `id_vars` and `value_vars`\n        if isinstance(frame.columns, ABCMultiIndex):\n            cols = [x for c in frame.columns for x in c]\n        else:\n            cols = list(frame.columns)\n    \n        if id_vars is not None:\n            if not is_list_like(id_vars):\n                id_vars = [id_vars]\n            elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):\n                raise ValueError(\n                    \"id_vars must be a list of tuples when columns are a MultiIndex\"\n                )\n            else:\n                # Check that `id_vars` are in frame\n                id_vars = list(id_vars)\n                missing = Index(np.ravel(id_vars)).difference(cols)\n                if not missing.empty:\n>                   raise KeyError(\n                        \"The following 'id_vars' are not present\"\n                        \" in the DataFrame: {missing}\"\n                        \"\".format(missing=list(missing))\n                    )\nE                   KeyError: \"The following 'id_vars' are not present in the DataFrame: ['0']\"\n\npandas/core/reshape/melt.py:52: KeyError",
+                "traceback": "frame =      0    a  b  d\n0  foo  bar  1  2, id_vars = [0, 'a']\nvalue_vars = ['b', 'd'], var_name = None, value_name = 'value', col_level = None\n\n    @Appender(\n        _shared_docs[\"melt\"]\n        % dict(caller=\"pd.melt(df, \", versionadded=\"\", other=\"DataFrame.melt\")\n    )\n    def melt(\n        frame: DataFrame,\n        id_vars=None,\n        value_vars=None,\n        var_name=None,\n        value_name=\"value\",\n        col_level=None,\n    ) -> DataFrame:\n        # TODO: what about the existing index?\n        # If multiindex, gather names of columns on all level for checking presence\n        # of `id_vars` and `value_vars`\n        if isinstance(frame.columns, ABCMultiIndex):\n            cols = [x for c in frame.columns for x in c]\n        else:\n            cols = list(frame.columns)\n    \n        if id_vars is not None:\n            if not is_list_like(id_vars):\n                id_vars = [id_vars]\n            elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):\n                raise ValueError(\n                    \"id_vars must be a list of tuples when columns are a MultiIndex\"\n                )\n            else:\n                # Check that `id_vars` are in frame\n                id_vars = list(id_vars)\n                missing = Index(np.ravel(id_vars)).difference(cols)\n                if not missing.empty:\n>                   raise KeyError(\n                        \"The following 'id_vars' are not present\"\n                        \" in the DataFrame: {missing}\"\n                        \"\".format(missing=list(missing))\n                    )\nE                   KeyError: \"The following 'id_vars' are not present in the DataFrame: ['0']\"",
+                "test_error_location": "pandas/core/reshape/melt.py:52: KeyError",
+                "test_function_decorators": []
+            },
+            {
+                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_118/pandas/tests/reshape/test_melt.py",
+                "test_function": "test_melt_mixed_int_str_value_vars",
+                "test_function_code": "    def test_melt_mixed_int_str_value_vars(self):\n        # GH 29718\n        df = DataFrame({0: [\"foo\"], \"a\": [\"bar\"]})\n        result = melt(df, value_vars=[0, \"a\"])\n        expected = DataFrame({\"variable\": [0, \"a\"], \"value\": [\"foo\", \"bar\"]})\n        tm.assert_frame_equal(result, expected)",
+                "test_error": "KeyError: \"The following 'value_vars' are not present in the DataFrame: ['0']\"",
+                "full_test_error": "self = <pandas.tests.reshape.test_melt.TestMelt object at 0x11cfc2b50>\n\n    def test_melt_mixed_int_str_value_vars(self):\n        # GH 29718\n        df = DataFrame({0: [\"foo\"], \"a\": [\"bar\"]})\n>       result = melt(df, value_vars=[0, \"a\"])\n\npandas/tests/reshape/test_melt.py:332: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nframe =      0    a\n0  foo  bar, id_vars = [], value_vars = [0, 'a']\nvar_name = None, value_name = 'value', col_level = None\n\n    @Appender(\n        _shared_docs[\"melt\"]\n        % dict(caller=\"pd.melt(df, \", versionadded=\"\", other=\"DataFrame.melt\")\n    )\n    def melt(\n        frame: DataFrame,\n        id_vars=None,\n        value_vars=None,\n        var_name=None,\n        value_name=\"value\",\n        col_level=None,\n    ) -> DataFrame:\n        # TODO: what about the existing index?\n        # If multiindex, gather names of columns on all level for checking presence\n        # of `id_vars` and `value_vars`\n        if isinstance(frame.columns, ABCMultiIndex):\n            cols = [x for c in frame.columns for x in c]\n        else:\n            cols = list(frame.columns)\n    \n        if id_vars is not None:\n            if not is_list_like(id_vars):\n                id_vars = [id_vars]\n            elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):\n                raise ValueError(\n                    \"id_vars must be a list of tuples when columns are a MultiIndex\"\n                )\n            else:\n                # Check that `id_vars` are in frame\n                id_vars = list(id_vars)\n                missing = Index(np.ravel(id_vars)).difference(cols)\n                if not missing.empty:\n                    raise KeyError(\n                        \"The following 'id_vars' are not present\"\n                        \" in the DataFrame: {missing}\"\n                        \"\".format(missing=list(missing))\n                    )\n        else:\n            id_vars = []\n    \n        if value_vars is not None:\n            if not is_list_like(value_vars):\n                value_vars = [value_vars]\n            elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(\n                value_vars, list\n            ):\n                raise ValueError(\n                    \"value_vars must be a list of tuples when columns are a MultiIndex\"\n                )\n            else:\n                value_vars = list(value_vars)\n                # Check that `value_vars` are in frame\n                missing = Index(np.ravel(value_vars)).difference(cols)\n                if not missing.empty:\n>                   raise KeyError(\n                        \"The following 'value_vars' are not present in\"\n                        \" the DataFrame: {missing}\"\n                        \"\".format(missing=list(missing))\n                    )\nE                   KeyError: \"The following 'value_vars' are not present in the DataFrame: ['0']\"\n\npandas/core/reshape/melt.py:74: KeyError",
+                "traceback": "frame =      0    a\n0  foo  bar, id_vars = [], value_vars = [0, 'a']\nvar_name = None, value_name = 'value', col_level = None\n\n    @Appender(\n        _shared_docs[\"melt\"]\n        % dict(caller=\"pd.melt(df, \", versionadded=\"\", other=\"DataFrame.melt\")\n    )\n    def melt(\n        frame: DataFrame,\n        id_vars=None,\n        value_vars=None,\n        var_name=None,\n        value_name=\"value\",\n        col_level=None,\n    ) -> DataFrame:\n        # TODO: what about the existing index?\n        # If multiindex, gather names of columns on all level for checking presence\n        # of `id_vars` and `value_vars`\n        if isinstance(frame.columns, ABCMultiIndex):\n            cols = [x for c in frame.columns for x in c]\n        else:\n            cols = list(frame.columns)\n    \n        if id_vars is not None:\n            if not is_list_like(id_vars):\n                id_vars = [id_vars]\n            elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):\n                raise ValueError(\n                    \"id_vars must be a list of tuples when columns are a MultiIndex\"\n                )\n            else:\n                # Check that `id_vars` are in frame\n                id_vars = list(id_vars)\n                missing = Index(np.ravel(id_vars)).difference(cols)\n                if not missing.empty:\n                    raise KeyError(\n                        \"The following 'id_vars' are not present\"\n                        \" in the DataFrame: {missing}\"\n                        \"\".format(missing=list(missing))\n                    )\n        else:\n            id_vars = []\n    \n        if value_vars is not None:\n            if not is_list_like(value_vars):\n                value_vars = [value_vars]\n            elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(\n                value_vars, list\n            ):\n                raise ValueError(\n                    \"value_vars must be a list of tuples when columns are a MultiIndex\"\n                )\n            else:\n                value_vars = list(value_vars)\n                # Check that `value_vars` are in frame\n                missing = Index(np.ravel(value_vars)).difference(cols)\n                if not missing.empty:\n>                   raise KeyError(\n                        \"The following 'value_vars' are not present in\"\n                        \" the DataFrame: {missing}\"\n                        \"\".format(missing=list(missing))\n                    )\nE                   KeyError: \"The following 'value_vars' are not present in the DataFrame: ['0']\"",
+                "test_error_location": "pandas/core/reshape/melt.py:74: KeyError",
+                "test_function_decorators": []
+            }
+        ]
+    }
+}

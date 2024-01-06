@@ -1,0 +1,210 @@
+{
+    "1.1.1": "def ctc_batch_cost(y_true, y_pred, input_length, label_length):\n    \n    label_length = tf.to_int32(tf.squeeze(label_length))\n    input_length = tf.to_int32(tf.squeeze(input_length))\n    sparse_labels = tf.to_int32(ctc_label_dense_to_sparse(y_true, label_length))\n\n    y_pred = tf.log(tf.transpose(y_pred, perm=[1, 0, 2]) + epsilon())\n\n    return tf.expand_dims(ctc.ctc_loss(inputs=y_pred,\n                                       labels=sparse_labels,\n                                       sequence_length=input_length), 1)\n",
+    "1.1.2": "Runs CTC loss algorithm on each batch element.\n\n# Arguments\n    y_true: tensor `(samples, max_string_length)`\n        containing the truth labels.\n    y_pred: tensor `(samples, time_steps, num_categories)`\n        containing the prediction, or output of the softmax.\n    input_length: tensor `(samples, 1)` containing the sequence length for\n        each batch item in `y_pred`.\n    label_length: tensor `(samples, 1)` containing the sequence length for\n        each batch item in `y_true`.\n\n# Returns\n    Tensor with shape (samples,1) containing the\n        CTC loss of each element.",
+    "1.2.1": null,
+    "1.2.2": null,
+    "1.2.3": null,
+    "1.2.4": null,
+    "1.2.5": null,
+    "1.3.1": "keras/backend/tensorflow_backend.py",
+    "1.3.2": [
+        "transpose(x)",
+        "log(x)",
+        "expand_dims(x, axis=-1)",
+        "squeeze(x, axis)",
+        "ctc_label_dense_to_sparse(labels, label_lengths)"
+    ],
+    "1.4.1": [
+        "    @pytest.mark.skipif(K.backend() == 'cntk', reason='Not supported.')\n    def test_ctc(self):\n        if K.backend() == 'theano':\n            ref = [1.73308, 3.81351]\n        else:\n            ref = [3.34211, 5.42262]\n        # simplified version of TensorFlow's test\n\n        label_lens = np.expand_dims(np.asarray([5, 4]), 1)\n        input_lens = np.expand_dims(np.asarray([5, 5]), 1)  # number of timesteps\n\n        # dimensions are batch x time x categories\n        labels = np.asarray([[0, 1, 2, 1, 0], [0, 1, 1, 0, -1]])\n        inputs = np.asarray(\n            [[[0.633766, 0.221185, 0.0917319, 0.0129757, 0.0142857, 0.0260553],\n              [0.111121, 0.588392, 0.278779, 0.0055756, 0.00569609, 0.010436],\n              [0.0357786, 0.633813, 0.321418, 0.00249248, 0.00272882, 0.0037688],\n              [0.0663296, 0.643849, 0.280111, 0.00283995, 0.0035545, 0.00331533],\n              [0.458235, 0.396634, 0.123377, 0.00648837, 0.00903441, 0.00623107]],\n             [[0.30176, 0.28562, 0.0831517, 0.0862751, 0.0816851, 0.161508],\n              [0.24082, 0.397533, 0.0557226, 0.0546814, 0.0557528, 0.19549],\n              [0.230246, 0.450868, 0.0389607, 0.038309, 0.0391602, 0.202456],\n              [0.280884, 0.429522, 0.0326593, 0.0339046, 0.0326856, 0.190345],\n              [0.423286, 0.315517, 0.0338439, 0.0393744, 0.0339315, 0.154046]]],\n            dtype=np.float32)\n\n        k_labels = K.variable(labels, dtype=\"int32\")\n        k_inputs = K.variable(inputs, dtype=\"float32\")\n        k_input_lens = K.variable(input_lens, dtype=\"int32\")\n        k_label_lens = K.variable(label_lens, dtype=\"int32\")\n        res = K.eval(K.ctc_batch_cost(k_labels, k_inputs, k_input_lens, k_label_lens))\n        assert_allclose(res[0, :] if K.backend() == 'theano' else res[:, 0], ref, atol=1e-05)\n\n        # test when batch_size = 1, that is, one sample only\n        # get only first sample from above test case\n        if K.backend() == 'theano':\n            ref = [1.73308]\n        else:\n            ref = [3.34211]\n\n        input_lens = np.expand_dims(np.asarray([5]), 1)\n        label_lens = np.expand_dims(np.asarray([5]), 1)\n\n        labels = np.asarray([[0, 1, 2, 1, 0]])\n        inputs = np.asarray(\n            [[[0.633766, 0.221185, 0.0917319, 0.0129757, 0.0142857, 0.0260553],\n              [0.111121, 0.588392, 0.278779, 0.0055756, 0.00569609, 0.010436],\n              [0.0357786, 0.633813, 0.321418, 0.00249248, 0.00272882, 0.0037688],\n              [0.0663296, 0.643849, 0.280111, 0.00283995, 0.0035545, 0.00331533],\n              [0.458235, 0.396634, 0.123377, 0.00648837, 0.00903441, 0.00623107]]],\n            dtype=np.float32)\n\n        k_labels = K.variable(labels, dtype=\"int32\")\n        k_inputs = K.variable(inputs, dtype=\"float32\")\n        k_input_lens = K.variable(input_lens, dtype=\"int32\")\n        k_label_lens = K.variable(label_lens, dtype=\"int32\")\n        res = K.eval(K.ctc_batch_cost(k_labels, k_inputs, k_input_lens, k_label_lens))\n        assert_allclose(res[0, :] if K.backend() == 'theano' else res[:, 0], ref, atol=1e-05)"
+    ],
+    "1.4.2": [
+        "tests/keras/backend/backend_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E           IndexError: list index out of range"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <backend_test.TestBackend object at 0x12dcac110>\n\n    @pytest.mark.skipif(K.backend() == 'cntk', reason='Not supported.')\n    def test_ctc(self):\n        if K.backend() == 'theano':\n            ref = [1.73308, 3.81351]\n        else:\n            ref = [3.34211, 5.42262]\n        # simplified version of TensorFlow's test\n    \n        label_lens = np.expand_dims(np.asarray([5, 4]), 1)\n        input_lens = np.expand_dims(np.asarray([5, 5]), 1)  # number of timesteps\n    \n        # dimensions are batch x time x categories\n        labels = np.asarray([[0, 1, 2, 1, 0], [0, 1, 1, 0, -1]])\n        inputs = np.asarray(\n            [[[0.633766, 0.221185, 0.0917319, 0.0129757, 0.0142857, 0.0260553],\n              [0.111121, 0.588392, 0.278779, 0.0055756, 0.00569609, 0.010436],\n              [0.0357786, 0.633813, 0.321418, 0.00249248, 0.00272882, 0.0037688],\n              [0.0663296, 0.643849, 0.280111, 0.00283995, 0.0035545, 0.00331533],\n              [0.458235, 0.396634, 0.123377, 0.00648837, 0.00903441, 0.00623107]],\n             [[0.30176, 0.28562, 0.0831517, 0.0862751, 0.0816851, 0.161508],\n              [0.24082, 0.397533, 0.0557226, 0.0546814, 0.0557528, 0.19549],\n              [0.230246, 0.450868, 0.0389607, 0.038309, 0.0391602, 0.202456],\n              [0.280884, 0.429522, 0.0326593, 0.0339046, 0.0326856, 0.190345],\n              [0.423286, 0.315517, 0.0338439, 0.0393744, 0.0339315, 0.154046]]],\n            dtype=np.float32)\n    \n        k_labels = K.variable(labels, dtype=\"int32\")\n        k_inputs = K.variable(inputs, dtype=\"float32\")\n        k_input_lens = K.variable(input_lens, dtype=\"int32\")\n        k_label_lens = K.variable(label_lens, dtype=\"int32\")\n        res = K.eval(K.ctc_batch_cost(k_labels, k_inputs, k_input_lens, k_label_lens))\n        assert_allclose(res[0, :] if K.backend() == 'theano' else res[:, 0], ref, atol=1e-05)\n    \n        # test when batch_size = 1, that is, one sample only\n        # get only first sample from above test case\n        if K.backend() == 'theano':\n            ref = [1.73308]\n        else:\n            ref = [3.34211]\n    \n        input_lens = np.expand_dims(np.asarray([5]), 1)\n        label_lens = np.expand_dims(np.asarray([5]), 1)\n    \n        labels = np.asarray([[0, 1, 2, 1, 0]])\n        inputs = np.asarray(\n            [[[0.633766, 0.221185, 0.0917319, 0.0129757, 0.0142857, 0.0260553],\n              [0.111121, 0.588392, 0.278779, 0.0055756, 0.00569609, 0.010436],\n              [0.0357786, 0.633813, 0.321418, 0.00249248, 0.00272882, 0.0037688],\n              [0.0663296, 0.643849, 0.280111, 0.00283995, 0.0035545, 0.00331533],\n              [0.458235, 0.396634, 0.123377, 0.00648837, 0.00903441, 0.00623107]]],\n            dtype=np.float32)\n    \n        k_labels = K.variable(labels, dtype=\"int32\")\n        k_inputs = K.variable(inputs, dtype=\"float32\")\n        k_input_lens = K.variable(input_lens, dtype=\"int32\")\n        k_label_lens = K.variable(label_lens, dtype=\"int32\")\n>       res = K.eval(K.ctc_batch_cost(k_labels, k_inputs, k_input_lens, k_label_lens))\n\ntests/keras/backend/backend_test.py:1501: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/backend/tensorflow_backend.py:3947: in ctc_batch_cost\n    sparse_labels = tf.to_int32(ctc_label_dense_to_sparse(y_true, label_length))\nkeras/backend/tensorflow_backend.py:3911: in ctc_label_dense_to_sparse\n    initializer=init, parallel_iterations=1)\n../../envs/keras_31/lib/python3.7/site-packages/tensorflow/python/ops/functional_ops.py:651: in scan\n    n = (tensor_shape.dimension_value(elems_flat[0].shape[0])\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = TensorShape([]), key = 0\n\n    def __getitem__(self, key):\n      \"\"\"Returns the value of a dimension or a shape, depending on the key.\n    \n      Args:\n        key: If `key` is an integer, returns the dimension at that index;\n          otherwise if `key` is a slice, returns a TensorShape whose\n          dimensions are those selected by the slice from `self`.\n    \n      Returns:\n        An integer if `key` is an integer, or a `TensorShape` if `key` is a\n        slice.\n    \n      Raises:\n        ValueError: If `key` is a slice and `self` is completely unknown and\n          the step is set.\n      \"\"\"\n      if self._dims is not None:\n        if isinstance(key, slice):\n          return TensorShape(self._dims[key])\n        else:\n          if self._v2_behavior:\n            return self._dims[key].value\n          else:\n>           return self._dims[key]",
+            "\n../../envs/keras_31/lib/python3.7/site-packages/tensorflow/python/framework/tensor_shape.py:788: IndexError"
+        ]
+    ],
+    "2.1.3": [
+        [
+            {
+                "label_length": {
+                    "value": "<tf.Variable 'Variable_3:0' shape=(2, 1) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(1)])",
+                    "omitted": false
+                },
+                "input_length": {
+                    "value": "<tf.Variable 'Variable_2:0' shape=(2, 1) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(1)])",
+                    "omitted": false
+                },
+                "y_true": {
+                    "value": "<tf.Variable 'Variable:0' shape=(2, 5) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(5)])",
+                    "omitted": false
+                },
+                "y_pred": {
+                    "value": "<tf.Variable 'Variable_1:0' shape=(2, 5, 6) dtype=float32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(5), Dimension(6)])",
+                    "omitted": false
+                }
+            },
+            {
+                "label_length": {
+                    "value": "<tf.Tensor 'Squeeze:0' shape=(2,) dtype=int32>",
+                    "shape": "TensorShape([Dimension(2)])",
+                    "omitted": false
+                },
+                "input_length": {
+                    "value": "<tf.Tensor 'Squeeze_1:0' shape=(2,) dtype=int32>",
+                    "shape": "TensorShape([Dimension(2)])",
+                    "omitted": false
+                },
+                "y_pred": {
+                    "value": "<tf.Tensor 'Log:0' shape=(5, 2, 6) dtype=float32>",
+                    "shape": "TensorShape([Dimension(5), Dimension(2), Dimension(6)])",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.4": [
+        [
+            {
+                "label_length": "RefVariable",
+                "input_length": "RefVariable",
+                "y_true": "RefVariable",
+                "y_pred": "RefVariable"
+            },
+            {
+                "label_length": "Tensor",
+                "input_length": "Tensor",
+                "y_pred": "Tensor"
+            }
+        ]
+    ],
+    "2.1.5": [
+        [
+            {
+                "label_length": {
+                    "value": "<tf.Variable 'Variable_3:0' shape=(2, 1) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(1)])",
+                    "omitted": false
+                },
+                "input_length": {
+                    "value": "<tf.Variable 'Variable_2:0' shape=(2, 1) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(1)])",
+                    "omitted": false
+                },
+                "y_true": {
+                    "value": "<tf.Variable 'Variable:0' shape=(2, 5) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(5)])",
+                    "omitted": false
+                },
+                "y_pred": {
+                    "value": "<tf.Variable 'Variable_1:0' shape=(2, 5, 6) dtype=float32_ref>",
+                    "shape": "TensorShape([Dimension(2), Dimension(5), Dimension(6)])",
+                    "omitted": false
+                }
+            },
+            {
+                "label_length": {
+                    "value": "<tf.Tensor 'Squeeze:0' shape=(2,) dtype=int32>",
+                    "shape": "TensorShape([Dimension(2)])",
+                    "omitted": false
+                },
+                "input_length": {
+                    "value": "<tf.Tensor 'Squeeze_1:0' shape=(2,) dtype=int32>",
+                    "shape": "TensorShape([Dimension(2)])",
+                    "omitted": false
+                },
+                "y_pred": {
+                    "value": "<tf.Tensor 'Log:0' shape=(5, 2, 6) dtype=float32>",
+                    "shape": "TensorShape([Dimension(5), Dimension(2), Dimension(6)])",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "label_length": {
+                    "value": "<tf.Variable 'Variable_7:0' shape=(1, 1) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(1), Dimension(1)])",
+                    "omitted": false
+                },
+                "input_length": {
+                    "value": "<tf.Variable 'Variable_6:0' shape=(1, 1) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(1), Dimension(1)])",
+                    "omitted": false
+                },
+                "y_true": {
+                    "value": "<tf.Variable 'Variable_4:0' shape=(1, 5) dtype=int32_ref>",
+                    "shape": "TensorShape([Dimension(1), Dimension(5)])",
+                    "omitted": false
+                },
+                "y_pred": {
+                    "value": "<tf.Variable 'Variable_5:0' shape=(1, 5, 6) dtype=float32_ref>",
+                    "shape": "TensorShape([Dimension(1), Dimension(5), Dimension(6)])",
+                    "omitted": false
+                }
+            },
+            {
+                "label_length": {
+                    "value": "<tf.Tensor 'Squeeze_2:0' shape=(1,) dtype=int32>",
+                    "shape": "TensorShape([Dimension(1)])",
+                    "omitted": false
+                },
+                "input_length": {
+                    "value": "<tf.Tensor 'Squeeze_3:0' shape=(1,) dtype=int32>",
+                    "shape": "TensorShape([Dimension(1)])",
+                    "omitted": false
+                },
+                "y_pred": {
+                    "value": "<tf.Tensor 'Log_1:0' shape=(5, 1, 6) dtype=float32>",
+                    "shape": "TensorShape([Dimension(5), Dimension(1), Dimension(6)])",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.1.6": [
+        [
+            {
+                "label_length": "RefVariable",
+                "input_length": "RefVariable",
+                "y_true": "RefVariable",
+                "y_pred": "RefVariable"
+            },
+            {
+                "label_length": "Tensor",
+                "input_length": "Tensor",
+                "y_pred": "Tensor"
+            }
+        ],
+        [
+            {
+                "label_length": "RefVariable",
+                "input_length": "RefVariable",
+                "y_true": "RefVariable",
+                "y_pred": "RefVariable"
+            },
+            {
+                "label_length": "Tensor",
+                "input_length": "Tensor",
+                "y_pred": "Tensor"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "K.ctc_batch_cost() get slice index 0 of dimension 0 out of bounds error when using online trainning (batch_size=1)\n"
+    ],
+    "3.1.2": [
+        "Hello, I am using CTC loss function in my model, everything were good until I tried to using online training (batch_size =1). The error was caused by K.ctc_batch_cost function.\nThe error can be reproduced with the keras example \"image_ocr.py\" by simply set the \"minibatch_size = 1 \" in line 446 ( the parameter of TextImagegenerator).\n\nI am using keras 2.0.2 with tensorflow 1.1.0 backend.\nThank you!\n"
+    ]
+}
