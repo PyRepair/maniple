@@ -119,6 +119,8 @@ class PromptGenerator:
         self.strata_6_content = ""
         self.strata_7_content = ""
 
+        self.generate_prompt()
+
     def exist_null_strata(self):
         return self.strata_bitvector != self.actual_strata_bitvector
 
@@ -718,7 +720,6 @@ def run_single_bitvector_partition(partition_bitvectors):
                 try:
                     print(f"generate prompt for {project}:{bid}")
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
-                    prompt_generator.generate_prompt()
                     if not prompt_generator.exist_null_strata():
                         prompt_generator.write_prompt()
                         # prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106", 0)
