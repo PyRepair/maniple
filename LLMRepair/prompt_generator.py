@@ -723,13 +723,13 @@ def run_single_bitvector_partition(partition_bitvectors, repeat_count, regenerat
                     if not prompt_generator.exist_null_strata():
                         prompt_generator.write_prompt()
                         for count in range(repeat_count):
-                            prompt_generator.get_response_from_gpt(count, "gpt-3.5-turbo-1106", 0)
+                            prompt_generator.get_response_from_gpt(count + 1, "gpt-3.5-turbo-1106", 0)
 
                             if regeneration_count == 0:
                                 continue
 
                             for _ in range(regeneration_count):
-                                prompt_generator.get_response_from_gpt(count, "gpt-3.5-turbo-1106", 1)
+                                prompt_generator.get_response_from_gpt(count + 1, "gpt-3.5-turbo-1106", 1)
 
                 except Exception as e:
                     print_in_red(str(e))

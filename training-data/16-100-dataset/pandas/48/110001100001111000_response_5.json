@@ -1,0 +1,69 @@
+{
+    "pandas": [
+        {
+            "bugID": 48,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    new_items: List[np.ndarray] = []\n    deleted_items: List[np.ndarray] = []\n    split_items: List[np.ndarray] = []\n    split_frames: List[DataFrame] = []\n\n    no_result = object()\n\n    for block in data.blocks:\n        if not numeric_only:\n            if isinstance(block.dtype, ExtensionDtype):\n                \n                if alt is None:\n                    # we cannot perform the operation\n                    # in an alternate way, exclude the block\n                    assert how == \"ohlc\"\n                    deleted_items.append(block.mgr_locs.as_array)\n                    continue\n\n                obj = self.obj[\n                    data.items[\n                        block.mgr_locs.as_array\n                    ]\n                ]\n                if obj.shape[1] == 1:\n                    # Avoid call to self.values that can occur in DataFrame\n                    #  reductions; see GH#28949\n                    obj = obj.iloc[:, 0]\n\n                s = get_groupby(obj, self.grouper)\n                try:\n                    result = s.aggregate(lambda x: alt(x, axis=self.axis))\n                except TypeError:\n                    # we may have an exception in trying to aggregate\n                    # continue and exclude the block\n                    deleted_items.append(block.mgr_locs.as_array)\n                    continue\n\n                result = cast(DataFrame, result)\n                if len(result._data.blocks) != 1:\n                    split_items.append(block.mgr_locs.as_array)\n                    split_frames.append(result)\n                    continue\n                \n                result = result._data.blocks[0].values\n                \n                # check if the output is a 1D array\n                if isinstance(result, np.ndarray) and result.ndim == 1:\n                    result = result.reshape(1, -1)\n                \n                dtype: Dtype = discover_dtypes(alt(result))\n\n                # adjust the block that contains the return result\n                try:\n                    agg_block = block.make_block(\n                        data=result,\n                        placement=block.mgr_locs,\n                        klass=FloatBlock,\n                        dtype=dtype,\n                    )\n                except Exception as exc:\n                    deleted_items.append(block.mgr_locs.as_array)\n                    continue\n                new_items.append(block.mgr_locs.as_array)\n                agg_blocks.append(agg_block)\n            # handle non-extension Dtype\n            else:\n                continue\n\n        else:  # process numeric only\n            result, _ = self.grouper.aggregate(\n                block.values.transpose(), how, axis=1, min_count=min_count\n            )\n            # if there is a result, add it to the agg_blocks \n            if result is not no_result:\n                dtype: Dtype = discover_dtypes(result)\n                new_items.append(block.mgr_locs.as_array)\n                if result.ndim == 1:\n                    temp = result[None, :]\n                else:\n                    temp = result\n                agg_blocks.append(\n                    block.make_block(data=temp, placement=block.mgr_locs, klass=FloatBlock, dtype=dtype)\n                )\n\n    if split_items:\n        for locs, result in zip(split_items, split_frames):\n            assert len(locs) == result.shape[1]\n            \n            for i, loc in enumerate(locs):\n                \n                new_items.append(np.array([loc], dtype=locs.dtype))\n                agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])\n\n    # reset the locs in the blocks to correspond to our current ordering\n    indexer = np.concatenate(new_items)\n    agg_items = data.items.take(np.sort(indexer))\n\n    # adjust the indexer \n    if deleted_items:\n        deleted = np.concatenate(deleted_items)\n        ai = np.arange(len(data))\n        mask = np.zeros(len(data))\n        mask[deleted] = 1\n        indexer = (ai - mask.cumsum())[indexer]\n\n    offset = 0  # calculate the offset while updating locs\n    for blk in agg_blocks:\n        loc = len(blk.mgr_locs)\n        blk.mgr_locs = indexer[offset: offset + loc]\n        offset += loc\n\n    return agg_blocks, agg_items",
+            "imports": []
+        }
+    ]
+}
