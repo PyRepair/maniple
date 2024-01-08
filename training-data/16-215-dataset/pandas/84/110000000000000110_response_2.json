@@ -1,0 +1,69 @@
+{
+    "pandas": [
+        {
+            "bugID": 84,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    index = data.index\n\n    if isinstance(index, pd.MultiIndex):\n        levels = index.names\n        clevels = [levels[i] for i in clocs]\n    else:\n        levels = [None for _ in range(index.nlevels)]\n        clevels = [index.name]\n\n    rlocs = [i for i in range(index.nlevels) if i not in clocs]\n\n    group_index = index._compliance_codes(for_unstacking=True)\n\n    comp_ids, obs_ids = group_index.compress(group_index, sort=False)\n    recons_codes = group_index.decons_obs_group_ids(comp_ids, obs_ids, False)\n\n    if rlocs == []:\n        # Everything is in clocs, so the dummy df has a regular index\n        dummy_index = pd.Index(obs_ids, name=\"__placeholder__\")\n    else:\n        dummy_index = pd.MultiIndex.from_arrays(\n            index = pd.concat([index.levels[i] for i in rlocs] + [pd.Index(obs_ids)], ignore_index=True),\n            codes = pd.concat([index.codes[i] for i in rlocs] + [pd.Index(comp_ids)], ignore_index=True),\n            names = [index.names[i] for i in rlocs] + [\"__placeholder__\"]\n        )\n\n    if isinstance(data, pd.Series):\n        dummy = data.copy()\n        dummy.index = dummy_index\n        dummy.name = data.name\n        unstacked = dummy.unstack(\"__placeholder__\", fill_value)\n        new_levels = clevels\n        new_names = [d.name for d in data.index.levels[i] for i in clocs]\n        new_codes = recons_codes\n    else:\n        if isinstance(data.columns, pd.MultiIndex):\n            result = data\n            for i in range(len(clocs)):\n                val = clocs[i]\n                result = result.unstack(i, fill_value)\n            return result\n\n        dummy = data.copy()\n        dummy.index = dummy_index\n\n        unstacked = dummy.unstack(\"__placeholder__\", fill_value)\n        if isinstance(unstacked, pd.Series):\n            name = unstacked.index.name\n        else:\n            name = unstacked.columns.name\n        new_levels = [d.name for d in unstacked.index.levels[0]] + clevels\n        new_names = [name] + [index.names[i] for i in clocs]\n\n        new_codes = [unstacked.index.codes[0]]\n        for rec in recons_codes:\n            new_codes.append(rec.take(unstacked.index.codes[-1]))\n\n    new_columns = pd.MultiIndex(levels=new_levels, codes=new_codes, names=new_names)\n\n    if isinstance(unstacked, pd.Series):\n        unstacked.index = new_columns\n    else:\n        unstacked.columns = new_columns\n\n    return unstacked",
+            "imports": []
+        }
+    ]
+}

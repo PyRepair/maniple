@@ -1,0 +1,69 @@
+{
+    "pandas": [
+        {
+            "bugID": 168,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 425,
+            "file_name": "pandas/core/groupby/grouper.py",
+            "replace_code": "def _get_grouper(\n    obj,\n    key=None,\n    axis=0,\n    level=None,\n    sort=True,\n    observed=False,\n    mutated=False,\n    validate=True,\n):\n    \"\"\"\n    create and return a BaseGrouper, which is an internal\n    mapping of how to create the grouper indexers.\n    This may be composed of multiple Grouping objects, indicating\n    multiple groupers\n\n    Groupers are ultimately index mappings. They can originate as:\n    index mappings, keys to columns, functions, or Groupers\n\n    Groupers enable local references to axis,level,sort, while\n    the passed in axis, level, and sort are 'global'.\n\n    This routine tries to figure out what the passing in references\n    are and then creates a Grouping for each one, combined into\n    a BaseGrouper.\n\n    If observed & we have a categorical grouper, only show the observed\n    values\n\n    If validate, then check for key/level overlaps\n\n    \"\"\"\n    group_axis = obj._get_axis(axis)\n\n    # validate that the passed single level is compatible with the passed\n    # axis of the object\n    if level is not None:\n        if isinstance(group_axis, pd.MultiIndex):\n            if pd.api.types.is_list_like(level) and len(level) == 1:\n                level = level[0]\n\n            if key is None and pd.api.types.is_scalar(level):\n                # Get the level values from group_axis\n                key = group_axis.get_level_values(level)\n                level = None\n\n        else:\n            # allow level to be a length-one list-like object\n            if pd.api.types.is_list_like(level):\n                nlevels = len(level)\n                if nlevels == 1:\n                    level = level[0]\n                elif nlevels == 0:\n                    raise ValueError(\"No group keys passed!\")\n                else:\n                    raise ValueError(\"multiple levels only valid with MultiIndex\")\n\n            if isinstance(level, str):\n                if obj.index.name != level:\n                    raise ValueError(\n                        \"level name {} is not the name of the index\".format(level)\n                    )\n            elif level > 0 or level < -1:\n                raise ValueError(\"level > 0 or level < -1 only valid with MultiIndex\")\n\n            level = None\n            key = group_axis\n\n    if isinstance(key, pd.Grouper):\n        binner, grouper, obj = key._get_grouper(obj, validate=False)\n        if key.key is None:\n            return grouper, [], obj\n        else:\n            return grouper, {key.key}, obj\n\n    elif isinstance(key, pd.BaseGrouper):\n        return key, [], obj\n\n    is_tuple = isinstance(key, tuple)\n    all_hashable = is_tuple and all(pd.api.types.is_hashable(elem) for elem in key)\n\n    if is_tuple:\n        if (\n            (all_hashable and key not in obj and set(key).issubset(obj))\n            or not all_hashable\n        ):\n            msg = (\n                \"Interpreting tuple 'by' as a list of keys, rather than \"\n                \"a single key. Use 'by=[...]' instead of 'by=(...)'. In \"\n                \"the future, a tuple will always mean a single key.\"\n            )\n            warnings.warn(msg, FutureWarning, stacklevel=5)\n            key = list(key)\n\n    if not isinstance(key, list):\n        keys = [key]\n        match_axis_length = False\n    else:\n        keys = key\n        match_axis_length = len(keys) == len(group_axis)\n\n    any_callable = any(callable(g) or isinstance(g, dict) for g in keys)\n    any_groupers = any(isinstance(g, pd.Grouper) for g in keys)\n    any_arraylike = any(\n        isinstance(g, (list, tuple, pd.Series, pd.Index, np.ndarray)) for g in keys\n    )\n\n    if not any_callable and not any_arraylike and not any_groupers and match_axis_length and level is None:\n        if isinstance(obj, pd.DataFrame):\n            all_in_columns_index = all(\n                g in obj.columns or g in obj.index.names for g in keys\n            )\n        elif isinstance(obj, pd.Series):\n            all_in_columns_index = all(g in obj.index.names for g in keys)\n\n        if not all_in_columns_index:\n            keys = [pd.api.types.apply_options(keys)]\n\n    if isinstance(level, (tuple, list)):\n        if key is None:\n            keys = [None] * len(level)\n        levels = level\n    else:\n        levels = [level] * len(keys)\n\n    groupings = []\n    exclusions = []\n\n    for i, (gpr, level) in enumerate(zip(keys, levels)):\n        if pd.api.types.isscalar(gpr):\n            gpr = [gpr]\n\n        if (\n            not pd.api.types.is_list_like(gpr)\n            and not pd.api.types.is_scalar(gpr)\n            and not isinstance(gpr, pd.Series)\n        ):\n            raise ValueError(\n                \"Grouper for '%s' not 1-dimensional\" % obj._get_axis_name(axis)\n            )\n\n        if isinstance(gpr, pd.Series):\n            # -----------------------------\n            # gpr is an Index\n            if (level is None) or (obj._data.issparse):\n                gpr = gpr.values\n                level = None\n            else:\n                gpr = gpr._values\n        elif isinstance(gpr, np.ndarray) and gpr.dtype == np.dtype(\"O\"):\n            gpr = np.asanyarray(gpr)\n\n        if not (pd.api.types.is_list_like(gpr) or pd.api.types.is_scalar(gpr)):\n            if level is None:\n                return gpr, None, obj\n            if pd.api.types.is_list_like(level):\n                nlevels = len(level)\n                if nlevels == 1:\n                    level = level[0]\n                elif nlevels == 0:\n                    raise ValueError(\"No group keys passed!\")\n                else:\n                    raise ValueError(\"multiple levels only valid with MultiIndex\")\n            else:\n                level = obj.index._get_level_number(level)\n\n        if isinstance(gpr, pd.Grouper):\n            gpr_obj, exclusions, obj = gpr._get_grouper(obj, validate=False)\n            exclusions = (gpr.key,) if (gpr.key is not None) else None\n            gpr = gpr_obj\n        else:\n            try:\n                exclusions.append(gpr.name)\n            except AttributeError:\n                pass\n\n        level = self.validate_level(level, obj)\n\n        if pd.api.types.is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:\n            raise ValueError(\n                \"Length of grouper ({len_gpr}) and axis ({len_axis}) \"\n                \"must be the same length\".format(\n                    len_gpr=len(gpr), len_axis=obj.shape[axis]\n                )\n            )\n\n        ping = pd.core.groupby.grouper.Grouping(\n            obj, gpr, name=name, level=level, sort=sort, observed=observed, in_axis=True\n        )\n\n        groupings.append(ping)\n\n    if groupings:\n        # get levels\n        if not isinstance(level, list):\n            level = [level] * len(groupings)\n        return pd.core.groupby.grouper.BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated), exclusions, obj",
+            "imports": []
+        }
+    ]
+}

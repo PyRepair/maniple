@@ -1,0 +1,76 @@
+{
+    "fastapi": [
+        {
+            "bugID": 6,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    for field in required_params:\n        value = received_body.getlist(field.name) if isinstance(received_body, FormData) else received_body.get(field.name)\n        if value is None or value == []:\n            if field.required:\n                errors.append(\n                    ErrorWrapper(\n                        exc=ValidationError([{\"loc\": [\"body\", field.name], \"msg\": \"field required\", \"type\": \"value_error.missing\"}]),\n                        loc=(\"body\", field.name)\n                    )\n                )\n            else:\n                values[field.name] = deepcopy(field.default)\n        else:\n            try:\n                v_ = field.type_(value)\n                values[field.name] = v_\n            except ValidationError as e:\n                errors.append(ErrorWrapper(exc=e, loc=(\"body\", field.name)))\n\n    return values, errors",
+            "imports": [
+                "from typing import List, Dict, Any, Tuple, Optional, Union",
+                "from pydantic import BaseModel, Field, ValidationError",
+                "from starlette.datastructures import FormData",
+                "from fastapi.param_functions import UploadFile",
+                "from fastapi.exceptions import HTTPException",
+                "from fastapi import FastAPI, Form, Request"
+            ]
+        }
+    ]
+}

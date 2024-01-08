@@ -1,0 +1,76 @@
+{
+    "fastapi": [
+        {
+            "bugID": 6,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Union[Dict[str, Any], FormData],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    sequence_shapes = {list, set, tuple}\n    sequence_mapping = {list: list, set: set, tuple: tuple}\n    \n    for field in required_params:\n        alias = field.alias\n        form_field = received_body.get(alias)\n        if form_field is None:\n            if field.required:\n                errors.append(ErrorWrapper(\n                    MissingError(),\n                    loc=(\"body\", alias)\n                ))\n            else:\n                values[alias] = field.default\n            continue\n        \n        field_type = sequence_mapping.get(field.type_)\n        if field_type is not None and isinstance(form_field, list):\n            values[alias] = field_type(form_field)\n        else:\n            values[alias], field_errors = field.validate(\n                form_field, \n                values, \n                loc=(\"body\", alias)\n            )\n            if isinstance(field_errors, ErrorWrapper):\n                errors.append(field_errors)\n            elif isinstance(field_errors, list):\n                errors.extend(field_errors)\n    \n    return values, errors",
+            "imports": [
+                "from fastapi import UploadFile, Form",
+                "from pydantic import FormData, BaseConfig, create_model",
+                "from pydantic.fields import ModelField",
+                "from pydantic.error_wrappers import ErrorWrapper",
+                "from pydantic.errors import MissingError",
+                "from typing import Any, Dict, List, Optional, Tuple, Union"
+            ]
+        }
+    ]
+}

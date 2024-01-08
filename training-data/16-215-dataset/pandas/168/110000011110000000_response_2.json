@@ -1,0 +1,88 @@
+{
+    "pandas": [
+        {
+            "bugID": 168,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 425,
+            "file_name": "pandas/core/groupby/grouper.py",
+            "replace_code": "def _get_grouper(\n    obj,\n    key=None,\n    axis=0,\n    level=None,\n    sort=True,\n    observed=False,\n    mutated=False,\n    validate=True,\n):\n    group_axis = obj._get_axis(axis)\n\n    # Validate that the passed single level is compatible with the axis of the object\n    if level is not None:\n        if isinstance(group_axis, MultiIndex):\n            level_values = group_axis.get_level_values(level)\n            if isinstance(level, (list, tuple)) and len(level) == 1:\n                level = level_values[0]\n            else:\n                raise ValueError(\"level should be a length-one list-like object\")\n        else:\n            if is_list_like(level):\n                nlevels = len(level)\n                if nlevels == 1:\n                    level = level[0]\n                elif nlevels == 0:\n                    raise ValueError(\"No group keys passed!\")\n                else:\n                    raise ValueError(\"multiple levels only valid with MultiIndex\")\n            else:\n                if isinstance(level, str):\n                    if obj.index.name != level:\n                        raise ValueError(\"level name {} is not the name of the index\".format(level))\n                elif level > 0 or level < -1:\n                    raise ValueError(\"level > 0 or level < -1 only valid with MultiIndex\")\n                level = None\n                key = group_axis\n\n    # process key according to type\n    if isinstance(key, Grouper):\n        # Handle Grouper type\n        if key.key is None:\n            binner, grouper, obj = key._get_grouper(obj, validate=False)\n            return grouper, set(), obj\n        else:\n            binner, grouper, obj = key._get_grouper(obj, validate=False)\n            return grouper, {key.key}, obj\n    elif isinstance(key, BaseGrouper):\n        # Handle BaseGrouper type\n        return key, set(), obj\n    elif isinstance(key, tuple):\n        # Handle tuple type\n        if is_hashable(key):\n            msg = (\"Interpreting tuple 'by' as a list of keys, rather than \"\n                \"a single key. Use 'by=[...]' instead of 'by=(...)'. In \"\n                \"the future, a tuple will always mean a single key.\")\n            warnings.warn(msg, FutureWarning, stacklevel=5)\n            key = list(key)\n        else:\n            key = [com.asarray_tuplesafe(key)]\n    elif not isinstance(key, (list, tuple)):\n        # Handle non-list, non-tuple type\n        key = [key]\n\n    # rest of the logic for processing keys, levels, groupings, exclusions, and exclusions logic\n    # ...\n\n    # Create and return the BaseGrouper\n    return grouper, exclusions, obj",
+            "imports": [
+                "import pandas as pd",
+                "import numpy as np",
+                "from pandas.core.indexes.base import Index",
+                "from pandas.core.indexes.multi import MultiIndex",
+                "from pandas.core.series import Series",
+                "from pandas.core.groupby.grouper import Grouper",
+                "from pandas.core.groupby.groupby import BaseGrouper",
+                "from pandas.core.dtypes.dtypes import CategoricalDtype",
+                "from pandas.core.algorithms import factorize",
+                "from pandas.core.groupby.grouper import Grouping",
+                "from pandas.core.common import is_list_like",
+                "from pandas.core.common import is_scalar, is_hashable",
+                "from pandas.util._validators import validate_bool_kwarg",
+                "import warnings",
+                "from pandas.core.computation.pytables import is_categorical_dtype",
+                "from pandas.core.dtypes.common import _is_label_like",
+                "from pandas.core.common import com",
+                "from pandas.util._decorators import Appender"
+            ]
+        }
+    ]
+}

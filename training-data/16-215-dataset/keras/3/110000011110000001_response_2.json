@@ -1,0 +1,74 @@
+{
+    "keras": [
+        {
+            "bugID": 3,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)\n\n    layer_map = {}  # Cache for created layers.\n    tensor_map = {}  # Map {reference_tensor: (corresponding_tensor, mask)}\n\n    if input_tensors is None:\n        input_tensors = [Input(shape=inp_shape[1:]) for inp_shape in model.input_shape]\n    elif len(input_tensors) != len(model.inputs):\n        raise ValueError('Length of provided input_tensors does not match the number of model inputs')\n    else:\n        for i, inp in enumerate(model.inputs):\n            tensor_map[inp] = (input_tensors[i], None)\n\n    for layer in model.layers:\n        if layer not in layer_map:\n            new_layer = layer.__class__.from_config(layer.get_config())\n            layer_map[layer] = new_layer\n\n    for node in model._nodes_by_depth:\n        for layer in model._nodes_by_depth[node]:\n            inbound_nodes = [tensor_map[inbound] for inbound in layer._inbound_nodes]\n            kwargs = dict(zip([a.name for a in layer._arguments], layer.arguments))\n            output_tensors = to_list(layer.call([t[0] for t in inbound_nodes], **kwargs))\n\n            for i, out in enumerate(layer._inbound_nodes):\n                tensor_map[out] = (output_tensors[i], None)\n\n    output_tensors = [tensor_map[out][0] for out in model.outputs]\n    new_model = Model(inputs=input_tensors, outputs=output_tensors, name=model.name)\n    return new_model",
+            "imports": [
+                "import numpy as np",
+                "from tensorflow.keras import Model, Input",
+                "from tensorflow.keras.layers import Lambda",
+                "from tensorflow.python.keras.utils import to_list"
+            ]
+        }
+    ]
+}
