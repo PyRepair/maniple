@@ -99,12 +99,13 @@ def resolve_cli_args():
         default=None,
     )
 
-    args_parser.add_argument(
-        "--use-supported",
-        action="store_true",
-        help="Take only supported projects",
-        default=False,
-    )
+    # --use-supported flag is deprecated on 8th Jan, 2024 since supported project list is confirmed now.
+    # args_parser.add_argument(
+    #     "--use-supported",
+    #     action="store_true",
+    #     help="Take only supported projects",
+    #     default=False,
+    # )
 
     args_parser.add_argument(
         "--overwrite",
@@ -199,7 +200,7 @@ def main(args):
             args.bugids,
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
-            use_supported=args.use_supported,
+            # use_supported=args.use_supported,
         )
 
     elif args.dataset == "bugs-in-output-dir":
@@ -223,7 +224,7 @@ def main(args):
             args.dataset,
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
-            use_supported=args.use_supported,
+            # use_supported=args.use_supported,
         )
 
     for output_dir, bugids in bugids:

@@ -53,19 +53,19 @@ def split_bugids_from_dataset(
     bugids: List[str],
     exclude_projects=[],
     include_projects=[],
-    use_supported=True,
+    # use_supported=True,
 ) -> List[Tuple[str, List[str]]]:
     s1 = _load_bugids_from_dataset_impl(
         "106subset",
         exclude_projects,
         include_projects,
-        use_supported,
+        # use_supported,
     )
     s2 = _load_bugids_from_dataset_impl(
         "395subset",
         exclude_projects,
         include_projects,
-        use_supported,
+        # use_supported,
     )
 
     s1_results = []
@@ -94,7 +94,7 @@ def load_bugids_from_dataset(
     dataset: DatasetType,
     exclude_projects=[],
     include_projects=[],
-    use_supported=True,
+    # use_supported=True,
 ) -> List[Tuple[str, List[str]]]:
     results = []
 
@@ -106,7 +106,7 @@ def load_bugids_from_dataset(
                     "106subset",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    use_supported=use_supported,
+                    # use_supported=use_supported,
                 ),
             )
         )
@@ -119,7 +119,7 @@ def load_bugids_from_dataset(
                     "395subset",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    use_supported=use_supported,
+                    # use_supported=use_supported,
                 ),
             )
         )
@@ -132,7 +132,7 @@ def load_bugids_from_dataset(
                     "first-stratum",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    use_supported=use_supported,
+                    # use_supported=use_supported,
                 ),
             )
         )
@@ -145,7 +145,7 @@ def load_bugids_from_dataset(
                     "second-stratum",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    use_supported=use_supported,
+                    # use_supported=use_supported,
                 ),
             )
         )
@@ -158,7 +158,7 @@ def load_bugids_from_dataset(
                     "106subset",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    use_supported=use_supported,
+                    # use_supported=use_supported,
                 ),
             )
         )
@@ -169,7 +169,7 @@ def load_bugids_from_dataset(
                     "395subset",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    use_supported=use_supported,
+                    # use_supported=use_supported,
                 ),
             )
         )
@@ -181,12 +181,12 @@ def _load_bugids_from_dataset_impl(
     dataset: DatasetType,
     exclude_projects=[],
     include_projects=[],
-    use_supported=True,
+    # use_supported=True,
 ):
     subset_list_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "..",
-        "training-data",
+        "experiment-initialization-resources",
         "datasets-list",
     )
 
@@ -205,13 +205,13 @@ def _load_bugids_from_dataset_impl(
     elif dataset == "first-stratum":
         dataset_indices_file_path = os.path.join(
             subset_list_path,
-            "30-106-dataset.json",
+            "16-100-dataset.json",
         )
 
     elif dataset == "second-stratum":
         dataset_indices_file_path = os.path.join(
             subset_list_path,
-            "30-395-dataset.json",
+            "16-215-dataset.json",
         )
 
     else:
@@ -220,13 +220,13 @@ def _load_bugids_from_dataset_impl(
     with open(dataset_indices_file_path, "r") as f:
         dataset_indices = json.load(f)
 
-    support_list = []
-    with open(os.path.join(subset_list_path, "supported106.txt"), "r") as f:
-        supported106 = f.read().strip().split(",")
-        support_list.extend(supported106)
-    with open(os.path.join(subset_list_path, "supported395.txt"), "r") as f:
-        supported395 = f.read().strip().split(",")
-        support_list.extend(supported395)
+    # support_list = []
+    # with open(os.path.join(subset_list_path, "supported106.txt"), "r") as f:
+    #     supported106 = f.read().strip().split(",")
+    #     support_list.extend(supported106)
+    # with open(os.path.join(subset_list_path, "supported395.txt"), "r") as f:
+    #     supported395 = f.read().strip().split(",")
+    #     support_list.extend(supported395)
 
     bugids = []
     for project_name, bugids_list in dataset_indices.items():
@@ -237,8 +237,8 @@ def _load_bugids_from_dataset_impl(
                 continue
 
             bugid_label = f"{project_name}:{bugid}"
-            if use_supported and bugid_label not in support_list:
-                continue
+            # if use_supported and bugid_label not in support_list:
+            #     continue
 
             bugids.append(bugid_label)
 

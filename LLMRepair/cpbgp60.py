@@ -8,7 +8,7 @@ from dataset_manager import (
 
 
 def main():
-    s1 = load_bugids_from_dataset("first-stratum", use_supported=True)
+    s1 = load_bugids_from_dataset("first-stratum")
     for src_path, bugids in s1:
         for bugid in bugids:
             dest_path = os.path.join(FIRST_STRATUM_PATH, *bugid.split(":"))
@@ -19,7 +19,7 @@ def main():
                 dirs_exist_ok=True,
             )
 
-    s2 = load_bugids_from_dataset("second-stratum", use_supported=True)
+    s2 = load_bugids_from_dataset("second-stratum")
     for src_path, bugids in s2:
         for bugid in bugids:
             dest_path = os.path.join(SECOND_STRATUM_PATH, *bugid.split(":"))
