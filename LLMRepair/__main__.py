@@ -85,11 +85,13 @@ def resolve_cli_args():
         default=30,
     )
 
+    # Update 8th Jan, 2024: Since multiprocessing tends to be stable and well tested right now
+    # use 4 as a optimal number to leverage computing resources.
     args_parser.add_argument(
         "--partitions",
         type=int,
         help="specify the number of partitions",
-        default=1,
+        default=4,
     )
 
     args_parser.add_argument(
