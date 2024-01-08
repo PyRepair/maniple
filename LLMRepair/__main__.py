@@ -3,7 +3,7 @@ import os
 import threading
 from typing import List
 
-from utils import divide_list, print_in_yellow
+from utils import divide_list, print_in_red, print_in_yellow
 from cleaner import (
     clear_features,
     clear_logs,
@@ -44,7 +44,7 @@ def resolve_cli_args():
     group_resource.add_argument(
         "--dataset",
         type=str,
-        choices=["106subset", "395subset", "first-stratum", "second-stratum", "all"],
+        choices=["106subset", "395subset", "first-stratum", "second-stratum", "all", "bugs-in-output-dir"],
         help="Which dataset to prepare",
         default="all",
     )
@@ -201,6 +201,22 @@ def main(args):
             include_projects=args.include_projects,
             use_supported=args.use_supported,
         )
+
+    elif args.dataset == "bugs-in-output-dir":
+        if not args.output_dir:
+            print_in_red("FATAL: output_dir not specified")
+            exit(-1)
+        bugids_list = []
+        for project_name in os.listdir(args.output_dir):
+            project_path = os.path.join(args.output_dir, project_name)
+            if not os.path.isdir(project_path):
+                continue
+            for bugid in os.listdir(project_path):
+                bug_path = os.path.join(project_path, bugid)
+                if not os.path.isdir(bug_path):
+                    continue
+                bugids_list.append(f"{project_name}:{bugid}")
+        bugids = [[args.output_dir, bugids_list]]
 
     else:
         bugids = load_bugids_from_dataset(

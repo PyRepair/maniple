@@ -26,8 +26,8 @@ FIRST_STRATUM_PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
         "..",
-        "preliminary-study",
-        "first-stratum",
+        "training-data",
+        "16-100-dataset",
     )
 )
 
@@ -35,8 +35,8 @@ SECOND_STRATUM_PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
         "..",
-        "preliminary-study",
-        "second-stratum",
+        "training-data",
+        "16-215-dataset",
     )
 )
 
@@ -98,13 +98,12 @@ def load_bugids_from_dataset(
 ) -> List[Tuple[str, List[str]]]:
     results = []
 
-    if dataset == "106subset" or dataset == "first-stratum" or dataset == "all":
-        param = "106subset" if dataset == "all" else dataset
+    if dataset == "106subset":
         results.append(
             (
                 BGP106PATH,
                 _load_bugids_from_dataset_impl(
-                    param,
+                    "106subset",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
                     use_supported=use_supported,
@@ -112,13 +111,62 @@ def load_bugids_from_dataset(
             )
         )
 
-    if dataset == "395subset" or dataset == "second-stratum" or dataset == "all":
-        param = "395subset" if dataset == "all" else dataset
+    elif dataset == "395subset":
         results.append(
             (
                 BGP395PATH,
                 _load_bugids_from_dataset_impl(
-                    param,
+                    "395subset",
+                    exclude_projects=exclude_projects,
+                    include_projects=include_projects,
+                    use_supported=use_supported,
+                ),
+            )
+        )
+
+    elif dataset == "first-stratum":
+        results.append(
+            (
+                FIRST_STRATUM_PATH,
+                _load_bugids_from_dataset_impl(
+                    "first-stratum",
+                    exclude_projects=exclude_projects,
+                    include_projects=include_projects,
+                    use_supported=use_supported,
+                ),
+            )
+        )
+
+    elif dataset == "second-stratum":
+        results.append(
+            (
+                SECOND_STRATUM_PATH,
+                _load_bugids_from_dataset_impl(
+                    "second-stratum",
+                    exclude_projects=exclude_projects,
+                    include_projects=include_projects,
+                    use_supported=use_supported,
+                ),
+            )
+        )
+
+    elif dataset == "all":
+        results.append(
+            (
+                BGP106PATH,
+                _load_bugids_from_dataset_impl(
+                    "106subset",
+                    exclude_projects=exclude_projects,
+                    include_projects=include_projects,
+                    use_supported=use_supported,
+                ),
+            )
+        )
+        results.append(
+            (
+                BGP395PATH,
+                _load_bugids_from_dataset_impl(
+                    "395subset",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
                     use_supported=use_supported,
