@@ -704,7 +704,7 @@ def create_query(messages: list, gpt_model: str) -> str:
     raise QueryException("Tried 10 times OpenAI rate limit query")
 
 
-def run_single_bitvector_partition(partition_bitvectors):
+def run_single_bitvector_partition(partition_bitvectors, repeat_count, regeneration_count):
     for bitvector_strata in partition_bitvectors:
         for project in projects:
             project_folder_path = os.path.join(database_path, project)
@@ -722,7 +722,15 @@ def run_single_bitvector_partition(partition_bitvectors):
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                     if not prompt_generator.exist_null_strata():
                         prompt_generator.write_prompt()
-                        # prompt_generator.get_response_from_gpt(2, "gpt-3.5-turbo-1106", 0)
+                        for count in range(repeat_count):
+                            prompt_generator.get_response_from_gpt(count, "gpt-3.5-turbo-1106", 0)
+
+                            if regeneration_count == 0:
+                                continue
+
+                            for _ in range(regeneration_count):
+                                prompt_generator.get_response_from_gpt(count, "gpt-3.5-turbo-1106", 1)
+
                 except Exception as e:
                     print_in_red(str(e))
 
@@ -739,6 +747,18 @@ if __name__ == "__main__":
         "--partition",
         type=int,
         help="how much partition you want, this will split dataset and run every partition parallel",
+        required=True
+    )
+    args_parser.add_argument(
+        "--repeat",
+        type=int,
+        help="how many responses you want get from one prompt",
+        required=True
+    )
+    args_parser.add_argument(
+        "--regeneration",
+        type=int,
+        help="how many regeneration for a response you want if you can't parse syntax valid fix patch from it",
         required=True
     )
 
@@ -760,7 +780,7 @@ if __name__ == "__main__":
 
     threads = []
     for bitvector in strata_bitvectors:
-        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, ))
+        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.repeat, args.regeneration))
         thread.start()
         threads.append(thread)
 
