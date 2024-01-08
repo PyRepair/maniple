@@ -143,8 +143,13 @@ def validate_patches(
 
 
 def get_run_times_for_bugid(bugid: str):
-    projects_need_rerun = ["keras", "tqdm", "black", "PySnooper"]
-    if any(bugid.startswith(pn) for pn in projects_need_rerun):
-        return 10
-    else:
-        return 1
+    # projects_need_rerun = ["keras", "tqdm", "black", "PySnooper"]
+    # if any(bugid.startswith(pn) for pn in projects_need_rerun):
+    #     return 10
+    # else:
+    #     return 1
+
+    # Update 8th Jan, 2024: Use 10 times for each bugs by default
+    # This is because we have less bugs (16 + 16) to test and sufficient computing resources to verify results.
+    
+    return 10
