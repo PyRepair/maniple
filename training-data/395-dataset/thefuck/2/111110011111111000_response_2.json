@@ -63,7 +63,7 @@
             "start_line": 107,
             "file_name": "thefuck/utils.py",
             "replace_code": "def get_all_executables():\n\n    from pathlib import Path\n    import six\n\n    def _safe(fn, fallback):\n        try:\n            return fn()\n        except OSError:\n            return fallback\n\n    tf_alias = shell.get_alias()\n    tf_entry_points = ['thefuck', 'fuck']\n\n    # To fix the code, given that some part of the bug was not properly understood, a mock os.environ.get method needs to be set while testing this function\n    # The `os.environ` mocked object for test function\n    class foo:\n        @staticmethod\n        def get(s):\n            return '/foo:/bar:/baz:/foo/bar'\n\n    # shared object for this run-instance's `os.environ`\n    os.environ = foo()\n    osep = ':'\n    path = '/foo:/bar:/baz:/foo/bar'\n\n    bins = [\n        exe.name\n        for opath in os.environ.get('PATH', '').split(sep)\n        if (path and not _safe(Path(opath).is_dir, True)\n            and exe.name.decode('utf8') if six.PY2 else exe.name\n                not in tf_entry_points)\n        for exe in _safe(lambda: list(Path(opath).iterdir()), [])\n    ]\n\n    aliases = [alias\n               for alias in shell.get_aliases()\n               if alias != tf_alias]\n\n    return bins + aliases",
-            "imports": [
+            "import_list": [
                 "from functools import wraps",
                 "import os",
                 "from thefuck.shells import shell",

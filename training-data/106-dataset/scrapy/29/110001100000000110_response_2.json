@@ -63,7 +63,7 @@
             "start_line": 73,
             "file_name": "scrapy/utils/request.py",
             "replace_code": "def request_httprepr(request):\n    \"\"\"Return the raw HTTP representation (as bytes) of the given request.\n    This is provided only for reference since it's not the actual stream of\n    bytes that will be sent when performing the request (that's controlled\n    by Twisted).\n    \"\"\"\n    from scrapy.http import Request\n    from scrapy.utils.python import to_bytes\n\n    parsed = request\n    path = to_bytes(parsed.url)\n    \n    lines = []\n\n    lines.append(to_bytes('%s %s HTTP/1.1' % (to_bytes(parsed.method), path)))\n\n    headers_out = [(name, values[0]) for name, values in six.iteritems(parsed.headers)]\n    # make sure it's str, in case we have unicode headers, else it would not be possible to join\n    headers_out = [(to_bytes(name), to_bytes(value)) for name, value in headers_out]\n    # HTTP1.1 requires at least one header, but the order is irrelevant, so we can as well always add Content-Length\n    if not any(k.lower() == b'content-length' for k, v in headers_out):\n        # scrapy only uses this of body is not empty or partially consumed, i.e., not when it's None, [], or b''\n        headers_out.append((b'Content-Length', to_bytes(len(parsed.body))))\n\n    lines.extend([to_bytes(k) + b': ' + v for k, v in headers_out])\n\n    lines.append(b'')\n    lines.append(parsed.body or b'')\n\n    return b'\\r\\n'.join(lines)",
-            "imports": [
+            "import_list": [
                 "import six",
                 "from scrapy.http import Request",
                 "from scrapy.utils.python import to_bytes"

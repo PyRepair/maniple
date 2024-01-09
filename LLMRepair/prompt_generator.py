@@ -608,7 +608,7 @@ class PromptGenerator:
                             "start_line": self.buggy_function_start_line,
                             "file_name": self.buggy_location_file_name,
                             "replace_code": replace_code,
-                            "imports": import_statements
+                            "import_list": import_statements
                         }
                     ]
                 }
@@ -643,7 +643,7 @@ class PromptGenerator:
                             "start_line": self.buggy_function_start_line,
                             "file_name": self.buggy_location_file_name,
                             "replace_code": None,
-                            "imports": []
+                            "import_list": []
                         }
                     ]
                 }

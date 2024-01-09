@@ -63,7 +63,7 @@
             "start_line": 907,
             "file_name": "pandas/core/indexes/interval.py",
             "replace_code": "def get_indexer(\n    self,\n    target: AnyArrayLike,\n    method: Optional[str] = None,\n    limit: Optional[int] = None,\n    tolerance: Optional[Any] = None,\n) -> np.ndarray:\n\n    self._check_method(method)\n\n    if not self.is_overlapping:\n        target_as_index = ensure_index(target)\n\n        if isinstance(target_as_index, IntervalIndex):\n            if self.equals(target_as_index):\n                return np.arange(len(self), dtype=\"intp\")\n            common_subtype = pd.api.types.common_type(\n                self.dtype.subtype, target_as_index.dtype.subtype\n            )\n            if (\n                self.closed != target_as_index.closed\n                or pd.api.types.is_object_dtype(common_subtype)\n            ):\n                return np.repeat(np.intp(-1), len(target_as_index))\n            left_indexer = self.left.get_indexer(target_as_index.left)\n            right_indexer = self.right.get_indexer(target_as_index.right)\n            indexer = np.where(left_indexer == right_indexer, left_indexer, -1)\n        elif not pd.api.types.is_object_dtype(target_as_index):\n            target_as_index = self._maybe_convert_i8(target_as_index)\n            indexer = self._engine.get_indexer(target_as_index.values)\n        else:\n            indexer = [self.get_loc(key) if key in self else -1 for key in target_as_index]\n    else:\n        raise ValueError(\"cannot handle overlapping indices\")\n\n    return ensure_platform_int(indexer)",
-            "imports": []
+            "import_list": []
         }
     ]
 }

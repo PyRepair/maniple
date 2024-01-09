@@ -63,7 +63,7 @@
             "start_line": 312,
             "file_name": "pandas/core/reshape/reshape.py",
             "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    # Unstacking hierarchical columns\n    if isinstance(data.columns, pd.MultiIndex):\n        result = data\n        for i in range(len(clocs)):\n            lev = clocs[i]\n            result = result.unstack(level=lev, fill_value=fill_value)\n        return result\n\n    # Unstacking the columns and index\n    dummy = data.copy()\n    index = dummy.index\n    clevels = [index.levels[l] for l in clocs]\n    ccodes = [index.codes[l] for l in clocs]\n    cnames = [index.names[l] for l in clocs]\n    new_columns = pd.MultiIndex.from_tuples([tuple(cc) for cc in zip(*ccodes)], names=cnames + [\"__placeholder__\"])\n    dummy.columns = new_columns\n\n    unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n    \n    # Define new levels, names, and codes\n    new_levels = [unstacked.columns.levels[i] for i in range(len(clocs))] + clevels\n    new_names = [unstacked.columns.names[i] for i in range(len(clocs))] + cnames\n    new_codes = [unstacked.columns.codes[i] for i in range(len(clocs))] \n    for rec in ccodes:\n        new_codes.append(rec)\n    \n    new_columns = pd.MultiIndex(levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False)\n\n    if isinstance(unstacked, pd.Series):\n        unstacked.index = new_columns\n    else:\n        unstacked.columns = new_columns\n\n    return unstacked",
-            "imports": []
+            "import_list": []
         }
     ]
 }

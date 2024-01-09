@@ -63,7 +63,7 @@
             "start_line": 463,
             "file_name": "pandas/core/ops/__init__.py",
             "replace_code": "def dispatch_to_series(left, right, func, str_rep=None, axis=None):\n    \"\"\"\n    Evaluate the frame operation func(left, right) by evaluating\n    column-by-column, dispatching to the Series implementation.\n\n    Parameters\n    ----------\n    left : DataFrame\n    right : scalar or DataFrame\n    func : arithmetic or comparison operator\n    str_rep : str or None, default None\n    axis : {None, 0, 1, \"index\", \"columns\"}\n\n    Returns\n    -------\n    DataFrame\n    \"\"\"\n    import numpy as np\n    import pandas as pd\n    import pandas.core.computation.expressions as expressions\n    from pandas.core.dtypes.common import is_scalar\n\n    right = pd.Series(right) if is_scalar(right) else right\n\n    def column_op(a, b):\n        result_dict = {}\n        for i in range(len(a.columns)):\n            if isinstance(b, pd.Series):\n                b_valid = b.dropna()\n                if axis == 'columns':\n                    result_dict[i] = func(a.iloc[:, i], b_valid)\n                else:\n                    result_dict[i] = func(a.iloc[:, i], b_valid.iloc[i])\n            else:\n                result_dict[i] = func(a.iloc[:, i], b)\n        return result_dict\n\n    new_data = expressions.evaluate(column_op, str_rep, left, right)\n    return pd.DataFrame(new_data)",
-            "imports": [
+            "import_list": [
                 "import numpy as np",
                 "import pandas as pd",
                 "import pandas.core.computation.expressions as expressions",

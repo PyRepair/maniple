@@ -63,7 +63,7 @@
             "start_line": 393,
             "file_name": "luigi/scheduler.py",
             "replace_code": "def set_status(self, task, new_status, config=None):\n        if new_status == FAILED:\n            assert config is not None\n    \n        if new_status == DISABLED and task.status == RUNNING:\n            return\n    \n        if task.status == DISABLED:\n            if new_status == DONE:\n                self.re_enable(task)\n                new_status = FAILED  # Transition back to FAILED after re-enabling\n    \n            # handle re-enabling based on time elapsed\n            if task.scheduler_disable_time is not None and task.scheduler_disable_time + config.disable_persist < time():\n                # time for disabling has elapsed, so change status to FAILED\n                new_status = FAILED\n                task.scheduler_disable_time = None\n    \n        if new_status == FAILED and task.can_disable():\n            task.add_failure()\n            if task.has_excessive_failures():\n                task.scheduler_disable_time = time()\n                new_status = DISABLED\n                # ... (send error email) ...\n    \n        elif new_status == DISABLED:\n            task.scheduler_disable_time = time()  # Set the time when the task is disabled\n    \n        self._status_tasks[task.status].pop(task.id)\n        self._status_tasks[new_status][task.id] = task\n        task.status = new_status",
-            "imports": [
+            "import_list": [
                 "from time import time"
             ]
         }

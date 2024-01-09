@@ -63,7 +63,7 @@
             "start_line": 381,
             "file_name": "pandas/core/indexes/range.py",
             "replace_code": "def get_indexer(self, target, method=None, limit=None, tolerance=None):\n    import pandas.api.types as ptypes\n    \n    if (method is not None) or (tolerance is not None) or (limit is not None) or (not ptypes.is_list_like(target)):\n        return super().get_indexer(target, method=method, tolerance=tolerance, limit=limit)\n\n    if self.step > 0:\n        start, stop, step = self.start, self.stop, self.step\n    else:\n        # Work on reversed range for simplicity:\n        start, stop, step = (self.stop - self.step, self.start + 1, -self.step)\n\n    target_array = np.asarray(target)\n    if not (ptypes.is_integer_dtype(target_array) and target_array.ndim == 1):\n        # checks/conversions/roundings are delegated to general method\n        return super().get_indexer(target, method=method, tolerance=tolerance)\n\n    locs = target_array - start\n    valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)\n    locs[~valid] = -1\n    locs[valid] = locs[valid] / step\n\n    if step != self.step:\n        # We reversed this range: transform to original locs\n        locs[valid] = len(self) - 1 - locs[valid]\n    return ensure_platform_int(locs)",
-            "imports": [
+            "import_list": [
                 "import pandas.api.types as ptypes"
             ]
         }

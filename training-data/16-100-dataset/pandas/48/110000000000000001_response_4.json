@@ -63,7 +63,7 @@
             "start_line": 999,
             "file_name": "pandas/core/groupby/generic.py",
             "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data._get_numeric_data(copy=False)  # Changed to _get_numeric_data method\n\n    agg_blocks: List[Block] = []\n    new_items: List[np.ndarray] = []\n    deleted_items: List[np.ndarray] = []\n    split_items: List[np.ndarray] = []\n    split_frames: List[DataFrame] = []\n\n    no_result = object()\n    for block in data.blocks:\n        result = no_result  # Moved the result assignment outside the try-except block\n        locs = block.mgr_locs.as_array\n        try:\n            result, _ = self.grouper.aggregate(\n                block.values, how, axis=self.axis, min_count=min_count  # Changed the order of argument in the aggregate method\n            )\n        except TypeError as e:\n            if alt is None:\n                raise e\n            else:\n                # Added code to handle alternate aggregation method\n                result = alt(block.values)\n                if isinstance(result, DataFrame):\n                    result = result.values\n\n        if result is not no_result:\n            agg_block: Block = block.make_block(result)\n            new_items.append(locs)\n            agg_blocks.append(agg_block)\n\n    if not (agg_blocks or split_frames):\n        raise DataError(\"No numeric types to aggregate\")",
-            "imports": []
+            "import_list": []
         }
     ]
 }

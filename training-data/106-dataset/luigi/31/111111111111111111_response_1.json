@@ -63,7 +63,7 @@
             "start_line": 624,
             "file_name": "luigi/scheduler.py",
             "replace_code": "def get_work(self, worker, host=None, assistant=False, **kwargs):\n    # TODO: remove any expired nodes\n    self.update(worker, {'host': host})\n    if assistant:\n        self.add_worker(worker, [('assistant', assistant)])\n    \n    tasks = list(self._state.get_pending_tasks())\n    tasks.sort(key=self._rank(), reverse=True)\n    \n    for task in tasks:\n        in_workers = assistant or worker in task.workers\n        if task.status == 'PENDING' and in_workers and self._schedulable(task) and self._has_resources(task.resources, self._used_resources()):\n            best_task = task\n            self._state.set_status(best_task, 'RUNNING', self._config)\n            best_task.worker_running = worker\n            best_task.time_running = time.time()\n            self._update_task_history(best_task.id, 'RUNNING', host=host)\n            reply = {'n_pending_tasks': len(tasks) - 1,  # Excluding the selected task\n                     'running_tasks': [],\n                     'task_id': best_task.id,\n                     'n_unique_pending': sum(1 for t in tasks if t.status == 'PENDING' and len(t.workers) == 1)}\n            reply['task_family'] = best_task.family\n            reply['task_module'] = getattr(best_task, 'module', None)\n            reply['task_params'] = best_task.params\n            return reply\n    \n    reply = {'n_pending_tasks': len(tasks),\n             'running_tasks': [],\n             'task_id': None,\n             'n_unique_pending': sum(1 for t in tasks if t.status == 'PENDING' and len(t.workers) == 1)}\n    \n    return reply",
-            "imports": []
+            "import_list": []
         }
     ]
 }

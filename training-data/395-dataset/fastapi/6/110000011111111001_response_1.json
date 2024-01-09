@@ -63,7 +63,7 @@
             "start_line": 617,
             "file_name": "fastapi/dependencies/utils.py",
             "replace_code": "def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    for field in required_params:\n        value = None\n        if received_body is not None:\n            if isinstance(received_body, FormData):\n                value = received_body.getlist(field.alias) if field.type_ == list else received_body.get(field.alias)\n        if value is None and field.required:\n            errors.append(ErrorWrapper(MissingError(), loc=(\"body\", field.alias)))\n        else:\n            if isinstance(field_info, params.File) and lenient_issubclass(field.type_, bytes) and isinstance(value, UploadFile):\n                value = await value.read()\n            v_, errors_ = field.validate(value, values, loc=(\"body\", field.alias))\n            if isinstance(errors_, ErrorWrapper):\n                errors.append(errors_)\n            elif isinstance(errors_, list):\n                errors.extend(errors_)\n            else:\n                values[field.name] = v_\n    return values, errors",
-            "imports": [
+            "import_list": [
                 "from typing import List, Tuple, Dict, Any, Union, Optional",
                 "from fastapi import UploadFile, FormData",
                 "from pydantic import BaseModel, Field, ErrorWrapper, BaseConfig, create_model",

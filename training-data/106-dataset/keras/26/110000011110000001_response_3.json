@@ -63,7 +63,7 @@
             "start_line": 2676,
             "file_name": "keras/backend/tensorflow_backend.py",
             "replace_code": "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n    # other code remains the same\n    if unroll:\n        if not inputs.get_shape()[0]:\n            raise ValueError('Unrolling requires a '\n                             'fixed number of timesteps.')\n        states = initial_states\n        successive_states = []\n        successive_outputs = []\n\n        input_list = tf.unstack(inputs)\n        if go_backwards:\n            input_list = reversed(input_list)\n\n        if mask is not None:\n            mask_list = tf.unstack(mask)\n            if go_backwards:\n                mask_list = reversed(mask_list)\n\n        for i, inp in enumerate(input_list):\n            if mask is not None:\n                mask_t = mask_list[i]\n\n            output, new_states = step_function(inp, states + constants)\n            if getattr(output, '_uses_learning_phase', False):\n                uses_learning_phase = True\n\n            if mask is not None:\n                output = tf.where(mask_t, output, successive_outputs[-1] if i > 0 else tf.zeros_like(output))\n                states = [tf.where(mask_t, new_states[j], states[j]) for j in range(len(states))]\n\n            successive_outputs.append(output)\n            successive_states.append(new_states)\n        last_output = successive_outputs[-1]\n        new_states = successive_states[-1]\n        outputs = tf.stack(successive_outputs)",
-            "imports": [
+            "import_list": [
                 "import tensorflow as tf"
             ]
         }

@@ -63,7 +63,7 @@
             "start_line": 51,
             "file_name": "fastapi/routing.py",
             "replace_code": "def serialize_response(\n    *,\n    field: Union[None, BaseModel] = None,\n    response_content: Any,\n    include: Union[None, Set[str], Dict[str, Any]] = None,\n    exclude: Union[Set[str], Dict[str, Any]] = set(),\n    by_alias: bool = True,\n    exclude_unset: bool = False,\n    is_coroutine: bool = True,\n) -> Any:\n    if field:\n        errors = []\n        if exclude_unset and isinstance(response_content, BaseModel):\n            if not is_coroutine:\n                model_values = response_content.dict(skip_defaults=exclude_unset, by_alias=by_alias)\n                value = create_model('Value', **model_values)\n            else:\n                value, errors_ = run_in_threadpool(\n                    field.validate, response_content, {}, loc=(\"response\",)\n                )\n                if isinstance(errors_, ErrorWrapper):\n                    errors.append(errors_)\n                elif isinstance(errors_, list):\n                    errors.extend(errors_)\n                if errors:\n                    raise ValidationError(errors, field.type_)\n        else:\n            value = response_content\n        return jsonable_encoder(\n            value,\n            include=include,\n            exclude=exclude,\n            by_alias=by_alias,\n            exclude_unset=exclude_unset,\n        )\n    else:\n        return jsonable_encoder(response_content)",
-            "imports": [
+            "import_list": [
                 "from typing import Any, Union, Set, Dict",
                 "from pydantic import BaseModel, Field, create_model",
                 "from fastapi.responses import JSONResponse",
