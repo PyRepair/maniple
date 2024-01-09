@@ -67,7 +67,9 @@ def aggregate_stats(pass_stats_list):
 
 
 def main(path):
-    allPassStats = [PassStats(pass_num=1), PassStats(pass_num=2), PassStats(pass_num=3)]
+    TOTAL_PASS_NUM = 10
+    allPassStats = [PassStats(pass_num=idx) for idx in range(TOTAL_PASS_NUM)]
+
     bugs_error_stats = defaultdict[str, ErrorStats](ErrorStats)
     fixed_bugids = set()
     postive_labels = set()
