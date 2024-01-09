@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, fields
 import os
 import json
-from typing import Dict, List
+from typing import List
 
 
 @dataclass
@@ -21,7 +21,7 @@ class PassStats:
     total_results: int = 0
     total_responses: int = 0
 
-    fixed_bugids = set()
+    fixed_bugids: set = field(default_factory=set)
 
 
 @dataclass
@@ -52,18 +52,36 @@ def print_stats(pass_stat: PassStats):
 
 
 def aggregate_stats(pass_stats_list):
-    # Initialize aggregate values
-    agg_values = {
-        field.name: 0 for field in fields(PassStats) if field.name != "pass_num"
-    }
+    # Separate fields into integer fields and set fields
+    int_fields = [
+        f.name
+        for f in fields(PassStats)
+        if isinstance(getattr(PassStats, f.name, None), int)
+    ]
+    set_fields = [
+        f.name
+        for f in fields(PassStats)
+        if isinstance(getattr(PassStats, f.name, None), set)
+    ]
 
-    # Sum up the values for each field
+    # Initialize aggregate values for integer fields
+    agg_int_values = {field: 0 for field in int_fields}
+    # Initialize empty sets for set fields
+    agg_set_values = {field: set() for field in set_fields}
+
+    # Aggregate values for each PassStats object in the list
     for stats in pass_stats_list:
-        for field in agg_values:
-            agg_values[field] += getattr(stats, field)
+        for field in int_fields:
+            agg_int_values[field] += getattr(stats, field)
+        for field in set_fields:
+            agg_set_values[field] |= getattr(stats, field)  # Union operation
+
+    # Exclude 'pass_num' from aggregation and set it to a specific value
+    agg_int_values.pop("pass_num", None)
 
     # Create a new PassStats object with aggregated values
-    return PassStats(pass_num=-1, **agg_values)
+    aggregated_values = {**agg_int_values, **agg_set_values}
+    return PassStats(pass_num=-1, **aggregated_values)
 
 
 def main(path):
