@@ -44,7 +44,7 @@ def resolve_cli_args():
     group_resource.add_argument(
         "--dataset",
         type=str,
-        choices=["106subset", "395subset", "first-stratum", "second-stratum", "all", "bugs-in-output-dir"],
+        choices=["BGP100", "BGP215", "first-stratum", "second-stratum", "all", "bugs-in-output-dir"],
         help="Which dataset to prepare",
         default="all",
     )
@@ -202,7 +202,6 @@ def main(args):
             args.bugids,
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
-            # use_supported=args.use_supported,
         )
 
     elif args.dataset == "bugs-in-output-dir":
@@ -226,7 +225,6 @@ def main(args):
             args.dataset,
             exclude_projects=args.exclude_projects,
             include_projects=args.include_projects,
-            # use_supported=args.use_supported,
         )
 
     for output_dir, bugids in bugids:
