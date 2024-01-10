@@ -4,7 +4,7 @@ import os
 
 from utils import NotSupportedError
 
-BGP106PATH = os.path.abspath(
+BGP100PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
         "..",
@@ -13,7 +13,7 @@ BGP106PATH = os.path.abspath(
     )
 )
 
-BGP395PATH = os.path.abspath(
+BGP215PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
         "..",
@@ -41,8 +41,8 @@ SECOND_STRATUM_PATH = os.path.abspath(
 )
 
 DatasetType = Union[
-    Literal["106subset"],
-    Literal["395subset"],
+    Literal["BGP100"],
+    Literal["BGP215"],
     Literal["first-stratum"],
     Literal["second-stratum"],
     Literal["all"],
@@ -53,19 +53,16 @@ def split_bugids_from_dataset(
     bugids: List[str],
     exclude_projects=[],
     include_projects=[],
-    # use_supported=True,
 ) -> List[Tuple[str, List[str]]]:
     s1 = _load_bugids_from_dataset_impl(
-        "106subset",
+        "BGP100",
         exclude_projects,
         include_projects,
-        # use_supported,
     )
     s2 = _load_bugids_from_dataset_impl(
-        "395subset",
+        "BGP215",
         exclude_projects,
         include_projects,
-        # use_supported,
     )
 
     s1_results = []
@@ -80,11 +77,11 @@ def split_bugids_from_dataset(
 
     return [
         (
-            BGP106PATH,
+            BGP100PATH,
             s1_results,
         ),
         (
-            BGP395PATH,
+            BGP215PATH,
             s2_results,
         ),
     ]
@@ -94,32 +91,29 @@ def load_bugids_from_dataset(
     dataset: DatasetType,
     exclude_projects=[],
     include_projects=[],
-    # use_supported=True,
 ) -> List[Tuple[str, List[str]]]:
     results = []
 
-    if dataset == "106subset":
+    if dataset == "BGP100":
         results.append(
             (
-                BGP106PATH,
+                BGP100PATH,
                 _load_bugids_from_dataset_impl(
-                    "106subset",
+                    "BGP100",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    # use_supported=use_supported,
                 ),
             )
         )
 
-    elif dataset == "395subset":
+    elif dataset == "BGP215":
         results.append(
             (
-                BGP395PATH,
+                BGP215PATH,
                 _load_bugids_from_dataset_impl(
-                    "395subset",
+                    "BGP215",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    # use_supported=use_supported,
                 ),
             )
         )
@@ -132,7 +126,6 @@ def load_bugids_from_dataset(
                     "first-stratum",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    # use_supported=use_supported,
                 ),
             )
         )
@@ -145,7 +138,6 @@ def load_bugids_from_dataset(
                     "second-stratum",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    # use_supported=use_supported,
                 ),
             )
         )
@@ -153,23 +145,21 @@ def load_bugids_from_dataset(
     elif dataset == "all":
         results.append(
             (
-                BGP106PATH,
+                BGP100PATH,
                 _load_bugids_from_dataset_impl(
-                    "106subset",
+                    "BGP100",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    # use_supported=use_supported,
                 ),
             )
         )
         results.append(
             (
-                BGP395PATH,
+                BGP215PATH,
                 _load_bugids_from_dataset_impl(
-                    "395subset",
+                    "BGP215",
                     exclude_projects=exclude_projects,
                     include_projects=include_projects,
-                    # use_supported=use_supported,
                 ),
             )
         )
@@ -181,7 +171,6 @@ def _load_bugids_from_dataset_impl(
     dataset: DatasetType,
     exclude_projects=[],
     include_projects=[],
-    # use_supported=True,
 ):
     subset_list_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -190,16 +179,16 @@ def _load_bugids_from_dataset_impl(
         "datasets-list",
     )
 
-    if dataset == "106subset":
+    if dataset == "BGP100":
         dataset_indices_file_path = os.path.join(
             subset_list_path,
-            "106-dataset.json",
+            "100-106-dataset.json",
         )
 
-    elif dataset == "395subset":
+    elif dataset == "BGP215":
         dataset_indices_file_path = os.path.join(
             subset_list_path,
-            "395-dataset.json",
+            "215-395-dataset.json",
         )
 
     elif dataset == "first-stratum":
@@ -220,14 +209,6 @@ def _load_bugids_from_dataset_impl(
     with open(dataset_indices_file_path, "r") as f:
         dataset_indices = json.load(f)
 
-    # support_list = []
-    # with open(os.path.join(subset_list_path, "supported106.txt"), "r") as f:
-    #     supported106 = f.read().strip().split(",")
-    #     support_list.extend(supported106)
-    # with open(os.path.join(subset_list_path, "supported395.txt"), "r") as f:
-    #     supported395 = f.read().strip().split(",")
-    #     support_list.extend(supported395)
-
     bugids = []
     for project_name, bugids_list in dataset_indices.items():
         for bugid in bugids_list:
@@ -237,8 +218,6 @@ def _load_bugids_from_dataset_impl(
                 continue
 
             bugid_label = f"{project_name}:{bugid}"
-            # if use_supported and bugid_label not in support_list:
-            #     continue
 
             bugids.append(bugid_label)
 
