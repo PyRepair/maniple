@@ -145,7 +145,9 @@ class PromptGenerator:
         return actual_strata_bitvector
 
     def generate_prompt(self):
-        self.prompt: str = self.template["preface"]
+        # self.prompt += f"The source code file is a member of the {self.project_name} repository.\n"
+
+        self.prompt += self.template["preface"]
         self.add_newline_between_sections()
 
         self.generate_buggy_code_section()

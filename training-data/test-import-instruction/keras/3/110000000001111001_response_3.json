@@ -1,0 +1,69 @@
+{
+    "keras": [
+        {
+            "bugID": 3,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)\n\n    layer_map = {}  # Cache for created layers\n    tensor_map = {}  # Map {reference_tensor: (corresponding_tensor, mask)}\n    if input_tensors is None:\n        input_tensors = [Input(batch_shape=layer.input_shape) for layer in model.layers]\n    for original_layer, input_tensor in zip(model.layers, input_tensors):\n        layer_map[original_layer] = input_tensor\n        tensor_map[original_layer.input] = input_tensor\n\n    for layer in model.layers:\n        if layer not in layer_map:\n            new_layer = layer.__class__.from_config(layer.get_config())\n            layer_map[layer] = new_layer\n            if layer.input in tensor_map:\n                new_layer_input = tensor_map[layer.input]\n            else:\n                new_layer_input = Input(batch_shape=layer.input_shape)\n                tensor_map[layer.input] = new_layer_input\n            tensor_map[layer.output] = new_layer(new_layer_input)\n\n    output_tensors = [tensor_map[output] for output in model.outputs]\n\n    return Model(input_tensors, output_tensors, name=model.name)",
+            "import_list": []
+        }
+    ]
+}
