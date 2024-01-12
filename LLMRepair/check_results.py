@@ -1,23 +1,25 @@
 import argparse
-from collections import defaultdict
+from ast import Pass
+from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field, fields
 import os
 import json
-from typing import List
+from typing import Dict, List
 
 
 @dataclass
 class PassStats:
-    # pass wise
-    pass_num: int
-
     # prompt wise
     count_0: int = 0
+    count_0_bugids: set = field(default_factory=set)
+
     count_1: int = 0
     count_2: int = 0
     count_4: int = 0
     count_6_7: int = 0
     count_other: int = 0
+
+    # used to track the progress of validation
     total_results: int = 0
     total_responses: int = 0
 
@@ -30,28 +32,7 @@ class ErrorStats:
     flag_4: List[str] = field(default_factory=list)
 
 
-def print_stats(pass_stat: PassStats):
-    print(
-        f"Number of postive labels (flag 0): {pass_stat.count_0}, percentage: {int((pass_stat.count_0 / pass_stat.total_results) * 100)}%"
-    )
-    print(
-        f"Number of fail labels (flag 1): {pass_stat.count_1}, percentage: {int((pass_stat.count_1 / pass_stat.total_results) * 100)}%"
-    )
-    print(
-        f"Number of test running timeouts (flag 2): {pass_stat.count_2}, percentage: {int((pass_stat.count_2 / pass_stat.total_results) * 100)}%"
-    )
-    print(
-        f"Number of test running errors (flag 4): {pass_stat.count_4}, percentage: {int((pass_stat.count_4 / pass_stat.total_results) * 100)}%"
-    )
-    print(
-        f"Number of bugs that cannot extract functions (flag 6 or 7): {pass_stat.count_6_7}, percentage: {int((pass_stat.count_6_7 / pass_stat.total_results) * 100)}%"
-    )
-    print(
-        f"Number of other errors: {pass_stat.count_other}, percentage: {int((pass_stat.count_other / pass_stat.total_results) * 100)}%"
-    )
-
-
-def aggregate_stats(pass_stats_list):
+def aggregate_stats(pass_stats_list: Dict[int, PassStats]):
     # Separate fields into integer fields and set fields
     int_fields = [
         f.name
@@ -70,7 +51,7 @@ def aggregate_stats(pass_stats_list):
     agg_set_values = {field: set() for field in set_fields}
 
     # Aggregate values for each PassStats object in the list
-    for stats in pass_stats_list:
+    for _, stats in pass_stats_list.items():
         for field in int_fields:
             agg_int_values[field] += getattr(stats, field)
         for field in set_fields:
@@ -81,14 +62,16 @@ def aggregate_stats(pass_stats_list):
 
     # Create a new PassStats object with aggregated values
     aggregated_values = {**agg_int_values, **agg_set_values}
-    return PassStats(pass_num=-1, **aggregated_values)
+    return PassStats(**aggregated_values)
 
 
 def main(path):
-    TOTAL_PASS_NUM = 10
-    allPassStats = [PassStats(pass_num=idx) for idx in range(TOTAL_PASS_NUM)]
+    # A dictionary of pass index to PassStats
+    allPassStats = defaultdict[int, PassStats](PassStats)
 
+    # A dictionary of bugid to ErrorStats
     bugs_error_stats = defaultdict[str, ErrorStats](ErrorStats)
+
     fixed_bugids = set()
     postive_labels = set()
     total_bugs = 0
@@ -104,12 +87,12 @@ def main(path):
 
             if "response" in file and file.endswith(".json"):
                 just_filename_parts = file[:-5].split("_")
-                pass_index = int(just_filename_parts[2]) - 1
+                pass_index = int(just_filename_parts[2])
                 allPassStats[pass_index].total_responses += 1
 
             if "result" in file and file.endswith(".json"):
                 just_filename_parts = file[:-5].split("_")
-                pass_index = int(just_filename_parts[2]) - 1
+                pass_index = int(just_filename_parts[2])
                 bitvector = just_filename_parts[0]
 
                 allPassStats[pass_index].total_results += 1
@@ -123,8 +106,20 @@ def main(path):
 
                 if first_value == 0:
                     allPassStats[pass_index].count_0 += 1
-                    postive_labels.add(f"{bugid}_{bitvector}")
+
+                    # fixed bugid with bitvector
+                    positive_label = f"{bugid}_{bitvector}"
+
+                    # for initial results
+                    postive_labels.add(positive_label)
+
+                    # for each passes, for deduplicated results
+                    allPassStats[pass_index].count_0_bugids.add(positive_label)
+
+                    # for each passes, for deduplicated fixed bugids
                     allPassStats[pass_index].fixed_bugids.add(bugid)
+
+                    # set the state of the bug to fixed
                     bug_fixed_in_folder = True
 
                 elif first_value == 1:
@@ -148,6 +143,7 @@ def main(path):
             fixed_bugids.add(bugid)
 
     aggregated_stats: PassStats = aggregate_stats(allPassStats)
+    allPassStats = OrderedDict(sorted(allPassStats.items()))
 
     print(
         f"Progress: {int((aggregated_stats.total_results / aggregated_stats.total_responses) * 100)}% Files: {aggregated_stats.total_results}/{aggregated_stats.total_responses}"
@@ -157,13 +153,43 @@ def main(path):
     )
     print(f"Numer of positive labels: {len(postive_labels)} (deduplicated)")
 
-    for idx, pass_stat in enumerate(allPassStats):
+    accumulated_fixed_bugids = set()
+    accumulated_postive_labels = set()
+
+    for idx, pass_stat in allPassStats.items():
         print()
-        print(f"Pass #{idx + 1}")
+        print(f"Pass #{idx}")
         print(
             f"Number of bugs fixed: {len(pass_stat.fixed_bugids)} out of {total_bugs}, percentage: {int((len(pass_stat.fixed_bugids) / total_bugs) * 100)}%"
         )
-        print_stats(pass_stat)
+        accumulated_fixed_bugids |= pass_stat.fixed_bugids
+        print(
+            f"Number of bugs fixed (accumulated): {len(accumulated_fixed_bugids)} out of {total_bugs}, percentage: {int((len(accumulated_fixed_bugids) / total_bugs) * 100)}%"
+        )
+
+        print(
+            f"Number of postive labels (flag 0): {pass_stat.count_0}, percentage: {int((pass_stat.count_0 / pass_stat.total_results) * 100)}%"
+        )
+        accumulated_postive_labels |= pass_stat.count_0_bugids
+        print(
+            f"Number of postive labels (accumulated): {len(accumulated_postive_labels)} out of {pass_stat.total_results}, percentage: {int((len(accumulated_postive_labels) / pass_stat.total_results) * 100)}%"
+        )
+
+        print(
+            f"Number of fail labels (flag 1): {pass_stat.count_1}, percentage: {int((pass_stat.count_1 / pass_stat.total_results) * 100)}%"
+        )
+        print(
+            f"Number of test running timeouts (flag 2): {pass_stat.count_2}, percentage: {int((pass_stat.count_2 / pass_stat.total_results) * 100)}%"
+        )
+        print(
+            f"Number of test running errors (flag 4): {pass_stat.count_4}, percentage: {int((pass_stat.count_4 / pass_stat.total_results) * 100)}%"
+        )
+        print(
+            f"Number of bugs that cannot extract functions (flag 6 or 7): {pass_stat.count_6_7}, percentage: {int((pass_stat.count_6_7 / pass_stat.total_results) * 100)}%"
+        )
+        print(
+            f"Number of other errors: {pass_stat.count_other}, percentage: {int((pass_stat.count_other / pass_stat.total_results) * 100)}%"
+        )
 
     print()
     print("Top 5 errornous bugs (flag 2)")
@@ -180,6 +206,7 @@ def main(path):
         print()
 
     print()
+    print("Top 5 errornous bugs (flag 4)")
     sorted_bugs_error_stats = sorted(
         bugs_error_stats.items(),
         key=lambda item: len(item[1].flag_4),
