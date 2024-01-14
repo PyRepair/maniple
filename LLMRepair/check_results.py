@@ -1,5 +1,4 @@
 import argparse
-from ast import Pass
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field, fields
 import os
@@ -65,7 +64,7 @@ def aggregate_stats(pass_stats_list: Dict[int, PassStats]):
     return PassStats(**aggregated_values)
 
 
-def main(path):
+def main(path: str, top=None):
     # A dictionary of pass index to PassStats
     allPassStats = defaultdict[int, PassStats](PassStats)
 
@@ -88,11 +87,17 @@ def main(path):
             if "response" in file and file.endswith(".json"):
                 just_filename_parts = file[:-5].split("_")
                 pass_index = int(just_filename_parts[2])
+                if top is not None and pass_index > top:
+                    continue
+
                 allPassStats[pass_index].total_responses += 1
 
             if "result" in file and file.endswith(".json"):
                 just_filename_parts = file[:-5].split("_")
                 pass_index = int(just_filename_parts[2])
+                if top is not None and pass_index > top:
+                    continue
+
                 bitvector = just_filename_parts[0]
 
                 allPassStats[pass_index].total_results += 1
@@ -223,6 +228,9 @@ def main(path):
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument("path", help="Path to be taken")
+    args_parser.add_argument(
+        "--top", help="Top number of passed to be printed", type=int, default=None
+    )
 
     args = args_parser.parse_args()
-    main(args.path)
+    main(args.path, args.top)
