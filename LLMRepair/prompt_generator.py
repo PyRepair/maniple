@@ -4,10 +4,11 @@ import json
 import os.path
 import threading
 import time
+import pickle
 
 import openai
 import tiktoken
-from openai import OpenAI
+from openai import OpenAI, ChatCompletion
 from typing import List
 from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_and_imports_from_code_block, find_patch_from_response, divide_list
 
@@ -120,6 +121,8 @@ class PromptGenerator:
         self.strata_7_content = ""
 
         self.generate_prompt()
+
+        self.message_and_completion: List[ChatCompletion] = []
 
     def exist_null_strata(self):
         return self.strata_bitvector != self.actual_strata_bitvector
@@ -547,8 +550,11 @@ class PromptGenerator:
 
         response_md_file_name = bitvector_flatten + "_response_" + str(count_number) + ".md"
         response_json_file_name = bitvector_flatten + "_response_" + str(count_number) + ".json"
+        completion_file_name = bitvector_flatten + "_completion_" + str(count_number) + ".pkl"
+
         response_md_file_path = os.path.join(self.output_dir, response_md_file_name)
         response_json_file_path = os.path.join(self.output_dir, response_json_file_name)
+        completion_file_path = os.path.join(self.output_dir, completion_file_name)
 
         if os.path.exists(response_md_file_path) and os.path.exists(response_json_file_path):
             if regenerate_invalid_response == 1:
@@ -653,9 +659,12 @@ class PromptGenerator:
 
             print_in_yellow(f"write response error to {response_md_file_path}")
 
+        with open(completion_file_path, 'wb') as completion_file:
+            pickle.dump(self.message_and_completion, completion_file)
+
     def get_response_with_valid_patch(self, messages: list, gpt_model: str):
         while self.max_generation_count > 0:
-            response = create_query(messages, gpt_model)
+            response = self.create_query(messages, gpt_model)
             fix_patch = find_patch_from_response(response, self.buggy_function_name)
             if fix_patch is not None:
                 return response, fix_patch
@@ -663,6 +672,39 @@ class PromptGenerator:
             self.max_generation_count -= 1
 
         raise QueryException("exceed max generation count")
+
+    def create_query(self, messages: list, gpt_model: str) -> str:
+        for message in messages:
+            num_tokens = num_tokens_from_string(message["content"], "cl100k_base")
+            if num_tokens > 16385:
+                raise QueryException(f"{num_tokens} exceed maximum 16385 token size")
+
+        retry_max_count = 10
+        while retry_max_count > 0:
+            try:
+                time.sleep(0.2)
+                chat_completion = client.chat.completions.create(
+                    model=gpt_model,
+                    messages=messages,
+                    seed=42,
+                    temperature=0
+                )
+                finish_reason = chat_completion.choices[0].finish_reason
+                if finish_reason == "length":
+                    raise QueryException(f"??? exceed maximum 16385 token size")
+                if finish_reason != "stop":
+                    print_in_yellow(f"retrying due to not stop, finish reason: {finish_reason}")
+
+                self.message_and_completion.append((messages, chat_completion))
+
+                return chat_completion.choices[0].message.content
+
+            except openai.RateLimitError:
+                print_in_yellow("Meet ratelimit error, wait for seconds")
+                time.sleep(5)
+                retry_max_count -= 1
+
+        raise QueryException("Tried 10 times OpenAI rate limit query")
 
 
 class QueryException(Exception):
@@ -676,37 +718,7 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     return num_tokens
 
 
-def create_query(messages: list, gpt_model: str) -> str:
-    for message in messages:
-        num_tokens = num_tokens_from_string(message["content"], "cl100k_base")
-        if num_tokens > 16385:
-            raise QueryException(f"{num_tokens} exceed maximum 16385 token size")
-
-    retry_max_count = 10
-    while retry_max_count > 0:
-        try:
-            time.sleep(0.2)
-            chat_completion = client.chat.completions.create(
-                model=gpt_model,
-                messages=messages
-            )
-            finish_reason = chat_completion.choices[0].finish_reason
-            if finish_reason == "length":
-                raise QueryException(f"??? exceed maximum 16385 token size")
-            if finish_reason != "stop":
-                print_in_yellow(f"retrying due to not stop, finish reason: {finish_reason}")
-                
-            return chat_completion.choices[0].message.content
-
-        except openai.RateLimitError:
-            print_in_yellow("Meet ratelimit error, wait for seconds")
-            time.sleep(5)
-            retry_max_count -= 1
-
-    raise QueryException("Tried 10 times OpenAI rate limit query")
-
-
-def run_single_bitvector_partition(partition_bitvectors, repeat_count, regeneration_count):
+def run_single_bitvector_partition(partition_bitvectors, trial_count, regeneration_count):
     for bitvector_strata in partition_bitvectors:
         for project in projects:
             project_folder_path = os.path.join(database_path, project)
@@ -724,7 +736,7 @@ def run_single_bitvector_partition(partition_bitvectors, repeat_count, regenerat
                     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                     if not prompt_generator.exist_null_strata():
                         prompt_generator.write_prompt()
-                        for count in range(repeat_count):
+                        for count in range(trial_count):
                             prompt_generator.get_response_from_gpt(count + 1, "gpt-3.5-turbo-1106", 0)
 
                             if regeneration_count == 0:
@@ -752,7 +764,7 @@ if __name__ == "__main__":
         required=True
     )
     args_parser.add_argument(
-        "--repeat",
+        "--trial",
         type=int,
         help="how many responses you want get from one prompt",
         required=True
@@ -782,7 +794,7 @@ if __name__ == "__main__":
 
     threads = []
     for bitvector in strata_bitvectors:
-        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.repeat, args.regeneration))
+        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial, args.regeneration))
         thread.start()
         threads.append(thread)
 
