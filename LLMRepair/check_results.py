@@ -20,7 +20,9 @@ class PassStats:
 
     # used to track the progress of validation
     total_results: int = 0
+    total_results_set: set = field(default_factory=set)
     total_responses: int = 0
+    total_responses_set: set = field(default_factory=set)
 
     fixed_bugids: set = field(default_factory=set)
 
@@ -90,6 +92,10 @@ def main(path: str, top=None):
                 if top is not None and pass_index > top:
                     continue
 
+                bitvector = just_filename_parts[0]
+                result_label = f"{bugid}_{bitvector}"
+
+                allPassStats[pass_index].total_responses_set.add(result_label)
                 allPassStats[pass_index].total_responses += 1
 
             if "result" in file and file.endswith(".json"):
@@ -99,7 +105,9 @@ def main(path: str, top=None):
                     continue
 
                 bitvector = just_filename_parts[0]
+                result_label = f"{bugid}_{bitvector}"
 
+                allPassStats[pass_index].total_results_set.add(result_label)
                 allPassStats[pass_index].total_results += 1
 
                 result_file_path = os.path.join(root, file)
@@ -112,14 +120,11 @@ def main(path: str, top=None):
                 if first_value == 0:
                     allPassStats[pass_index].count_0 += 1
 
-                    # fixed bugid with bitvector
-                    positive_label = f"{bugid}_{bitvector}"
-
                     # for initial results
-                    postive_labels.add(positive_label)
+                    postive_labels.add(result_label)
 
                     # for each passes, for deduplicated results
-                    allPassStats[pass_index].count_0_bugids.add(positive_label)
+                    allPassStats[pass_index].count_0_bugids.add(result_label)
 
                     # for each passes, for deduplicated fixed bugids
                     allPassStats[pass_index].fixed_bugids.add(bugid)
