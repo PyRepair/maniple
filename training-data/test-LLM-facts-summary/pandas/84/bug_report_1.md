@@ -1,0 +1,3 @@
+Based on the runtime and expected values for the given test cases, it seems that the issue lies in the `_get_level_number` method. It fails when trying to retrieve the level number for a tuple ('A', 'a') in the first case, and a list of tuples [(A, a), B] in the second and third cases. The failure raises a `KeyError` resulting from a `ValueError`, indicating that the level was not found. 
+
+The issue could be related to handling tuples and lists of tuples as input for obtaining the level number, which isn't being handled correctly. This may need to be addressed within the `_get_level_number` method or another related part of the code.
