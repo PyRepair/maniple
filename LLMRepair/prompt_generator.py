@@ -725,8 +725,7 @@ def run_single_bitvector_partition(partition_bitvectors, trial_count, regenerati
             if not os.path.isdir(project_folder_path):
                 continue
 
-            bug_ids = os.listdir(project_folder_path)
-            for bid in bug_ids:
+            for bid in os.listdir(project_folder_path):
                 bug_dir_path = os.path.join(project_folder_path, bid)
                 if not os.path.isdir(bug_dir_path):
                     continue
