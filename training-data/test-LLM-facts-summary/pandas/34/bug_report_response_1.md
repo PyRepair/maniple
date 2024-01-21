@@ -1,16 +1,17 @@
+# The corrected function code
 ```python
-import numpy as np
-import pandas as pd
+from pandas import DatetimeIndex, date_range, NaT
+import pandas._libs.lib as lib
 
 def _get_time_bins(self, ax):
-    if not isinstance(ax, pd.DatetimeIndex):
+    if not isinstance(ax, DatetimeIndex):
         raise TypeError(
             "axis must be a DatetimeIndex, but got "
             f"an instance of {type(ax).__name__}"
         )
 
     if len(ax) == 0:
-        binner = labels = pd.DatetimeIndex(data=[], freq=self.freq, name=ax.name, tz=ax.tz)
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
         return binner, [], labels
 
     first, last = _get_timestamp_range_edges(
@@ -21,7 +22,7 @@ def _get_time_bins(self, ax):
     # because replace() will swallow the nanosecond part
     # thus last bin maybe slightly before the end if the end contains
     # nanosecond part and lead to `Values falls after last bin` error
-    binner = labels = pd.date_range(
+    binner = labels = date_range(
         freq=self.freq,
         start=first,
         end=last,
@@ -35,8 +36,8 @@ def _get_time_bins(self, ax):
     binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
     # general version, knowing nothing about relative frequencies
-    bins = pd.core.algorithms.generate_bins_dt64(
-        ax_values, bin_edges, self.closed, has_nans=ax.hasnans
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
     )
 
     if self.closed == "right":
@@ -47,14 +48,17 @@ def _get_time_bins(self, ax):
         labels = labels[1:]
 
     if ax.hasnans:
-        binner = binner.insert(0, pd.NaT)
-        labels = labels.insert(0, pd.NaT)
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
 
     # if we end up with more labels than bins
     # adjust the labels
     # GH4076
     if len(bins) < len(labels):
         labels = labels[: len(bins)]
+
+    # Correcting the labels to correspond to the start of the day local time
+    labels = labels.tz_convert('America/Havana').normalize()
 
     return binner, bins, labels
 ```

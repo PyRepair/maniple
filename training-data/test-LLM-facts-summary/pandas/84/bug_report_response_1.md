@@ -1,4 +1,7 @@
-# Corrected function code
+Based on the bug report and the provided information, it seems that the issue is related to the way the level numbers are handled for MultiIndexes with tuple names. To fix this bug, we need to update the way we obtain the level numbers and handle MultiIndexes with tuple names.
+
+Here's the corrected function code:
+
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
@@ -8,7 +11,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
-    clocs = [index._get_level_number(i) if isinstance(i, tuple) else index._get_level_number([i]) for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else i for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -80,3 +83,5 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
+
+I hope this helps to fix the bug. Let me know if you need further assistance.

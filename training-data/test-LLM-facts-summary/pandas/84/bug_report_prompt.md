@@ -82,7 +82,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 
-
 ```
 
 

@@ -1,19 +1,38 @@
-Useful facts for fixing the bug:
+Useful Facts for Bug Report:
 
-1. The failing test case involves the function `astype_nansafe` being called with an input parameter value of `array(['NaT'], dtype=datetime64)` and `dtype=np.int64`. The expected values and types of relevant variables right before the buggy function's return are:
-   - dtype: `dtype('int64')`
-   - dtype.kind: `'i'`
-   - dtype.name: `'int64'`
+1. Parameters:
+   - The function `astype_nansafe` takes the input parameters `arr` (an ndarray), `dtype` (a numpy dtype), `copy` (a bool, default True), and `skipna` (a bool, default False).
+   - The function raises a ValueError if the `dtype` is a datetime64/timedelta64 dtype but had no unit specified.
 
-2. There is another failing test case involving the function `astype_nansafe`, where it is called with an input parameter value of `array(['NaT'], dtype=timedelta64)` and `dtype=np.int64`. The expected values and types of relevant variables right before the buggy function's return are:
-   - dtype: `dtype('int64')`
-   - dtype.kind: `'i'`
-   - dtype.name: `'int64'`
+2. Test Case 1:
+   - Input:
+     - `arr`: `array(['NaT'], dtype=datetime64)`
+     - `copy`: `True`
+     - `skipna`: `False`
+     - `arr.shape`: `(1,)`
+     - `arr.dtype`: `dtype('<M8')`
+   - Expected Type and Value of Variables:
+     - `dtype`: `dtype('int64')`
+     - `dtype.kind`: `'i'`
+     - `dtype.name`: `'int64'`
 
-3. The GitHub issue title for this bug is "Converting from categorical to int ignores NaNs." The detailed description mentions that the bug causes an incorrect conversion of NaN in category to an unexpected negative integer value.
+3. Test Case 2:
+   - Input:
+     - `arr`: `array(['NaT'], dtype=timedelta64)`
+     - `copy`: `True`
+     - `skipna`: `False`
+     - `arr.shape`: `(1,)`
+     - `arr.dtype`: `dtype('<m8')`
+  - Expected Type and Value of Variables:
+     - `dtype`: `dtype('int64')`
+     - `dtype.kind`: `'i'`
+     - `dtype.name`: `'int64'`
 
-4. An example provided in the detailed description is of a categorical series being converted back into an integer column, where the NaN is converted to an incorrect negative value.
+4. GitHub Issue:
+   - Title: "BUG: Don't cast categorical NaN to int"
+   - Description: This bug raises an error when attempting to cast a Categorical or CategoricalIndex containing NaNs to an integer dtype.
 
-5. The pandas library version used is 0.25.1.
+5. Additional Information:
+   - The failing test cases show that conversion of `NaT` values to integer type leads to the function not raising the expected ValueError.
 
-These facts would be useful for your colleague to understand the bug and fix the `astype_nansafe` function.
+These facts will help in identifying and resolving the bug in the `astype_nansafe` function.

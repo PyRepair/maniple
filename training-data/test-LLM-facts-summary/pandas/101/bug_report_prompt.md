@@ -100,7 +100,6 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
     return arr.view(dtype)
 
-
 ```
 
 

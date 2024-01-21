@@ -163,7 +163,6 @@ def pivot_table(
 
     return table
 
-
 ```
 
 

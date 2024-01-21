@@ -29,6 +29,7 @@ class PromptGenerator:
             user_dir: str = list(bug_data)[0]
             self.buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]
             self.buggy_function_start_line: str = bug_data[user_dir]["buggy_functions"][0]["start_line"]
+            self.buggy_function_source_code: str = bug_data[user_dir]["buggy_functions"][0]["function_code"]
 
             prefix = f"{project_name}_{bug_id}"
             start_idx = user_dir.find(prefix) + len(prefix) + 1
@@ -50,7 +51,7 @@ class PromptGenerator:
 
 # The source code of the buggy function
 ```python
-{self.facts_text["1"]}
+{self.buggy_function_source_code}
 ```
 
 {self.facts_text["2"]}
@@ -105,7 +106,7 @@ class PromptGenerator:
 
 # The source code of the buggy function
 ```python
-{self.facts_text["1"]}
+{self.buggy_function_source_code}
 ```
 
 # Bug report

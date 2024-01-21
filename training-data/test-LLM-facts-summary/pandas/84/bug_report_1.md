@@ -1,3 +1,9 @@
-Based on the runtime and expected values for the given test cases, it seems that the issue lies in the `_get_level_number` method. It fails when trying to retrieve the level number for a tuple ('A', 'a') in the first case, and a list of tuples [(A, a), B] in the second and third cases. The failure raises a `KeyError` resulting from a `ValueError`, indicating that the level was not found. 
+Based on the bug report and the provided information, here are some useful facts to help fix the bug:
 
-The issue could be related to handling tuples and lists of tuples as input for obtaining the level number, which isn't being handled correctly. This may need to be addressed within the `_get_level_number` method or another related part of the code.
+1. The error occurs when unstacking a MultiIndex with tuple names, such as `('A', 'a')`.
+2. The function `_unstack_multiple` fails when obtaining level numbers with the `index._get_level_number` method.
+3. The failing test cases provide specific examples of input data and the expected output.
+4. The bug seems to be related to the way the level numbers are handled for MultiIndexes with tuple names.
+
+
+I hope this information helps! Let me know if you need further assistance.

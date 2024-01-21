@@ -25,7 +25,6 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
             indexed = data._constructor_sliced(data[values].values, index=index)
     return indexed.unstack(columns)
 
-
 ```
 
 

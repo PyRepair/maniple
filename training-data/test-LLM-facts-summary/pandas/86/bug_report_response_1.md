@@ -1,14 +1,15 @@
-Based on the bug report, it seems that the issue is with the columns parameter being optional when it should not be. To fix this, we need to modify the function to make the columns parameter required. Here's the corrected function code:
+Based on the bug report, it seems that the main issue is with the handling of the 'columns' parameter in the pivot function. Here's the corrected function code:
 
 ```python
 from pandas import DataFrame, MultiIndex
+from pandas.api.types import is_list_like
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns: "Any", values=None) -> "DataFrame":
+def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("columns parameter is required")
-
+        raise TypeError("The 'columns' parameter is required for the pivot function.")
+    
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -30,4 +31,4 @@ def pivot(data: "DataFrame", index=None, columns: "Any", values=None) -> "DataFr
     return indexed.unstack(columns)
 ```
 
-In this corrected function, I have made the 'columns' parameter a required parameter and added a check to raise a ValueError if it is not provided. This should address the issue mentioned in the bug report.
+In the corrected function, I added a check for the 'columns' parameter and raised a TypeError if it is not provided. This should address the confusion and KeyError issues mentioned in the bug report.

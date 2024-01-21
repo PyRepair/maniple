@@ -1,27 +1,20 @@
-# The corrected function code
 ```python
-from pandas.core.groupby.groupby import Grouper
+import pandas as pd
+from pandas import DataFrame, Series
 from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.dtypes.generic import ABCDataFrame
-from pandas.core.frame import DataFrame
+from pandas.core.groupby.groupby import Grouper
 from pandas.core.indexes.multi import MultiIndex
-from pandas.core.reshape.pivot import _shared_docs
-from pandas.core.reshape.pivot import pivot_table as pt
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import maybe_downcast_to_dtype
+from pandas.core.reshape.pivot import _shared_docs, _convert_by
 from pandas.core.series import is_list_like
-from pandas.core.groupby.generic import DataFrameGroupBy
-from pandas.core.indexes.api import MultiIndex
-from pandas.core.indexes.range import cartesian_product
-from pandas.core.indexing import _convert_by
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.arrays.sparse.accessor import maybe_downcast_to_dtype
+from pandas.core.indexes.api import cartesian_product
 from pandas.core.reshape.pivot import _add_margins
-from pandas.core.reshape.pivot import Substitution, Appender
 from typing import List
 
-@Substitution("\ndata : DataFrame")
-@Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data,
+    data: DataFrame,
     values=None,
     index=None,
     columns=None,
@@ -31,7 +24,7 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-) -> "DataFrame":
+) -> DataFrame:
     index = _convert_by(index)
     columns = _convert_by(columns)
 
