@@ -4,7 +4,7 @@
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("The 'columns' parameter is required and cannot be None.")
+        raise TypeError("The 'columns' argument is required for the pivot function.")
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None

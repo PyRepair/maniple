@@ -1,5 +1,14 @@
-The bug occurs when using the `pivot_table` function with multi-index columns. The error is caused by the function incorrectly handling the presence of multi-index columns, leading to an AttributeError when trying to access the columns attribute of a Series object.
+# Fact 1
+The `pivot_table` function is being called recursively within the `pivot_table` function. This recursive call is made when the `aggfunc` parameter is a list.
 
-Based on the provided source code and failing test cases, it seems that the issue might be related to the handling of multi-index columns within the function. The function should correctly handle the presence of multi-index columns and avoid the AttributeError when processing the data.
+# Fact 2
+The `pivot_table` function involves groupby operations and reorganization of the table based on the provided parameters.
 
-It is important to further analyze the handling of multi-index columns within the function to identify the root cause of the issue and make the necessary adjustments to handle them appropriately, effectively fixing the bug.
+# Fact 3
+In the failing tests, the function is being called with different combinations of columns, including single and multi-index columns.
+
+# Fact 4
+The error in the failing tests is related to an AttributeError, specifically indicating that 'Series' object has no attribute 'columns'. This suggests that there may be an issue related to how the result is being handled when the columns contain multi-level indexes. 
+
+# Fact 5
+In the failing tests, the error occurs after the condition `(table.columns.nlevels > 1)` in the function, indicating that it's related to the presence of multi-level columns in the result.

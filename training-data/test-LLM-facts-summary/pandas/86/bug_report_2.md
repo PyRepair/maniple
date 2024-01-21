@@ -1,7 +1,6 @@
-Facts for Bug Report:
-1. The error message raised when calling df.pivot with columns=None is confusing and should indicate that columns is not optional.
-2. According to the docstring, the columns parameter is required, while index and values are optional.
-3. The failing test function df.pivot_columns_none_raise_error() in test_pivot.py raises a TypeError with a confusing error message.
-4. The error message raised indicates a KeyError related to the None value for columns, which does not clearly convey that columns is a required parameter.
+Useful facts to fix the bug:
 
-These facts are useful because they provide information on the expected behavior of the pivot function, the specific scenario that triggers the bug, and the confusing error message that needs to be addressed.
+1. The error message is misleading and confusing, as it indicates that 'None' is not in the columns, when in fact the issue is that the 'columns' argument is not provided.
+2. The pivot function's docstring indicates that 'index' and 'values' can be optional, but 'columns' is not optional.
+3. The failing test function 'test_pivot_columns_none_raise_error' is specifically designed to test the behavior when 'columns' is not provided, and it expects a clear error message stating that 'columns' is a required argument.
+4. The expected behavior for the pivot function should be to raise a TypeError with a message stating that 'columns' is a required argument when it is not provided.

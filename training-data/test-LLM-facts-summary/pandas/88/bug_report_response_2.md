@@ -1,14 +1,18 @@
-Based on the bug report, it seems that the issue is related to how the function handles multi-level columns in the result. To address this issue, we need to ensure that the function properly handles multi-level columns and the recursive call when `aggfunc` is a list.
-
-Here's the corrected code for the `pivot_table` function:
-
 ```python
-from pandas import DataFrame, concat, Grouper, is_list_like, MultiIndex, cartesian_product
+import pandas as pd
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.generic import ABCDataFrame
-from pandas.core.groupby.generic import DataFrameGroupBy
-from pandas.core.resample import maybe_downcast_to_dtype
-from pandas.core.reshape.pivot import _shared_docs, _convert_by, _add_margins
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.indexes.multi import MultiIndex
+from pandas.core.reshape.pivot import _shared_docs
+from pandas.core.reshape.pivot import pivot_table as pt
+from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import maybe_downcast_to_dtype
+from pandas.core.series import Series
+from pandas.core.frame import DataFrame
+from pandas.core.arrays import is_list_like
+from pandas.core.algorithms import cartesian_product
+from typing import List
 
 def pivot_table(
     data: DataFrame,
@@ -22,11 +26,11 @@ def pivot_table(
     margins_name="All",
     observed=False,
 ) -> DataFrame:
-    index = _convert_by(index)
-    columns = _convert_by(columns)
+    index = pt._convert_by(index)
+    columns = pt._convert_by(columns)
 
     if isinstance(aggfunc, list):
-        pieces = []
+        pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
             table = pivot_table(
@@ -83,7 +87,7 @@ def pivot_table(
                 pass
         values = list(values)
 
-    grouped: DataFrameGroupBy = data.groupby(keys, observed=observed)
+    grouped = data.groupby(keys, observed=observed)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
@@ -134,12 +138,12 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(fill_value, downcast="infer")
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
 
     if margins:
         if dropna:
             data = data[data.notna().all(axis=1)]
-        table = _add_margins(
+        table = pt._add_margins(
             table,
             data,
             values,
@@ -169,5 +173,3 @@ def pivot_table(
 
     return table
 ```
-
-In this corrected code, I have added type hints for the function parameters and return type. I have also added type annotations for the variables to improve code readability and maintainability. Additionally, I have made sure that the recursive call when `aggfunc` is a list is handled correctly. I have also addressed the handling of multi-level columns in the result to prevent the AttributeError issue.

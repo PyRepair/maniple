@@ -1,7 +1,10 @@
-# The corrected function code
+Based on the bug report, it seems that the issue is related to ambiguous timestamps due to a time zone change. To fix this issue, we need to handle ambiguous timestamps properly. One way to handle ambiguous timestamps is to use the `infer` parameter for the `ambiguous` argument in the `date_range` function. Additionally, we need to handle the case where the input time index contains ambiguous timestamps.
+
+Here's the corrected function code:
+
 ```python
-from pandas import DatetimeIndex, date_range, NaT
-import pandas._libs.lib as lib
+from pandas import DatetimeIndex, date_range, NaT, Timedelta
+import numpy as np
 
 def _get_time_bins(self, ax):
     if not isinstance(ax, DatetimeIndex):
@@ -57,10 +60,18 @@ def _get_time_bins(self, ax):
     if len(bins) < len(labels):
         labels = labels[: len(bins)]
 
-    # Fix for AmbiguousTimeError
+    # Handle ambiguous timestamps
     if ax.tz is not None and ax.tz._dst:
-        binner = binner.tz_localize(None)
-        labels = labels.tz_localize(None)
+        dst_transition_times = ax.tz._utc_transition_times
+        ambiguous_indices = np.where(np.diff(dst_transition_times) == Timedelta(0))[0]
+        for idx in ambiguous_indices:
+            ambiguous_time = dst_transition_times[idx]
+            if ambiguous_time in binner:
+                ambiguous_idx = binner.get_loc(ambiguous_time)
+                binner = binner.insert(ambiguous_idx, ambiguous_time)
+                labels = labels.insert(ambiguous_idx, ambiguous_time)
 
     return binner, bins, labels
 ```
+
+In the corrected function, we added a section to handle ambiguous timestamps by checking for daylight saving time transitions and inserting the ambiguous timestamps into the `binner` and `labels` arrays. This should address the AmbiguousTimeError and handle the time zone change related to the daylight saving time.

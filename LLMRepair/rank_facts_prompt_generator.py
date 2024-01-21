@@ -261,11 +261,10 @@ if __name__ == "__main__":
         for bid in os.listdir(project_path):
             bug_path = os.path.join(project_path, bid)
 
-
             prompt_generator = PromptGenerator(database_path, project, bid)
             prompt_generator.write_report_prompt()
             for count in range(trial_count):
-                prompt_generator.get_report_response_from_gpt(count + 1, "gpt-3.5-turbo-1106")
-                prompt_generator.get_response_from_gpt(1, "gpt-3.5-turbo-1106")
+                prompt_generator.get_report_response_from_gpt(trial_count, "gpt-3.5-turbo-1106")
+                prompt_generator.get_response_from_gpt(trial_count, "gpt-3.5-turbo-1106")
 
 

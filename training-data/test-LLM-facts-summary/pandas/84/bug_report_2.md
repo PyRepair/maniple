@@ -1,8 +1,6 @@
-Based on the provided source code, failing test cases, and expected results, here are some useful facts to solve this bug:
-
-1. The error occurs when using tuple names as the input parameter for the `unstack` function.
-2. The `_get_level_number` method in the `pandas.core.indexes.multi` module is raising a `KeyError` when trying to access the level "A".
-3. The buggy function, `_unstack_multiple`, uses the `index._get_level_number` method to handle the hierarchical index, which is likely the source of the error.
-4. The functionality of the `_unstack_multiple` function should be related to unstacking and restructuring multi-level index data, but it appears to be encountering difficulties with tuple names.
-
-Considering these facts, the bug report should focus on an issue with parsing tuple names when using the `_get_level_number` method in the `_unstack_multiple` function. The report should also recommend a review of this logic to handle tuple names correctly, and potentially involve the `unstack` method from the `reshape.py` module.
+## Useful Facts to Include in the Bug Report
+1. The unstack method on a MultiIndex with tuple names is causing a KeyError, with the error message indicating that 'A' is not found.
+2. The failure occurs due to the _get_level_number method of the MultiIndex, where the IndexError in turn throws a KeyError when trying to look up the level that is not found.
+3. The failing test case involves a MultiIndex from a DataFrame with specific hierarchical column names, and the unstack operation fails to correctly handle these hierarchical columns.
+4. The observed outputs and intermediate variables do not match the expected outputs and intermediate variables.
+5. The unstacked DataFrame does not have the correct levels, names, or codes for the columns which indicates a failure in properly unstacking the DataFrame with MultiIndex.

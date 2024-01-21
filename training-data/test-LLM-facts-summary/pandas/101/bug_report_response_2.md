@@ -30,7 +30,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         dtype = pd.api.types.pandas_dtype(dtype)
 
     if issubclass(dtype.type, str):
-        return pd.core.algorithms.astype_object(arr.ravel(), copy=copy).reshape(arr.shape)
+        return pd.core.algorithms.astype_object(arr.ravel(), skipna=skipna).reshape(arr.shape)
 
     elif pd.api.types.is_datetime64_any_dtype(arr):
         if pd.api.types.is_object_dtype(dtype):
@@ -49,13 +49,14 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         elif dtype == np.int64:
             return arr.view(dtype)
 
-        if dtype.kind == "m":
-            mask = pd.isna(arr)
-            result = arr.astype(dtype).astype(np.float64)
-            result[mask] = np.nan
-            return result
-        elif dtype == np.dtype('m'):
-            return arr.astype(dtype, copy=copy)
+        if dtype not in [np.dtype('int64'), np.dtype('timedelta64[ns]')]:
+            if dtype.kind == "m":
+                mask = pd.isna(arr)
+                result = arr.astype(dtype).astype(np.float64)
+                result[mask] = np.nan
+                return result
+        elif dtype == np.dtype('timedelta64[ns]'):
+            return arr.astype(np.dtype('timedelta64[ns]'), copy=copy)
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 

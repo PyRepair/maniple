@@ -1,17 +1,15 @@
-# Corrected function code
+Based on the bug report, it seems that the issue is related to the unstack method not correctly handling hierarchical columns in a MultiIndex. The bug report also mentions that the _get_level_number method of the MultiIndex is causing an IndexError, which in turn throws a KeyError.
+
+To fix this issue, we need to modify the _unstack_multiple function to properly handle hierarchical columns in a MultiIndex. Below is the corrected function code:
+
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
-    # NOTE: This doesn't deal with hierarchical columns yet
-
     index = data.index
 
-    if isinstance(clocs[0], tuple):
-        clocs = [index._get_level_number(i) for i in clocs[0]]
-    else:
-        clocs = [index._get_level_number(i) for i in clocs]
+    clocs = [index._get_level_number(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -52,7 +50,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
             result = data
             for i in range(len(clocs)):
                 val = clocs[i]
-                result = result.unstack(val, fill_value=fill_value)
+                result = result.unstack(result.columns.names[val], fill_value=fill_value)
                 clocs = [v if i > v else v - 1 for v in clocs]
 
             return result
@@ -65,10 +63,10 @@ def _unstack_multiple(data, clocs, fill_value=None):
             unstcols = unstacked.index
         else:
             unstcols = unstacked.columns
-        new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.columns.name] + cnames
+        new_levels = [unstcols.levels[-1]] + clevels
+        new_names = [data.columns.names[-1]] + cnames
 
-        new_codes = [unstcols.codes[0]]
+        new_codes = [unstcols.codes[-1]]
         for rec in recons_codes:
             new_codes.append(rec.take(unstcols.codes[-1]))
 
@@ -83,3 +81,5 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
+
+In the corrected function, we have made changes to properly handle hierarchical columns in a MultiIndex when using the unstack method. We have also addressed the issue related to the _get_level_number method causing an IndexError. The corrected function should now handle the unstack operation correctly for MultiIndex with tuple names and hierarchical columns.
