@@ -88,7 +88,7 @@ def main(path: str, top=None):
 
             if "response" in file and file.endswith(".json"):
                 just_filename_parts = file[:-5].split("_")
-                pass_index = int(just_filename_parts[2])
+                pass_index = int(just_filename_parts[-1])
                 if top is not None and pass_index > top:
                     continue
 
@@ -100,7 +100,7 @@ def main(path: str, top=None):
 
             if "result" in file and file.endswith(".json"):
                 just_filename_parts = file[:-5].split("_")
-                pass_index = int(just_filename_parts[2])
+                pass_index = int(just_filename_parts[-1])
                 if top is not None and pass_index > top:
                     continue
 
