@@ -3,14 +3,14 @@ from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field, fields
 import os
 import json
-from typing import Dict, List
+from typing import Dict, List, Set
 
 
 @dataclass
 class PassStats:
     # prompt wise
     count_0: int = 0
-    count_0_bugids: set = field(default_factory=set)
+    count_0_result_labels: set = field(default_factory=set)
 
     count_1: int = 0
     count_2: int = 0
@@ -31,6 +31,54 @@ class PassStats:
 class ErrorStats:
     flag_2: List[str] = field(default_factory=list)
     flag_4: List[str] = field(default_factory=list)
+
+
+def print_top10_bitvectors_for_each_bug(allPassStats: OrderedDict[int, PassStats]):
+    top_bitvectors_foreach_bug = defaultdict[str, Dict[str, int]](dict)
+
+    for _, passItem in allPassStats.items():
+        for result_label in passItem.count_0_result_labels:
+            bugid, bitvector = result_label.split("_")
+            top_bitvectors_foreach_bug[bugid][bitvector] = (
+                top_bitvectors_foreach_bug[bugid].get(bitvector, 0) + 1
+            )
+
+    for bugid, bitvector_count in top_bitvectors_foreach_bug.items():
+        sorted_bitvector_count = sorted(
+            bitvector_count.items(), key=lambda item: item[1], reverse=True
+        )
+        print(f"bugid: {bugid}")
+        for bitvector, count in sorted_bitvector_count[:10]:
+            print(f"{bitvector}: {count}")
+        print()
+
+
+def print_top5_bitvectors_and_fix_rate(allPassStats: OrderedDict[int, PassStats]):
+    top_fixed_bugids_for_each_bitvector = defaultdict[str, Set[str]](set)
+
+    for _, passItem in allPassStats.items():
+        for result_label in passItem.count_0_result_labels:
+            bugid, bitvector = result_label.split("_")
+            top_fixed_bugids_for_each_bitvector[bitvector].add(bugid)
+
+    top5_ordered_top_fixed_bugids_for_each_bitvector = OrderedDict(
+        list(
+            sorted(
+                top_fixed_bugids_for_each_bitvector.items(),
+                key=lambda item: len(item[1]),
+                reverse=True,
+            )
+        )[:5]
+    )
+
+    for (
+        bitvector,
+        fixed_bugids,
+    ) in top5_ordered_top_fixed_bugids_for_each_bitvector.items():
+        print(f"bitvector: {bitvector}")
+        print(f"Number of fixed bugs: {len(fixed_bugids)}")
+        print(f"Fix rate: {len(fixed_bugids) / len(allPassStats)}")
+        print()
 
 
 def aggregate_stats(pass_stats_list: Dict[int, PassStats]):
@@ -124,7 +172,7 @@ def main(path: str, top=None):
                     postive_labels.add(result_label)
 
                     # for each passes, for deduplicated results
-                    allPassStats[pass_index].count_0_bugids.add(result_label)
+                    allPassStats[pass_index].count_0_result_labels.add(result_label)
 
                     # for each passes, for deduplicated fixed bugids
                     allPassStats[pass_index].fixed_bugids.add(bugid)
@@ -152,8 +200,8 @@ def main(path: str, top=None):
         if bug_fixed_in_folder:
             fixed_bugids.add(bugid)
 
-    aggregated_stats: PassStats = aggregate_stats(allPassStats)
     allPassStats = OrderedDict(sorted(allPassStats.items()))
+    aggregated_stats: PassStats = aggregate_stats(allPassStats)
 
     print(
         f"Progress: {int((aggregated_stats.total_results / aggregated_stats.total_responses) * 100)}% Files: {aggregated_stats.total_results}/{aggregated_stats.total_responses}"
@@ -162,6 +210,10 @@ def main(path: str, top=None):
         f"Number of bugs fixed: {len(fixed_bugids)} out of {total_bugs}, percentage: {int((len(fixed_bugids) / total_bugs) * 100)}%"
     )
     print(f"Numer of positive labels: {len(postive_labels)} (deduplicated)")
+
+    # print_top10_bitvectors_for_each_bug(allPassStats)
+
+    # print_top5_bitvectors_and_fix_rate(allPassStats)
 
     accumulated_fixed_bugids = set()
     accumulated_postive_labels = set()
@@ -180,7 +232,7 @@ def main(path: str, top=None):
         print(
             f"Number of postive labels (flag 0): {pass_stat.count_0}, percentage: {int((pass_stat.count_0 / pass_stat.total_results) * 100)}%"
         )
-        accumulated_postive_labels |= pass_stat.count_0_bugids
+        accumulated_postive_labels |= pass_stat.count_0_result_labels
         print(
             f"Number of postive labels (accumulated): {len(accumulated_postive_labels)} out of {pass_stat.total_results}, percentage: {int((len(accumulated_postive_labels) / pass_stat.total_results) * 100)}%"
         )
