@@ -8,7 +8,7 @@ import pickle
 
 import openai
 import tiktoken
-from openai import OpenAI, ChatCompletion
+from openai import OpenAI
 from typing import List
 from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_and_imports_from_code_block, find_patch_from_response, divide_list
 
@@ -122,7 +122,7 @@ class PromptGenerator:
 
         self.generate_prompt()
 
-        self.message_and_completion: List[ChatCompletion] = []
+        self.message_and_completion: List = []
 
     def exist_null_strata(self):
         return self.strata_bitvector != self.actual_strata_bitvector
