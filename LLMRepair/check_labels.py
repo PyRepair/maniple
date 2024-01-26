@@ -1,5 +1,6 @@
 import json
 import os.path
+import numpy as np
 
 dataset = ["16-100-dataset", "16-215-dataset"]
 dataset_path = []
@@ -9,6 +10,7 @@ for dataset in dataset:
 
 def collect_result_table(target_trial: int):
     result_table = {}
+    total_fix_patch = 0
 
     for path in dataset_path:
         for project in os.listdir(path):
@@ -30,6 +32,8 @@ def collect_result_table(target_trial: int):
                     if int(file[file.rfind("_") + 1: file.rfind(".")]) != target_trial:
                         continue
 
+                    total_fix_patch += 1
+
                     if bitvector not in result_table:
                         result_table[bitvector] = {}
 
@@ -45,7 +49,7 @@ def collect_result_table(target_trial: int):
                         if label == 0:
                             result_table[bitvector][project].append(int(bid))
 
-    return result_table
+    return result_table, total_fix_patch, calculate_result_table_size(result_table)
 
 
 def merge_result_table(result_table_1: dict, result_table_2: dict):
@@ -67,21 +71,40 @@ def calculate_result_table_size(result_table: dict):
 
     return table_size
 
+def pass_at_k(n, c, k):
+    """
+    :param n: total number of samples
+    :param c: number of correct samples
+    :param k: k in pass@$k$
+    """
+    if n - c < k:
+        return 1.0
+
+    return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
+
 
 for trial in range(1, 11):
     if trial == 1:
-        aggregate_result = collect_result_table(1)
-        size = calculate_result_table_size(aggregate_result)
-        print(f"Positive label number after combine trial {trial}: {size}")
-        continue
+        aggregate_result, fix_patch_count, correct_fix_patch_count = collect_result_table(1)
+        total_correct_fix_patch_count = correct_fix_patch_count
+        print(f"Positive label number after combine trial {trial}: {correct_fix_patch_count}")
 
-    next_trial_result = collect_result_table(trial)
+    else:
+        next_trial_result, fix_patch_count_next, correct_fix_patch_count_next = collect_result_table(trial)
+        fix_patch_count += fix_patch_count_next
+        total_correct_fix_patch_count += correct_fix_patch_count_next
 
-    aggregate_result = merge_result_table(aggregate_result, next_trial_result)
+        aggregate_result = merge_result_table(aggregate_result, next_trial_result)
 
-    original_size = size
+        original_correct_fix_patch_count = correct_fix_patch_count
+        correct_fix_patch_count = calculate_result_table_size(aggregate_result)
 
-    size = calculate_result_table_size(aggregate_result)
+        print(f"Positive label number after combine trial {trial}: {correct_fix_patch_count}")
+        print(f"Improve: {((correct_fix_patch_count / original_correct_fix_patch_count) * 100) - 100}%")
 
-    print(f"Positive label number after combine trial {trial}: {size}")
-    print(f"Improve: {((size / original_size) * 100) - 100}%")
+
+print(f"total fix patch count in 10 trials: {fix_patch_count}")
+print(f"total correct fix patch count in 10 trials: {total_correct_fix_patch_count}")
+
+for k in range(1, 11):
+    print(f"pass_at_{k}: {pass_at_k(fix_patch_count, total_correct_fix_patch_count, k)}")

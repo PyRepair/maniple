@@ -3,14 +3,12 @@ import glob
 import json
 import os.path
 import threading
-import time
 import pickle
 
-import openai
-import tiktoken
 from openai import OpenAI
 from typing import List
-from utils import estimate_function_code_length, print_in_red, print_in_yellow, extract_function_and_imports_from_code_block, find_patch_from_response, divide_list
+from utils import print_in_red, print_in_yellow, divide_list
+from gpt_utils import GPTConnection, QueryException, combine_token_usage
 
 client = OpenAI(api_key="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")
 
@@ -109,9 +107,6 @@ class PromptGenerator:
         self.strata_bitvector: dict = get_strata_bitvector(strata_bitvector)
         self.actual_strata_bitvector: dict = self.get_actual_strata(strata_bitvector)
 
-        self.max_generation_count = 10
-        self.max_conversation_count = 5
-
         self.strata_1_content = ""
         self.strata_2_content = ""
         self.strata_3_content = ""
@@ -121,8 +116,6 @@ class PromptGenerator:
         self.strata_7_content = ""
 
         self.generate_prompt()
-
-        self.message_and_completion: List = []
 
     def exist_null_strata(self):
         return self.strata_bitvector != self.actual_strata_bitvector
@@ -542,183 +535,100 @@ class PromptGenerator:
 
             json.dump(facts_content_strata, prompt_facts_file, indent=4)
 
-    def get_response_from_gpt(self, count_number: int, gpt_model: str, regenerate_invalid_response: int):
+    def generate_response(self, start_index: int, trial_number: int, gpt_model: str):
         bitvector_flatten = ""
 
         for value in self.bitvector.values():
             bitvector_flatten = bitvector_flatten + str(value)
 
-        response_md_file_name = bitvector_flatten + "_response_" + str(count_number) + ".md"
-        response_json_file_name = bitvector_flatten + "_response_" + str(count_number) + ".json"
-        completion_file_name = bitvector_flatten + "_completion_" + str(count_number) + ".pkl"
-
-        response_md_file_path = os.path.join(self.output_dir, response_md_file_name)
-        response_json_file_path = os.path.join(self.output_dir, response_json_file_name)
-        completion_file_path = os.path.join(self.output_dir, completion_file_name)
-
-        if os.path.exists(response_md_file_path) and os.path.exists(response_json_file_path):
-            if regenerate_invalid_response == 1:
-                with open(response_json_file_path, "r") as response_file:
-                    response_json = json.load(response_file)
-                    if response_json[self.project_name][0]["replace_code"] is None:
-                        need_regenerate = True
-                    else:
-                        need_regenerate = False
-
-            else:
-                need_regenerate = False
-
-            if not need_regenerate:
-                return
-
+        responses = None
         try:
-            buggy_function_length = estimate_function_code_length(self.facts["1.1.1"])
-            self.max_generation_count = 10
-            self.max_conversation_count = 3
-            messages = [{"role": "user", "content": self.prompt}]
-
-            response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
-            replace_code, import_statements = extract_function_and_imports_from_code_block(fix_patch, self.buggy_function_name)
-
-            conversation_response = response
-            messages = [
-                {"role": "user", "content": self.prompt},
-                {"role": "assistant", "content": response},
-                {"role": "user", "content": "Print the full code of the fixed function"},
-            ]
-
-            while (estimate_function_code_length(fix_patch) < 0.6 * buggy_function_length
-                   and replace_code is None
-                   and self.max_conversation_count > 0):
-                # if the fix patch is omitted
-
-                conversation_response, fix_patch = self.get_response_with_valid_patch(messages, gpt_model)
-
-                replace_code, import_statements = extract_function_and_imports_from_code_block(fix_patch, self.buggy_function_name)
-
-                self.max_conversation_count -= 1
-
-            if self.max_conversation_count == 0:
-                raise QueryException("exceed max generation count")
-
-            with open(response_md_file_path, "w", encoding='utf-8') as md_file:
-                md_file.write(conversation_response)
-
-            with open(response_json_file_path, "w", encoding='utf-8') as json_file:
-                test_input_data = {
-                    self.project_name: [
-                        {
-                            "bugID": int(self.bug_id),
-                            "bitvector": self.bitvector,
-                            "strata": self.strata_bitvector,
-                            "available_bitvector": self.actual_bitvector,
-                            "available_strata": self.actual_strata_bitvector,
-                            "start_line": self.buggy_function_start_line,
-                            "file_name": self.buggy_location_file_name,
-                            "replace_code": replace_code,
-                            "import_list": import_statements
-                        }
-                    ]
-                }
-                json.dump(test_input_data, json_file, indent=4)
-
-            print(f"write response to {response_md_file_path}")
-
+            responses = GPTConnection().get_response_with_fix_path(self.prompt, gpt_model, trial_number, self.facts["1.1.1"], self.buggy_function_name)
+        except QueryException as error:
+            error_str = str(error)
+            print_in_yellow(error_str)
         except Exception as error:
-            error_str = ""
-            if self.max_generation_count == 0:
-                print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} "
-                                      f"exceed max generation count"))
-            elif self.max_conversation_count == 0:
-                print_in_yellow(print(f"{self.output_dir}/{response_md_file_name} "
-                                      f"exceed max conversation count"))
+            error_str = str(error)
+            print_in_red(error_str)
+
+        for index in range(trial_number):
+            file_index = index + start_index
+            response_md_file_name = bitvector_flatten + "_response_" + str(file_index) + ".md"
+            response_json_file_name = bitvector_flatten + "_response_" + str(file_index) + ".json"
+
+            response_md_file_path = os.path.join(self.output_dir, response_md_file_name)
+            response_json_file_path = os.path.join(self.output_dir, response_json_file_name)
+
+            if responses is not None:
+                response = responses["responses"][index]
+
+                with open(response_md_file_path, "w", encoding='utf-8') as md_file:
+                    md_file.write(response["response"])
+
+                with open(response_json_file_path, "w", encoding='utf-8') as json_file:
+                    test_input_data = {
+                        self.project_name: [
+                            {
+                                "bugID": int(self.bug_id),
+                                "bitvector": self.bitvector,
+                                "strata": self.strata_bitvector,
+                                "available_bitvector": self.actual_bitvector,
+                                "available_strata": self.actual_strata_bitvector,
+                                "start_line": self.buggy_function_start_line,
+                                "file_name": self.buggy_location_file_name,
+                                "replace_code": response["replace_code"],
+                                "import_list": response["import_list"]
+                            }
+                        ]
+                    }
+                    json.dump(test_input_data, json_file, indent=4)
+
+                print(f"write response to {response_md_file_path}")
+
             else:
-                error_str = str(error)
-                print_in_red(error_str)
+                with open(response_md_file_path, "w", encoding='utf-8') as md_file:
+                    md_file.write(error_str)
 
-            with open(response_md_file_path, "w", encoding='utf-8') as md_file:
-                md_file.write(error_str)
+                with open(response_json_file_path, "w", encoding='utf-8') as json_file:
+                    test_input_data = {
+                        self.project_name: [
+                            {
+                                "bugID": int(self.bug_id),
+                                "bitvector": self.bitvector,
+                                "strata": self.strata_bitvector,
+                                "available_bitvector": self.actual_bitvector,
+                                "available_strata": self.actual_strata_bitvector,
+                                "start_line": self.buggy_function_start_line,
+                                "file_name": self.buggy_location_file_name,
+                                "replace_code": None,
+                                "import_list": []
+                            }
+                        ]
+                    }
+                    json.dump(test_input_data, json_file, indent=4)
 
-            with open(response_json_file_path, "w", encoding='utf-8') as json_file:
-                test_input_data = {
-                    self.project_name: [
-                        {
-                            "bugID": int(self.bug_id),
-                            "bitvector": self.bitvector,
-                            "strata": self.strata_bitvector,
-                            "available_bitvector": self.actual_bitvector,
-                            "available_strata": self.actual_strata_bitvector,
-                            "start_line": self.buggy_function_start_line,
-                            "file_name": self.buggy_location_file_name,
-                            "replace_code": None,
-                            "import_list": []
-                        }
-                    ]
-                }
-                json.dump(test_input_data, json_file, indent=4)
+                print_in_yellow(f"write response error to {response_md_file_path}")
 
-            print_in_yellow(f"write response error to {response_md_file_path}")
+        if responses is not None:
+            completion_file_name = bitvector_flatten + "_completion" + ".pkl"
+            completion_file_path = os.path.join(self.output_dir, completion_file_name)
 
-        with open(completion_file_path, 'wb') as completion_file:
-            pickle.dump(self.message_and_completion, completion_file)
+            with open(completion_file_path, 'wb') as completion_file:
+                pickle.dump((responses["prompt_messages"], responses["response_completions"]), completion_file)
 
-    def get_response_with_valid_patch(self, messages: list, gpt_model: str):
-        while self.max_generation_count > 0:
-            response = self.create_query(messages, gpt_model)
-            fix_patch = find_patch_from_response(response, self.buggy_function_name)
-            if fix_patch is not None:
-                return response, fix_patch
+            return responses["total_token_usage"]
 
-            self.max_generation_count -= 1
-
-        raise QueryException("exceed max generation count")
-
-    def create_query(self, messages: list, gpt_model: str) -> str:
-        for message in messages:
-            num_tokens = num_tokens_from_string(message["content"], "cl100k_base")
-            if num_tokens > 16385:
-                raise QueryException(f"{num_tokens} exceed maximum 16385 token size")
-
-        retry_max_count = 10
-        while retry_max_count > 0:
-            try:
-                time.sleep(0.2)
-                chat_completion = client.chat.completions.create(
-                    model=gpt_model,
-                    messages=messages,
-                    seed=42,
-                    temperature=0
-                )
-                finish_reason = chat_completion.choices[0].finish_reason
-                if finish_reason == "length":
-                    raise QueryException(f"??? exceed maximum 16385 token size")
-                if finish_reason != "stop":
-                    print_in_yellow(f"retrying due to not stop, finish reason: {finish_reason}")
-
-                self.message_and_completion.append((messages, chat_completion))
-
-                return chat_completion.choices[0].message.content
-
-            except openai.RateLimitError:
-                print_in_yellow("Meet ratelimit error, wait for seconds")
-                time.sleep(5)
-                retry_max_count -= 1
-
-        raise QueryException("Tried 10 times OpenAI rate limit query")
+        else:
+            return {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0
+            }
 
 
-class QueryException(Exception):
-    pass
+def run_single_bitvector_partition(partition_bitvectors, start_index, trial_number):
+    global total_token_usage
 
-
-def num_tokens_from_string(string: str, encoding_name: str) -> int:
-    """Returns the number of tokens in a text string."""
-    encoding = tiktoken.get_encoding(encoding_name)
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
-
-
-def run_single_bitvector_partition(partition_bitvectors, trial_count, regeneration_count):
     for bitvector_strata in partition_bitvectors:
         for project in projects:
             project_folder_path = os.path.join(database_path, project)
@@ -730,22 +640,25 @@ def run_single_bitvector_partition(partition_bitvectors, trial_count, regenerati
                 if not os.path.isdir(bug_dir_path):
                     continue
 
-                try:
-                    print(f"generate prompt for {project}:{bid}")
-                    prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
-                    if not prompt_generator.exist_null_strata():
-                        prompt_generator.write_prompt()
-                        for count in range(trial_count):
-                            prompt_generator.get_response_from_gpt(count + 1, "gpt-3.5-turbo-1106", 0)
+                prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
+                if not prompt_generator.exist_null_strata():
+                    prompt_generator.write_prompt()
+                    print(f"\ngenerate response for {project}:{bid}")
+                    token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
 
-                            if regeneration_count == 0:
-                                continue
+                    with lock:
+                        total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
-                            for _ in range(regeneration_count):
-                                prompt_generator.get_response_from_gpt(count + 1, "gpt-3.5-turbo-1106", 1)
-
-                except Exception as e:
-                    print_in_red(str(e))
+                # try:
+                #     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
+                #     if not prompt_generator.exist_null_strata():
+                #         prompt_generator.write_prompt()
+                #         print(f"\ngenerate response for {project}:{bid}")
+                #         token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
+                #         total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                #
+                # except Exception as e:
+                #     print_in_red(str(e))
 
 
 if __name__ == "__main__":
@@ -763,26 +676,24 @@ if __name__ == "__main__":
         required=True
     )
     args_parser.add_argument(
-        "--trial",
+        "--start_index",
         type=int,
-        help="how many responses you want get from one prompt",
+        help="The start index of file",
         required=True
     )
     args_parser.add_argument(
-        "--regeneration",
+        "--trial",
         type=int,
-        help="how many regeneration for a response you want if you can't parse syntax valid fix patch from it",
+        help="how many responses you want get from one prompt",
         required=True
     )
 
     args = args_parser.parse_args()
 
     database_path = os.path.join("training-data", args.database)
-
     projects = os.listdir(database_path)
 
     strata_bitvectors = []
-
     pattern = "*bitvector*.json"
     bitvector_files = glob.glob(os.path.join("experiment-initialization-resources", "strata-bitvectors", pattern))
     for file in bitvector_files:
@@ -792,10 +703,20 @@ if __name__ == "__main__":
     strata_bitvectors = divide_list(strata_bitvectors, args.partition)
 
     threads = []
+    lock = threading.Lock()
+    total_token_usage = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+    }
+
     for bitvector in strata_bitvectors:
-        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial, args.regeneration))
+        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.start_index, args.trial))
         thread.start()
         threads.append(thread)
 
     for thread in threads:
         thread.join()
+
+    print("Total used token:")
+    print(total_token_usage)
