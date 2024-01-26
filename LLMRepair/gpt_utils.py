@@ -186,7 +186,9 @@ def _get_responses_from_messages(messages: list, model: str, trial: int) -> dict
         chat_completion = client.chat.completions.create(
             model=model,
             messages=messages,
-            n=trial
+            n=trial,
+            seed=42,
+            temperature=0
         )
 
         for choice in chat_completion.choices:

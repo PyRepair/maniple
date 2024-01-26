@@ -1,0 +1,69 @@
+{
+    "keras": [
+        {
+            "bugID": 3,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)\n\n    layer_map = {}  # Cache for created layers.\n    tensor_map = {}  # Map {reference_tensor: (corresponding_tensor, mask)}\n\n    if input_tensors is None:\n        input_tensors = [Input(batch_shape=layer.batch_input_shape, dtype=layer.dtype, sparse=layer.sparse, name=layer.name) for layer in model._input_layers]\n\n    for original, cloned in zip(model._input_layers, input_tensors):\n        layer_map[original] = cloned\n\n    for x, y in zip(model.inputs, input_tensors):\n        tensor_map[x] = (y, None)  # tensor, mask\n\n    for layer in model.layers:\n        if layer not in layer_map:\n            new_layer = layer.__class__.from_config(layer.get_config())\n            layer_map[layer] = new_layer\n\n    for node in model._nodes_by_depth:\n        for layer in node.outbound_layer:\n            if layer not in layer_map:\n                new_layer = layer.__class__.from_config(layer.get_config())\n                layer_map[layer] = new_layer\n\n    for node in model._nodes_by_depth:\n        for layer in node.outbound_layer:\n            reference_input_tensors = node.input_tensors\n            reference_output_tensors = node.output_tensors\n\n            computed_data = []\n            for x in reference_input_tensors:\n                if x in tensor_map:\n                    computed_data.append(tensor_map[x])\n\n            if len(computed_data) == len(reference_input_tensors):\n                kwargs = node.arguments if node.arguments else {}\n                computed_tensors = [x[0] for x in computed_data]\n                computed_masks = [x[1] for x in computed_data] if len(computed_data) > 1 and has_arg(layer.call, 'mask') else None\n                output_tensors = to_list(layer(computed_tensors, **kwargs))\n                output_masks = to_list(layer.compute_mask(computed_tensors, computed_masks)) if computed_masks else [None] * len(output_tensors)\n\n                for x, y, mask in zip(reference_output_tensors, output_tensors, output_masks):\n                    tensor_map[x] = (y, mask)\n\n    output_tensors = [tensor_map[x][0] for x in model.outputs]\n    return Model(input_tensors, output_tensors, name=model.name)",
+            "import_list": []
+        }
+    ]
+}

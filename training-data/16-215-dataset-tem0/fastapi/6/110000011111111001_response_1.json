@@ -1,0 +1,74 @@
+{
+    "fastapi": [
+        {
+            "bugID": 6,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    if required_params:\n        field = required_params[0]\n        field_info = get_field_info(field)\n        embed = getattr(field_info, \"embed\", None)\n        if len(required_params) == 1 and not embed:\n            received_body = {field.name: received_body}\n        for field in required_params:\n            value: Any = None\n            if received_body is not None:\n                if field.type in sequence_shapes and isinstance(\n                    received_body, FormData\n                ):\n                    value = received_body.getlist(field.name)\n                else:\n                    value = received_body.get(field.name)\n            if value is None:\n                if field.required:\n                    if field.type == list:\n                        errors.append(ErrorWrapper(ListError(), loc=(\"body\", field.name)))\n                    elif field.type == set:\n                        errors.append(ErrorWrapper(SetError(), loc=(\"body\", field.name)))\n                    elif field.type == tuple:\n                        errors.append(ErrorWrapper(TupleError(), loc=(\"body\", field.name)))\n                    else:\n                        errors.append(ErrorWrapper(MissingError(), loc=(\"body\", field.name)))\n                else:\n                    values[field.name] = deepcopy(field.default)\n                continue\n            if field.type in sequence_shapes and isinstance(field_info, params.File) and lenient_issubclass(field.type, bytes) and isinstance(value, UploadFile):\n                value = await value.read()\n            elif field.type in sequence_shapes and isinstance(field_info, params.File) and lenient_issubclass(field.type, bytes) and isinstance(value, (list, set, tuple)):\n                awaitables = [sub_value.read() for sub_value in value]\n                contents = await asyncio.gather(*awaitables)\n                value = sequence_shape_to_type[field.type](contents)\n            try:\n                v_ = field.type(value)\n                values[field.name] = v_\n            except ValidationError as e:\n                errors.append(ErrorWrapper(e, loc=(\"body\", field.name)))\n    return values, errors",
+            "import_list": [
+                "from typing import List, Dict, Any, Optional, Union, Tuple",
+                "from pydantic import BaseModel, Field, ValidationError, validator",
+                "from fastapi import FastAPI, Form, File, UploadFile",
+                "from fastapi.testclient import TestClient"
+            ]
+        }
+    ]
+}

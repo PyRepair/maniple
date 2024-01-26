@@ -2,7 +2,7 @@ import json
 import os.path
 import numpy as np
 
-dataset = ["16-100-dataset", "16-215-dataset"]
+dataset = ["16-100-dataset-default", "16-215-dataset-default"]
 dataset_path = []
 for dataset in dataset:
     dataset_path.append(os.path.join("..", "training-data", dataset))
