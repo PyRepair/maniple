@@ -146,8 +146,8 @@ def combine_token_usage(usage_1, usage_2) -> dict:
     }
 
 
-def get_responses_from_messages(messages: list, model: str, trial: int, retry_max_count: int = 4, default_safe: bool = False) -> dict:
-    responses = _get_responses_from_messages(messages, model, math.ceil(trial * 1.5))
+def get_responses_from_messages(messages: list, model: str, trial: int, retry_max_count: int = 4, default_safe: bool = False, temperature: float = 1.0) -> dict:
+    responses = _get_responses_from_messages(messages, model, math.ceil(trial * 1.5), temperature=temperature)
     responses["prompt_messages"] = messages
 
     while retry_max_count > 0:
@@ -157,7 +157,7 @@ def get_responses_from_messages(messages: list, model: str, trial: int, retry_ma
             responses["responses"] = responses["responses"][:trial]
             return responses
 
-        next_query_responses = _get_responses_from_messages(messages, model, trial)
+        next_query_responses = _get_responses_from_messages(messages, model, trial, temperature=temperature)
         responses["responses"] = responses["responses"] + next_query_responses["responses"]
         responses["response_completions"] = responses["response_completions"] + next_query_responses["response_completions"]
         responses["total_token_usage"] = combine_token_usage(responses["total_token_usage"], next_query_responses["total_token_usage"])
@@ -169,7 +169,7 @@ def get_responses_from_messages(messages: list, model: str, trial: int, retry_ma
         raise QueryException(f"Tried {str(retry_max_count)} times still fail to get enough responses")
 
 
-def _get_responses_from_messages(messages: list, model: str, trial: int) -> dict:
+def _get_responses_from_messages(messages: list, model: str, trial: int, temperature: float = 1.0) -> dict:
     for message in messages:
         num_tokens = num_tokens_from_string(message["content"], "cl100k_base")
         if num_tokens > 16385:
@@ -187,8 +187,7 @@ def _get_responses_from_messages(messages: list, model: str, trial: int) -> dict
             model=model,
             messages=messages,
             n=trial,
-            seed=42,
-            temperature=0
+            temperature=temperature
         )
 
         for choice in chat_completion.choices:
@@ -216,10 +215,10 @@ def _get_responses_from_messages(messages: list, model: str, trial: int) -> dict
     return responses
 
 
-def get_responses_from_prompt(prompt: str, model: str, trial: int) -> dict:
+def get_responses_from_prompt(prompt: str, model: str, trial: int, temperature: float = 1.0) -> dict:
     messages = [{"role": "user", "content": prompt}]
 
-    return get_responses_from_messages(messages, model, trial)
+    return get_responses_from_messages(messages, model, trial, temperature=temperature)
 
 
 class QueryException(Exception):
