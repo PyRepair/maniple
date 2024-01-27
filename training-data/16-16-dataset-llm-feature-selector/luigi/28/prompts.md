@@ -1,0 +1,452 @@
+# Prompts
+## Class scope based facts
+
+Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
+
+Assume you know the buggy function source code, does following used method signatures help to fix the bug?
+
+The buggy function's source code is:
+```python
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+
+        return stdout and table in stdout
+    else:
+        stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
+        if stdout:
+            return True
+        else:
+            return False
+
+```
+
+The class definition with used method signatures are:
+```
+# class declaration containing the buggy function
+class HiveCommandClient(HiveClient):
+    """
+    Uses `hive` invocations to find information.
+    """
+
+    # ... omitted code ...
+
+
+    # signature of a relative function in this class
+    def partition_spec(self, partition):
+        # ... omitted code ...
+        pass
+
+
+```
+
+Your response should follow this format:
+Justification: <your justification>
+Conclusion: either "Yes." or "No."
+
+## File scope based facts
+
+Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
+
+Assume you know the buggy function source code, 
+Does following used function signatures with the same file help to fix the bug?
+
+The buggy function's source code is:
+```python
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+
+        return stdout and table in stdout
+    else:
+        stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
+        if stdout:
+            return True
+        else:
+            return False
+
+```
+
+The used function signatures and file name are:
+```
+# file name: /Volumes/SSD2T/bgp_envs/repos/luigi_28/luigi/contrib/hive.py
+
+# relative function's signature in this file
+def run_hive_cmd(hivecmd, check_return_code=True):
+    # ... omitted code ...
+    pass
+
+# relative function's signature in this file
+def partition_spec(self, partition):
+    # ... omitted code ...
+    pass
+
+# relative function's signature in this file
+def partition_spec(self, partition):
+    # ... omitted code ...
+    pass
+
+# relative function's signature in this file
+def partition_spec(self, partition):
+    # ... omitted code ...
+    pass
+
+
+```
+
+Your response should follow this format:
+Justification: <your justification>
+Conclusion: either "Yes." or "No."
+
+## Test info based facts
+
+Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
+Assume you know the buggy function source code, 
+does following corresponding test code and error message for the buggy function helps to fix the bug?
+
+The buggy function's source code is:
+```python
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+
+        return stdout and table in stdout
+    else:
+        stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
+        if stdout:
+            return True
+        else:
+            return False
+
+```
+
+The corresponding test code and error message are:
+# A test function for the buggy function
+```python
+# file name: /Volumes/SSD2T/bgp_envs/repos/luigi_28/test/contrib/hive_test.py
+
+    @mock.patch("luigi.contrib.hive.run_hive_cmd")
+    def test_table_exists(self, run_command):
+        run_command.return_value = "OK"
+        returned = self.client.table_exists("mytable")
+        self.assertFalse(returned)
+
+        run_command.return_value = "OK\n" \
+                                   "mytable"
+        returned = self.client.table_exists("mytable")
+        self.assertTrue(returned)
+
+        # Issue #896 test case insensitivity
+        returned = self.client.table_exists("MyTable")
+        self.assertTrue(returned)
+
+        run_command.return_value = "day=2013-06-28/hour=3\n" \
+                                   "day=2013-06-28/hour=4\n" \
+                                   "day=2013-07-07/hour=2\n"
+        self.client.partition_spec = mock.Mock(name="partition_spec")
+        self.client.partition_spec.return_value = "somepart"
+        returned = self.client.table_exists("mytable", partition={'a': 'b'})
+        self.assertTrue(returned)
+
+        run_command.return_value = ""
+        returned = self.client.table_exists("mytable", partition={'a': 'b'})
+        self.assertFalse(returned)
+```
+
+## Error message from test function
+```text
+self = <contrib.hive_test.HiveCommandClientTest testMethod=test_table_exists>
+run_command = <MagicMock name='run_hive_cmd' id='4475041872'>
+
+    @mock.patch("luigi.contrib.hive.run_hive_cmd")
+    def test_table_exists(self, run_command):
+        run_command.return_value = "OK"
+        returned = self.client.table_exists("mytable")
+        self.assertFalse(returned)
+    
+        run_command.return_value = "OK\n" \
+                                   "mytable"
+        returned = self.client.table_exists("mytable")
+        self.assertTrue(returned)
+    
+        # Issue #896 test case insensitivity
+        returned = self.client.table_exists("MyTable")
+>       self.assertTrue(returned)
+E       AssertionError: False is not true
+
+test/contrib/hive_test.py:111: AssertionError
+
+```
+# A test function for the buggy function
+```python
+# file name: /Volumes/SSD2T/bgp_envs/repos/luigi_28/test/contrib/hive_test.py
+
+    @mock.patch("luigi.contrib.hive.run_hive_cmd")
+    def test_apacheclient_table_exists(self, run_command):
+        run_command.return_value = "OK"
+        returned = self.apacheclient.table_exists("mytable")
+        self.assertFalse(returned)
+
+        run_command.return_value = "OK\n" \
+                                   "mytable"
+        returned = self.apacheclient.table_exists("mytable")
+        self.assertTrue(returned)
+
+        # Issue #896 test case insensitivity
+        returned = self.apacheclient.table_exists("MyTable")
+        self.assertTrue(returned)
+
+        run_command.return_value = "day=2013-06-28/hour=3\n" \
+                                   "day=2013-06-28/hour=4\n" \
+                                   "day=2013-07-07/hour=2\n"
+        self.apacheclient.partition_spec = mock.Mock(name="partition_spec")
+        self.apacheclient.partition_spec.return_value = "somepart"
+        returned = self.apacheclient.table_exists("mytable", partition={'a': 'b'})
+        self.assertTrue(returned)
+
+        run_command.return_value = ""
+        returned = self.apacheclient.table_exists("mytable", partition={'a': 'b'})
+        self.assertFalse(returned)
+```
+
+## Error message from test function
+```text
+self = <contrib.hive_test.HiveCommandClientTest testMethod=test_apacheclient_table_exists>
+run_command = <MagicMock name='run_hive_cmd' id='4475962560'>
+
+    @mock.patch("luigi.contrib.hive.run_hive_cmd")
+    def test_apacheclient_table_exists(self, run_command):
+        run_command.return_value = "OK"
+        returned = self.apacheclient.table_exists("mytable")
+        self.assertFalse(returned)
+    
+        run_command.return_value = "OK\n" \
+                                   "mytable"
+        returned = self.apacheclient.table_exists("mytable")
+        self.assertTrue(returned)
+    
+        # Issue #896 test case insensitivity
+        returned = self.apacheclient.table_exists("MyTable")
+>       self.assertTrue(returned)
+E       AssertionError: False is not true
+
+test/contrib/hive_test.py:175: AssertionError
+
+```
+
+
+Your response should follow this format:
+Justification: <your justification>
+Conclusion: either "Yes." or "No."
+
+## Runtime value info based facts
+
+Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
+Assume you know the buggy function source code,
+does following runtime variable values help to fix the bug?
+
+The buggy function's source code is:
+```python
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+
+        return stdout and table in stdout
+    else:
+        stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
+        if stdout:
+            return True
+        else:
+            return False
+
+```
+
+The runtime variable values are:
+# Variable runtime value and type inside buggy function
+## Buggy case 1
+### input parameter runtime value and type for buggy function
+database, value: `'default'`, type: `str`
+
+table, value: `'mytable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.HiveCommandClient object at 0x106fef9a0>`, type: `HiveCommandClient`
+
+### variable runtime value and type before buggy function return
+stdout, value: `'OK'`, type: `str`
+
+## Buggy case 2
+### input parameter runtime value and type for buggy function
+database, value: `'default'`, type: `str`
+
+table, value: `'MyTable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.HiveCommandClient object at 0x106fef9a0>`, type: `HiveCommandClient`
+
+### variable runtime value and type before buggy function return
+stdout, value: `'OK\nmytable'`, type: `str`
+
+## Buggy case 3
+### input parameter runtime value and type for buggy function
+partition, value: `{'a': 'b'}`, type: `dict`
+
+database, value: `'default'`, type: `str`
+
+table, value: `'mytable'`, type: `str`
+
+self.partition_spec, value: `<Mock name='partition_spec' id='4412340208'>`, type: `Mock`
+
+self, value: `<luigi.contrib.hive.HiveCommandClient object at 0x106fef9a0>`, type: `HiveCommandClient`
+
+### variable runtime value and type before buggy function return
+stdout, value: `'day=2013-06-28/hour=3\nday=2013-06-28/hour=4\nday=2013-07-07/hour=2\n'`, type: `str`
+
+## Buggy case 4
+### input parameter runtime value and type for buggy function
+database, value: `'default'`, type: `str`
+
+table, value: `'mytable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.ApacheHiveCommandClient object at 0x107062fd0>`, type: `ApacheHiveCommandClient`
+
+### variable runtime value and type before buggy function return
+stdout, value: `'OK'`, type: `str`
+
+## Buggy case 5
+### input parameter runtime value and type for buggy function
+database, value: `'default'`, type: `str`
+
+table, value: `'MyTable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.ApacheHiveCommandClient object at 0x107062fd0>`, type: `ApacheHiveCommandClient`
+
+### variable runtime value and type before buggy function return
+stdout, value: `'OK\nmytable'`, type: `str`
+
+## Buggy case 6
+### input parameter runtime value and type for buggy function
+partition, value: `{'a': 'b'}`, type: `dict`
+
+database, value: `'default'`, type: `str`
+
+table, value: `'mytable'`, type: `str`
+
+self.partition_spec, value: `<Mock name='partition_spec' id='4412829648'>`, type: `Mock`
+
+self, value: `<luigi.contrib.hive.ApacheHiveCommandClient object at 0x107062fd0>`, type: `ApacheHiveCommandClient`
+
+### variable runtime value and type before buggy function return
+stdout, value: `'day=2013-06-28/hour=3\nday=2013-06-28/hour=4\nday=2013-07-07/hour=2\n'`, type: `str`
+
+
+
+# Expected variable value and type in tests
+## Expected case 1
+### Input parameter value and type
+database, value: `'default'`, type: `str`
+
+table, value: `'mytable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.HiveCommandClient object at 0x10efed370>`, type: `HiveCommandClient`
+
+### Expected variable value and type before function return
+stdout, expected value: `'OK'`, type: `str`
+
+## Expected case 2
+### Input parameter value and type
+database, value: `'default'`, type: `str`
+
+table, value: `'MyTable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.HiveCommandClient object at 0x10efed370>`, type: `HiveCommandClient`
+
+### Expected variable value and type before function return
+stdout, expected value: `'OK\nmytable'`, type: `str`
+
+## Expected case 3
+### Input parameter value and type
+database, value: `'default'`, type: `str`
+
+table, value: `'mytable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.ApacheHiveCommandClient object at 0x10e7eb520>`, type: `ApacheHiveCommandClient`
+
+### Expected variable value and type before function return
+stdout, expected value: `'OK'`, type: `str`
+
+## Expected case 4
+### Input parameter value and type
+database, value: `'default'`, type: `str`
+
+table, value: `'MyTable'`, type: `str`
+
+self, value: `<luigi.contrib.hive.ApacheHiveCommandClient object at 0x10e7eb520>`, type: `ApacheHiveCommandClient`
+
+### Expected variable value and type before function return
+stdout, expected value: `'OK\nmytable'`, type: `str`
+
+
+
+
+
+Your response should follow this format:
+Justification: <your justification>
+Conclusion: either "Yes." or "No."
+
+## Github issue info based facts
+
+Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
+Assume you know the buggy function source code,
+does following github issue message helps to fix the bug?
+
+The buggy function's source code is:
+```python
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+
+        return stdout and table in stdout
+    else:
+        stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
+        if stdout:
+            return True
+        else:
+            return False
+
+```
+
+The github issue message is:
+# A GitHub issue title for this bug
+```text
+hive table_exists should be case insensitive?
+```
+
+## The associated detailed issue description
+```text
+Any thoughts on this one?\n\nIn https://github.com/spotify/luigi/blob/master/luigi/contrib/hive.py#L141\n(possibly here too, but we're not on CDH: https://github.com/spotify/luigi/blob/master/luigi/contrib/hive.py#L192)\n\nSometimes we have tables that are defined as capitalized, rather than lower case underscored names. These are easier to read in code if left capitalized, though hive is case insensitive, and will return them as lower case.\n\nE.g. when checking for an existing table table = 'FooBar', stdout will return with foobar and the test will fail\n\nThis wasn't an issue in older versions, which just checked for string \"does not exist\" or \"Table not found\" in stdout.\n\nWould be easy to fix using return stdout and table.lower() in stdout or return stdout and table.lower() in stdout.lower()\n\nLet me know your thoughts on this. I can supply a pull request if necessary.\n\nThanks,\nLin.
+```
+
+# A GitHub issue title for this bug
+```text
+Fix #896: make table_exists case insensitive
+```
+
+## The associated detailed issue description
+```text
+Check stdout against table.lower() to avoid case issues
+```
+
+
+
+Your response should follow this format:
+Justification: <your justification>
+Conclusion: either "Yes." or "No."
