@@ -2,10 +2,12 @@ import json
 import pickle
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
+
+import tiktoken
 
 from gpt_utils import get_responses_from_prompt, QueryException
-from utils import print_in_red
+from utils import print_in_red, iter_bugid_folders, print_in_yellow
 
 question_template = """
 Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
@@ -87,7 +89,7 @@ The github issue message is:
 )
 
 
-def is_response_positive(responses: List[str], bugid: str) -> bool:
+def is_response_positive(responses: List[str], bugid: str, trials: int) -> bool:
     number_of_yes = 0
     yes_pattern = re.compile(r"Conclusion.*Yes", re.DOTALL)
     no_pattern = re.compile(r"Conclusion.*No", re.DOTALL)
@@ -97,10 +99,10 @@ def is_response_positive(responses: List[str], bugid: str) -> bool:
         elif not yes_pattern.search(response) and not no_pattern.search(response):
             print_in_red(f"Invalid response for {bugid}: {response}")
             raise QueryException("Invalid response")
-    return number_of_yes >= 3
+    return number_of_yes >= trials / 2
 
 
-def get_bitvector_from_existing_responses(bugid_folder: Path, bugid: str):
+def get_bitvector_from_existing_responses(bugid_folder: Path, bugid: str, trials: int):
     class_scope = bugid_folder / "response_Class_scope_based_facts.md"
     file_scope = bugid_folder / "response_File_scope_based_facts.md"
     test_scope = bugid_folder / "response_Test_info_based_facts.md"
@@ -114,7 +116,7 @@ def get_bitvector_from_existing_responses(bugid_folder: Path, bugid: str):
             bitvector += "0"
         else:
             responses = path.read_text().strip().split("\n##")[1:]
-            if is_response_positive(responses, bugid):
+            if is_response_positive(responses, bugid, trials):
                 bitvector += "1"
             else:
                 bitvector += "0"
@@ -122,7 +124,7 @@ def get_bitvector_from_existing_responses(bugid_folder: Path, bugid: str):
     return bitvector
 
 
-def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str) -> str:
+def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str, trials: int) -> str:
     prompt_title = [
         "Class scope based facts",
         "File scope based facts",
@@ -138,19 +140,35 @@ def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str) -> 
             _bitvector += "0"
             continue
 
-        # save prompt
+        # confirming prompt file and response file path
         prompt_file = _bug_folder / f"prompt_{prompt_file_title[idx]}.md"
         response_file = _bug_folder / f"response_{prompt_file_title[idx]}.md"
+
+        # handle existing responses
         if prompt_file.exists() and response_file.exists():
             print(f"result for {prompt_file_title[idx]} already exists")
-            continue
+            return get_bitvector_from_existing_responses(_bug_folder, bugid, trials)
+
+        # save prompt
         prompt_file_content = f"# Prompt {prompt_title[idx]}\n{prompt}\n\n"
         prompt_file.write_text(prompt_file_content)
+
+        # if this prompt is too long just set bit to 0
+        # we need to estimate tokens first
+        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        num_tokens = len(encoding.encode(prompt))
+        if num_tokens > 16000:
+            print_in_red(f"Prompt for {prompt_file_title[idx]} is exceeding 16000 tokens")
+            _bitvector += "0"
+            continue
 
         try:
             print(f"Querying for {prompt_file_title[idx]}")
             raw_responses = get_responses_from_prompt(
-                prompt=prompt, model="gpt-3.5-turbo-1106", trial=5, temperature=1
+                prompt=prompt,
+                model="gpt-3.5-turbo-1106",
+                trial=trials,
+                temperature=1
             )
 
             # save raw response for the sake of money
@@ -167,8 +185,7 @@ def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str) -> 
             response_file.write_text(draft_md_content)
 
             # determine result
-
-            if is_response_positive(responses, bugid) >= 3:
+            if is_response_positive(responses, bugid, trials):
                 _bitvector += "1"
             else:
                 _bitvector += "0"
@@ -180,23 +197,16 @@ def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str) -> 
 
 
 def main():
-    bug_folder = (
-        Path.cwd().parent / "training-data" / "16-16-dataset-llm-feature-selector"
+    path = (
+            Path.cwd().parent / "training-data/choose-k-experiment/5-dataset-trial2"
     )
-    bugs: List[Tuple[Path, str]] = []
-    for project_folder in bug_folder.iterdir():
-        if not project_folder.is_dir():
-            continue
-        for bug_folder in project_folder.iterdir():
-            if not bug_folder.is_dir():
-                continue
-            bugs.append((bug_folder, f"{project_folder.name}:{bug_folder.name}"))
+    trials = 2
 
-    for bug_folder, bugid in bugs:
-        facts_in_prompt_file = bug_folder / "facts-in-prompt.json"
+    for bugid, project_folder, bugid_folder in iter_bugid_folders(path):
+        facts_in_prompt_file = bugid_folder / "facts-in-prompt.json"
         facts = list(json.loads(facts_in_prompt_file.read_text()).values())[1:6]
 
-        bug_data_file = bug_folder / "bug-data.json"
+        bug_data_file = bugid_folder / "bug-data.json"
         __tmp0 = list(json.loads(bug_data_file.read_text())[bugid].values())[0]
         source_code = __tmp0["buggy_functions"][0]["function_code"]
 
@@ -215,12 +225,16 @@ def main():
         ]
 
         try:
-            print(f"Generating bitvector for {bugid}")
-            bitvector = get_result_bitvector(prompts, bug_folder, bugid)
+            print_in_yellow(f"Generating bitvector for {bugid}")
+            bitvector = get_result_bitvector(prompts, bugid_folder, bugid, trials)
 
         except QueryException as error:
             print_in_red(f"{error}")
             continue
 
-        bitvector_file = bug_folder / "bitvector.txt"
+        bitvector_file = bugid_folder / "bitvector.txt"
         bitvector_file.write_text(bitvector)
+
+
+if __name__ == "__main__":
+    main()
