@@ -1,0 +1,71 @@
+{
+    "pandas": [
+        {
+            "bugID": 84,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    index = data.index\n\n    clocs = [index._get_level_number(i) for i in clocs]\n\n    rlocs = [i for i in range(index.nlevels) if i not in clocs]\n\n    clevels = [index.levels[i] for i in clocs]\n    ccodes = [index.codes[i] for i in clocs]\n    cnames = [index.names[i] for i in clocs]\n    rlevels = [index.levels[i] for i in rlocs]\n    rcodes = [index.codes[i] for i in rlocs]\n    rnames = [index.names[i] for i in rlocs]\n\n    shape = [len(x) for x in clevels]\n\n    if isinstance(data, pd.Series):\n        group_index = pd.factorize(ccodes[0])[0]\n        comp_ids, obs_ids = pd.factorize(group_index)\n        unstacked = pd.Series(ccodes[0], [obs_ids, comp_ids]).unstack(fill_value=fill_value)\n        new_levels = clevels\n        new_names = cnames\n        new_codes = [obs_ids]\n\n    else:\n        result = data\n        for i in range(len(clocs)):\n            val = clocs[i]\n            result = result.unstack(val, fill_value=fill_value)\n            clocs = [v if i > v else v - 1 for v in clocs]\n\n        if isinstance(result, pd.Series):\n            unstacked = result\n            new_levels = clevels + [result.index]\n            new_names = cnames + [result.name]\n            new_codes = ccodes + [comp_ids]\n\n        else:\n            unstacked = result\n            new_levels = [result.columns.levels[0]] + clevels\n            new_names = [data.columns.names[0]] + cnames\n            new_codes = [result.columns.codes[0]] + comp_ids.tolist()\n\n    new_columns = pd.MultiIndex(levels=new_levels, codes=new_codes, names=new_names)\n    unstacked.columns = new_columns\n\n    return unstacked",
+            "import_list": [
+                "import pandas as pd"
+            ]
+        }
+    ]
+}

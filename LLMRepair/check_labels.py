@@ -2,7 +2,7 @@ import json
 import os.path
 import numpy as np
 
-dataset = ["16-100-dataset-tem0", "16-215-dataset-tem0"]
+dataset = ["16-100-dataset-default", "16-215-dataset-default"]
 dataset_path = []
 for dataset in dataset:
     dataset_path.append(os.path.join("..", "training-data", dataset))
@@ -70,6 +70,7 @@ def calculate_result_table_size(result_table: dict):
             table_size += len(bug_list)
 
     return table_size
+
 
 def pass_at_k(n, c, k):
     """

@@ -1,0 +1,69 @@
+{
+    "pandas": [
+        {
+            "bugID": 96,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1
+            },
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, (pd.DatetimeIndex, pd.Timestamp)):\n        rhs = pd.to_datetime(other)\n        n = self.n\n\n        if n >= 0:\n            if rhs.floor(\"T\") not in self.end or not self._is_on_offset(rhs):\n                other = self._next_opening_time(rhs)\n        else:\n            if rhs.floor(\"T\") in self.start:\n                other = rhs - pd.Timedelta(1, \"s\")\n            if not self._is_on_offset(rhs):\n                other = self._next_opening_time(rhs)\n                other = self._get_closing_time(other)\n\n        timedelta_1d = pd.Timedelta(1, \"D\")\n        business_hours = sum(\n            (e - s).seconds // 60 for s, e in zip(self.start, self.end)\n        )\n\n        business_days, remaining_hours = divmod(abs(n), business_hours)\n        if n < 0:\n            business_days = -business_days\n            remaining_hours = -remaining_hours\n\n        if business_days != 0:\n            business_seconds = business_days * timedelta_1d.total_seconds()\n            other += pd.Timedelta(seconds=business_seconds)\n\n        if remaining_hours != 0:\n            if n >= 0:\n                while remaining_hours > 0:\n                    next_open = self._next_opening_time(other)\n                    business_time = (next_open - other).seconds // 60\n\n                    if remaining_hours >= business_time:\n                        other = next_open\n                        remaining_hours -= business_time\n                    else:\n                        other += pd.Timedelta(minutes=remaining_hours)\n                        remaining_hours = 0\n            else:\n                while remaining_hours < 0:\n                    prev_open = self._prev_opening_time(other)\n                    business_time = (other - prev_open).seconds // 60\n\n                    if abs(remaining_hours) >= business_time:\n                        other = prev_open\n                        remaining_hours += business_time\n                    else:\n                        other -= pd.Timedelta(minutes=abs(remaining_hours))\n                        remaining_hours = 0\n\n        return other\n\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

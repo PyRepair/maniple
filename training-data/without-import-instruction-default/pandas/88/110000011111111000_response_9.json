@@ -1,0 +1,72 @@
+{
+    "pandas": [
+        {
+            "bugID": 88,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 25,
+            "file_name": "pandas/core/reshape/pivot.py",
+            "replace_code": "def pivot_table(\n    data,\n    values=None,\n    index=None,\n    columns=None,\n    aggfunc=\"mean\",\n    fill_value=None,\n    margins=False,\n    dropna=True,\n    margins_name=\"All\",\n    observed=False\n) -> DataFrame:\n    index = list(index) if index is not None else []\n    columns = list(columns) if columns is not None else []\n\n    if isinstance(aggfunc, list):\n        pieces = []\n        keys = []\n        for func in aggfunc:\n            table = pivot_table(\n                data,\n                values=values,\n                index=index,\n                columns=columns,\n                fill_value=fill_value,\n                aggfunc=func,\n                margins=margins,\n                dropna=dropna,\n                margins_name=margins_name,\n                observed=observed,\n            )\n            pieces.append(table)\n            keys.append(getattr(func, \"__name__\", func))\n\n        return concat(pieces, keys=keys, axis=1)\n\n    keys = index + columns\n\n    values_passed = values is not None\n    if values_passed:\n        if is_list_like(values):\n            values_multi = True\n            values = list(values)\n        else:\n            values_multi = False\n            values = [values]\n\n        # Ensure value labels are in data\n        for i in values:\n            if i not in data:\n                raise KeyError(i)\n\n        to_filter = [x for x in keys + values if isinstance(x, str) and x in data]\n\n        if len(to_filter) < len(data.columns):\n            data = data[to_filter]\n\n    else:\n        values = data.columns\n        to_remove = [key for key in keys if key in values]\n        values = values.drop(to_remove, errors=\"ignore\").tolist()\n\n    grouped = data.groupby(keys, observed=observed)\n    agged = grouped.agg(aggfunc)\n    if dropna and len(agged.columns) > 0:\n        agged = agged.dropna(how=\"all\")\n\n    for v in values:\n        if (\n            v in data\n            and data[v].dtype.kind in 'iuf'\n            and v in agged\n            and agged[v].dtype.kind not in 'iuf'\n        ):\n            agged[v] = agged[v].astype(data[v].dtype)\n\n    table = agged\n    if table.index.nlevels > 1:\n        index_names = agged.index.names[:len(index)]\n        to_unstack = [\n            i\n            if agged.index.names[i] in index_names\n            else agged.index.names[i]\n            for i in range(len(index), len(keys))\n        ]\n        table = agged.unstack(to_unstack)\n\n    if not dropna:\n        if table.index.nlevels > 1:\n            m = MultiIndex.from_product(table.index.levels, names=table.index.names)\n        else:\n            m = table.index\n        table = table.reindex(m, axis=0)\n\n    if table.columns.nlevels > 1:\n        m = MultiIndex.from_product(table.columns.levels, names=table.columns.names)\n        table = table.reindex(m, axis=1)\n\n    if not table.empty and table.index.nlevels > 1:\n        table.sort_index(axis=1, inplace=True)\n\n    if fill_value is not None:\n        table.fillna(fill_value, inplace=True)\n\n    if margins:\n        table = table.apply(lambda x: x if x.notna().all() else None, axis=1)\n        table = _add_margins(table, data, values, index, columns, aggfunc, observed, margins_name, fill_value)\n\n    if values_passed and not values_multi and not table.empty and table.columns.nlevels > 1:\n        table = table[values[0]]\n\n    if not index and columns:\n        table = table.T\n\n    if isinstance(table, DataFrame) and dropna:\n        table.dropna(how=\"all\", axis=1, inplace=True)\n\n    return table",
+            "import_list": [
+                "from pandas import DataFrame, concat, MultiIndex, Index",
+                "from pandas.api.types import is_list_like"
+            ]
+        }
+    ]
+}

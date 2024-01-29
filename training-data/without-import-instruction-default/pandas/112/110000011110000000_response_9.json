@@ -1,0 +1,86 @@
+{
+    "pandas": [
+        {
+            "bugID": 112,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 907,
+            "file_name": "pandas/core/indexes/interval.py",
+            "replace_code": "def get_indexer(\n    self,\n    target: _IntegerValues,\n    method: Optional[str] = None,\n    limit: Optional[int] = None,\n    tolerance: Optional[Any] = None,\n) -> np.ndarray:\n    self.check_method(method)\n\n    if self.is_overlapping:\n        msg = (\n            \"cannot handle overlapping indices; use \"\n            \"IntervalIndex.get_indexer_non_unique\"\n        )\n        raise ValueError(msg)\n\n    target_as_index = ensure_index(target)\n\n    if isinstance(target_as_index, IntervalIndex):\n        # equal indexes -> 1:1 positional match\n        if self.equals(target_as_index):\n            return np.arange(len(self), dtype=\"intp\")\n\n        # different closed or incompatible subtype -> no matches\n        common_subtype = sorting.common_type(\n            [self.dtype.subtype, target_as_index.dtype.subtype]\n        )\n        if self.closed != target_as_index.closed or sorting.is_object_dtype(common_subtype):\n            return np.repeat(np.intp(-1), len(target_as_index))\n\n        # non-overlapping -> at most one match per interval in target_as_index\n        # want exact matches -> need both left/right to match, so defer to\n        # left/right get_indexer, compare elementwise, equality -> match\n        left_indexer = self.left.get_indexer(target_as_index.left, method=method)\n        right_indexer = self.right.get_indexer(target_as_index.right, method=method)\n        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)\n    elif not sorting.is_object_dtype(target_as_index):\n        # homogeneous scalar index: use IntervalTree\n        target_as_index = self._maybe_convert_i8(target_as_index)\n        indexer, missing = self._engine.get_indexer(target_as_index, method=method)\n    else:\n        # heterogeneous scalar index: defer elementwise to get_loc\n        # (non-overlapping so get_loc guarantees scalar of KeyError)\n        indexer = []\n        for key in target_as_index:\n            loc = 0\n            try:\n                loc = self.get_loc(key, method=method)\n            except naive.KeyError:\n                loc = -1\n            indexer.append(loc)\n\n    return sorting.ensure_platform_int(indexer)",
+            "import_list": [
+                "import textwrap",
+                "from typing import Optional",
+                "import numpy as np",
+                "from pandas.core.arrays.categorical import Interval",
+                "from pandas.core.indexes.category import CategoricalIndex",
+                "from pandas.core.indexes.interval import IntervalIndex, Interval",
+                "from pandas.core.indexing._integer import _IntegerValues",
+                "from pandas.core.indexing.interval import BaseEngine",
+                "from pandas.core.indexing._interval import IntervalTree",
+                "from pandas.core.common import Appender",
+                "from pandas.core.indexes import interval, naive",
+                "from pandas.core.common import Substitution",
+                "from pandas.core.arrays import sorting",
+                "from pandas.core.dtypes.common import (\n    is_interval_dtype,\n    is_interval_dtype_vlength_compat,\n)",
+                "from pandas import DataFrame",
+                "import pandas._libs.interval as _interval"
+            ]
+        }
+    ]
+}

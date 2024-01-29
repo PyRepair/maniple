@@ -1,0 +1,76 @@
+{
+    "pandas": [
+        {
+            "bugID": 88,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 25,
+            "file_name": "pandas/core/reshape/pivot.py",
+            "replace_code": "def pivot_table(\n        data: DataFrame,\n        values=None,\n        index=None,\n        columns=None,\n        aggfunc=\"mean\",\n        fill_value=None,\n        margins=False,\n        dropna=True,\n        margins_name=\"All\",\n        observed=False\n) -> DataFrame:\n    columns = list(columns) if isinstance(columns, tuple) else columns\n\n    if isinstance(aggfunc, list):\n        pieces = []\n        keys = []\n        for func in aggfunc:\n            table = pivot_table(\n                data=data,\n                values=values,\n                index=index,\n                columns=columns,\n                fill_value=fill_value,\n                aggfunc=func,\n                margins=margins,\n                dropna=dropna,\n                margins_name=margins_name,\n                observed=observed,\n            )\n            pieces.append(table)\n            keys.append(getattr(func, \"__name__\", func))\n\n        return concat(pieces, keys=keys, axis=1)\n\n    if not is_list_like(index):\n        index = [index] if index else []\n\n    keys = index + columns\n\n    values_passed = values is not None\n    if values_passed:\n        values = list(values) if is_list_like(values) else [values]\n\n        for val in values:\n            if val not in data:\n                raise KeyError(val)\n\n        filtered_keys = [x for x in keys + values if isinstance(x, Grouper) or x in data]\n        data = data[filtered_keys] if len(filtered_keys) < len(data.columns) else data\n\n    else:\n        values = [val for val in data.columns if val not in keys]\n\n    grouped = data.groupby(keys, observed=observed)\n    agged = grouped.agg(aggfunc)\n  \n    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns) > 0:\n        agged = agged.dropna(how=\"all\")\n\n        for v in values:\n            if v in data and isinstance(data[v], Series) and data[v].dtype.kind in ['i', 'f'] and v in agged and \\\n                    not isinstance(agged[v], Series) and agged[v].dtype.kind == 'i':\n                agged[v] = agged[v].astype(data[v].dtype)\n\n    table = agged if not table.empty and table.columns.nlevels == 1 else agged[values[0]]\n    table = table.T if len(index) == 0 and len(columns) > 0 else table\n\n    if isinstance(table, ABCDataFrame):\n        table = table.sort_index(axis=1)\n\n    if fill_value is not None:\n        table = table.fillna(fill_value)\n\n    if margins:\n        if dropna:\n            data = data[data.notna().all(axis=1)]\n        table = _add_margins(\n            table,\n            data,\n            values,\n            rows=index,\n            cols=columns,\n            aggfunc=aggfunc,\n            observed=dropna,\n            margins_name=margins_name,\n            fill_value=fill_value,\n        )\n\n    if not dropna:\n        if table.index.nlevels > 1:\n            m = MultiIndex.from_product(table.index.levels,\n                                        names=table.index.names)\n            table = table.reindex(m, axis=0)\n\n        if table.columns.nlevels > 1:\n            m = MultiIndex.from_product(table.columns.levels,\n                                        names=table.columns.names)\n            table = table.reindex(m, axis=1)\n  \n    return table",
+            "import_list": [
+                "from pandas.core.frame import DataFrame",
+                "from pandas.core.dtypes.common import is_list_like",
+                "from pandas.core.groupby.groupby import Grouper",
+                "from pandas.core.series import Series",
+                "from pandas import MultiIndex",
+                "from pandas.core.generic import ABCDataFrame"
+            ]
+        }
+    ]
+}
