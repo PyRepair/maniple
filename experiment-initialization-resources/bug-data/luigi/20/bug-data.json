@@ -1,6 +1,6 @@
 {
     "luigi:20": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_20/luigi/task.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_20/luigi/task.py": {
             "buggy_functions": [
                 {
                     "function_name": "to_str_params",
@@ -106,16 +106,16 @@
                         "functions": [
                             "@property\ndef use_cmdline_section(self):\n    \"\"\" Property used by core config such as `--workers` etc.\n    These will be exposed without the class as prefix.\"\"\"\n    return True",
                             "@classmethod\ndef event_handler(cls, event):\n    \"\"\"\n    Decorator for adding event handlers.\n    \"\"\"\n\n    def wrapped(callback):\n        cls._event_callbacks.setdefault(cls, {}).setdefault(event, set()).add(callback)\n        return callback\n    return wrapped",
-                            "def trigger_event(self, event, *args, **kwargs):\n    \"\"\"\n    Trigger that calls all of the specified events associated with this class.\n    \"\"\"\n    for event_class, event_callbacks in six.iteritems(self._event_callbacks):\n        if not isinstance(self, event_class):\n            continue\n        for callback in event_callbacks.get(event, []):\n            try:\n                callback(*args, **kwargs)\n            except KeyboardInterrupt:\n                return\n            except BaseException:\n                logger.exception('Error in event callback for %r', event)",
+                            "def trigger_event(self, event, *args, **kwargs):\n    \"\"\"\n    Trigger that calls all of the specified events associated with this class.\n    \"\"\"\n    for (event_class, event_callbacks) in six.iteritems(self._event_callbacks):\n        if not isinstance(self, event_class):\n            continue\n        for callback in event_callbacks.get(event, []):\n            try:\n                callback(*args, **kwargs)\n            except KeyboardInterrupt:\n                return\n            except BaseException:\n                logger.exception('Error in event callback for %r', event)",
                             "@property\ndef task_module(self):\n    \"\"\" Returns what Python module to import to get access to this class. \"\"\"\n    return self.__class__.__module__",
                             "@property\ndef task_family(self):\n    \"\"\"\n    Convenience method since a property on the metaclass isn't directly accessible through the class instances.\n    \"\"\"\n    return self.__class__.task_family",
                             "@classmethod\ndef get_params(cls):\n    \"\"\"\n    Returns all of the Parameters for this Task.\n    \"\"\"\n    params = []\n    for param_name in dir(cls):\n        param_obj = getattr(cls, param_name)\n        if not isinstance(param_obj, Parameter):\n            continue\n        params.append((param_name, param_obj))\n    params.sort(key=lambda t: t[1].counter)\n    return params",
-                            "@classmethod\ndef get_param_values(cls, params, args, kwargs):\n    \"\"\"\n    Get the values of the parameters from the args and kwargs.\n\n    :param params: list of (param_name, Parameter).\n    :param args: positional arguments\n    :param kwargs: keyword arguments.\n    :returns: list of `(name, value)` tuples, one for each parameter.\n    \"\"\"\n    result = {}\n    params_dict = dict(params)\n    task_name = cls.task_family\n    exc_desc = '%s[args=%s, kwargs=%s]' % (task_name, args, kwargs)\n    positional_params = [(n, p) for n, p in params if p.positional]\n    for i, arg in enumerate(args):\n        if i >= len(positional_params):\n            raise parameter.UnknownParameterException('%s: takes at most %d parameters (%d given)' % (exc_desc, len(positional_params), len(args)))\n        param_name, param_obj = positional_params[i]\n        result[param_name] = arg\n    for param_name, arg in six.iteritems(kwargs):\n        if param_name in result:\n            raise parameter.DuplicateParameterException('%s: parameter %s was already set as a positional parameter' % (exc_desc, param_name))\n        if param_name not in params_dict:\n            raise parameter.UnknownParameterException('%s: unknown parameter %s' % (exc_desc, param_name))\n        result[param_name] = arg\n    for param_name, param_obj in params:\n        if param_name not in result:\n            if not param_obj.has_task_value(task_name, param_name):\n                raise parameter.MissingParameterException(\"%s: requires the '%s' parameter to be set\" % (exc_desc, param_name))\n            result[param_name] = param_obj.task_value(task_name, param_name)\n\n    def list_to_tuple(x):\n        \"\"\" Make tuples out of lists and sets to allow hashing \"\"\"\n        if isinstance(x, list) or isinstance(x, set):\n            return tuple(x)\n        else:\n            return x\n    return [(param_name, list_to_tuple(result[param_name])) for param_name, param_obj in params]",
-                            "def __init__(self, *args, **kwargs):\n    \"\"\"\n    Constructor to resolve values for all Parameters.\n\n    For example, the Task:\n\n    .. code-block:: python\n\n        class MyTask(luigi.Task):\n            count = luigi.IntParameter()\n\n    can be instantiated as ``MyTask(count=10)``.\n    \"\"\"\n    params = self.get_params()\n    param_values = self.get_param_values(params, args, kwargs)\n    for key, value in param_values:\n        setattr(self, key, value)\n    self.param_args = tuple((value for key, value in param_values))\n    self.param_kwargs = dict(param_values)\n    task_id_parts = []\n    param_objs = dict(params)\n    for param_name, param_value in param_values:\n        if param_objs[param_name].significant:\n            task_id_parts.append('%s=%s' % (param_name, param_objs[param_name].serialize(param_value)))\n    self.task_id = '%s(%s)' % (self.task_family, ', '.join(task_id_parts))\n    self.__hash = hash(self.task_id)",
+                            "@classmethod\ndef get_param_values(cls, params, args, kwargs):\n    \"\"\"\n    Get the values of the parameters from the args and kwargs.\n\n    :param params: list of (param_name, Parameter).\n    :param args: positional arguments\n    :param kwargs: keyword arguments.\n    :returns: list of `(name, value)` tuples, one for each parameter.\n    \"\"\"\n    result = {}\n    params_dict = dict(params)\n    task_name = cls.task_family\n    exc_desc = '%s[args=%s, kwargs=%s]' % (task_name, args, kwargs)\n    positional_params = [(n, p) for (n, p) in params if p.positional]\n    for (i, arg) in enumerate(args):\n        if i >= len(positional_params):\n            raise parameter.UnknownParameterException('%s: takes at most %d parameters (%d given)' % (exc_desc, len(positional_params), len(args)))\n        (param_name, param_obj) = positional_params[i]\n        result[param_name] = arg\n    for (param_name, arg) in six.iteritems(kwargs):\n        if param_name in result:\n            raise parameter.DuplicateParameterException('%s: parameter %s was already set as a positional parameter' % (exc_desc, param_name))\n        if param_name not in params_dict:\n            raise parameter.UnknownParameterException('%s: unknown parameter %s' % (exc_desc, param_name))\n        result[param_name] = arg\n    for (param_name, param_obj) in params:\n        if param_name not in result:\n            if not param_obj.has_task_value(task_name, param_name):\n                raise parameter.MissingParameterException(\"%s: requires the '%s' parameter to be set\" % (exc_desc, param_name))\n            result[param_name] = param_obj.task_value(task_name, param_name)\n\n    def list_to_tuple(x):\n        \"\"\" Make tuples out of lists and sets to allow hashing \"\"\"\n        if isinstance(x, list) or isinstance(x, set):\n            return tuple(x)\n        else:\n            return x\n    return [(param_name, list_to_tuple(result[param_name])) for (param_name, param_obj) in params]",
+                            "def __init__(self, *args, **kwargs):\n    \"\"\"\n    Constructor to resolve values for all Parameters.\n\n    For example, the Task:\n\n    .. code-block:: python\n\n        class MyTask(luigi.Task):\n            count = luigi.IntParameter()\n\n    can be instantiated as ``MyTask(count=10)``.\n    \"\"\"\n    params = self.get_params()\n    param_values = self.get_param_values(params, args, kwargs)\n    for (key, value) in param_values:\n        setattr(self, key, value)\n    self.param_args = tuple((value for (key, value) in param_values))\n    self.param_kwargs = dict(param_values)\n    task_id_parts = []\n    param_objs = dict(params)\n    for (param_name, param_value) in param_values:\n        if param_objs[param_name].significant:\n            task_id_parts.append('%s=%s' % (param_name, param_objs[param_name].serialize(param_value)))\n    self.task_id = '%s(%s)' % (self.task_family, ', '.join(task_id_parts))\n    self.__hash = hash(self.task_id)",
                             "def initialized(self):\n    \"\"\"\n    Returns ``True`` if the Task is initialized and ``False`` otherwise.\n    \"\"\"\n    return hasattr(self, 'task_id')",
-                            "@classmethod\ndef from_str_params(cls, params_str=None):\n    \"\"\"\n    Creates an instance from a str->str hash.\n\n    :param params_str: dict of param name -> value.\n    \"\"\"\n    if params_str is None:\n        params_str = {}\n    kwargs = {}\n    for param_name, param in cls.get_params():\n        value = param.parse_from_input(param_name, params_str[param_name])\n        kwargs[param_name] = value\n    return cls(**kwargs)",
-                            "def to_str_params(self):\n    \"\"\"\n    Convert all parameters to a str->str hash.\n    \"\"\"\n    params_str = {}\n    params = dict(self.get_params())\n    for param_name, param_value in six.iteritems(self.param_kwargs):\n        if params[param_name].significant:\n            params_str[param_name] = params[param_name].serialize(param_value)\n    return params_str",
-                            "def clone(self, cls=None, **kwargs):\n    \"\"\"\n    Creates a new instance from an existing instance where some of the args have changed.\n\n    There's at least two scenarios where this is useful (see test/clone_test.py):\n\n    * remove a lot of boiler plate when you have recursive dependencies and lots of args\n    * there's task inheritance and some logic is on the base class\n\n    :param cls:\n    :param kwargs:\n    :return:\n    \"\"\"\n    k = self.param_kwargs.copy()\n    k.update(six.iteritems(kwargs))\n    if cls is None:\n        cls = self.__class__\n    new_k = {}\n    for param_name, param_class in cls.get_params():\n        if param_name in k:\n            new_k[param_name] = k[param_name]\n    return cls(**new_k)",
+                            "@classmethod\ndef from_str_params(cls, params_str=None):\n    \"\"\"\n    Creates an instance from a str->str hash.\n\n    :param params_str: dict of param name -> value.\n    \"\"\"\n    if params_str is None:\n        params_str = {}\n    kwargs = {}\n    for (param_name, param) in cls.get_params():\n        value = param.parse_from_input(param_name, params_str[param_name])\n        kwargs[param_name] = value\n    return cls(**kwargs)",
+                            "def to_str_params(self):\n    \"\"\"\n    Convert all parameters to a str->str hash.\n    \"\"\"\n    params_str = {}\n    params = dict(self.get_params())\n    for (param_name, param_value) in six.iteritems(self.param_kwargs):\n        if params[param_name].significant:\n            params_str[param_name] = params[param_name].serialize(param_value)\n    return params_str",
+                            "def clone(self, cls=None, **kwargs):\n    \"\"\"\n    Creates a new instance from an existing instance where some of the args have changed.\n\n    There's at least two scenarios where this is useful (see test/clone_test.py):\n\n    * remove a lot of boiler plate when you have recursive dependencies and lots of args\n    * there's task inheritance and some logic is on the base class\n\n    :param cls:\n    :param kwargs:\n    :return:\n    \"\"\"\n    k = self.param_kwargs.copy()\n    k.update(six.iteritems(kwargs))\n    if cls is None:\n        cls = self.__class__\n    new_k = {}\n    for (param_name, param_class) in cls.get_params():\n        if param_name in k:\n            new_k[param_name] = k[param_name]\n    return cls(**new_k)",
                             "def __hash__(self):\n    return self.__hash",
                             "def __repr__(self):\n    return self.task_id",
                             "def __eq__(self, other):\n    return self.__class__ == other.__class__ and self.param_args == other.param_args",
@@ -134,21 +134,17 @@
                             "def list_to_tuple(x):\n    \"\"\" Make tuples out of lists and sets to allow hashing \"\"\"\n    if isinstance(x, list) or isinstance(x, set):\n        return tuple(x)\n    else:\n        return x"
                         ],
                         "constructor_variables": [
-                            "__hash",
-                            "param_values",
-                            "param_args",
-                            "params",
-                            "param_objs",
-                            "task_id",
-                            "param_kwargs",
-                            "task_id_parts"
+                            "self.param_args = tuple((value for (key, value) in param_values))",
+                            "self.param_kwargs = dict(param_values)",
+                            "self.task_id = '%s(%s)' % (self.task_family, ', '.join(task_id_parts))",
+                            "self.__hash = hash(self.task_id)"
                         ],
                         "class_level_variables": [
-                            "_event_callbacks",
-                            "priority",
-                            "disabled",
-                            "resources",
-                            "worker_timeout"
+                            "_event_callbacks = {}",
+                            "priority = 0",
+                            "disabled = False",
+                            "resources = {}",
+                            "worker_timeout = None"
                         ],
                         "class_decorators": [
                             "six.add_metaclass(Register)"
@@ -182,8 +178,28 @@
                             "on_success(self)",
                             "wrapped(callback)",
                             "list_to_tuple(x)"
+                        ],
+                        "class_level_variable_names": [
+                            "_event_callbacks",
+                            "priority",
+                            "disabled",
+                            "resources",
+                            "worker_timeout"
+                        ],
+                        "constructor_variable_names": [
+                            "param_objs",
+                            "task_id",
+                            "param_kwargs",
+                            "task_id_parts",
+                            "param_args",
+                            "param_values",
+                            "params",
+                            "__hash"
                         ]
                     },
+                    "used_imports": [
+                        "from luigi import six"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -250,7 +266,7 @@
                                     "variable_shape": "8"
                                 },
                                 "params": {
-                                    "variable_value": "{'param': <luigi.parameter.Parameter object at 0x10e3a4d00>, 'bool_param': <luigi.parameter.BoolParameter object at 0x10e3a4640>, 'int_param': <luigi.parameter.IntParameter object at 0x10e3a4580>, 'float_param': <luigi.parameter.FloatParameter object at 0x10e3a45b0>, 'date_param': <luigi.parameter.DateParameter object at 0x10e3a4460>, 'datehour_param': <luigi.parameter.DateHourParameter object at 0x10e571bb0>, 'timedelta_param': <luigi.parameter.TimeDeltaParameter object at 0x10e571ac0>, 'list_param': <luigi.parameter.Parameter object at 0x10e431880>, 'insignificant_param': <luigi.parameter.Parameter object at 0x10e431670>}",
+                                    "variable_value": "{'param': <luigi.parameter.Parameter object at 0x7fd83a6c4280>, 'bool_param': <luigi.parameter.BoolParameter object at 0x7fd83a6c4700>, 'int_param': <luigi.parameter.IntParameter object at 0x7fd83a6c4730>, 'float_param': <luigi.parameter.FloatParameter object at 0x7fd83a6c4760>, 'date_param': <luigi.parameter.DateParameter object at 0x7fd83a6c4790>, 'datehour_param': <luigi.parameter.DateHourParameter object at 0x7fd83a74b700>, 'timedelta_param': <luigi.parameter.TimeDeltaParameter object at 0x7fd83a74b790>, 'list_param': <luigi.parameter.Parameter object at 0x7fd83a74b670>, 'insignificant_param': <luigi.parameter.Parameter object at 0x7fd83a74b400>}",
                                     "variable_type": "dict",
                                     "variable_shape": "9"
                                 },
@@ -363,7 +379,7 @@
                                     "variable_shape": "9"
                                 },
                                 "params": {
-                                    "variable_value": "{'param': <luigi.parameter.Parameter object at 0x104924eb0>, 'bool_param': <luigi.parameter.BoolParameter object at 0x104924bb0>, 'int_param': <luigi.parameter.IntParameter object at 0x104924e20>, 'float_param': <luigi.parameter.FloatParameter object at 0x104924d30>, 'date_param': <luigi.parameter.DateParameter object at 0x1049241f0>, 'datehour_param': <luigi.parameter.DateHourParameter object at 0x104a07be0>, 'timedelta_param': <luigi.parameter.TimeDeltaParameter object at 0x1049f6c10>, 'list_param': <luigi.parameter.Parameter object at 0x1049f6b20>, 'insignificant_param': <luigi.parameter.Parameter object at 0x1049cf3d0>}",
+                                    "variable_value": "{'param': <luigi.parameter.Parameter object at 0x7f34698042e0>, 'bool_param': <luigi.parameter.BoolParameter object at 0x7f3469804430>, 'int_param': <luigi.parameter.IntParameter object at 0x7f34698045e0>, 'float_param': <luigi.parameter.FloatParameter object at 0x7f34698043a0>, 'date_param': <luigi.parameter.DateParameter object at 0x7f34698045b0>, 'datehour_param': <luigi.parameter.DateHourParameter object at 0x7f34697e8220>, 'timedelta_param': <luigi.parameter.TimeDeltaParameter object at 0x7f34697e8130>, 'list_param': <luigi.parameter.Parameter object at 0x7f346980fc40>, 'insignificant_param': <luigi.parameter.Parameter object at 0x7f346980fd90>}",
                                     "variable_type": "dict",
                                     "variable_shape": "9"
                                 },
@@ -1862,7 +1878,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_20/test/task_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_20/test/task_test.py",
                 "test_function": "test_task_to_str_to_task",
                 "test_function_code": "    def test_task_to_str_to_task(self):\n        params = dict(\n            param='test',\n            bool_param=True,\n            int_param=666,\n            float_param=123.456,\n            date_param=datetime(2014, 9, 13).date(),\n            datehour_param=datetime(2014, 9, 13, 9),\n            timedelta_param=timedelta(44),  # doesn't support seconds\n            list_param=['in', 'flames'],\n            insignificant_param='test')\n\n        original = DummyTask(**params)\n        other = DummyTask.from_str_params(original.to_str_params())\n        self.assertEqual(original, other)",
                 "test_error": "KeyError: 'insignificant_param'",

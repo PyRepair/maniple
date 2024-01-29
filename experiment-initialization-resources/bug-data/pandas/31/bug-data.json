@@ -1,6 +1,6 @@
 {
     "pandas:31": {
-        "/Volumes/JerrySSD/bgp_envs/repos/pandas_31/pandas/core/groupby/groupby.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_31/pandas/core/groupby/groupby.py": {
             "buggy_functions": [
                 {
                     "function_name": "quantile",
@@ -420,7 +420,7 @@
                             "def _fill(self, direction, limit=None):\n    \"\"\"\n    Shared function for `pad` and `backfill` to call Cython method.\n\n    Parameters\n    ----------\n    direction : {'ffill', 'bfill'}\n        Direction passed to underlying Cython function. `bfill` will cause\n        values to be filled backwards. `ffill` and any other values will\n        default to a forward fill\n    limit : int, default None\n        Maximum number of consecutive values to fill. If `None`, this\n        method will convert to -1 prior to passing to Cython\n\n    Returns\n    -------\n    `Series` or `DataFrame` with filled values\n\n    See Also\n    --------\n    pad\n    backfill\n    \"\"\"\n    if limit is None:\n        limit = -1\n    return self._get_cythonized_result('group_fillna_indexer', needs_mask=True, cython_dtype=np.dtype(np.int64), result_is_index=True, direction=direction, limit=limit)",
                             "@Substitution(name='groupby')\ndef pad(self, limit=None):\n    \"\"\"\n    Forward fill the values.\n\n    Parameters\n    ----------\n    limit : int, optional\n        Limit of how many values to fill.\n\n    Returns\n    -------\n    Series or DataFrame\n        Object with missing values filled.\n\n    See Also\n    --------\n    Series.pad\n    DataFrame.pad\n    Series.fillna\n    DataFrame.fillna\n    \"\"\"\n    return self._fill('ffill', limit=limit)",
                             "@Substitution(name='groupby')\ndef backfill(self, limit=None):\n    \"\"\"\n    Backward fill the values.\n\n    Parameters\n    ----------\n    limit : int, optional\n        Limit of how many values to fill.\n\n    Returns\n    -------\n    Series or DataFrame\n        Object with missing values filled.\n\n    See Also\n    --------\n    Series.backfill\n    DataFrame.backfill\n    Series.fillna\n    DataFrame.fillna\n    \"\"\"\n    return self._fill('bfill', limit=limit)",
-                            "@Substitution(name='groupby')\n@Substitution(see_also=_common_see_also)\ndef nth(self, n: Union[int, List[int]], dropna: Optional[str]=None) -> DataFrame:\n    \"\"\"\n    Take the nth row from each group if n is an int, or a subset of rows\n    if n is a list of ints.\n\n    If dropna, will take the nth non-null row, dropna is either\n    'all' or 'any'; this is equivalent to calling dropna(how=dropna)\n    before the groupby.\n\n    Parameters\n    ----------\n    n : int or list of ints\n        A single nth value for the row or a list of nth values.\n    dropna : None or str, optional\n        Apply the specified dropna operation before counting which row is\n        the nth row. Needs to be None, 'any' or 'all'.\n\n    Returns\n    -------\n    Series or DataFrame\n        N-th value within each group.\n    %(see_also)s\n    Examples\n    --------\n\n    >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],\n    ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])\n    >>> g = df.groupby('A')\n    >>> g.nth(0)\n         B\n    A\n    1  NaN\n    2  3.0\n    >>> g.nth(1)\n         B\n    A\n    1  2.0\n    2  5.0\n    >>> g.nth(-1)\n         B\n    A\n    1  4.0\n    2  5.0\n    >>> g.nth([0, 1])\n         B\n    A\n    1  NaN\n    1  2.0\n    2  3.0\n    2  5.0\n\n    Specifying `dropna` allows count ignoring ``NaN``\n\n    >>> g.nth(0, dropna='any')\n         B\n    A\n    1  2.0\n    2  3.0\n\n    NaNs denote group exhausted when using dropna\n\n    >>> g.nth(3, dropna='any')\n        B\n    A\n    1 NaN\n    2 NaN\n\n    Specifying `as_index=False` in `groupby` keeps the original index.\n\n    >>> df.groupby('A', as_index=False).nth(1)\n       A    B\n    1  1  2.0\n    4  2  5.0\n    \"\"\"\n    valid_containers = (set, list, tuple)\n    if not isinstance(n, (valid_containers, int)):\n        raise TypeError('n needs to be an int or a list/set/tuple of ints')\n    if not dropna:\n        if isinstance(n, int):\n            nth_values = [n]\n        elif isinstance(n, valid_containers):\n            nth_values = list(set(n))\n        nth_array = np.array(nth_values, dtype=np.intp)\n        self._set_group_selection()\n        mask_left = np.in1d(self._cumcount_array(), nth_array)\n        mask_right = np.in1d(self._cumcount_array(ascending=False) + 1, -nth_array)\n        mask = mask_left | mask_right\n        ids, _, _ = self.grouper.group_info\n        mask = mask & (ids != -1)\n        out = self._selected_obj[mask]\n        if not self.as_index:\n            return out\n        result_index = self.grouper.result_index\n        out.index = result_index[ids[mask]]\n        if not self.observed and isinstance(result_index, CategoricalIndex):\n            out = out.reindex(result_index)\n        out = self._reindex_output(out)\n        return out.sort_index() if self.sort else out\n    if isinstance(n, valid_containers):\n        raise ValueError('dropna option with a list of nth values is not supported')\n    if dropna not in ['any', 'all']:\n        raise ValueError(f\"For a DataFrame groupby, dropna must be either None, 'any' or 'all', (was passed {dropna}).\")\n    max_len = n if n >= 0 else -1 - n\n    dropped = self.obj.dropna(how=dropna, axis=self.axis)\n    if self.keys is None and self.level is None:\n        axis = self.grouper.axis\n        grouper = axis[axis.isin(dropped.index)]\n    else:\n        from pandas.core.groupby.grouper import get_grouper\n        grouper, _, _ = get_grouper(dropped, key=self.keys, axis=self.axis, level=self.level, sort=self.sort, mutated=self.mutated)\n    grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)\n    sizes, result = (grb.size(), grb.nth(n))\n    mask = (sizes < max_len).values\n    if len(result) and mask.any():\n        result.loc[mask] = np.nan\n    if len(self.obj) == len(dropped) or len(result) == len(self.grouper.result_index):\n        result.index = self.grouper.result_index\n    else:\n        result = result.reindex(self.grouper.result_index)\n    return result",
+                            "@Substitution(name='groupby')\n@Substitution(see_also=_common_see_also)\ndef nth(self, n: Union[int, List[int]], dropna: Optional[str]=None) -> DataFrame:\n    \"\"\"\n    Take the nth row from each group if n is an int, or a subset of rows\n    if n is a list of ints.\n\n    If dropna, will take the nth non-null row, dropna is either\n    'all' or 'any'; this is equivalent to calling dropna(how=dropna)\n    before the groupby.\n\n    Parameters\n    ----------\n    n : int or list of ints\n        A single nth value for the row or a list of nth values.\n    dropna : None or str, optional\n        Apply the specified dropna operation before counting which row is\n        the nth row. Needs to be None, 'any' or 'all'.\n\n    Returns\n    -------\n    Series or DataFrame\n        N-th value within each group.\n    %(see_also)s\n    Examples\n    --------\n\n    >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],\n    ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])\n    >>> g = df.groupby('A')\n    >>> g.nth(0)\n         B\n    A\n    1  NaN\n    2  3.0\n    >>> g.nth(1)\n         B\n    A\n    1  2.0\n    2  5.0\n    >>> g.nth(-1)\n         B\n    A\n    1  4.0\n    2  5.0\n    >>> g.nth([0, 1])\n         B\n    A\n    1  NaN\n    1  2.0\n    2  3.0\n    2  5.0\n\n    Specifying `dropna` allows count ignoring ``NaN``\n\n    >>> g.nth(0, dropna='any')\n         B\n    A\n    1  2.0\n    2  3.0\n\n    NaNs denote group exhausted when using dropna\n\n    >>> g.nth(3, dropna='any')\n        B\n    A\n    1 NaN\n    2 NaN\n\n    Specifying `as_index=False` in `groupby` keeps the original index.\n\n    >>> df.groupby('A', as_index=False).nth(1)\n       A    B\n    1  1  2.0\n    4  2  5.0\n    \"\"\"\n    valid_containers = (set, list, tuple)\n    if not isinstance(n, (valid_containers, int)):\n        raise TypeError('n needs to be an int or a list/set/tuple of ints')\n    if not dropna:\n        if isinstance(n, int):\n            nth_values = [n]\n        elif isinstance(n, valid_containers):\n            nth_values = list(set(n))\n        nth_array = np.array(nth_values, dtype=np.intp)\n        self._set_group_selection()\n        mask_left = np.in1d(self._cumcount_array(), nth_array)\n        mask_right = np.in1d(self._cumcount_array(ascending=False) + 1, -nth_array)\n        mask = mask_left | mask_right\n        (ids, _, _) = self.grouper.group_info\n        mask = mask & (ids != -1)\n        out = self._selected_obj[mask]\n        if not self.as_index:\n            return out\n        result_index = self.grouper.result_index\n        out.index = result_index[ids[mask]]\n        if not self.observed and isinstance(result_index, CategoricalIndex):\n            out = out.reindex(result_index)\n        out = self._reindex_output(out)\n        return out.sort_index() if self.sort else out\n    if isinstance(n, valid_containers):\n        raise ValueError('dropna option with a list of nth values is not supported')\n    if dropna not in ['any', 'all']:\n        raise ValueError(f\"For a DataFrame groupby, dropna must be either None, 'any' or 'all', (was passed {dropna}).\")\n    max_len = n if n >= 0 else -1 - n\n    dropped = self.obj.dropna(how=dropna, axis=self.axis)\n    if self.keys is None and self.level is None:\n        axis = self.grouper.axis\n        grouper = axis[axis.isin(dropped.index)]\n    else:\n        from pandas.core.groupby.grouper import get_grouper\n        (grouper, _, _) = get_grouper(dropped, key=self.keys, axis=self.axis, level=self.level, sort=self.sort, mutated=self.mutated)\n    grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)\n    (sizes, result) = (grb.size(), grb.nth(n))\n    mask = (sizes < max_len).values\n    if len(result) and mask.any():\n        result.loc[mask] = np.nan\n    if len(self.obj) == len(dropped) or len(result) == len(self.grouper.result_index):\n        result.index = self.grouper.result_index\n    else:\n        result = result.reindex(self.grouper.result_index)\n    return result",
                             "def quantile(self, q=0.5, interpolation: str='linear'):\n    \"\"\"\n    Return group values at the given quantile, a la numpy.percentile.\n\n    Parameters\n    ----------\n    q : float or array-like, default 0.5 (50% quantile)\n        Value(s) between 0 and 1 providing the quantile(s) to compute.\n    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}\n        Method to use when the desired quantile falls between two points.\n\n    Returns\n    -------\n    Series or DataFrame\n        Return type determined by caller of GroupBy object.\n\n    See Also\n    --------\n    Series.quantile : Similar method for Series.\n    DataFrame.quantile : Similar method for DataFrame.\n    numpy.percentile : NumPy method to compute qth percentile.\n\n    Examples\n    --------\n    >>> df = pd.DataFrame([\n    ...     ['a', 1], ['a', 2], ['a', 3],\n    ...     ['b', 1], ['b', 3], ['b', 5]\n    ... ], columns=['key', 'val'])\n    >>> df.groupby('key').quantile()\n        val\n    key\n    a    2.0\n    b    3.0\n    \"\"\"\n    from pandas import concat\n\n    def pre_processor(vals: np.ndarray) -> Tuple[np.ndarray, Optional[Type]]:\n        if is_object_dtype(vals):\n            raise TypeError(\"'quantile' cannot be performed against 'object' dtypes!\")\n        inference = None\n        if is_integer_dtype(vals):\n            inference = np.int64\n        elif is_datetime64_dtype(vals):\n            inference = 'datetime64[ns]'\n            vals = np.asarray(vals).astype(np.float)\n        return (vals, inference)\n\n    def post_processor(vals: np.ndarray, inference: Optional[Type]) -> np.ndarray:\n        if inference:\n            if not (is_integer_dtype(inference) and interpolation in {'linear', 'midpoint'}):\n                vals = vals.astype(inference)\n        return vals\n    if is_scalar(q):\n        return self._get_cythonized_result('group_quantile', aggregate=True, needs_values=True, needs_mask=True, cython_dtype=np.dtype(np.float64), pre_processing=pre_processor, post_processing=post_processor, q=q, interpolation=interpolation)\n    else:\n        results = [self._get_cythonized_result('group_quantile', aggregate=True, needs_values=True, needs_mask=True, cython_dtype=np.dtype(np.float64), pre_processing=pre_processor, post_processing=post_processor, q=qi, interpolation=interpolation) for qi in q]\n        result = concat(results, axis=0, keys=q)\n        order = list(range(1, result.index.nlevels)) + [0]\n        index_names = np.array(result.index.names)\n        result.index.names = np.arange(len(index_names))\n        result = result.reorder_levels(order)\n        result.index.names = index_names[order]\n        indices = np.arange(len(result)).reshape([len(q), self.ngroups]).T.flatten()\n        return result.take(indices)",
                             "@Substitution(name='groupby')\ndef ngroup(self, ascending: bool=True):\n    \"\"\"\n    Number each group from 0 to the number of groups - 1.\n\n    This is the enumerative complement of cumcount.  Note that the\n    numbers given to the groups match the order in which the groups\n    would be seen when iterating over the groupby object, not the\n    order they are first observed.\n\n    Parameters\n    ----------\n    ascending : bool, default True\n        If False, number in reverse, from number of group - 1 to 0.\n\n    Returns\n    -------\n    Series\n        Unique numbers for each group.\n\n    See Also\n    --------\n    .cumcount : Number the rows in each group.\n\n    Examples\n    --------\n    >>> df = pd.DataFrame({\"A\": list(\"aaabba\")})\n    >>> df\n       A\n    0  a\n    1  a\n    2  a\n    3  b\n    4  b\n    5  a\n    >>> df.groupby('A').ngroup()\n    0    0\n    1    0\n    2    0\n    3    1\n    4    1\n    5    0\n    dtype: int64\n    >>> df.groupby('A').ngroup(ascending=False)\n    0    1\n    1    1\n    2    1\n    3    0\n    4    0\n    5    1\n    dtype: int64\n    >>> df.groupby([\"A\", [1,1,2,3,2,1]]).ngroup()\n    0    0\n    1    0\n    2    1\n    3    3\n    4    2\n    5    0\n    dtype: int64\n    \"\"\"\n    with _group_selection_context(self):\n        index = self._selected_obj.index\n        result = Series(self.grouper.group_info[0], index)\n        if not ascending:\n            result = self.ngroups - 1 - result\n        return result",
                             "@Substitution(name='groupby')\ndef cumcount(self, ascending: bool=True):\n    \"\"\"\n    Number each item in each group from 0 to the length of that group - 1.\n\n    Essentially this is equivalent to\n\n    >>> self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))\n\n    Parameters\n    ----------\n    ascending : bool, default True\n        If False, number in reverse, from length of group - 1 to 0.\n\n    Returns\n    -------\n    Series\n        Sequence number of each element within each group.\n\n    See Also\n    --------\n    .ngroup : Number the groups themselves.\n\n    Examples\n    --------\n    >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],\n    ...                   columns=['A'])\n    >>> df\n       A\n    0  a\n    1  a\n    2  a\n    3  b\n    4  b\n    5  a\n    >>> df.groupby('A').cumcount()\n    0    0\n    1    1\n    2    2\n    3    0\n    4    1\n    5    3\n    dtype: int64\n    >>> df.groupby('A').cumcount(ascending=False)\n    0    3\n    1    2\n    2    1\n    3    1\n    4    0\n    5    0\n    dtype: int64\n    \"\"\"\n    with _group_selection_context(self):\n        index = self._selected_obj.index\n        cumcounts = self._cumcount_array(ascending=ascending)\n        return Series(cumcounts, index)",
@@ -429,12 +429,12 @@
                             "@Substitution(name='groupby')\n@Appender(_common_see_also)\ndef cumsum(self, axis=0, *args, **kwargs):\n    \"\"\"\n    Cumulative sum for each group.\n\n    Returns\n    -------\n    Series or DataFrame\n    \"\"\"\n    nv.validate_groupby_func('cumsum', args, kwargs, ['numeric_only', 'skipna'])\n    if axis != 0:\n        return self.apply(lambda x: x.cumsum(axis=axis, **kwargs))\n    return self._cython_transform('cumsum', **kwargs)",
                             "@Substitution(name='groupby')\n@Appender(_common_see_also)\ndef cummin(self, axis=0, **kwargs):\n    \"\"\"\n    Cumulative min for each group.\n\n    Returns\n    -------\n    Series or DataFrame\n    \"\"\"\n    if axis != 0:\n        return self.apply(lambda x: np.minimum.accumulate(x, axis))\n    return self._cython_transform('cummin', numeric_only=False)",
                             "@Substitution(name='groupby')\n@Appender(_common_see_also)\ndef cummax(self, axis=0, **kwargs):\n    \"\"\"\n    Cumulative max for each group.\n\n    Returns\n    -------\n    Series or DataFrame\n    \"\"\"\n    if axis != 0:\n        return self.apply(lambda x: np.maximum.accumulate(x, axis))\n    return self._cython_transform('cummax', numeric_only=False)",
-                            "def _get_cythonized_result(self, how: str, cython_dtype: np.dtype, aggregate: bool=False, needs_values: bool=False, needs_mask: bool=False, needs_ngroups: bool=False, result_is_index: bool=False, pre_processing=None, post_processing=None, **kwargs):\n    \"\"\"\n    Get result for Cythonized functions.\n\n    Parameters\n    ----------\n    how : str, Cythonized function name to be called\n    cython_dtype : np.dtype\n        Type of the array that will be modified by the Cython call.\n    aggregate : bool, default False\n        Whether the result should be aggregated to match the number of\n        groups\n    needs_values : bool, default False\n        Whether the values should be a part of the Cython call\n        signature\n    needs_mask : bool, default False\n        Whether boolean mask needs to be part of the Cython call\n        signature\n    needs_ngroups : bool, default False\n        Whether number of groups is part of the Cython call signature\n    result_is_index : bool, default False\n        Whether the result of the Cython operation is an index of\n        values to be retrieved, instead of the actual values themselves\n    pre_processing : function, default None\n        Function to be applied to `values` prior to passing to Cython.\n        Function should return a tuple where the first element is the\n        values to be passed to Cython and the second element is an optional\n        type which the values should be converted to after being returned\n        by the Cython operation. Raises if `needs_values` is False.\n    post_processing : function, default None\n        Function to be applied to result of Cython function. Should accept\n        an array of values as the first argument and type inferences as its\n        second argument, i.e. the signature should be\n        (ndarray, Type).\n    **kwargs : dict\n        Extra arguments to be passed back to Cython funcs\n\n    Returns\n    -------\n    `Series` or `DataFrame`  with filled values\n    \"\"\"\n    if result_is_index and aggregate:\n        raise ValueError(\"'result_is_index' and 'aggregate' cannot both be True!\")\n    if post_processing:\n        if not callable(pre_processing):\n            raise ValueError(\"'post_processing' must be a callable!\")\n    if pre_processing:\n        if not callable(pre_processing):\n            raise ValueError(\"'pre_processing' must be a callable!\")\n        if not needs_values:\n            raise ValueError(\"Cannot use 'pre_processing' without specifying 'needs_values'!\")\n    grouper = self.grouper\n    labels, _, ngroups = grouper.group_info\n    output: Dict[base.OutputKey, np.ndarray] = {}\n    base_func = getattr(libgroupby, how)\n    for idx, obj in enumerate(self._iterate_slices()):\n        name = obj.name\n        values = obj._values\n        if aggregate:\n            result_sz = ngroups\n        else:\n            result_sz = len(values)\n        result = np.zeros(result_sz, dtype=cython_dtype)\n        func = partial(base_func, result, labels)\n        inferences = None\n        if needs_values:\n            vals = values\n            if pre_processing:\n                vals, inferences = pre_processing(vals)\n            func = partial(func, vals)\n        if needs_mask:\n            mask = isna(values).view(np.uint8)\n            func = partial(func, mask)\n        if needs_ngroups:\n            func = partial(func, ngroups)\n        func(**kwargs)\n        if result_is_index:\n            result = algorithms.take_nd(values, result)\n        if post_processing:\n            result = post_processing(result, inferences)\n        key = base.OutputKey(label=name, position=idx)\n        output[key] = result\n    if aggregate:\n        return self._wrap_aggregated_output(output)\n    else:\n        return self._wrap_transformed_output(output)",
+                            "def _get_cythonized_result(self, how: str, cython_dtype: np.dtype, aggregate: bool=False, needs_values: bool=False, needs_mask: bool=False, needs_ngroups: bool=False, result_is_index: bool=False, pre_processing=None, post_processing=None, **kwargs):\n    \"\"\"\n    Get result for Cythonized functions.\n\n    Parameters\n    ----------\n    how : str, Cythonized function name to be called\n    cython_dtype : np.dtype\n        Type of the array that will be modified by the Cython call.\n    aggregate : bool, default False\n        Whether the result should be aggregated to match the number of\n        groups\n    needs_values : bool, default False\n        Whether the values should be a part of the Cython call\n        signature\n    needs_mask : bool, default False\n        Whether boolean mask needs to be part of the Cython call\n        signature\n    needs_ngroups : bool, default False\n        Whether number of groups is part of the Cython call signature\n    result_is_index : bool, default False\n        Whether the result of the Cython operation is an index of\n        values to be retrieved, instead of the actual values themselves\n    pre_processing : function, default None\n        Function to be applied to `values` prior to passing to Cython.\n        Function should return a tuple where the first element is the\n        values to be passed to Cython and the second element is an optional\n        type which the values should be converted to after being returned\n        by the Cython operation. Raises if `needs_values` is False.\n    post_processing : function, default None\n        Function to be applied to result of Cython function. Should accept\n        an array of values as the first argument and type inferences as its\n        second argument, i.e. the signature should be\n        (ndarray, Type).\n    **kwargs : dict\n        Extra arguments to be passed back to Cython funcs\n\n    Returns\n    -------\n    `Series` or `DataFrame`  with filled values\n    \"\"\"\n    if result_is_index and aggregate:\n        raise ValueError(\"'result_is_index' and 'aggregate' cannot both be True!\")\n    if post_processing:\n        if not callable(pre_processing):\n            raise ValueError(\"'post_processing' must be a callable!\")\n    if pre_processing:\n        if not callable(pre_processing):\n            raise ValueError(\"'pre_processing' must be a callable!\")\n        if not needs_values:\n            raise ValueError(\"Cannot use 'pre_processing' without specifying 'needs_values'!\")\n    grouper = self.grouper\n    (labels, _, ngroups) = grouper.group_info\n    output: Dict[base.OutputKey, np.ndarray] = {}\n    base_func = getattr(libgroupby, how)\n    for (idx, obj) in enumerate(self._iterate_slices()):\n        name = obj.name\n        values = obj._values\n        if aggregate:\n            result_sz = ngroups\n        else:\n            result_sz = len(values)\n        result = np.zeros(result_sz, dtype=cython_dtype)\n        func = partial(base_func, result, labels)\n        inferences = None\n        if needs_values:\n            vals = values\n            if pre_processing:\n                (vals, inferences) = pre_processing(vals)\n            func = partial(func, vals)\n        if needs_mask:\n            mask = isna(values).view(np.uint8)\n            func = partial(func, mask)\n        if needs_ngroups:\n            func = partial(func, ngroups)\n        func(**kwargs)\n        if result_is_index:\n            result = algorithms.take_nd(values, result)\n        if post_processing:\n            result = post_processing(result, inferences)\n        key = base.OutputKey(label=name, position=idx)\n        output[key] = result\n    if aggregate:\n        return self._wrap_aggregated_output(output)\n    else:\n        return self._wrap_transformed_output(output)",
                             "@Substitution(name='groupby')\ndef shift(self, periods=1, freq=None, axis=0, fill_value=None):\n    \"\"\"\n    Shift each group by periods observations.\n\n    If freq is passed, the index will be increased using the periods and the freq.\n\n    Parameters\n    ----------\n    periods : int, default 1\n        Number of periods to shift.\n    freq : str, optional\n        Frequency string.\n    axis : axis to shift, default 0\n        Shift direction.\n    fill_value : optional\n        The scalar value to use for newly introduced missing values.\n\n        .. versionadded:: 0.24.0\n\n    Returns\n    -------\n    Series or DataFrame\n        Object shifted within each group.\n\n    See Also\n    --------\n    Index.shift : Shift values of Index.\n    tshift : Shift the time index, using the index\u2019s frequency\n        if available.\n    \"\"\"\n    if freq is not None or axis != 0 or (not isna(fill_value)):\n        return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))\n    return self._get_cythonized_result('group_shift_indexer', cython_dtype=np.dtype(np.int64), needs_ngroups=True, result_is_index=True, periods=periods)",
                             "@Substitution(name='groupby')\n@Appender(_common_see_also)\ndef pct_change(self, periods=1, fill_method='pad', limit=None, freq=None, axis=0):\n    \"\"\"\n    Calculate pct_change of each value to previous entry in group.\n\n    Returns\n    -------\n    Series or DataFrame\n        Percentage changes within each group.\n    \"\"\"\n    if freq is not None or axis != 0:\n        return self.apply(lambda x: x.pct_change(periods=periods, fill_method=fill_method, limit=limit, freq=freq, axis=axis))\n    if fill_method is None:\n        fill_method = 'pad'\n        limit = 0\n    filled = getattr(self, fill_method)(limit=limit)\n    fill_grp = filled.groupby(self.grouper.codes)\n    shifted = fill_grp.shift(periods=periods, freq=freq)\n    return filled / shifted - 1",
                             "@Substitution(name='groupby')\n@Substitution(see_also=_common_see_also)\ndef head(self, n=5):\n    \"\"\"\n    Return first n rows of each group.\n\n    Similar to ``.apply(lambda x: x.head(n))``, but it returns a subset of rows\n    from the original DataFrame with original index and order preserved\n    (``as_index`` flag is ignored).\n\n    Does not work for negative values of `n`.\n\n    Returns\n    -------\n    Series or DataFrame\n    %(see_also)s\n    Examples\n    --------\n\n    >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]],\n    ...                   columns=['A', 'B'])\n    >>> df.groupby('A').head(1)\n       A  B\n    0  1  2\n    2  5  6\n    >>> df.groupby('A').head(-1)\n    Empty DataFrame\n    Columns: [A, B]\n    Index: []\n    \"\"\"\n    self._reset_group_selection()\n    mask = self._cumcount_array() < n\n    return self._selected_obj[mask]",
                             "@Substitution(name='groupby')\n@Substitution(see_also=_common_see_also)\ndef tail(self, n=5):\n    \"\"\"\n    Return last n rows of each group.\n\n    Similar to ``.apply(lambda x: x.tail(n))``, but it returns a subset of rows\n    from the original DataFrame with original index and order preserved\n    (``as_index`` flag is ignored).\n\n    Does not work for negative values of `n`.\n\n    Returns\n    -------\n    Series or DataFrame\n    %(see_also)s\n    Examples\n    --------\n\n    >>> df = pd.DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],\n    ...                   columns=['A', 'B'])\n    >>> df.groupby('A').tail(1)\n       A  B\n    1  a  2\n    3  b  2\n    >>> df.groupby('A').tail(-1)\n    Empty DataFrame\n    Columns: [A, B]\n    Index: []\n    \"\"\"\n    self._reset_group_selection()\n    mask = self._cumcount_array(ascending=False) < n\n    return self._selected_obj[mask]",
-                            "def _reindex_output(self, output: OutputFrameOrSeries, fill_value: Scalar=np.NaN) -> OutputFrameOrSeries:\n    \"\"\"\n    If we have categorical groupers, then we might want to make sure that\n    we have a fully re-indexed output to the levels. This means expanding\n    the output space to accommodate all values in the cartesian product of\n    our groups, regardless of whether they were observed in the data or\n    not. This will expand the output space if there are missing groups.\n\n    The method returns early without modifying the input if the number of\n    groupings is less than 2, self.observed == True or none of the groupers\n    are categorical.\n\n    Parameters\n    ----------\n    output : Series or DataFrame\n        Object resulting from grouping and applying an operation.\n    fill_value : scalar, default np.NaN\n        Value to use for unobserved categories if self.observed is False.\n\n    Returns\n    -------\n    Series or DataFrame\n        Object (potentially) re-indexed to include all possible groups.\n    \"\"\"\n    groupings = self.grouper.groupings\n    if groupings is None:\n        return output\n    elif len(groupings) == 1:\n        return output\n    elif self.observed:\n        return output\n    elif not any((isinstance(ping.grouper, (Categorical, CategoricalIndex)) for ping in groupings)):\n        return output\n    levels_list = [ping.group_index for ping in groupings]\n    index, _ = MultiIndex.from_product(levels_list, names=self.grouper.names).sortlevel()\n    if self.as_index:\n        d = {self.obj._get_axis_name(self.axis): index, 'copy': False, 'fill_value': fill_value}\n        return output.reindex(**d)\n    in_axis_grps = ((i, ping.name) for i, ping in enumerate(groupings) if ping.in_axis)\n    g_nums, g_names = zip(*in_axis_grps)\n    output = output.drop(labels=list(g_names), axis=1)\n    output = output.set_index(self.grouper.result_index).reindex(index, copy=False, fill_value=fill_value)\n    output = output.reset_index(level=g_nums)\n    return output.reset_index(drop=True)",
+                            "def _reindex_output(self, output: OutputFrameOrSeries, fill_value: Scalar=np.NaN) -> OutputFrameOrSeries:\n    \"\"\"\n    If we have categorical groupers, then we might want to make sure that\n    we have a fully re-indexed output to the levels. This means expanding\n    the output space to accommodate all values in the cartesian product of\n    our groups, regardless of whether they were observed in the data or\n    not. This will expand the output space if there are missing groups.\n\n    The method returns early without modifying the input if the number of\n    groupings is less than 2, self.observed == True or none of the groupers\n    are categorical.\n\n    Parameters\n    ----------\n    output : Series or DataFrame\n        Object resulting from grouping and applying an operation.\n    fill_value : scalar, default np.NaN\n        Value to use for unobserved categories if self.observed is False.\n\n    Returns\n    -------\n    Series or DataFrame\n        Object (potentially) re-indexed to include all possible groups.\n    \"\"\"\n    groupings = self.grouper.groupings\n    if groupings is None:\n        return output\n    elif len(groupings) == 1:\n        return output\n    elif self.observed:\n        return output\n    elif not any((isinstance(ping.grouper, (Categorical, CategoricalIndex)) for ping in groupings)):\n        return output\n    levels_list = [ping.group_index for ping in groupings]\n    (index, _) = MultiIndex.from_product(levels_list, names=self.grouper.names).sortlevel()\n    if self.as_index:\n        d = {self.obj._get_axis_name(self.axis): index, 'copy': False, 'fill_value': fill_value}\n        return output.reindex(**d)\n    in_axis_grps = ((i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis)\n    (g_nums, g_names) = zip(*in_axis_grps)\n    output = output.drop(labels=list(g_names), axis=1)\n    output = output.set_index(self.grouper.result_index).reindex(index, copy=False, fill_value=fill_value)\n    output = output.reset_index(level=g_nums)\n    return output.reset_index(drop=True)",
                             "def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:\n    if is_object_dtype(vals):\n        vals = np.array([bool(x) for x in vals])\n    else:\n        vals = vals.astype(np.bool)\n    return (vals.view(np.uint8), np.bool)",
                             "def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:\n    return result.astype(inference, copy=False)",
                             "def groupby_function(name: str, alias: str, npfunc, numeric_only: bool=True, min_count: int=-1):\n    _local_template = '\\n            Compute %(f)s of group values.\\n\\n            Parameters\\n            ----------\\n            numeric_only : bool, default %(no)s\\n                Include only float, int, boolean columns. If None, will attempt to use\\n                everything, then use only numeric data.\\n            min_count : int, default %(mc)s\\n                The required number of valid values to perform the operation. If fewer\\n                than ``min_count`` non-NA values are present the result will be NA.\\n\\n            Returns\\n            -------\\n            Series or DataFrame\\n                Computed %(f)s of values within each group.\\n            '\n\n    @Substitution(name='groupby', f=name, no=numeric_only, mc=min_count)\n    @Appender(_common_see_also)\n    @Appender(_local_template)\n    def func(self, numeric_only=numeric_only, min_count=min_count):\n        self._set_group_selection()\n        try:\n            return self._cython_agg_general(how=alias, alt=npfunc, numeric_only=numeric_only, min_count=min_count)\n        except DataError:\n            pass\n        except NotImplementedError as err:\n            if 'function is not implemented for this dtype' in str(err) or 'category dtype not supported' in str(err):\n                pass\n            else:\n                raise\n        result = self.aggregate(lambda x: npfunc(x, axis=self.axis))\n        return result\n    set_function_name(func, name, cls)\n    return func",
@@ -448,8 +448,8 @@
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
-                            "ffill",
-                            "bfill"
+                            "ffill = pad",
+                            "bfill = backfill"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -497,8 +497,19 @@
                             "func(self, numeric_only=numeric_only, min_count=min_count)",
                             "first(x)",
                             "last(x)"
-                        ]
+                        ],
+                        "class_level_variable_names": [
+                            "ffill",
+                            "bfill"
+                        ],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [
+                        "from typing import Callable, Dict, FrozenSet, Generic, Hashable, Iterable, List, Mapping, Optional, Tuple, Type, TypeVar, Union",
+                        "import numpy as np",
+                        "from pandas.core.dtypes.common import ensure_float, is_datetime64_dtype, is_integer_dtype, is_numeric_dtype, is_object_dtype, is_scalar",
+                        "from pandas import concat"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -593,12 +604,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -805,12 +816,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -825,12 +836,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1128e08b0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7f521d839820>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1128e0820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7f521d839790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -850,7 +861,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x1097f5a60>",
+                                    "variable_value": "<function concat at 0x7f51ff739280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1019,12 +1030,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -1231,12 +1242,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1128e17f0>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d81d700>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -1251,12 +1262,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1128e08b0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7f521d839820>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1128e0820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7f521d839790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1276,7 +1287,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x1097f5a60>",
+                                    "variable_value": "<function concat at 0x7f51ff739280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1445,12 +1456,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -1657,12 +1668,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -1677,12 +1688,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1127c4820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7f521d640430>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1127c4790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7f521d6404c0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1702,7 +1713,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x1097f5a60>",
+                                    "variable_value": "<function concat at 0x7f51ff739280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1871,12 +1882,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -2083,12 +2094,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2130>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521d974790>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -2103,12 +2114,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1127c4820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7f521d640430>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1127c4790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7f521d6404c0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2128,7 +2139,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x1097f5a60>",
+                                    "variable_value": "<function concat at 0x7f51ff739280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2297,12 +2308,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2700>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908fb50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2700>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908fb50>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -2509,12 +2520,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2700>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908fb50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1127c2700>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908fb50>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -2529,12 +2540,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1127c4ca0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7f521d962700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1127c49d0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7f521d9625e0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2554,7 +2565,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x1097f5a60>",
+                                    "variable_value": "<function concat at 0x7f51ff739280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2723,12 +2734,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x112714040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908f130>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x112714040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908f130>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -2935,12 +2946,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x112714040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908f130>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x112714040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7f521908f130>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -2955,12 +2966,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1127c45e0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7f521d9c4280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1127c43a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7f521d9c41f0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2980,7 +2991,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x1097f5a60>",
+                                    "variable_value": "<function concat at 0x7f51ff739280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3176,12 +3187,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -3413,12 +3424,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -3433,12 +3444,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1153be9d0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476a60>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1153be940>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b34769d0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3458,7 +3469,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3652,12 +3663,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -3874,7 +3885,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152f30d0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b35603a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3889,12 +3900,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -3909,12 +3920,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1153be9d0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476a60>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1153be940>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b34769d0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3934,7 +3945,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4128,12 +4139,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -4350,7 +4361,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152f3530>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b3560300>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -4365,12 +4376,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8d60>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b346edc0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -4385,12 +4396,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1153be9d0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476a60>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1153be940>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b34769d0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4410,7 +4421,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4604,12 +4615,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -4841,12 +4852,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -4861,12 +4872,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1153be820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b34763a0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1153bedc0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b34761f0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4886,7 +4897,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5080,12 +5091,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -5302,7 +5313,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152f3e90>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b3578f80>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5317,12 +5328,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -5337,12 +5348,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1153be820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b34763a0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1153bedc0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b34761f0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5362,7 +5373,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5556,12 +5567,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -5778,7 +5789,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152f3ad0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b3578ee0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5793,12 +5804,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x11530c040>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35425e0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -5813,12 +5824,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1153be820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b34763a0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1153bedc0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b34761f0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5838,7 +5849,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6032,12 +6043,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -6254,7 +6265,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529bad0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b358e8f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6269,12 +6280,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -6289,12 +6300,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6b80>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b356ae50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f63a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b356ab80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6314,7 +6325,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6508,12 +6519,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -6730,7 +6741,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529b8f0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b358e710>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6745,12 +6756,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -6765,12 +6776,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6b80>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b356ae50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f63a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b356ab80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6790,7 +6801,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6984,12 +6995,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -7206,7 +7217,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529bd00>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b358eb20>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7221,12 +7232,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -7241,12 +7252,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6b80>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b356ae50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f63a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b356ab80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -7266,7 +7277,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -7460,12 +7471,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -7682,7 +7693,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529ba80>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b358e8a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7697,12 +7708,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -7717,12 +7728,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6b80>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b356ae50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f63a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b356ab80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -7742,7 +7753,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -7936,12 +7947,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -8158,7 +8169,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529b440>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b358ecb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -8173,12 +8184,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -8193,12 +8204,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6b80>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b356ae50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f63a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b356ab80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -8218,7 +8229,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -8412,12 +8423,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -8634,7 +8645,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529bad0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b358e8f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -8649,12 +8660,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -8669,12 +8680,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6b80>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b356ae50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f63a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b356ab80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -8694,7 +8705,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -8888,12 +8899,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -9125,12 +9136,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1153c8c10>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b3542430>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -9145,12 +9156,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6b80>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b356ae50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f63a0>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b356ab80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -9170,7 +9181,7 @@
                                     "variable_shape": "(6,)"
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -9364,12 +9375,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -9586,7 +9597,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529b5d0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b35a0800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9601,12 +9612,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -9621,12 +9632,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f6790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b3476790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -9646,7 +9657,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -9840,12 +9851,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -10062,7 +10073,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x11529bc10>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b35a0990>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10077,12 +10088,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -10097,12 +10108,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f6790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b3476790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -10122,7 +10133,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -10316,12 +10327,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -10538,7 +10549,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152a2490>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b35a0c60>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10553,12 +10564,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -10573,12 +10584,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f6790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b3476790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -10598,7 +10609,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -10792,12 +10803,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -11014,7 +11025,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152cb2b0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b35a07b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11029,12 +11040,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -11049,12 +11060,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f6790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b3476790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -11074,7 +11085,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -11268,12 +11279,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -11490,7 +11501,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152cb2b0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b35a0da0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11505,12 +11516,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -11525,12 +11536,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f6790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b3476790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -11550,7 +11561,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -11744,12 +11755,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -11966,7 +11977,7 @@
                                     "variable_shape": "6"
                                 },
                                 "vals.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1152a2ee0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb3b35a0800>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11981,12 +11992,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -12001,12 +12012,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f6790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b3476790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -12026,7 +12037,7 @@
                                     "variable_shape": null
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -12220,12 +12231,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -12457,12 +12468,12 @@
                                     "variable_shape": "3"
                                 },
                                 "self._get_cythonized_result": {
-                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>>",
+                                    "variable_value": "<bound method GroupBy._get_cythonized_result of <pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x1152a3550>",
+                                    "variable_value": "<pandas.core.groupby.generic.SeriesGroupBy object at 0x7fb3b35871f0>",
                                     "variable_type": "SeriesGroupBy",
                                     "variable_shape": null
                                 },
@@ -12477,12 +12488,12 @@
                                     "variable_shape": null
                                 },
                                 "pre_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x1152f6820>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.pre_processor at 0x7fb3b3476040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "post_processor": {
-                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x1152f6790>",
+                                    "variable_value": "<function GroupBy.quantile.<locals>.post_processor at 0x7fb3b3476790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -12502,7 +12513,7 @@
                                     "variable_shape": "(6,)"
                                 },
                                 "concat": {
-                                    "variable_value": "<function concat at 0x10c32ea60>",
+                                    "variable_value": "<function concat at 0x7fb3971eb280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -18411,7 +18422,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_31/pandas/tests/groupby/test_function.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_31/pandas/tests/groupby/test_function.py",
                 "test_function": "test_groupby_quantile_nullable_array",
                 "test_function_code": "@pytest.mark.parametrize(\n    \"values\",\n    [\n        pd.array([1, 0, None] * 2, dtype=\"Int64\"),\n        pd.array([True, False, None] * 2, dtype=\"boolean\"),\n    ],\n)\n@pytest.mark.parametrize(\"q\", [0.5, [0.0, 0.5, 1.0]])\ndef test_groupby_quantile_nullable_array(values, q):\n    # https://github.com/pandas-dev/pandas/issues/33136\n    df = pd.DataFrame({\"a\": [\"x\"] * 3 + [\"y\"] * 3, \"b\": values})\n    result = df.groupby(\"a\")[\"b\"].quantile(q)\n\n    if isinstance(q, list):\n        idx = pd.MultiIndex.from_product(([\"x\", \"y\"], q), names=[\"a\", None])\n        true_quantiles = [0.0, 0.5, 1.0]\n    else:\n        idx = pd.Index([\"x\", \"y\"], name=\"a\")\n        true_quantiles = [0.5]\n\n    expected = pd.Series(true_quantiles * 2, index=idx, name=\"b\")\n    tm.assert_series_equal(result, expected)",
                 "test_error": "TypeError: No matching signature found",
@@ -18424,7 +18435,7 @@
                 ]
             },
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_31/pandas/tests/groupby/test_function.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_31/pandas/tests/groupby/test_function.py",
                 "test_function": "test_groupby_quantile_nullable_array",
                 "test_function_code": "@pytest.mark.parametrize(\n    \"values\",\n    [\n        pd.array([1, 0, None] * 2, dtype=\"Int64\"),\n        pd.array([True, False, None] * 2, dtype=\"boolean\"),\n    ],\n)\n@pytest.mark.parametrize(\"q\", [0.5, [0.0, 0.5, 1.0]])\ndef test_groupby_quantile_nullable_array(values, q):\n    # https://github.com/pandas-dev/pandas/issues/33136\n    df = pd.DataFrame({\"a\": [\"x\"] * 3 + [\"y\"] * 3, \"b\": values})\n    result = df.groupby(\"a\")[\"b\"].quantile(q)\n\n    if isinstance(q, list):\n        idx = pd.MultiIndex.from_product(([\"x\", \"y\"], q), names=[\"a\", None])\n        true_quantiles = [0.0, 0.5, 1.0]\n    else:\n        idx = pd.Index([\"x\", \"y\"], name=\"a\")\n        true_quantiles = [0.5]\n\n    expected = pd.Series(true_quantiles * 2, index=idx, name=\"b\")\n    tm.assert_series_equal(result, expected)",
                 "test_error": "TypeError: No matching signature found",
@@ -18437,7 +18448,7 @@
                 ]
             },
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_31/pandas/tests/groupby/test_function.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_31/pandas/tests/groupby/test_function.py",
                 "test_function": "test_groupby_quantile_nullable_array",
                 "test_function_code": "@pytest.mark.parametrize(\n    \"values\",\n    [\n        pd.array([1, 0, None] * 2, dtype=\"Int64\"),\n        pd.array([True, False, None] * 2, dtype=\"boolean\"),\n    ],\n)\n@pytest.mark.parametrize(\"q\", [0.5, [0.0, 0.5, 1.0]])\ndef test_groupby_quantile_nullable_array(values, q):\n    # https://github.com/pandas-dev/pandas/issues/33136\n    df = pd.DataFrame({\"a\": [\"x\"] * 3 + [\"y\"] * 3, \"b\": values})\n    result = df.groupby(\"a\")[\"b\"].quantile(q)\n\n    if isinstance(q, list):\n        idx = pd.MultiIndex.from_product(([\"x\", \"y\"], q), names=[\"a\", None])\n        true_quantiles = [0.0, 0.5, 1.0]\n    else:\n        idx = pd.Index([\"x\", \"y\"], name=\"a\")\n        true_quantiles = [0.5]\n\n    expected = pd.Series(true_quantiles * 2, index=idx, name=\"b\")\n    tm.assert_series_equal(result, expected)",
                 "test_error": "TypeError: No matching signature found",
@@ -18450,7 +18461,7 @@
                 ]
             },
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_31/pandas/tests/groupby/test_function.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_31/pandas/tests/groupby/test_function.py",
                 "test_function": "test_groupby_quantile_nullable_array",
                 "test_function_code": "@pytest.mark.parametrize(\n    \"values\",\n    [\n        pd.array([1, 0, None] * 2, dtype=\"Int64\"),\n        pd.array([True, False, None] * 2, dtype=\"boolean\"),\n    ],\n)\n@pytest.mark.parametrize(\"q\", [0.5, [0.0, 0.5, 1.0]])\ndef test_groupby_quantile_nullable_array(values, q):\n    # https://github.com/pandas-dev/pandas/issues/33136\n    df = pd.DataFrame({\"a\": [\"x\"] * 3 + [\"y\"] * 3, \"b\": values})\n    result = df.groupby(\"a\")[\"b\"].quantile(q)\n\n    if isinstance(q, list):\n        idx = pd.MultiIndex.from_product(([\"x\", \"y\"], q), names=[\"a\", None])\n        true_quantiles = [0.0, 0.5, 1.0]\n    else:\n        idx = pd.Index([\"x\", \"y\"], name=\"a\")\n        true_quantiles = [0.5]\n\n    expected = pd.Series(true_quantiles * 2, index=idx, name=\"b\")\n    tm.assert_series_equal(result, expected)",
                 "test_error": "TypeError: No matching signature found",

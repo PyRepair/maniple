@@ -1,6 +1,6 @@
 {
     "pandas:32": {
-        "/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/io/sas/sas_xport.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/io/sas/sas_xport.py": {
             "buggy_functions": [
                 {
                     "function_name": "__init__",
@@ -180,26 +180,26 @@
                         "docstring": null,
                         "constructor_docstring": null,
                         "functions": [
-                            "def __init__(self, filepath_or_buffer, index=None, encoding='ISO-8859-1', chunksize=None):\n    self._encoding = encoding\n    self._lines_read = 0\n    self._index = index\n    self._chunksize = chunksize\n    if isinstance(filepath_or_buffer, str):\n        filepath_or_buffer, encoding, compression, should_close = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    if isinstance(filepath_or_buffer, (str, bytes)):\n        self.filepath_or_buffer = open(filepath_or_buffer, 'rb')\n    else:\n        contents = filepath_or_buffer.read()\n        try:\n            contents = contents.encode(self._encoding)\n        except UnicodeEncodeError:\n            pass\n        self.filepath_or_buffer = BytesIO(contents)\n    self._read_header()",
+                            "def __init__(self, filepath_or_buffer, index=None, encoding='ISO-8859-1', chunksize=None):\n    self._encoding = encoding\n    self._lines_read = 0\n    self._index = index\n    self._chunksize = chunksize\n    if isinstance(filepath_or_buffer, str):\n        (filepath_or_buffer, encoding, compression, should_close) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    if isinstance(filepath_or_buffer, (str, bytes)):\n        self.filepath_or_buffer = open(filepath_or_buffer, 'rb')\n    else:\n        contents = filepath_or_buffer.read()\n        try:\n            contents = contents.encode(self._encoding)\n        except UnicodeEncodeError:\n            pass\n        self.filepath_or_buffer = BytesIO(contents)\n    self._read_header()",
                             "def close(self):\n    self.filepath_or_buffer.close()",
                             "def _get_row(self):\n    return self.filepath_or_buffer.read(80).decode()",
-                            "def _read_header(self):\n    self.filepath_or_buffer.seek(0)\n    line1 = self._get_row()\n    if line1 != _correct_line1:\n        self.close()\n        raise ValueError('Header record is not an XPORT file.')\n    line2 = self._get_row()\n    fif = [['prefix', 24], ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]\n    file_info = _split_line(line2, fif)\n    if file_info['prefix'] != 'SAS     SAS     SASLIB':\n        self.close()\n        raise ValueError('Header record has invalid prefix.')\n    file_info['created'] = _parse_date(file_info['created'])\n    self.file_info = file_info\n    line3 = self._get_row()\n    file_info['modified'] = _parse_date(line3[:16])\n    header1 = self._get_row()\n    header2 = self._get_row()\n    headflag1 = header1.startswith(_correct_header1)\n    headflag2 = header2 == _correct_header2\n    if not (headflag1 and headflag2):\n        self.close()\n        raise ValueError('Member header not found')\n    fieldnamelength = int(header1[-5:-2])\n    mem = [['prefix', 8], ['set_name', 8], ['sasdata', 8], ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]\n    member_info = _split_line(self._get_row(), mem)\n    mem = [['modified', 16], ['_', 16], ['label', 40], ['type', 8]]\n    member_info.update(_split_line(self._get_row(), mem))\n    member_info['modified'] = _parse_date(member_info['modified'])\n    member_info['created'] = _parse_date(member_info['created'])\n    self.member_info = member_info\n    types = {1: 'numeric', 2: 'char'}\n    fieldcount = int(self._get_row()[54:58])\n    datalength = fieldnamelength * fieldcount\n    if datalength % 80:\n        datalength += 80 - datalength % 80\n    fielddata = self.filepath_or_buffer.read(datalength)\n    fields = []\n    obs_length = 0\n    while len(fielddata) >= fieldnamelength:\n        field, fielddata = (fielddata[:fieldnamelength], fielddata[fieldnamelength:])\n        field = field.ljust(140)\n        fieldstruct = struct.unpack('>hhhh8s40s8shhh2s8shhl52s', field)\n        field = dict(zip(_fieldkeys, fieldstruct))\n        del field['_']\n        field['ntype'] = types[field['ntype']]\n        fl = field['field_length']\n        if field['ntype'] == 'numeric' and (fl < 2 or fl > 8):\n            self.close()\n            msg = f'Floating field width {fl} is not between 2 and 8.'\n            raise TypeError(msg)\n        for k, v in field.items():\n            try:\n                field[k] = v.strip()\n            except AttributeError:\n                pass\n        obs_length += field['field_length']\n        fields += [field]\n    header = self._get_row()\n    if not header == _correct_obs_header:\n        self.close()\n        raise ValueError('Observation header not found.')\n    self.fields = fields\n    self.record_length = obs_length\n    self.record_start = self.filepath_or_buffer.tell()\n    self.nobs = self._record_count()\n    self.columns = [x['name'].decode() for x in self.fields]\n    dtypel = [('s' + str(i), 'S' + str(field['field_length'])) for i, field in enumerate(self.fields)]\n    dtype = np.dtype(dtypel)\n    self._dtype = dtype",
+                            "def _read_header(self):\n    self.filepath_or_buffer.seek(0)\n    line1 = self._get_row()\n    if line1 != _correct_line1:\n        self.close()\n        raise ValueError('Header record is not an XPORT file.')\n    line2 = self._get_row()\n    fif = [['prefix', 24], ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]\n    file_info = _split_line(line2, fif)\n    if file_info['prefix'] != 'SAS     SAS     SASLIB':\n        self.close()\n        raise ValueError('Header record has invalid prefix.')\n    file_info['created'] = _parse_date(file_info['created'])\n    self.file_info = file_info\n    line3 = self._get_row()\n    file_info['modified'] = _parse_date(line3[:16])\n    header1 = self._get_row()\n    header2 = self._get_row()\n    headflag1 = header1.startswith(_correct_header1)\n    headflag2 = header2 == _correct_header2\n    if not (headflag1 and headflag2):\n        self.close()\n        raise ValueError('Member header not found')\n    fieldnamelength = int(header1[-5:-2])\n    mem = [['prefix', 8], ['set_name', 8], ['sasdata', 8], ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]\n    member_info = _split_line(self._get_row(), mem)\n    mem = [['modified', 16], ['_', 16], ['label', 40], ['type', 8]]\n    member_info.update(_split_line(self._get_row(), mem))\n    member_info['modified'] = _parse_date(member_info['modified'])\n    member_info['created'] = _parse_date(member_info['created'])\n    self.member_info = member_info\n    types = {1: 'numeric', 2: 'char'}\n    fieldcount = int(self._get_row()[54:58])\n    datalength = fieldnamelength * fieldcount\n    if datalength % 80:\n        datalength += 80 - datalength % 80\n    fielddata = self.filepath_or_buffer.read(datalength)\n    fields = []\n    obs_length = 0\n    while len(fielddata) >= fieldnamelength:\n        (field, fielddata) = (fielddata[:fieldnamelength], fielddata[fieldnamelength:])\n        field = field.ljust(140)\n        fieldstruct = struct.unpack('>hhhh8s40s8shhh2s8shhl52s', field)\n        field = dict(zip(_fieldkeys, fieldstruct))\n        del field['_']\n        field['ntype'] = types[field['ntype']]\n        fl = field['field_length']\n        if field['ntype'] == 'numeric' and (fl < 2 or fl > 8):\n            self.close()\n            msg = f'Floating field width {fl} is not between 2 and 8.'\n            raise TypeError(msg)\n        for (k, v) in field.items():\n            try:\n                field[k] = v.strip()\n            except AttributeError:\n                pass\n        obs_length += field['field_length']\n        fields += [field]\n    header = self._get_row()\n    if not header == _correct_obs_header:\n        self.close()\n        raise ValueError('Observation header not found.')\n    self.fields = fields\n    self.record_length = obs_length\n    self.record_start = self.filepath_or_buffer.tell()\n    self.nobs = self._record_count()\n    self.columns = [x['name'].decode() for x in self.fields]\n    dtypel = [('s' + str(i), 'S' + str(field['field_length'])) for (i, field) in enumerate(self.fields)]\n    dtype = np.dtype(dtypel)\n    self._dtype = dtype",
                             "def __next__(self):\n    return self.read(nrows=self._chunksize or 1)",
                             "def _record_count(self) -> int:\n    \"\"\"\n    Get number of records in file.\n\n    This is maybe suboptimal because we have to seek to the end of\n    the file.\n\n    Side effect: returns file position to record_start.\n    \"\"\"\n    self.filepath_or_buffer.seek(0, 2)\n    total_records_length = self.filepath_or_buffer.tell() - self.record_start\n    if total_records_length % 80 != 0:\n        warnings.warn('xport file may be corrupted')\n    if self.record_length > 80:\n        self.filepath_or_buffer.seek(self.record_start)\n        return total_records_length // self.record_length\n    self.filepath_or_buffer.seek(-80, 2)\n    last_card = self.filepath_or_buffer.read(80)\n    last_card = np.frombuffer(last_card, dtype=np.uint64)\n    ix = np.flatnonzero(last_card == 2314885530818453536)\n    if len(ix) == 0:\n        tail_pad = 0\n    else:\n        tail_pad = 8 * len(ix)\n    self.filepath_or_buffer.seek(self.record_start)\n    return (total_records_length - tail_pad) // self.record_length",
                             "def get_chunk(self, size=None):\n    \"\"\"\n    Reads lines from Xport file and returns as dataframe\n\n    Parameters\n    ----------\n    size : int, defaults to None\n        Number of lines to read.  If None, reads whole file.\n\n    Returns\n    -------\n    DataFrame\n    \"\"\"\n    if size is None:\n        size = self._chunksize\n    return self.read(nrows=size)",
                             "def _missing_double(self, vec):\n    v = vec.view(dtype='u1,u1,u2,u4')\n    miss = (v['f1'] == 0) & (v['f2'] == 0) & (v['f3'] == 0)\n    miss1 = (v['f0'] >= 65) & (v['f0'] <= 90) | (v['f0'] == 95) | (v['f0'] == 46)\n    miss &= miss1\n    return miss",
-                            "@Appender(_read_method_doc)\ndef read(self, nrows=None):\n    if nrows is None:\n        nrows = self.nobs\n    read_lines = min(nrows, self.nobs - self._lines_read)\n    read_len = read_lines * self.record_length\n    if read_len <= 0:\n        self.close()\n        raise StopIteration\n    raw = self.filepath_or_buffer.read(read_len)\n    data = np.frombuffer(raw, dtype=self._dtype, count=read_lines)\n    df = pd.DataFrame(index=range(read_lines))\n    for j, x in enumerate(self.columns):\n        vec = data['s' + str(j)]\n        ntype = self.fields[j]['ntype']\n        if ntype == 'numeric':\n            vec = _handle_truncated_float_vec(vec, self.fields[j]['field_length'])\n            miss = self._missing_double(vec)\n            v = _parse_float_vec(vec)\n            v[miss] = np.nan\n        elif self.fields[j]['ntype'] == 'char':\n            v = [y.rstrip() for y in vec]\n            if self._encoding is not None:\n                v = [y.decode(self._encoding) for y in v]\n        df[x] = v\n    if self._index is None:\n        df.index = range(self._lines_read, self._lines_read + read_lines)\n    else:\n        df = df.set_index(self._index)\n    self._lines_read += read_lines\n    return df"
+                            "@Appender(_read_method_doc)\ndef read(self, nrows=None):\n    if nrows is None:\n        nrows = self.nobs\n    read_lines = min(nrows, self.nobs - self._lines_read)\n    read_len = read_lines * self.record_length\n    if read_len <= 0:\n        self.close()\n        raise StopIteration\n    raw = self.filepath_or_buffer.read(read_len)\n    data = np.frombuffer(raw, dtype=self._dtype, count=read_lines)\n    df = pd.DataFrame(index=range(read_lines))\n    for (j, x) in enumerate(self.columns):\n        vec = data['s' + str(j)]\n        ntype = self.fields[j]['ntype']\n        if ntype == 'numeric':\n            vec = _handle_truncated_float_vec(vec, self.fields[j]['field_length'])\n            miss = self._missing_double(vec)\n            v = _parse_float_vec(vec)\n            v[miss] = np.nan\n        elif self.fields[j]['ntype'] == 'char':\n            v = [y.rstrip() for y in vec]\n            if self._encoding is not None:\n                v = [y.decode(self._encoding) for y in v]\n        df[x] = v\n    if self._index is None:\n        df.index = range(self._lines_read, self._lines_read + read_lines)\n    else:\n        df = df.set_index(self._index)\n    self._lines_read += read_lines\n    return df"
                         ],
                         "constructor_variables": [
-                            "_lines_read",
-                            "_index",
-                            "contents",
-                            "filepath_or_buffer",
-                            "_chunksize",
-                            "_encoding"
+                            "self._encoding = encoding",
+                            "self._lines_read = 0",
+                            "self._index = index",
+                            "self._chunksize = chunksize",
+                            "self.filepath_or_buffer = open(filepath_or_buffer, 'rb')",
+                            "self.filepath_or_buffer = BytesIO(contents)"
                         ],
                         "class_level_variables": [
-                            "__doc__"
+                            "__doc__ = _xport_reader_doc"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -212,8 +212,23 @@
                             "get_chunk(self, size=None)",
                             "_missing_double(self, vec)",
                             "read(self, nrows=None)"
+                        ],
+                        "class_level_variable_names": [
+                            "__doc__"
+                        ],
+                        "constructor_variable_names": [
+                            "_index",
+                            "filepath_or_buffer",
+                            "_lines_read",
+                            "_encoding",
+                            "_chunksize",
+                            "contents"
                         ]
                     },
+                    "used_imports": [
+                        "from io import BytesIO",
+                        "from pandas.io.common import get_filepath_or_buffer"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -223,7 +238,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x11a71bc10>",
+                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x7f87f42c8d60>",
                                     "variable_type": "XportReader",
                                     "variable_shape": null
                                 },
@@ -258,7 +273,7 @@
                                     "variable_shape": null
                                 },
                                 "filepath_or_buffer": {
-                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_value": "<_io.BufferedReader name='/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
                                     "variable_type": "BufferedReader",
                                     "variable_shape": null
                                 },
@@ -288,7 +303,7 @@
                                     "variable_shape": null
                                 },
                                 "filepath_or_buffer.read": {
-                                    "variable_value": "<built-in method read of _io.BufferedReader object at 0x11a7bb510>",
+                                    "variable_value": "<built-in method read of _io.BufferedReader object at 0x7f87f4268460>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -303,7 +318,7 @@
                                     "variable_shape": null
                                 },
                                 "self._read_header": {
-                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x11a71bc10>>",
+                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x7f87f42c8d60>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -320,7 +335,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>",
+                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x7f3ddd6b9d30>",
                                     "variable_type": "XportReader",
                                     "variable_shape": null
                                 },
@@ -355,7 +370,7 @@
                                     "variable_shape": null
                                 },
                                 "filepath_or_buffer": {
-                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_value": "<_io.BufferedReader name='/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
                                     "variable_type": "BufferedReader",
                                     "variable_shape": null
                                 },
@@ -380,7 +395,7 @@
                                     "variable_shape": null
                                 },
                                 "self._read_header": {
-                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>>",
+                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x7f3ddd6b9d30>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -392,7 +407,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>",
+                                    "variable_value": "<pandas.io.sas.sas_xport.XportReader object at 0x7f3ddd6b9d30>",
                                     "variable_type": "XportReader",
                                     "variable_shape": null
                                 },
@@ -427,7 +442,7 @@
                                     "variable_shape": null
                                 },
                                 "filepath_or_buffer": {
-                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_value": "<_io.BufferedReader name='/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
                                     "variable_type": "BufferedReader",
                                     "variable_shape": null
                                 },
@@ -447,12 +462,12 @@
                                     "variable_shape": null
                                 },
                                 "self.filepath_or_buffer": {
-                                    "variable_value": "<_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
+                                    "variable_value": "<_io.BufferedReader name='/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>",
                                     "variable_type": "BufferedReader",
                                     "variable_shape": null
                                 },
                                 "self._read_header": {
-                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x118e3ec70>>",
+                                    "variable_value": "<bound method XportReader._read_header of <pandas.io.sas.sas_xport.XportReader object at 0x7f3ddd6b9d30>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -2149,13 +2164,13 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/test_xport.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/tests/io/sas/test_xport.py",
                 "test_function": "test2_binary",
                 "test_function_code": "    def test2_binary(self):\n        # Test with SSHSV1_A.xpt, read as a binary file\n\n        # Compare to this\n        data_csv = pd.read_csv(self.file02.replace(\".xpt\", \".csv\"))\n        numeric_as_float(data_csv)\n\n        data = read_sas(self.file02b, format=\"xport\")\n        tm.assert_frame_equal(data, data_csv)",
                 "test_error": "AttributeError: 'bytes' object has no attribute 'encode'",
-                "full_test_error": "self = <pandas.tests.io.sas.test_xport.TestXport object at 0x11626e190>\n\n    def test2_binary(self):\n        # Test with SSHSV1_A.xpt, read as a binary file\n    \n        # Compare to this\n        data_csv = pd.read_csv(self.file02.replace(\".xpt\", \".csv\"))\n        numeric_as_float(data_csv)\n    \n>       data = read_sas(self.file02b, format=\"xport\")\n\npandas/tests/io/sas/test_xport.py:130: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/io/sas/sasreader.py:68: in read_sas\n    reader = XportReader(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.io.sas.sas_xport.XportReader object at 0x116257f10>\nfilepath_or_buffer = <_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>\nindex = None, encoding = None, chunksize = None\n\n    def __init__(\n        self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n    ):\n    \n        self._encoding = encoding\n        self._lines_read = 0\n        self._index = index\n        self._chunksize = chunksize\n    \n        if isinstance(filepath_or_buffer, str):\n            (\n                filepath_or_buffer,\n                encoding,\n                compression,\n                should_close,\n            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    \n        if isinstance(filepath_or_buffer, (str, bytes)):\n            self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n        else:\n            # Copy to BytesIO, and ensure no encoding\n            contents = filepath_or_buffer.read()\n            try:\n>               contents = contents.encode(self._encoding)\nE               AttributeError: 'bytes' object has no attribute 'encode'\n\npandas/io/sas/sas_xport.py:269: AttributeError",
+                "full_test_error": "self = <pandas.tests.io.sas.test_xport.TestXport object at 0x7f24f60a7940>\n\n    def test2_binary(self):\n        # Test with SSHSV1_A.xpt, read as a binary file\n    \n        # Compare to this\n        data_csv = pd.read_csv(self.file02.replace(\".xpt\", \".csv\"))\n        numeric_as_float(data_csv)\n    \n>       data = read_sas(self.file02b, format=\"xport\")\n\npandas/tests/io/sas/test_xport.py:130: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/io/sas/sasreader.py:68: in read_sas\n    reader = XportReader(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.io.sas.sas_xport.XportReader object at 0x7f24f60b9d90>\nfilepath_or_buffer = <_io.BufferedReader name='/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>\nindex = None, encoding = None, chunksize = None\n\n    def __init__(\n        self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n    ):\n    \n        self._encoding = encoding\n        self._lines_read = 0\n        self._index = index\n        self._chunksize = chunksize\n    \n        if isinstance(filepath_or_buffer, str):\n            (\n                filepath_or_buffer,\n                encoding,\n                compression,\n                should_close,\n            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    \n        if isinstance(filepath_or_buffer, (str, bytes)):\n            self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n        else:\n            # Copy to BytesIO, and ensure no encoding\n            contents = filepath_or_buffer.read()\n            try:\n>               contents = contents.encode(self._encoding)\nE               AttributeError: 'bytes' object has no attribute 'encode'\n\npandas/io/sas/sas_xport.py:269: AttributeError",
                 "traceback": "pandas/io/sas/sasreader.py:68: in read_sas\n    reader = XportReader(",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.io.sas.sas_xport.XportReader object at 0x116257f10>\nfilepath_or_buffer = <_io.BufferedReader name='/Volumes/JerrySSD/bgp_envs/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>\nindex = None, encoding = None, chunksize = None\n\n    def __init__(\n        self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n    ):\n    \n        self._encoding = encoding\n        self._lines_read = 0\n        self._index = index\n        self._chunksize = chunksize\n    \n        if isinstance(filepath_or_buffer, str):\n            (\n                filepath_or_buffer,\n                encoding,\n                compression,\n                should_close,\n            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    \n        if isinstance(filepath_or_buffer, (str, bytes)):\n            self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n        else:\n            # Copy to BytesIO, and ensure no encoding\n            contents = filepath_or_buffer.read()\n            try:\n>               contents = contents.encode(self._encoding)\nE               AttributeError: 'bytes' object has no attribute 'encode'\n\npandas/io/sas/sas_xport.py:269: AttributeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <pandas.io.sas.sas_xport.XportReader object at 0x7f24f60b9d90>\nfilepath_or_buffer = <_io.BufferedReader name='/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_32/pandas/tests/io/sas/data/SSHSV1_A.xpt'>\nindex = None, encoding = None, chunksize = None\n\n    def __init__(\n        self, filepath_or_buffer, index=None, encoding=\"ISO-8859-1\", chunksize=None\n    ):\n    \n        self._encoding = encoding\n        self._lines_read = 0\n        self._index = index\n        self._chunksize = chunksize\n    \n        if isinstance(filepath_or_buffer, str):\n            (\n                filepath_or_buffer,\n                encoding,\n                compression,\n                should_close,\n            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)\n    \n        if isinstance(filepath_or_buffer, (str, bytes)):\n            self.filepath_or_buffer = open(filepath_or_buffer, \"rb\")\n        else:\n            # Copy to BytesIO, and ensure no encoding\n            contents = filepath_or_buffer.read()\n            try:\n>               contents = contents.encode(self._encoding)\nE               AttributeError: 'bytes' object has no attribute 'encode'\n\npandas/io/sas/sas_xport.py:269: AttributeError",
                 "test_function_decorators": []
             }
         ]

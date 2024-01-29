@@ -1,6 +1,6 @@
 {
     "ansible:3": {
-        "/Volumes/SSD2T/bgp_envs/repos/ansible_3/lib/ansible/module_utils/facts/system/distribution.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/ansible_3/lib/ansible/module_utils/facts/system/distribution.py": {
             "buggy_functions": [
                 {
                     "function_name": "parse_distribution_file_Debian",
@@ -336,28 +336,28 @@
                             "def __init__(self, module):\n    self.module = module",
                             "def _get_file_content(self, path):\n    return get_file_content(path)",
                             "def _get_dist_file_content(self, path, allow_empty=False):\n    if not _file_exists(path, allow_empty=allow_empty):\n        return (False, None)\n    data = self._get_file_content(path)\n    return (True, data)",
-                            "def _parse_dist_file(self, name, dist_file_content, path, collected_facts):\n    dist_file_dict = {}\n    dist_file_content = dist_file_content.strip(DistributionFiles.STRIP_QUOTES)\n    if name in self.SEARCH_STRING:\n        if self.SEARCH_STRING[name] in dist_file_content:\n            dist_file_dict['distribution'] = name\n            dist_file_dict['distribution_file_search_string'] = self.SEARCH_STRING[name]\n        else:\n            dist_file_dict['distribution'] = dist_file_content.split()[0]\n        return (True, dist_file_dict)\n    if name in self.OS_RELEASE_ALIAS:\n        if self.OS_RELEASE_ALIAS[name] in dist_file_content:\n            dist_file_dict['distribution'] = name\n            return (True, dist_file_dict)\n        return (False, dist_file_dict)\n    try:\n        distfunc_name = 'parse_distribution_file_' + name\n        distfunc = getattr(self, distfunc_name)\n        parsed, dist_file_dict = distfunc(name, dist_file_content, path, collected_facts)\n        return (parsed, dist_file_dict)\n    except AttributeError as exc:\n        print('exc: %s' % exc)\n        return (False, dist_file_dict)\n    return (True, dist_file_dict)",
+                            "def _parse_dist_file(self, name, dist_file_content, path, collected_facts):\n    dist_file_dict = {}\n    dist_file_content = dist_file_content.strip(DistributionFiles.STRIP_QUOTES)\n    if name in self.SEARCH_STRING:\n        if self.SEARCH_STRING[name] in dist_file_content:\n            dist_file_dict['distribution'] = name\n            dist_file_dict['distribution_file_search_string'] = self.SEARCH_STRING[name]\n        else:\n            dist_file_dict['distribution'] = dist_file_content.split()[0]\n        return (True, dist_file_dict)\n    if name in self.OS_RELEASE_ALIAS:\n        if self.OS_RELEASE_ALIAS[name] in dist_file_content:\n            dist_file_dict['distribution'] = name\n            return (True, dist_file_dict)\n        return (False, dist_file_dict)\n    try:\n        distfunc_name = 'parse_distribution_file_' + name\n        distfunc = getattr(self, distfunc_name)\n        (parsed, dist_file_dict) = distfunc(name, dist_file_content, path, collected_facts)\n        return (parsed, dist_file_dict)\n    except AttributeError as exc:\n        print('exc: %s' % exc)\n        return (False, dist_file_dict)\n    return (True, dist_file_dict)",
                             "def _guess_distribution(self):\n    dist = (get_distribution(), get_distribution_version(), get_distribution_codename())\n    distribution_guess = {'distribution': dist[0] or 'NA', 'distribution_version': dist[1] or 'NA', 'distribution_release': 'NA' if dist[2] is None else dist[2]}\n    distribution_guess['distribution_major_version'] = distribution_guess['distribution_version'].split('.')[0] or 'NA'\n    return distribution_guess",
-                            "def process_dist_files(self):\n    dist_file_facts = {}\n    dist_guess = self._guess_distribution()\n    dist_file_facts.update(dist_guess)\n    for ddict in self.OSDIST_LIST:\n        name = ddict['name']\n        path = ddict['path']\n        allow_empty = ddict.get('allowempty', False)\n        has_dist_file, dist_file_content = self._get_dist_file_content(path, allow_empty=allow_empty)\n        if has_dist_file and allow_empty:\n            dist_file_facts['distribution'] = name\n            dist_file_facts['distribution_file_path'] = path\n            dist_file_facts['distribution_file_variety'] = name\n            break\n        if not has_dist_file:\n            continue\n        parsed_dist_file, parsed_dist_file_facts = self._parse_dist_file(name, dist_file_content, path, dist_file_facts)\n        if parsed_dist_file:\n            dist_file_facts['distribution'] = name\n            dist_file_facts['distribution_file_path'] = path\n            dist_file_facts['distribution_file_variety'] = name\n            dist_file_facts['distribution_file_parsed'] = parsed_dist_file\n            dist_file_facts.update(parsed_dist_file_facts)\n            break\n    return dist_file_facts",
+                            "def process_dist_files(self):\n    dist_file_facts = {}\n    dist_guess = self._guess_distribution()\n    dist_file_facts.update(dist_guess)\n    for ddict in self.OSDIST_LIST:\n        name = ddict['name']\n        path = ddict['path']\n        allow_empty = ddict.get('allowempty', False)\n        (has_dist_file, dist_file_content) = self._get_dist_file_content(path, allow_empty=allow_empty)\n        if has_dist_file and allow_empty:\n            dist_file_facts['distribution'] = name\n            dist_file_facts['distribution_file_path'] = path\n            dist_file_facts['distribution_file_variety'] = name\n            break\n        if not has_dist_file:\n            continue\n        (parsed_dist_file, parsed_dist_file_facts) = self._parse_dist_file(name, dist_file_content, path, dist_file_facts)\n        if parsed_dist_file:\n            dist_file_facts['distribution'] = name\n            dist_file_facts['distribution_file_path'] = path\n            dist_file_facts['distribution_file_variety'] = name\n            dist_file_facts['distribution_file_parsed'] = parsed_dist_file\n            dist_file_facts.update(parsed_dist_file_facts)\n            break\n    return dist_file_facts",
                             "def parse_distribution_file_Slackware(self, name, data, path, collected_facts):\n    slackware_facts = {}\n    if 'Slackware' not in data:\n        return (False, slackware_facts)\n    slackware_facts['distribution'] = name\n    version = re.findall('\\\\w+[.]\\\\w+', data)\n    if version:\n        slackware_facts['distribution_version'] = version[0]\n    return (True, slackware_facts)",
                             "def parse_distribution_file_Amazon(self, name, data, path, collected_facts):\n    amazon_facts = {}\n    if 'Amazon' not in data:\n        return (False, amazon_facts)\n    amazon_facts['distribution'] = 'Amazon'\n    version = [n for n in data.split() if n.isdigit()]\n    version = version[0] if version else 'NA'\n    amazon_facts['distribution_version'] = version\n    return (True, amazon_facts)",
                             "def parse_distribution_file_OpenWrt(self, name, data, path, collected_facts):\n    openwrt_facts = {}\n    if 'OpenWrt' not in data:\n        return (False, openwrt_facts)\n    openwrt_facts['distribution'] = name\n    version = re.search('DISTRIB_RELEASE=\"(.*)\"', data)\n    if version:\n        openwrt_facts['distribution_version'] = version.groups()[0]\n    release = re.search('DISTRIB_CODENAME=\"(.*)\"', data)\n    if release:\n        openwrt_facts['distribution_release'] = release.groups()[0]\n    return (True, openwrt_facts)",
                             "def parse_distribution_file_Alpine(self, name, data, path, collected_facts):\n    alpine_facts = {}\n    alpine_facts['distribution'] = 'Alpine'\n    alpine_facts['distribution_version'] = data\n    return (True, alpine_facts)",
                             "def parse_distribution_file_SUSE(self, name, data, path, collected_facts):\n    suse_facts = {}\n    if 'suse' not in data.lower():\n        return (False, suse_facts)\n    if path == '/etc/os-release':\n        for line in data.splitlines():\n            distribution = re.search('^NAME=(.*)', line)\n            if distribution:\n                suse_facts['distribution'] = distribution.group(1).strip('\"')\n            distribution_version = re.search('^VERSION_ID=\"?([0-9]+\\\\.?[0-9]*)\"?', line)\n            if distribution_version:\n                suse_facts['distribution_version'] = distribution_version.group(1)\n                suse_facts['distribution_major_version'] = distribution_version.group(1).split('.')[0]\n            if 'open' in data.lower():\n                release = re.search('^VERSION_ID=\"?[0-9]+\\\\.?([0-9]*)\"?', line)\n                if release:\n                    suse_facts['distribution_release'] = release.groups()[0]\n            elif 'enterprise' in data.lower() and 'VERSION_ID' in line:\n                release = re.search('^VERSION_ID=\"?[0-9]+\\\\.?([0-9]*)\"?', line)\n                if release.group(1):\n                    release = release.group(1)\n                else:\n                    release = '0'\n                suse_facts['distribution_release'] = release\n            if re.search('^CPE_NAME=.*sles_sap.*$', line):\n                suse_facts['distribution'] = 'SLES_SAP'\n    elif path == '/etc/SuSE-release':\n        if 'open' in data.lower():\n            data = data.splitlines()\n            distdata = get_file_content(path).splitlines()[0]\n            suse_facts['distribution'] = distdata.split()[0]\n            for line in data:\n                release = re.search('CODENAME *= *([^\\n]+)', line)\n                if release:\n                    suse_facts['distribution_release'] = release.groups()[0].strip()\n        elif 'enterprise' in data.lower():\n            lines = data.splitlines()\n            distribution = lines[0].split()[0]\n            if 'Server' in data:\n                suse_facts['distribution'] = 'SLES'\n            elif 'Desktop' in data:\n                suse_facts['distribution'] = 'SLED'\n            for line in lines:\n                release = re.search('PATCHLEVEL = ([0-9]+)', line)\n                if release:\n                    suse_facts['distribution_release'] = release.group(1)\n                    suse_facts['distribution_version'] = collected_facts['distribution_version'] + '.' + release.group(1)\n    return (True, suse_facts)",
-                            "def parse_distribution_file_Debian(self, name, data, path, collected_facts):\n    debian_facts = {}\n    if 'Debian' in data or 'Raspbian' in data:\n        debian_facts['distribution'] = 'Debian'\n        release = re.search('PRETTY_NAME=[^(]+ \\\\(?([^)]+?)\\\\)', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n        if collected_facts['distribution_release'] == 'NA' and 'Debian' in data:\n            dpkg_cmd = self.module.get_bin_path('dpkg')\n            if dpkg_cmd:\n                cmd = \"%s --status tzdata|grep Provides|cut -f2 -d'-'\" % dpkg_cmd\n                rc, out, err = self.module.run_command(cmd)\n                if rc == 0:\n                    debian_facts['distribution_release'] = out.strip()\n    elif 'Ubuntu' in data:\n        debian_facts['distribution'] = 'Ubuntu'\n    elif 'SteamOS' in data:\n        debian_facts['distribution'] = 'SteamOS'\n    elif path == '/etc/lsb-release' and 'Kali' in data:\n        debian_facts['distribution'] = 'Kali'\n        release = re.search('DISTRIB_RELEASE=(.*)', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n    elif 'Devuan' in data:\n        debian_facts['distribution'] = 'Devuan'\n        release = re.search('PRETTY_NAME=\\\\\"?[^(\\\\\"]+ \\\\(?([^) \\\\\"]+)\\\\)?', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n        version = re.search('VERSION_ID=\\\\\"(.*)\\\\\"', data)\n        if version:\n            debian_facts['distribution_version'] = version.group(1)\n            debian_facts['distribution_major_version'] = version.group(1)\n    elif 'Cumulus' in data:\n        debian_facts['distribution'] = 'Cumulus Linux'\n        version = re.search('VERSION_ID=(.*)', data)\n        if version:\n            major, _minor, _dummy_ver = version.group(1).split('.')\n            debian_facts['distribution_version'] = version.group(1)\n            debian_facts['distribution_major_version'] = major\n        release = re.search('VERSION=\"(.*)\"', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n    elif 'Mint' in data:\n        debian_facts['distribution'] = 'Linux Mint'\n        version = re.search('VERSION_ID=\\\\\"(.*)\\\\\"', data)\n        if version:\n            debian_facts['distribution_version'] = version.group(1)\n            debian_facts['distribution_major_version'] = version.group(1).split('.')[0]\n    else:\n        return (False, debian_facts)\n    return (True, debian_facts)",
+                            "def parse_distribution_file_Debian(self, name, data, path, collected_facts):\n    debian_facts = {}\n    if 'Debian' in data or 'Raspbian' in data:\n        debian_facts['distribution'] = 'Debian'\n        release = re.search('PRETTY_NAME=[^(]+ \\\\(?([^)]+?)\\\\)', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n        if collected_facts['distribution_release'] == 'NA' and 'Debian' in data:\n            dpkg_cmd = self.module.get_bin_path('dpkg')\n            if dpkg_cmd:\n                cmd = \"%s --status tzdata|grep Provides|cut -f2 -d'-'\" % dpkg_cmd\n                (rc, out, err) = self.module.run_command(cmd)\n                if rc == 0:\n                    debian_facts['distribution_release'] = out.strip()\n    elif 'Ubuntu' in data:\n        debian_facts['distribution'] = 'Ubuntu'\n    elif 'SteamOS' in data:\n        debian_facts['distribution'] = 'SteamOS'\n    elif path == '/etc/lsb-release' and 'Kali' in data:\n        debian_facts['distribution'] = 'Kali'\n        release = re.search('DISTRIB_RELEASE=(.*)', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n    elif 'Devuan' in data:\n        debian_facts['distribution'] = 'Devuan'\n        release = re.search('PRETTY_NAME=\\\\\"?[^(\\\\\"]+ \\\\(?([^) \\\\\"]+)\\\\)?', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n        version = re.search('VERSION_ID=\\\\\"(.*)\\\\\"', data)\n        if version:\n            debian_facts['distribution_version'] = version.group(1)\n            debian_facts['distribution_major_version'] = version.group(1)\n    elif 'Cumulus' in data:\n        debian_facts['distribution'] = 'Cumulus Linux'\n        version = re.search('VERSION_ID=(.*)', data)\n        if version:\n            (major, _minor, _dummy_ver) = version.group(1).split('.')\n            debian_facts['distribution_version'] = version.group(1)\n            debian_facts['distribution_major_version'] = major\n        release = re.search('VERSION=\"(.*)\"', data)\n        if release:\n            debian_facts['distribution_release'] = release.groups()[0]\n    elif 'Mint' in data:\n        debian_facts['distribution'] = 'Linux Mint'\n        version = re.search('VERSION_ID=\\\\\"(.*)\\\\\"', data)\n        if version:\n            debian_facts['distribution_version'] = version.group(1)\n            debian_facts['distribution_major_version'] = version.group(1).split('.')[0]\n    else:\n        return (False, debian_facts)\n    return (True, debian_facts)",
                             "def parse_distribution_file_Mandriva(self, name, data, path, collected_facts):\n    mandriva_facts = {}\n    if 'Mandriva' in data:\n        mandriva_facts['distribution'] = 'Mandriva'\n        version = re.search('DISTRIB_RELEASE=\"(.*)\"', data)\n        if version:\n            mandriva_facts['distribution_version'] = version.groups()[0]\n        release = re.search('DISTRIB_CODENAME=\"(.*)\"', data)\n        if release:\n            mandriva_facts['distribution_release'] = release.groups()[0]\n        mandriva_facts['distribution'] = name\n    else:\n        return (False, mandriva_facts)\n    return (True, mandriva_facts)",
                             "def parse_distribution_file_NA(self, name, data, path, collected_facts):\n    na_facts = {}\n    for line in data.splitlines():\n        distribution = re.search('^NAME=(.*)', line)\n        if distribution and name == 'NA':\n            na_facts['distribution'] = distribution.group(1).strip('\"')\n        version = re.search('^VERSION=(.*)', line)\n        if version and collected_facts['distribution_version'] == 'NA':\n            na_facts['distribution_version'] = version.group(1).strip('\"')\n    return (True, na_facts)",
                             "def parse_distribution_file_Coreos(self, name, data, path, collected_facts):\n    coreos_facts = {}\n    distro = get_distribution()\n    if distro.lower() == 'coreos':\n        if not data:\n            return (False, coreos_facts)\n        release = re.search('^GROUP=(.*)', data)\n        if release:\n            coreos_facts['distribution_release'] = release.group(1).strip('\"')\n    else:\n        return (False, coreos_facts)\n    return (True, coreos_facts)",
                             "def parse_distribution_file_ClearLinux(self, name, data, path, collected_facts):\n    clear_facts = {}\n    if 'clearlinux' not in name.lower():\n        return (False, clear_facts)\n    pname = re.search('NAME=\"(.*)\"', data)\n    if pname:\n        if 'Clear Linux' not in pname.groups()[0]:\n            return (False, clear_facts)\n        clear_facts['distribution'] = pname.groups()[0]\n    version = re.search('VERSION_ID=(.*)', data)\n    if version:\n        clear_facts['distribution_major_version'] = version.groups()[0]\n        clear_facts['distribution_version'] = version.groups()[0]\n    release = re.search('ID=(.*)', data)\n    if release:\n        clear_facts['distribution_release'] = release.groups()[0]\n    return (True, clear_facts)"
                         ],
                         "constructor_variables": [
-                            "module"
+                            "self.module = module"
                         ],
                         "class_level_variables": [
-                            "OSDIST_LIST",
-                            "SEARCH_STRING",
-                            "OS_RELEASE_ALIAS",
-                            "STRIP_QUOTES"
+                            "OSDIST_LIST = ({'path': '/etc/altlinux-release', 'name': 'Altlinux'}, {'path': '/etc/oracle-release', 'name': 'OracleLinux'}, {'path': '/etc/slackware-version', 'name': 'Slackware'}, {'path': '/etc/redhat-release', 'name': 'RedHat'}, {'path': '/etc/vmware-release', 'name': 'VMwareESX', 'allowempty': True}, {'path': '/etc/openwrt_release', 'name': 'OpenWrt'}, {'path': '/etc/system-release', 'name': 'Amazon'}, {'path': '/etc/alpine-release', 'name': 'Alpine'}, {'path': '/etc/arch-release', 'name': 'Archlinux', 'allowempty': True}, {'path': '/etc/os-release', 'name': 'Archlinux'}, {'path': '/etc/os-release', 'name': 'SUSE'}, {'path': '/etc/SuSE-release', 'name': 'SUSE'}, {'path': '/etc/gentoo-release', 'name': 'Gentoo'}, {'path': '/etc/os-release', 'name': 'Debian'}, {'path': '/etc/lsb-release', 'name': 'Debian'}, {'path': '/etc/lsb-release', 'name': 'Mandriva'}, {'path': '/etc/sourcemage-release', 'name': 'SMGL'}, {'path': '/usr/lib/os-release', 'name': 'ClearLinux'}, {'path': '/etc/coreos/update.conf', 'name': 'Coreos'}, {'path': '/etc/os-release', 'name': 'NA'})",
+                            "SEARCH_STRING = {'OracleLinux': 'Oracle Linux', 'RedHat': 'Red Hat', 'Altlinux': 'ALT', 'SMGL': 'Source Mage GNU/Linux'}",
+                            "OS_RELEASE_ALIAS = {'Archlinux': 'Arch Linux'}",
+                            "STRIP_QUOTES = '\\\\\\'\\\\\"\\\\\\\\'"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -377,8 +377,20 @@
                             "parse_distribution_file_NA(self, name, data, path, collected_facts)",
                             "parse_distribution_file_Coreos(self, name, data, path, collected_facts)",
                             "parse_distribution_file_ClearLinux(self, name, data, path, collected_facts)"
+                        ],
+                        "class_level_variable_names": [
+                            "OSDIST_LIST",
+                            "SEARCH_STRING",
+                            "OS_RELEASE_ALIAS",
+                            "STRIP_QUOTES"
+                        ],
+                        "constructor_variable_names": [
+                            "module"
                         ]
                     },
+                    "used_imports": [
+                        "import re"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -428,12 +440,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c676b10>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe78b7d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c67c450>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe794150>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -530,7 +542,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x10c64c830>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f88fe808230>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -550,12 +562,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c676b10>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe78b7d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c67c450>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe794150>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -674,12 +686,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c681b50>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe799850>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c67c150>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7946d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -796,12 +808,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c681b50>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe799850>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c67c150>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7946d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -920,12 +932,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c65c490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe78b710>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6813d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe799e50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1022,7 +1034,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x10c4480b0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f88fead8d30>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1042,12 +1054,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c65c490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe78b710>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6813d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe799e50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1166,12 +1178,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c663490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe8014d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6640d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7f90d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1288,12 +1300,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c663490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe8014d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6640d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7f90d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1412,12 +1424,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c644c90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7d6750>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c65ffd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7f3cd0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1514,7 +1526,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x10c5746b0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f88fe8191b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1534,12 +1546,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c644c90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7d6750>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c65ffd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7f3cd0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1584,7 +1596,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x10c574eb0>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f88fe8192b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1658,12 +1670,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c635250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7cfc50>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c664690>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7db2d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1760,7 +1772,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x10c5740b0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f88fe819530>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1780,12 +1792,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c635250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7cfc50>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c664690>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7db2d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -1904,12 +1916,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c61bdd0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe83f050>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6207d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe848c50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2026,12 +2038,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c61bdd0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe83f050>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6207d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe848c50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2150,12 +2162,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c612190>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe81cd90>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c63a790>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7ddc90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2272,12 +2284,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c612190>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe81cd90>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c63a790>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7ddc90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2396,12 +2408,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c560310>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe824b10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c608310>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe8337d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2518,12 +2530,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c560310>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe824b10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c608310>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe8337d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2642,12 +2654,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c5e6fd0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80dc10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c595b50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe851590>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2764,12 +2776,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c5e6fd0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80dc10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c595b50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe851590>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -2888,12 +2900,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c59f250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe86c610>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5f9190>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe848cd0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3010,12 +3022,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c59f250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe86c610>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5f9190>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe848cd0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3134,12 +3146,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c63a390>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe84e0d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c637c50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe833350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3256,12 +3268,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c63a390>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe84e0d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c637c50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe833350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3380,12 +3392,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c63a390>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe84e0d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c637c50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe833350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3482,7 +3494,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x10c64ceb0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f88fe7a37b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3502,12 +3514,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c63a390>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe84e0d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c637c50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe833350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3626,12 +3638,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c689650>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7a67d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6873d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe827a10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3748,12 +3760,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c689650>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7a67d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c6873d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe827a10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3872,12 +3884,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c608890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80f450>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5ea210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe86eb10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -3994,12 +4006,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c608890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80f450>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5ea210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe86eb10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4118,12 +4130,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c608890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80f450>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5ea210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe86eb10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4240,12 +4252,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c608890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80f450>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5ea210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe86eb10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4364,12 +4376,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10ae96490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80d1d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5e31d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe853350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4486,12 +4498,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10ae96490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80d1d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5e31d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe853350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4610,12 +4622,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10ae96490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80d1d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5e31d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe853350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4732,12 +4744,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10ae96490>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe80d1d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c5e31d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe853350>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4856,12 +4868,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c9c6a90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe73d390>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c71d950>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe72f910>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -4978,12 +4990,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c9c6a90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe73d390>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c71d950>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe72f910>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5102,12 +5114,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c664ad0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7d2f50>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c64bd90>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7db090>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5204,7 +5216,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x10c6e1830>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f88fe71e930>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5224,12 +5236,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c664ad0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe7d2f50>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c64bd90>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe7db090>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5274,7 +5286,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x10c6e17b0>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f88fe71eab0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5348,12 +5360,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c607a90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe8247d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c60e250>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88ff692450>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5450,7 +5462,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x10c6df930>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f88fe71edb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5470,12 +5482,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c607a90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe8247d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c60e250>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88ff692450>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5520,7 +5532,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x10c6df8b0>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f88fe71eb30>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5594,12 +5606,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c6fc410>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe784350>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c64b510>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe786b90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5716,12 +5728,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10c6fc410>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f88fe784350>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10c64b510>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f88fe786b90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5766,7 +5778,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x10c5fd9b0>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f88fe71e8b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5842,12 +5854,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054a1890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06535393d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054aa210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653543150>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -5944,7 +5956,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x105496330>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f065357dcb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5964,12 +5976,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054a1890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06535393d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054aa210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653543150>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6088,12 +6100,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054ae810>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06535466d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054b7f90>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653551e10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6210,12 +6222,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054ae810>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06535466d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054b7f90>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653551e10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6334,12 +6346,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054bbe10>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653551490>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054c5dd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065355dc50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6436,7 +6448,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x1054964b0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f065357deb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6456,12 +6468,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054bbe10>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653551490>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054c5dd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065355dc50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6580,12 +6592,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054c8b90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f065289a210>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054b6390>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653553e50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6702,12 +6714,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054c8b90>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f065289a210>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054b6390>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653553e50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6826,12 +6838,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054b2890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653551e10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054993d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06535360d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6928,7 +6940,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x1054969b0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f065357d1b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6948,12 +6960,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054b2890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653551e10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054993d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06535360d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -6998,7 +7010,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x105496b30>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f0652433130>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7072,12 +7084,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054a1810>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653559b50>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105499a50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065353f590>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -7174,7 +7186,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x105496630>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f0652434230>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7194,12 +7206,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054a1810>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653559b50>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105499a50>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065353f590>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -7318,12 +7330,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105482790>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653553bd0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10548e850>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653528890>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -7440,12 +7452,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105482790>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653553bd0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10548e850>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653528890>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -7564,12 +7576,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10547c650>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653591350>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105569cd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653585b50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -7686,12 +7698,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10547c650>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653591350>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105569cd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653585b50>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -7810,12 +7822,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105553610>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f065242bed0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105572210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065358a790>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -7932,12 +7944,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105553610>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f065242bed0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105572210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065358a790>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8056,12 +8068,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105559550>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0652435dd0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10545c190>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653528850>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8178,12 +8190,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105559550>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0652435dd0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10545c190>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653528850>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8302,12 +8314,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105472bd0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653564950>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105458bd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653536dd0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8424,12 +8436,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105472bd0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653564950>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105458bd0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653536dd0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8548,12 +8560,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105534110>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653585190>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105572a10>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653578e10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8670,12 +8682,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105534110>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653585190>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105572a10>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653578e10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8794,12 +8806,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105569ad0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653597850>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105572290>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528ad390>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -8916,12 +8928,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x105569ad0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653597850>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105572290>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528ad390>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9040,12 +9052,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054e1250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528ada10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528be2d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9162,12 +9174,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054e1250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528ada10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528be2d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9286,12 +9298,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054e1250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528ada10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528be2d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9408,12 +9420,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054e1250>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528ada10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528be2d0>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9532,12 +9544,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528be9d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1055000d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528c8d90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9654,12 +9666,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528be9d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1055000d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528c8d90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9778,12 +9790,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528be9d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1055000d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528c8d90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -9900,12 +9912,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054d85d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06528be9d0>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1055000d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f06528c8d90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10024,12 +10036,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10552b8d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06527c3050>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054b7210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653546210>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10146,12 +10158,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10552b8d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f06527c3050>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054b7210>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653546210>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10270,12 +10282,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10556b890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f065353f050>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105553ad0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065242bf10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10372,7 +10384,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x1054964b0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f06535844b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10392,12 +10404,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10556b890>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f065353f050>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x105553ad0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065242bf10>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10442,7 +10454,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x105496c30>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f06535845b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10516,12 +10528,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10548e8d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0652456f10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10553a050>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653569790>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10618,7 +10630,7 @@
                                     "variable_shape": null
                                 },
                                 "release.groups": {
-                                    "variable_value": "<built-in method groups of re.Match object at 0x1054964b0>",
+                                    "variable_value": "<built-in method groups of re.Match object at 0x7f0653584ab0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10638,12 +10650,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x10548e8d0>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0652456f10>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x10553a050>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f0653569790>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10688,7 +10700,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x1054969b0>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f06535847b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10762,12 +10774,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054c0b10>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653522290>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054998d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065353be90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10884,12 +10896,12 @@
                                     "variable_shape": null
                                 },
                                 "self.module": {
-                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x1054c0b10>",
+                                    "variable_value": "<ansible.module_utils.basic.AnsibleModule object at 0x7f0653522290>",
                                     "variable_type": "AnsibleModule",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x1054998d0>",
+                                    "variable_value": "<ansible.module_utils.facts.system.distribution.DistributionFiles object at 0x7f065353be90>",
                                     "variable_type": "DistributionFiles",
                                     "variable_shape": null
                                 },
@@ -10934,7 +10946,7 @@
                                     "variable_shape": null
                                 },
                                 "version.group": {
-                                    "variable_value": "<built-in method group of re.Match object at 0x105496630>",
+                                    "variable_value": "<built-in method group of re.Match object at 0x7f0653584f30>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -13277,11 +13289,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/ansible_3/test/units/module_utils/test_distribution_version.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/ansible_3/test/units/module_utils/test_distribution_version.py",
                 "test_function": "test_distribution_version",
                 "test_function_code": "@pytest.mark.parametrize(\"stdin, testcase\", product([{}], TESTSETS), ids=lambda x: x.get('name'), indirect=['stdin'])\ndef test_distribution_version(am, mocker, testcase):\n    \"\"\"tests the distribution parsing code of the Facts class\n\n    testsets have\n    * a name (for output/debugging only)\n    * input files that are faked\n      * those should be complete and also include \"irrelevant\" files that might be mistaken as coming from other distributions\n      * all files that are not listed here are assumed to not exist at all\n    * the output of ansible.module_utils.distro.linux_distribution() [called platform.dist() for historical reasons]\n    * results for the ansible variables distribution* and os_family\n\n    \"\"\"\n\n    # prepare some mock functions to get the testdata in\n    def mock_get_file_content(fname, default=None, strip=True):\n        \"\"\"give fake content if it exists, otherwise pretend the file is empty\"\"\"\n        data = default\n        if fname in testcase['input']:\n            # for debugging\n            print('faked %s for %s' % (fname, testcase['name']))\n            data = testcase['input'][fname].strip()\n        if strip and data is not None:\n            data = data.strip()\n        return data\n\n    def mock_get_uname(am, flags):\n        if '-v' in flags:\n            return testcase.get('uname_v', None)\n        elif '-r' in flags:\n            return testcase.get('uname_r', None)\n        else:\n            return None\n\n    def mock_file_exists(fname, allow_empty=False):\n        if fname not in testcase['input']:\n            return False\n\n        if allow_empty:\n            return True\n        return bool(len(testcase['input'][fname]))\n\n    def mock_platform_system():\n        return testcase.get('platform.system', 'Linux')\n\n    def mock_platform_release():\n        return testcase.get('platform.release', '')\n\n    def mock_platform_version():\n        return testcase.get('platform.version', '')\n\n    def mock_distro_name():\n        return testcase['distro']['name']\n\n    def mock_distro_id():\n        return testcase['distro']['id']\n\n    def mock_distro_version(best=False):\n        if best:\n            return testcase['distro']['version_best']\n        return testcase['distro']['version']\n\n    def mock_distro_codename():\n        return testcase['distro']['codename']\n\n    def mock_distro_os_release_info():\n        return testcase['distro']['os_release_info']\n\n    def mock_distro_lsb_release_info():\n        return testcase['distro']['lsb_release_info']\n\n    def mock_open(filename, mode='r'):\n        if filename in testcase['input']:\n            file_object = mocker.mock_open(read_data=testcase['input'][filename]).return_value\n            file_object.__iter__.return_value = testcase['input'][filename].splitlines(True)\n        else:\n            file_object = real_open(filename, mode)\n        return file_object\n\n    def mock_os_path_is_file(filename):\n        if filename in testcase['input']:\n            return True\n        return False\n\n    mocker.patch('ansible.module_utils.facts.system.distribution.get_file_content', mock_get_file_content)\n    mocker.patch('ansible.module_utils.facts.system.distribution.get_uname', mock_get_uname)\n    mocker.patch('ansible.module_utils.facts.system.distribution._file_exists', mock_file_exists)\n    mocker.patch('ansible.module_utils.distro.name', mock_distro_name)\n    mocker.patch('ansible.module_utils.distro.id', mock_distro_id)\n    mocker.patch('ansible.module_utils.distro.version', mock_distro_version)\n    mocker.patch('ansible.module_utils.distro.codename', mock_distro_codename)\n    mocker.patch(\n        'ansible.module_utils.common.sys_info.distro.os_release_info',\n        mock_distro_os_release_info)\n    mocker.patch(\n        'ansible.module_utils.common.sys_info.distro.lsb_release_info',\n        mock_distro_lsb_release_info)\n    mocker.patch('os.path.isfile', mock_os_path_is_file)\n    mocker.patch('platform.system', mock_platform_system)\n    mocker.patch('platform.release', mock_platform_release)\n    mocker.patch('platform.version', mock_platform_version)\n\n    real_open = builtins.open\n    mocker.patch.object(builtins, 'open', new=mock_open)\n\n    # run Facts()\n    distro_collector = DistributionFactCollector()\n    generated_facts = distro_collector.collect(am)\n\n    # compare with the expected output\n\n    # testcase['result'] has a list of variables and values it expects Facts() to set\n    for key, val in testcase['result'].items():\n        assert key in generated_facts\n        msg = 'Comparing value of %s on %s, should: %s, is: %s' %\\\n            (key, testcase['name'], val, generated_facts[key])\n        assert generated_facts[key] == val, msg",
                 "test_error": "AssertionError: Comparing value of distribution on Kali 2020.2, should: Kali, is: Kali GNU/Linux\nassert 'Kali GNU/Linux' == 'Kali'\n  - Kali\n  + Kali GNU/Linux",
-                "full_test_error": "am = <ansible.module_utils.basic.AnsibleModule object at 0x10cef7650>\nmocker = <pytest_mock.plugin.MockerFixture object at 0x10ceb6ad0>\ntestcase = {'distro': {'codename': 'kali-rolling', 'id': 'kali', 'lsb_release_info': {}, 'name': 'Kali GNU/Linux Rolling', ...}, ....org/\"\\nBUG_REPORT_URL=\"https://bugs.kali.org/\"'}, 'name': 'Kali 2020.2', 'platform.dist': ['kali', '2020.2', ''], ...}\n\n    @pytest.mark.parametrize(\"stdin, testcase\", product([{}], TESTSETS), ids=lambda x: x.get('name'), indirect=['stdin'])\n    def test_distribution_version(am, mocker, testcase):\n        \"\"\"tests the distribution parsing code of the Facts class\n    \n        testsets have\n        * a name (for output/debugging only)\n        * input files that are faked\n          * those should be complete and also include \"irrelevant\" files that might be mistaken as coming from other distributions\n          * all files that are not listed here are assumed to not exist at all\n        * the output of ansible.module_utils.distro.linux_distribution() [called platform.dist() for historical reasons]\n        * results for the ansible variables distribution* and os_family\n    \n        \"\"\"\n    \n        # prepare some mock functions to get the testdata in\n        def mock_get_file_content(fname, default=None, strip=True):\n            \"\"\"give fake content if it exists, otherwise pretend the file is empty\"\"\"\n            data = default\n            if fname in testcase['input']:\n                # for debugging\n                print('faked %s for %s' % (fname, testcase['name']))\n                data = testcase['input'][fname].strip()\n            if strip and data is not None:\n                data = data.strip()\n            return data\n    \n        def mock_get_uname(am, flags):\n            if '-v' in flags:\n                return testcase.get('uname_v', None)\n            elif '-r' in flags:\n                return testcase.get('uname_r', None)\n            else:\n                return None\n    \n        def mock_file_exists(fname, allow_empty=False):\n            if fname not in testcase['input']:\n                return False\n    \n            if allow_empty:\n                return True\n            return bool(len(testcase['input'][fname]))\n    \n        def mock_platform_system():\n            return testcase.get('platform.system', 'Linux')\n    \n        def mock_platform_release():\n            return testcase.get('platform.release', '')\n    \n        def mock_platform_version():\n            return testcase.get('platform.version', '')\n    \n        def mock_distro_name():\n            return testcase['distro']['name']\n    \n        def mock_distro_id():\n            return testcase['distro']['id']\n    \n        def mock_distro_version(best=False):\n            if best:\n                return testcase['distro']['version_best']\n            return testcase['distro']['version']\n    \n        def mock_distro_codename():\n            return testcase['distro']['codename']\n    \n        def mock_distro_os_release_info():\n            return testcase['distro']['os_release_info']\n    \n        def mock_distro_lsb_release_info():\n            return testcase['distro']['lsb_release_info']\n    \n        def mock_open(filename, mode='r'):\n            if filename in testcase['input']:\n                file_object = mocker.mock_open(read_data=testcase['input'][filename]).return_value\n                file_object.__iter__.return_value = testcase['input'][filename].splitlines(True)\n            else:\n                file_object = real_open(filename, mode)\n            return file_object\n    \n        def mock_os_path_is_file(filename):\n            if filename in testcase['input']:\n                return True\n            return False\n    \n        mocker.patch('ansible.module_utils.facts.system.distribution.get_file_content', mock_get_file_content)\n        mocker.patch('ansible.module_utils.facts.system.distribution.get_uname', mock_get_uname)\n        mocker.patch('ansible.module_utils.facts.system.distribution._file_exists', mock_file_exists)\n        mocker.patch('ansible.module_utils.distro.name', mock_distro_name)\n        mocker.patch('ansible.module_utils.distro.id', mock_distro_id)\n        mocker.patch('ansible.module_utils.distro.version', mock_distro_version)\n        mocker.patch('ansible.module_utils.distro.codename', mock_distro_codename)\n        mocker.patch(\n            'ansible.module_utils.common.sys_info.distro.os_release_info',\n            mock_distro_os_release_info)\n        mocker.patch(\n            'ansible.module_utils.common.sys_info.distro.lsb_release_info',\n            mock_distro_lsb_release_info)\n        mocker.patch('os.path.isfile', mock_os_path_is_file)\n        mocker.patch('platform.system', mock_platform_system)\n        mocker.patch('platform.release', mock_platform_release)\n        mocker.patch('platform.version', mock_platform_version)\n    \n        real_open = builtins.open\n        mocker.patch.object(builtins, 'open', new=mock_open)\n    \n        # run Facts()\n        distro_collector = DistributionFactCollector()\n        generated_facts = distro_collector.collect(am)\n    \n        # compare with the expected output\n    \n        # testcase['result'] has a list of variables and values it expects Facts() to set\n        for key, val in testcase['result'].items():\n            assert key in generated_facts\n            msg = 'Comparing value of %s on %s, should: %s, is: %s' %\\\n                (key, testcase['name'], val, generated_facts[key])\n>           assert generated_facts[key] == val, msg\nE           AssertionError: Comparing value of distribution on Kali 2020.2, should: Kali, is: Kali GNU/Linux\nE           assert 'Kali GNU/Linux' == 'Kali'\nE             - Kali\nE             + Kali GNU/Linux\n\ntest/units/module_utils/test_distribution_version.py:1965: AssertionError",
+                "full_test_error": "am = <ansible.module_utils.basic.AnsibleModule object at 0x7f142336fbd0>\nmocker = <pytest_mock.plugin.MockerFixture object at 0x7f142336f750>\ntestcase = {'distro': {'codename': 'kali-rolling', 'id': 'kali', 'lsb_release_info': {}, 'name': 'Kali GNU/Linux Rolling', ...}, ....org/\"\\nBUG_REPORT_URL=\"https://bugs.kali.org/\"'}, 'name': 'Kali 2020.2', 'platform.dist': ['kali', '2020.2', ''], ...}\n\n    @pytest.mark.parametrize(\"stdin, testcase\", product([{}], TESTSETS), ids=lambda x: x.get('name'), indirect=['stdin'])\n    def test_distribution_version(am, mocker, testcase):\n        \"\"\"tests the distribution parsing code of the Facts class\n    \n        testsets have\n        * a name (for output/debugging only)\n        * input files that are faked\n          * those should be complete and also include \"irrelevant\" files that might be mistaken as coming from other distributions\n          * all files that are not listed here are assumed to not exist at all\n        * the output of ansible.module_utils.distro.linux_distribution() [called platform.dist() for historical reasons]\n        * results for the ansible variables distribution* and os_family\n    \n        \"\"\"\n    \n        # prepare some mock functions to get the testdata in\n        def mock_get_file_content(fname, default=None, strip=True):\n            \"\"\"give fake content if it exists, otherwise pretend the file is empty\"\"\"\n            data = default\n            if fname in testcase['input']:\n                # for debugging\n                print('faked %s for %s' % (fname, testcase['name']))\n                data = testcase['input'][fname].strip()\n            if strip and data is not None:\n                data = data.strip()\n            return data\n    \n        def mock_get_uname(am, flags):\n            if '-v' in flags:\n                return testcase.get('uname_v', None)\n            elif '-r' in flags:\n                return testcase.get('uname_r', None)\n            else:\n                return None\n    \n        def mock_file_exists(fname, allow_empty=False):\n            if fname not in testcase['input']:\n                return False\n    \n            if allow_empty:\n                return True\n            return bool(len(testcase['input'][fname]))\n    \n        def mock_platform_system():\n            return testcase.get('platform.system', 'Linux')\n    \n        def mock_platform_release():\n            return testcase.get('platform.release', '')\n    \n        def mock_platform_version():\n            return testcase.get('platform.version', '')\n    \n        def mock_distro_name():\n            return testcase['distro']['name']\n    \n        def mock_distro_id():\n            return testcase['distro']['id']\n    \n        def mock_distro_version(best=False):\n            if best:\n                return testcase['distro']['version_best']\n            return testcase['distro']['version']\n    \n        def mock_distro_codename():\n            return testcase['distro']['codename']\n    \n        def mock_distro_os_release_info():\n            return testcase['distro']['os_release_info']\n    \n        def mock_distro_lsb_release_info():\n            return testcase['distro']['lsb_release_info']\n    \n        def mock_open(filename, mode='r'):\n            if filename in testcase['input']:\n                file_object = mocker.mock_open(read_data=testcase['input'][filename]).return_value\n                file_object.__iter__.return_value = testcase['input'][filename].splitlines(True)\n            else:\n                file_object = real_open(filename, mode)\n            return file_object\n    \n        def mock_os_path_is_file(filename):\n            if filename in testcase['input']:\n                return True\n            return False\n    \n        mocker.patch('ansible.module_utils.facts.system.distribution.get_file_content', mock_get_file_content)\n        mocker.patch('ansible.module_utils.facts.system.distribution.get_uname', mock_get_uname)\n        mocker.patch('ansible.module_utils.facts.system.distribution._file_exists', mock_file_exists)\n        mocker.patch('ansible.module_utils.distro.name', mock_distro_name)\n        mocker.patch('ansible.module_utils.distro.id', mock_distro_id)\n        mocker.patch('ansible.module_utils.distro.version', mock_distro_version)\n        mocker.patch('ansible.module_utils.distro.codename', mock_distro_codename)\n        mocker.patch(\n            'ansible.module_utils.common.sys_info.distro.os_release_info',\n            mock_distro_os_release_info)\n        mocker.patch(\n            'ansible.module_utils.common.sys_info.distro.lsb_release_info',\n            mock_distro_lsb_release_info)\n        mocker.patch('os.path.isfile', mock_os_path_is_file)\n        mocker.patch('platform.system', mock_platform_system)\n        mocker.patch('platform.release', mock_platform_release)\n        mocker.patch('platform.version', mock_platform_version)\n    \n        real_open = builtins.open\n        mocker.patch.object(builtins, 'open', new=mock_open)\n    \n        # run Facts()\n        distro_collector = DistributionFactCollector()\n        generated_facts = distro_collector.collect(am)\n    \n        # compare with the expected output\n    \n        # testcase['result'] has a list of variables and values it expects Facts() to set\n        for key, val in testcase['result'].items():\n            assert key in generated_facts\n            msg = 'Comparing value of %s on %s, should: %s, is: %s' %\\\n                (key, testcase['name'], val, generated_facts[key])\n>           assert generated_facts[key] == val, msg\nE           AssertionError: Comparing value of distribution on Kali 2020.2, should: Kali, is: Kali GNU/Linux\nE           assert 'Kali GNU/Linux' == 'Kali'\nE             - Kali\nE             + Kali GNU/Linux\n\ntest/units/module_utils/test_distribution_version.py:1965: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [

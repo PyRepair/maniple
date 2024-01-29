@@ -1,6 +1,6 @@
 {
     "pandas:30": {
-        "/Volumes/SSD2T/bgp_envs/repos/pandas_30/pandas/io/json/_json.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_30/pandas/io/json/_json.py": {
             "buggy_functions": [
                 {
                     "function_name": "_try_convert_to_date",
@@ -191,28 +191,29 @@
                             "def __init__(self, json, orient, dtype=None, convert_axes=True, convert_dates=True, keep_default_dates=False, numpy=False, precise_float=False, date_unit=None):\n    self.json = json\n    if orient is None:\n        orient = self._default_orient\n    self.orient = orient\n    self.dtype = dtype\n    if orient == 'split':\n        numpy = False\n    if date_unit is not None:\n        date_unit = date_unit.lower()\n        if date_unit not in self._STAMP_UNITS:\n            raise ValueError(f'date_unit must be one of {self._STAMP_UNITS}')\n        self.min_stamp = self._MIN_STAMPS[date_unit]\n    else:\n        self.min_stamp = self._MIN_STAMPS['s']\n    self.numpy = numpy\n    self.precise_float = precise_float\n    self.convert_axes = convert_axes\n    self.convert_dates = convert_dates\n    self.date_unit = date_unit\n    self.keep_default_dates = keep_default_dates\n    self.obj = None",
                             "def check_keys_split(self, decoded):\n    \"\"\"\n    Checks that dict has only the appropriate keys for orient='split'.\n    \"\"\"\n    bad_keys = set(decoded.keys()).difference(set(self._split_keys))\n    if bad_keys:\n        bad_keys = ', '.join(bad_keys)\n        raise ValueError(f'JSON data had unexpected key(s): {bad_keys}')",
                             "def parse(self):\n    numpy = self.numpy\n    if numpy:\n        self._parse_numpy()\n    else:\n        self._parse_no_numpy()\n    if self.obj is None:\n        return None\n    if self.convert_axes:\n        self._convert_axes()\n    self._try_convert_types()\n    return self.obj",
-                            "def _convert_axes(self):\n    \"\"\"\n    Try to convert axes.\n    \"\"\"\n    for axis in self.obj._AXIS_NUMBERS.keys():\n        new_axis, result = self._try_convert_data(axis, self.obj._get_axis(axis), use_dtypes=False, convert_dates=True)\n        if result:\n            setattr(self.obj, axis, new_axis)",
+                            "def _convert_axes(self):\n    \"\"\"\n    Try to convert axes.\n    \"\"\"\n    for axis in self.obj._AXIS_NUMBERS.keys():\n        (new_axis, result) = self._try_convert_data(axis, self.obj._get_axis(axis), use_dtypes=False, convert_dates=True)\n        if result:\n            setattr(self.obj, axis, new_axis)",
                             "def _try_convert_types(self):\n    raise AbstractMethodError(self)",
-                            "def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):\n    \"\"\"\n    Try to parse a ndarray like into a column by inferring dtype.\n    \"\"\"\n    if use_dtypes:\n        if not self.dtype:\n            return (data, False)\n        elif self.dtype is True:\n            pass\n        else:\n            dtype = self.dtype.get(name) if isinstance(self.dtype, dict) else self.dtype\n            if dtype is not None:\n                try:\n                    dtype = np.dtype(dtype)\n                    return (data.astype(dtype), True)\n                except (TypeError, ValueError):\n                    return (data, False)\n    if convert_dates:\n        new_data, result = self._try_convert_to_date(data)\n        if result:\n            return (new_data, True)\n    result = False\n    if data.dtype == 'object':\n        try:\n            data = data.astype('float64')\n            result = True\n        except (TypeError, ValueError):\n            pass\n    if data.dtype.kind == 'f':\n        if data.dtype != 'float64':\n            try:\n                data = data.astype('float64')\n                result = True\n            except (TypeError, ValueError):\n                pass\n    if len(data) and (data.dtype == 'float' or data.dtype == 'object'):\n        try:\n            new_data = data.astype('int64')\n            if (new_data == data).all():\n                data = new_data\n                result = True\n        except (TypeError, ValueError, OverflowError):\n            pass\n    if data.dtype == 'int':\n        try:\n            data = data.astype('int64')\n            result = True\n        except (TypeError, ValueError):\n            pass\n    return (data, result)",
+                            "def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):\n    \"\"\"\n    Try to parse a ndarray like into a column by inferring dtype.\n    \"\"\"\n    if use_dtypes:\n        if not self.dtype:\n            return (data, False)\n        elif self.dtype is True:\n            pass\n        else:\n            dtype = self.dtype.get(name) if isinstance(self.dtype, dict) else self.dtype\n            if dtype is not None:\n                try:\n                    dtype = np.dtype(dtype)\n                    return (data.astype(dtype), True)\n                except (TypeError, ValueError):\n                    return (data, False)\n    if convert_dates:\n        (new_data, result) = self._try_convert_to_date(data)\n        if result:\n            return (new_data, True)\n    result = False\n    if data.dtype == 'object':\n        try:\n            data = data.astype('float64')\n            result = True\n        except (TypeError, ValueError):\n            pass\n    if data.dtype.kind == 'f':\n        if data.dtype != 'float64':\n            try:\n                data = data.astype('float64')\n                result = True\n            except (TypeError, ValueError):\n                pass\n    if len(data) and (data.dtype == 'float' or data.dtype == 'object'):\n        try:\n            new_data = data.astype('int64')\n            if (new_data == data).all():\n                data = new_data\n                result = True\n        except (TypeError, ValueError, OverflowError):\n            pass\n    if data.dtype == 'int':\n        try:\n            data = data.astype('int64')\n            result = True\n        except (TypeError, ValueError):\n            pass\n    return (data, result)",
                             "def _try_convert_to_date(self, data):\n    \"\"\"\n    Try to parse a ndarray like into a date column.\n\n    Try to coerce object in epoch/iso formats and integer/float in epoch\n    formats. Return a boolean if parsing was successful.\n    \"\"\"\n    if not len(data):\n        return (data, False)\n    new_data = data\n    if new_data.dtype == 'object':\n        try:\n            new_data = data.astype('int64')\n        except (TypeError, ValueError, OverflowError):\n            pass\n    if issubclass(new_data.dtype.type, np.number):\n        in_range = isna(new_data._values) | (new_data > self.min_stamp) | (new_data._values == iNaT)\n        if not in_range.all():\n            return (data, False)\n    date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS\n    for date_unit in date_units:\n        try:\n            new_data = to_datetime(new_data, errors='raise', unit=date_unit)\n        except (ValueError, OverflowError):\n            continue\n        return (new_data, True)\n    return (data, False)",
                             "def _try_convert_dates(self):\n    raise AbstractMethodError(self)"
                         ],
                         "constructor_variables": [
-                            "convert_axes",
-                            "min_stamp",
-                            "precise_float",
-                            "obj",
-                            "dtype",
-                            "json",
-                            "keep_default_dates",
-                            "convert_dates",
-                            "date_unit",
-                            "orient",
-                            "numpy"
+                            "self.json = json",
+                            "self.orient = orient",
+                            "self.dtype = dtype",
+                            "self.min_stamp = self._MIN_STAMPS[date_unit]",
+                            "self.min_stamp = self._MIN_STAMPS['s']",
+                            "self.numpy = numpy",
+                            "self.precise_float = precise_float",
+                            "self.convert_axes = convert_axes",
+                            "self.convert_dates = convert_dates",
+                            "self.date_unit = date_unit",
+                            "self.keep_default_dates = keep_default_dates",
+                            "self.obj = None"
                         ],
                         "class_level_variables": [
-                            "_STAMP_UNITS",
-                            "_MIN_STAMPS"
+                            "_STAMP_UNITS = ('s', 'ms', 'us', 'ns')",
+                            "_MIN_STAMPS = {'s': 31536000, 'ms': 31536000000, 'us': 31536000000000, 'ns': 31536000000000000}"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -224,8 +225,30 @@
                             "_try_convert_data(self, name, data, use_dtypes=True, convert_dates=True)",
                             "_try_convert_to_date(self, data)",
                             "_try_convert_dates(self)"
+                        ],
+                        "class_level_variable_names": [
+                            "_STAMP_UNITS",
+                            "_MIN_STAMPS"
+                        ],
+                        "constructor_variable_names": [
+                            "dtype",
+                            "keep_default_dates",
+                            "numpy",
+                            "json",
+                            "date_unit",
+                            "min_stamp",
+                            "convert_dates",
+                            "orient",
+                            "obj",
+                            "convert_axes",
+                            "precise_float"
                         ]
                     },
+                    "used_imports": [
+                        "import numpy as np",
+                        "from pandas._libs.tslibs import iNaT",
+                        "from pandas import DataFrame, MultiIndex, Series, isna, to_datetime"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -285,7 +308,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x1150d86d0>",
+                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x7fe7b5a463d0>",
                                     "variable_type": "SeriesParser",
                                     "variable_shape": null
                                 },
@@ -382,7 +405,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x1150d86d0>",
+                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x7fe7b5a463d0>",
                                     "variable_type": "SeriesParser",
                                     "variable_shape": null
                                 },
@@ -392,7 +415,7 @@
                                     "variable_shape": null
                                 },
                                 "in_range.all": {
-                                    "variable_value": "<built-in method all of numpy.ndarray object at 0x1150dbf30>",
+                                    "variable_value": "<built-in method all of numpy.ndarray object at 0x7fe7b5a60d00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -483,7 +506,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x112c8cbb0>",
+                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x7ff88b42d100>",
                                     "variable_type": "SeriesParser",
                                     "variable_shape": null
                                 },
@@ -580,7 +603,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x112c8cbb0>",
+                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x7ff88b42d100>",
                                     "variable_type": "SeriesParser",
                                     "variable_shape": null
                                 },
@@ -590,7 +613,7 @@
                                     "variable_shape": null
                                 },
                                 "in_range.all": {
-                                    "variable_value": "<built-in method all of numpy.ndarray object at 0x112c89f30>",
+                                    "variable_value": "<built-in method all of numpy.ndarray object at 0x7ff88b426f30>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -679,7 +702,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x112c8cbb0>",
+                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x7ff88b42d100>",
                                     "variable_type": "SeriesParser",
                                     "variable_shape": null
                                 },
@@ -776,7 +799,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x112c8cbb0>",
+                                    "variable_value": "<pandas.io.json._json.SeriesParser object at 0x7ff88b42d100>",
                                     "variable_type": "SeriesParser",
                                     "variable_shape": null
                                 },
@@ -4028,11 +4051,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/pandas_30/pandas/tests/io/json/test_pandas.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_30/pandas/tests/io/json/test_pandas.py",
                 "test_function": "test_readjson_bool_series",
                 "test_function_code": "    def test_readjson_bool_series(self):\n        # GH31464\n        result = read_json(\"[true, true, false]\", typ=\"series\")\n        expected = pd.Series([True, True, False])\n        tm.assert_series_equal(result, expected)",
                 "test_error": "TypeError: <class 'bool'> is not convertible to datetime",
-                "full_test_error": "self = <pandas.tests.io.json.test_pandas.TestPandasContainer object at 0x114417670>\n\n    def test_readjson_bool_series(self):\n        # GH31464\n>       result = read_json(\"[true, true, false]\", typ=\"series\")\n\npandas/tests/io/json/test_pandas.py:1665: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/util/_decorators.py:212: in wrapper\n    return func(*args, **kwargs)\npandas/util/_decorators.py:311: in wrapper\n    return func(*args, **kwargs)\npandas/io/json/_json.py:608: in read_json\n    result = json_reader.read()\npandas/io/json/_json.py:731: in read\n    obj = self._get_object_parser(self.data)\npandas/io/json/_json.py:758: in _get_object_parser\n    obj = SeriesParser(json, **kwargs).parse()\npandas/io/json/_json.py:863: in parse\n    self._try_convert_types()\npandas/io/json/_json.py:1031: in _try_convert_types\n    obj, result = self._try_convert_data(\npandas/io/json/_json.py:903: in _try_convert_data\n    new_data, result = self._try_convert_to_date(data)\npandas/io/json/_json.py:984: in _try_convert_to_date\n    new_data = to_datetime(new_data, errors=\"raise\", unit=date_unit)\npandas/core/tools/datetimes.py:747: in to_datetime\n    values = convert_listlike(arg._values, format)\npandas/core/tools/datetimes.py:329: in _convert_listlike_datetimes\n    result, tz_parsed = tslib.array_with_unit_to_datetime(\npandas/_libs/tslib.pyx:405: in pandas._libs.tslib.array_with_unit_to_datetime\n    result, tz = array_to_datetime(values.astype(object), errors=errors)\npandas/_libs/tslib.pyx:760: in pandas._libs.tslib.array_to_datetime\n    return array_to_datetime_object(values, errors, dayfirst, yearfirst)\npandas/_libs/tslib.pyx:899: in pandas._libs.tslib.array_to_datetime_object\n    raise\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(f\"{type(val)} is not convertible to datetime\")\nE   TypeError: <class 'bool'> is not convertible to datetime\n\npandas/_libs/tslib.pyx:733: TypeError",
+                "full_test_error": "self = <pandas.tests.io.json.test_pandas.TestPandasContainer object at 0x7fad027d9850>\n\n    def test_readjson_bool_series(self):\n        # GH31464\n>       result = read_json(\"[true, true, false]\", typ=\"series\")\n\npandas/tests/io/json/test_pandas.py:1665: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/util/_decorators.py:212: in wrapper\n    return func(*args, **kwargs)\npandas/util/_decorators.py:311: in wrapper\n    return func(*args, **kwargs)\npandas/io/json/_json.py:608: in read_json\n    result = json_reader.read()\npandas/io/json/_json.py:731: in read\n    obj = self._get_object_parser(self.data)\npandas/io/json/_json.py:758: in _get_object_parser\n    obj = SeriesParser(json, **kwargs).parse()\npandas/io/json/_json.py:863: in parse\n    self._try_convert_types()\npandas/io/json/_json.py:1031: in _try_convert_types\n    obj, result = self._try_convert_data(\npandas/io/json/_json.py:903: in _try_convert_data\n    new_data, result = self._try_convert_to_date(data)\npandas/io/json/_json.py:984: in _try_convert_to_date\n    new_data = to_datetime(new_data, errors=\"raise\", unit=date_unit)\npandas/core/tools/datetimes.py:747: in to_datetime\n    values = convert_listlike(arg._values, format)\npandas/core/tools/datetimes.py:329: in _convert_listlike_datetimes\n    result, tz_parsed = tslib.array_with_unit_to_datetime(\npandas/_libs/tslib.pyx:405: in pandas._libs.tslib.array_with_unit_to_datetime\n    result, tz = array_to_datetime(values.astype(object), errors=errors)\npandas/_libs/tslib.pyx:760: in pandas._libs.tslib.array_to_datetime\n    return array_to_datetime_object(values, errors, dayfirst, yearfirst)\npandas/_libs/tslib.pyx:899: in pandas._libs.tslib.array_to_datetime_object\n    raise\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(f\"{type(val)} is not convertible to datetime\")\nE   TypeError: <class 'bool'> is not convertible to datetime\n\npandas/_libs/tslib.pyx:733: TypeError",
                 "traceback": "pandas/util/_decorators.py:212: in wrapper\n    return func(*args, **kwargs)\npandas/util/_decorators.py:311: in wrapper\n    return func(*args, **kwargs)\npandas/io/json/_json.py:608: in read_json\n    result = json_reader.read()\npandas/io/json/_json.py:731: in read\n    obj = self._get_object_parser(self.data)\npandas/io/json/_json.py:758: in _get_object_parser\n    obj = SeriesParser(json, **kwargs).parse()\npandas/io/json/_json.py:863: in parse\n    self._try_convert_types()\npandas/io/json/_json.py:1031: in _try_convert_types\n    obj, result = self._try_convert_data(\npandas/io/json/_json.py:903: in _try_convert_data\n    new_data, result = self._try_convert_to_date(data)\npandas/io/json/_json.py:984: in _try_convert_to_date\n    new_data = to_datetime(new_data, errors=\"raise\", unit=date_unit)\npandas/core/tools/datetimes.py:747: in to_datetime\n    values = convert_listlike(arg._values, format)\npandas/core/tools/datetimes.py:329: in _convert_listlike_datetimes\n    result, tz_parsed = tslib.array_with_unit_to_datetime(\npandas/_libs/tslib.pyx:405: in pandas._libs.tslib.array_with_unit_to_datetime\n    result, tz = array_to_datetime(values.astype(object), errors=errors)\npandas/_libs/tslib.pyx:760: in pandas._libs.tslib.array_to_datetime\n    return array_to_datetime_object(values, errors, dayfirst, yearfirst)\npandas/_libs/tslib.pyx:899: in pandas._libs.tslib.array_to_datetime_object\n    raise",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(f\"{type(val)} is not convertible to datetime\")\nE   TypeError: <class 'bool'> is not convertible to datetime\n\npandas/_libs/tslib.pyx:733: TypeError",
                 "test_function_decorators": []

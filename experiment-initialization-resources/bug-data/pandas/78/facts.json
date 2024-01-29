@@ -12,8 +12,6 @@
         "_get_data(axis_matters)",
         "f(s)"
     ],
-    "1.2.4": null,
-    "1.2.5": null,
     "1.3.1": "pandas/core/frame.py",
     "1.3.2": [
         "_constructor(self) -> Type['DataFrame']",
@@ -42,11 +40,11 @@
     ],
     "2.1.2": [
         [
-            "self = <pandas.tests.frame.test_subclass.TestDataFrameSubclassing object at 0x11a8d9ca0>\nall_boolean_reductions = 'all'\n\n    def test_subclassed_boolean_reductions(self, all_boolean_reductions):\n        # GH 25596\n    \n        df = tm.SubclassedDataFrame({\"A\": [1, 2, 3], \"B\": [4, 5, 6], \"C\": [7, 8, 9]})\n        result = getattr(df, all_boolean_reductions)()\n>       assert isinstance(result, tm.SubclassedSeries)",
+            "self = <pandas.tests.frame.test_subclass.TestDataFrameSubclassing object at 0x7f47005011c0>\nall_boolean_reductions = 'all'\n\n    def test_subclassed_boolean_reductions(self, all_boolean_reductions):\n        # GH 25596\n    \n        df = tm.SubclassedDataFrame({\"A\": [1, 2, 3], \"B\": [4, 5, 6], \"C\": [7, 8, 9]})\n        result = getattr(df, all_boolean_reductions)()\n>       assert isinstance(result, tm.SubclassedSeries)",
             "\npandas/tests/frame/test_subclass.py:573: AssertionError"
         ],
         [
-            "self = <pandas.tests.frame.test_subclass.TestDataFrameSubclassing object at 0x11a8ff550>\nall_boolean_reductions = 'any'\n\n    def test_subclassed_boolean_reductions(self, all_boolean_reductions):\n        # GH 25596\n    \n        df = tm.SubclassedDataFrame({\"A\": [1, 2, 3], \"B\": [4, 5, 6], \"C\": [7, 8, 9]})\n        result = getattr(df, all_boolean_reductions)()\n>       assert isinstance(result, tm.SubclassedSeries)",
+            "self = <pandas.tests.frame.test_subclass.TestDataFrameSubclassing object at 0x7f470014aaf0>\nall_boolean_reductions = 'any'\n\n    def test_subclassed_boolean_reductions(self, all_boolean_reductions):\n        # GH 25596\n    \n        df = tm.SubclassedDataFrame({\"A\": [1, 2, 3], \"B\": [4, 5, 6], \"C\": [7, 8, 9]})\n        result = getattr(df, all_boolean_reductions)()\n>       assert isinstance(result, tm.SubclassedSeries)",
             "\npandas/tests/frame/test_subclass.py:573: AssertionError"
         ]
     ],
@@ -375,5 +373,6 @@
     ],
     "3.1.2": [
         "Code Sample, a copy-pastable example if possible\n# the following code is obtained from the documentation\n# https://pandas.pydata.org/pandas-docs/stable/development/extending.html\n\nimport pandas as pd\n\nclass SubclassedSeries(pd.Series):\n    @property\n    def _constructor(self):\n        return SubclassedSeries\n    @property\n    def _constructor_expanddim(self):\n        return SubclassedDataFrame\n\n\nclass SubclassedDataFrame(pd.DataFrame):\n    @property\n    def _constructor(self):\n        return SubclassedDataFrame\n    @property\n    def _constructor_sliced(self):\n        return SubclassedSeries\n\n# create a class instance as in the example of the documentation\n\ndf = SubclassedDataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})\n>>> df\n   A  B  C\n0  1  4  7\n1  2  5  8\n2  3  6  9\n\n# this works just fine\n\n>>> type(df)\n<class '__main__.SubclassedDataFrame'>\n\n# slicing also works fine\n\n>>> sliced2 = df['A']\n>>> sliced2\n0    1\n1    2\n2    3\nName: A, dtype: int64\n\n>>> type(sliced2)\n<class '__main__.SubclassedSeries'>\n\n# however, the sum operation returns a pandas.Series, not SubclassedSeries\n\n>>> sliced3 = df.sum()\n>>> sliced3\n0    1\n1    2\n2    3\nName: A, dtype: int64\n\n>>> type(sliced3)\n<class 'pandas.core.series.Series'>\nProblem description\nIn our project, we extend pandas as described in the documentation and implement our own kind of DataFrame and Series, similar to the geopandas project (if you apply sum on their DataFrame, the same problem appears). If you want to use _reduce operations like sum, it is important that the correct SubclassedSeries is returned. Otherwise, inheritance from pandas.DataFrames is not possible.\n\nExpected Output\n>>> type(sliced3)\n<class '__main__.SubclassedSeries'>\nI think I can provide a possible fix of this problem: The relevant code is contained in core/frame.py just before the return statement of the _reduce function:\n\n# this is the code in core/frame.py:\ndef _reduce(...):\n        # .... left out\n        if constructor is not None:\n            result = Series(result, index=labels)\n        return result\n\n# I suggest the following change:\ndef _reduce(...):\n        # .... left out\n        if constructor is None:\n            result = Series(result, index=labels)\n        else:\n            result = constructor(result, index=labels)\n        # alternative (since constructor will create a SubclassedDataFrame):\n            result = self._constructor_sliced(result, index=labels)\n        return result\n"
-    ]
+    ],
+    "used_imports": "import numpy as np\nfrom pandas.core.dtypes.cast import cast_scalar_to_array, coerce_to_dtypes, find_common_type, infer_dtype_from_scalar, invalidate_string_dtypes, maybe_cast_to_datetime, maybe_convert_platform, maybe_downcast_to_dtype, maybe_infer_to_datetimelike, maybe_upcast, maybe_upcast_putmask\nfrom pandas.core.dtypes.common import ensure_float64, ensure_int64, ensure_platform_int, infer_dtype_from_object, is_bool_dtype, is_dict_like, is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_hashable, is_integer, is_integer_dtype, is_iterator, is_list_like, is_named_tuple, is_object_dtype, is_scalar, is_sequence, needs_i8_conversion\nfrom pandas.core.dtypes.missing import isna, notna\nfrom pandas.core.series import Series\nfrom pandas.core.apply import frame_apply\nfrom pandas.core.apply import frame_apply"
 }

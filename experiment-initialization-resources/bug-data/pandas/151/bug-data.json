@@ -1,6 +1,6 @@
 {
     "pandas:151": {
-        "/Volumes/JerrySSD/bgp_envs/repos/pandas_151/pandas/core/arrays/numpy_.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_151/pandas/core/arrays/numpy_.py": {
             "buggy_functions": [
                 {
                     "function_name": "__setitem__",
@@ -187,7 +187,7 @@
                             "def __len__(self) -> int:\n    return len(self._ndarray)",
                             "@property\ndef nbytes(self) -> int:\n    return self._ndarray.nbytes",
                             "def isna(self):\n    return isna(self._ndarray)",
-                            "def fillna(self, value=None, method=None, limit=None):\n    value, method = validate_fillna_kwargs(value, method)\n    mask = self.isna()\n    if is_array_like(value):\n        if len(value) != len(self):\n            raise ValueError(\"Length of 'value' does not match. Got ({})  expected {}\".format(len(value), len(self)))\n        value = value[mask]\n    if mask.any():\n        if method is not None:\n            func = pad_1d if method == 'pad' else backfill_1d\n            new_values = func(self._ndarray, limit=limit, mask=mask)\n            new_values = self._from_sequence(new_values, dtype=self.dtype)\n        else:\n            new_values = self.copy()\n            new_values[mask] = value\n    else:\n        new_values = self.copy()\n    return new_values",
+                            "def fillna(self, value=None, method=None, limit=None):\n    (value, method) = validate_fillna_kwargs(value, method)\n    mask = self.isna()\n    if is_array_like(value):\n        if len(value) != len(self):\n            raise ValueError(\"Length of 'value' does not match. Got ({})  expected {}\".format(len(value), len(self)))\n        value = value[mask]\n    if mask.any():\n        if method is not None:\n            func = pad_1d if method == 'pad' else backfill_1d\n            new_values = func(self._ndarray, limit=limit, mask=mask)\n            new_values = self._from_sequence(new_values, dtype=self.dtype)\n        else:\n            new_values = self.copy()\n            new_values[mask] = value\n    else:\n        new_values = self.copy()\n    return new_values",
                             "def take(self, indices, allow_fill=False, fill_value=None):\n    result = take(self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value)\n    return type(self)(result)",
                             "def copy(self):\n    return type(self)(self._ndarray.copy())",
                             "def _values_for_argsort(self):\n    return self._ndarray",
@@ -210,19 +210,18 @@
                             "def to_numpy(self, dtype=None, copy=False):\n    \"\"\"\n    Convert the PandasArray to a :class:`numpy.ndarray`.\n\n    By default, this requires no coercion or copying of data.\n\n    Parameters\n    ----------\n    dtype : numpy.dtype\n        The NumPy dtype to pass to :func:`numpy.asarray`.\n    copy : bool, default False\n        Whether to copy the underlying data.\n\n    Returns\n    -------\n    ndarray\n    \"\"\"\n    result = np.asarray(self._ndarray, dtype=dtype)\n    if copy and result is self._ndarray:\n        result = result.copy()\n    return result",
                             "@Appender(ExtensionArray.searchsorted.__doc__)\ndef searchsorted(self, value, side='left', sorter=None):\n    return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)",
                             "def __invert__(self):\n    return type(self)(~self._ndarray)",
-                            "@classmethod\ndef _create_arithmetic_method(cls, op):\n\n    def arithmetic_method(self, other):\n        if isinstance(other, (ABCIndexClass, ABCSeries)):\n            return NotImplemented\n        elif isinstance(other, cls):\n            other = other._ndarray\n        with np.errstate(all='ignore'):\n            result = op(self._ndarray, other)\n        if op is divmod:\n            a, b = result\n            return (cls(a), cls(b))\n        return cls(result)\n    return compat.set_function_name(arithmetic_method, '__{}__'.format(op.__name__), cls)",
-                            "def arithmetic_method(self, other):\n    if isinstance(other, (ABCIndexClass, ABCSeries)):\n        return NotImplemented\n    elif isinstance(other, cls):\n        other = other._ndarray\n    with np.errstate(all='ignore'):\n        result = op(self._ndarray, other)\n    if op is divmod:\n        a, b = result\n        return (cls(a), cls(b))\n    return cls(result)"
+                            "@classmethod\ndef _create_arithmetic_method(cls, op):\n\n    def arithmetic_method(self, other):\n        if isinstance(other, (ABCIndexClass, ABCSeries)):\n            return NotImplemented\n        elif isinstance(other, cls):\n            other = other._ndarray\n        with np.errstate(all='ignore'):\n            result = op(self._ndarray, other)\n        if op is divmod:\n            (a, b) = result\n            return (cls(a), cls(b))\n        return cls(result)\n    return compat.set_function_name(arithmetic_method, '__{}__'.format(op.__name__), cls)",
+                            "def arithmetic_method(self, other):\n    if isinstance(other, (ABCIndexClass, ABCSeries)):\n        return NotImplemented\n    elif isinstance(other, cls):\n        other = other._ndarray\n    with np.errstate(all='ignore'):\n        result = op(self._ndarray, other)\n    if op is divmod:\n        (a, b) = result\n        return (cls(a), cls(b))\n    return cls(result)"
                         ],
                         "constructor_variables": [
-                            "_dtype",
-                            "values",
-                            "_ndarray"
+                            "self._ndarray = values",
+                            "self._dtype = PandasDtype(values.dtype)"
                         ],
                         "class_level_variables": [
-                            "_typ",
-                            "__array_priority__",
-                            "_HANDLED_TYPES",
-                            "_create_comparison_method"
+                            "_typ = 'npy_extension'",
+                            "__array_priority__ = 1000",
+                            "_HANDLED_TYPES = (np.ndarray, numbers.Number)",
+                            "_create_comparison_method = _create_arithmetic_method"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -263,8 +262,25 @@
                             "__invert__(self)",
                             "_create_arithmetic_method(cls, op)",
                             "arithmetic_method(self, other)"
+                        ],
+                        "class_level_variable_names": [
+                            "_typ",
+                            "__array_priority__",
+                            "_HANDLED_TYPES",
+                            "_create_comparison_method"
+                        ],
+                        "constructor_variable_names": [
+                            "_dtype",
+                            "_ndarray",
+                            "values"
                         ]
                     },
+                    "used_imports": [
+                        "import numpy as np",
+                        "from pandas._libs import lib",
+                        "from pandas.core.dtypes.inference import is_array_like, is_list_like",
+                        "from pandas.core.construction import extract_array"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -426,7 +442,7 @@
                                     "variable_shape": null
                                 },
                                 "values.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x1169e13f0>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb125c88b70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2426,7 +2442,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_151/pandas/tests/arrays/test_numpy.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_151/pandas/tests/arrays/test_numpy.py",
                 "test_function": "test_setitem_object_typecode",
                 "test_function_code": "@pytest.mark.parametrize(\"dtype\", [None, object])\ndef test_setitem_object_typecode(dtype):\n    arr = PandasArray(np.array([\"a\", \"b\", \"c\"], dtype=dtype))\n    arr[0] = \"t\"\n    expected = PandasArray(np.array([\"t\", \"b\", \"c\"], dtype=dtype))\n    tm.assert_extension_array_equal(arr, expected)",
                 "test_error": "TypeError: data type \"t\" not understood",
@@ -2438,7 +2454,7 @@
                 ]
             },
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_151/pandas/tests/arrays/test_numpy.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_151/pandas/tests/arrays/test_numpy.py",
                 "test_function": "test_setitem_object_typecode",
                 "test_function_code": "@pytest.mark.parametrize(\"dtype\", [None, object])\ndef test_setitem_object_typecode(dtype):\n    arr = PandasArray(np.array([\"a\", \"b\", \"c\"], dtype=dtype))\n    arr[0] = \"t\"\n    expected = PandasArray(np.array([\"t\", \"b\", \"c\"], dtype=dtype))\n    tm.assert_extension_array_equal(arr, expected)",
                 "test_error": "TypeError: data type \"t\" not understood",
@@ -2450,7 +2466,7 @@
                 ]
             },
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_151/pandas/tests/arrays/test_numpy.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_151/pandas/tests/arrays/test_numpy.py",
                 "test_function": "test_setitem_no_coercion",
                 "test_function_code": "def test_setitem_no_coercion():\n    # https://github.com/pandas-dev/pandas/issues/28150\n    arr = PandasArray(np.array([1, 2, 3]))\n    with pytest.raises(ValueError, match=\"int\"):\n        arr[0] = \"a\"",
                 "test_error": "Failed: DID NOT RAISE <class 'ValueError'>",

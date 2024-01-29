@@ -1,6 +1,6 @@
 {
     "pandas:27": {
-        "/Volumes/JerrySSD/bgp_envs/repos/pandas_27/pandas/core/arrays/datetimes.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_27/pandas/core/arrays/datetimes.py": {
             "buggy_functions": [
                 {
                     "function_name": "to_period",
@@ -107,8 +107,8 @@
                         "functions": [
                             "def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy=False):\n    if isinstance(values, (ABCSeries, ABCIndexClass)):\n        values = values._values\n    inferred_freq = getattr(values, '_freq', None)\n    if isinstance(values, type(self)):\n        dtz = getattr(dtype, 'tz', None)\n        if dtz and values.tz is None:\n            dtype = DatetimeTZDtype(tz=dtype.tz)\n        elif dtz and values.tz:\n            if not timezones.tz_compare(dtz, values.tz):\n                msg = f\"Timezone of the array and 'dtype' do not match. '{dtz}' != '{values.tz}'\"\n                raise TypeError(msg)\n        elif values.tz:\n            dtype = values.dtype\n        if freq is None:\n            freq = values.freq\n        values = values._data\n    if not isinstance(values, np.ndarray):\n        raise ValueError(f\"Unexpected type '{type(values).__name__}'. 'values' must be a DatetimeArray ndarray, or Series or Index containing one of those.\")\n    if values.ndim not in [1, 2]:\n        raise ValueError('Only 1-dimensional input arrays are supported.')\n    if values.dtype == 'i8':\n        values = values.view(DT64NS_DTYPE)\n    if values.dtype != DT64NS_DTYPE:\n        raise ValueError(f\"The dtype of 'values' is incorrect. Must be 'datetime64[ns]'. Got {values.dtype} instead.\")\n    dtype = _validate_dt64_dtype(dtype)\n    if freq == 'infer':\n        raise ValueError(\"Frequency inference not allowed in DatetimeArray.__init__. Use 'pd.array()' instead.\")\n    if copy:\n        values = values.copy()\n    if freq:\n        freq = to_offset(freq)\n    if getattr(dtype, 'tz', None):\n        dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))\n    self._data = values\n    self._dtype = dtype\n    self._freq = freq\n    if inferred_freq is None and freq is not None:\n        type(self)._validate_frequency(self, freq)",
                             "@classmethod\ndef _simple_new(cls, values, freq=None, dtype=DT64NS_DTYPE):\n    assert isinstance(values, np.ndarray)\n    if values.dtype != DT64NS_DTYPE:\n        assert values.dtype == 'i8'\n        values = values.view(DT64NS_DTYPE)\n    result = object.__new__(cls)\n    result._data = values\n    result._freq = freq\n    result._dtype = dtype\n    return result",
-                            "@classmethod\ndef _from_sequence(cls, data, dtype=None, copy=False, tz=None, freq=None, dayfirst=False, yearfirst=False, ambiguous='raise'):\n    freq, freq_infer = dtl.maybe_infer_freq(freq)\n    subarr, tz, inferred_freq = sequence_to_dt64ns(data, dtype=dtype, copy=copy, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)\n    freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)\n    dtype = tz_to_dtype(tz)\n    result = cls._simple_new(subarr, freq=freq, dtype=dtype)\n    if inferred_freq is None and freq is not None:\n        cls._validate_frequency(result, freq, ambiguous=ambiguous)\n    elif freq_infer:\n        result._freq = to_offset(result.inferred_freq)\n    return result",
-                            "@classmethod\ndef _generate_range(cls, start, end, periods, freq, tz=None, normalize=False, ambiguous='raise', nonexistent='raise', closed=None):\n    periods = dtl.validate_periods(periods)\n    if freq is None and any((x is None for x in [periods, start, end])):\n        raise ValueError('Must provide freq argument if no data is supplied')\n    if com.count_not_none(start, end, periods, freq) != 3:\n        raise ValueError('Of the four parameters: start, end, periods, and freq, exactly three must be specified')\n    freq = to_offset(freq)\n    if start is not None:\n        start = Timestamp(start)\n    if end is not None:\n        end = Timestamp(end)\n    if start is None and end is None:\n        if closed is not None:\n            raise ValueError('Closed has to be None if not both of start and end are defined')\n    if start is NaT or end is NaT:\n        raise ValueError('Neither `start` nor `end` can be NaT')\n    left_closed, right_closed = dtl.validate_endpoints(closed)\n    start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)\n    tz = _infer_tz_from_endpoints(start, end, tz)\n    if tz is not None:\n        start = _maybe_localize_point(start, getattr(start, 'tz', None), start, freq, tz, ambiguous, nonexistent)\n        end = _maybe_localize_point(end, getattr(end, 'tz', None), end, freq, tz, ambiguous, nonexistent)\n    if freq is not None:\n        if isinstance(freq, Day):\n            if start is not None:\n                start = start.tz_localize(None)\n            if end is not None:\n                end = end.tz_localize(None)\n        values, _tz = generate_regular_range(start, end, periods, freq)\n        index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))\n        if tz is not None and index.tz is None:\n            arr = conversion.tz_localize_to_utc(index.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent)\n            index = cls(arr)\n            if start is not None:\n                start = start.tz_localize(tz).asm8\n            if end is not None:\n                end = end.tz_localize(tz).asm8\n    else:\n        arr = np.linspace(0, end.value - start.value, periods, dtype='int64') + start.value\n        dtype = tz_to_dtype(tz)\n        index = cls._simple_new(arr.astype('M8[ns]', copy=False), freq=None, dtype=dtype)\n    if not left_closed and len(index) and (index[0] == start):\n        index = index[1:]\n    if not right_closed and len(index) and (index[-1] == end):\n        index = index[:-1]\n    dtype = tz_to_dtype(tz)\n    return cls._simple_new(index.asi8, freq=freq, dtype=dtype)",
+                            "@classmethod\ndef _from_sequence(cls, data, dtype=None, copy=False, tz=None, freq=None, dayfirst=False, yearfirst=False, ambiguous='raise'):\n    (freq, freq_infer) = dtl.maybe_infer_freq(freq)\n    (subarr, tz, inferred_freq) = sequence_to_dt64ns(data, dtype=dtype, copy=copy, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, ambiguous=ambiguous)\n    (freq, freq_infer) = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)\n    dtype = tz_to_dtype(tz)\n    result = cls._simple_new(subarr, freq=freq, dtype=dtype)\n    if inferred_freq is None and freq is not None:\n        cls._validate_frequency(result, freq, ambiguous=ambiguous)\n    elif freq_infer:\n        result._freq = to_offset(result.inferred_freq)\n    return result",
+                            "@classmethod\ndef _generate_range(cls, start, end, periods, freq, tz=None, normalize=False, ambiguous='raise', nonexistent='raise', closed=None):\n    periods = dtl.validate_periods(periods)\n    if freq is None and any((x is None for x in [periods, start, end])):\n        raise ValueError('Must provide freq argument if no data is supplied')\n    if com.count_not_none(start, end, periods, freq) != 3:\n        raise ValueError('Of the four parameters: start, end, periods, and freq, exactly three must be specified')\n    freq = to_offset(freq)\n    if start is not None:\n        start = Timestamp(start)\n    if end is not None:\n        end = Timestamp(end)\n    if start is None and end is None:\n        if closed is not None:\n            raise ValueError('Closed has to be None if not both of start and end are defined')\n    if start is NaT or end is NaT:\n        raise ValueError('Neither `start` nor `end` can be NaT')\n    (left_closed, right_closed) = dtl.validate_endpoints(closed)\n    (start, end, _normalized) = _maybe_normalize_endpoints(start, end, normalize)\n    tz = _infer_tz_from_endpoints(start, end, tz)\n    if tz is not None:\n        start = _maybe_localize_point(start, getattr(start, 'tz', None), start, freq, tz, ambiguous, nonexistent)\n        end = _maybe_localize_point(end, getattr(end, 'tz', None), end, freq, tz, ambiguous, nonexistent)\n    if freq is not None:\n        if isinstance(freq, Day):\n            if start is not None:\n                start = start.tz_localize(None)\n            if end is not None:\n                end = end.tz_localize(None)\n        (values, _tz) = generate_regular_range(start, end, periods, freq)\n        index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))\n        if tz is not None and index.tz is None:\n            arr = conversion.tz_localize_to_utc(index.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent)\n            index = cls(arr)\n            if start is not None:\n                start = start.tz_localize(tz).asm8\n            if end is not None:\n                end = end.tz_localize(tz).asm8\n    else:\n        arr = np.linspace(0, end.value - start.value, periods, dtype='int64') + start.value\n        dtype = tz_to_dtype(tz)\n        index = cls._simple_new(arr.astype('M8[ns]', copy=False), freq=None, dtype=dtype)\n    if not left_closed and len(index) and (index[0] == start):\n        index = index[1:]\n    if not right_closed and len(index) and (index[-1] == end):\n        index = index[:-1]\n    dtype = tz_to_dtype(tz)\n    return cls._simple_new(index.asi8, freq=freq, dtype=dtype)",
                             "def _unbox_scalar(self, value):\n    if not isinstance(value, self._scalar_type) and value is not NaT:\n        raise ValueError(\"'value' should be a Timestamp.\")\n    if not isna(value):\n        self._check_compatible_with(value)\n    return value.value",
                             "def _scalar_from_string(self, value):\n    return Timestamp(value, tz=self.tz)",
                             "def _check_compatible_with(self, other, setitem: bool=False):\n    if other is NaT:\n        return\n    self._assert_tzawareness_compat(other)\n    if setitem:\n        if not timezones.tz_compare(self.tz, other.tz):\n            raise ValueError(f\"Timezones don't match. '{self.tz} != {other.tz}'\")",
@@ -146,55 +146,49 @@
                             "def to_julian_date(self):\n    \"\"\"\n    Convert Datetime Array to float64 ndarray of Julian Dates.\n    0 Julian date is noon January 1, 4713 BC.\n    https://en.wikipedia.org/wiki/Julian_day\n    \"\"\"\n    year = np.asarray(self.year)\n    month = np.asarray(self.month)\n    day = np.asarray(self.day)\n    testarr = month < 3\n    year[testarr] -= 1\n    month[testarr] += 12\n    return day + np.fix((153 * month - 457) / 5) + 365 * year + np.floor(year / 4) - np.floor(year / 100) + np.floor(year / 400) + 1721118.5 + (self.hour + self.minute / 60.0 + self.second / 3600.0 + self.microsecond / 3600.0 / 1000000.0 + self.nanosecond / 3600.0 / 1000000000.0) / 24.0"
                         ],
                         "constructor_variables": [
-                            "values",
-                            "_freq",
-                            "dtz",
-                            "msg",
-                            "dtype",
-                            "inferred_freq",
-                            "freq",
-                            "_dtype",
-                            "_data"
+                            "self._data = values",
+                            "self._dtype = dtype",
+                            "self._freq = freq"
                         ],
                         "class_level_variables": [
-                            "_typ",
-                            "_scalar_type",
-                            "_recognized_scalars",
-                            "_is_recognized_dtype",
-                            "_bool_ops",
-                            "_object_ops",
-                            "_field_ops",
-                            "_other_ops",
-                            "_datetimelike_ops",
-                            "_datetimelike_methods",
-                            "__array_priority__",
-                            "_dtype",
-                            "_freq",
-                            "year",
-                            "month",
-                            "day",
-                            "hour",
-                            "minute",
-                            "second",
-                            "microsecond",
-                            "nanosecond",
-                            "weekofyear",
-                            "week",
-                            "_dayofweek_doc",
-                            "dayofweek",
-                            "weekday",
-                            "dayofyear",
-                            "quarter",
-                            "days_in_month",
-                            "daysinmonth",
-                            "_is_month_doc",
-                            "is_month_start",
-                            "is_month_end",
-                            "is_quarter_start",
-                            "is_quarter_end",
-                            "is_year_start",
-                            "is_year_end",
-                            "is_leap_year"
+                            "_typ = 'datetimearray'",
+                            "_scalar_type = Timestamp",
+                            "_recognized_scalars = (datetime, np.datetime64)",
+                            "_is_recognized_dtype = is_datetime64_any_dtype",
+                            "_bool_ops = ['is_month_start', 'is_month_end', 'is_quarter_start', 'is_quarter_end', 'is_year_start', 'is_year_end', 'is_leap_year']",
+                            "_object_ops = ['freq', 'tz']",
+                            "_field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second', 'weekofyear', 'week', 'weekday', 'dayofweek', 'dayofyear', 'quarter', 'days_in_month', 'daysinmonth', 'microsecond', 'nanosecond']",
+                            "_other_ops = ['date', 'time', 'timetz', 'isocalendar']",
+                            "_datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops",
+                            "_datetimelike_methods = ['to_period', 'tz_localize', 'tz_convert', 'normalize', 'strftime', 'round', 'floor', 'ceil', 'month_name', 'day_name']",
+                            "__array_priority__ = 1000",
+                            "_dtype: Union[np.dtype, DatetimeTZDtype]",
+                            "_freq = None",
+                            "year = _field_accessor('year', 'Y', '\\n        The year of the datetime.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"Y\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-12-31\\n        1   2001-12-31\\n        2   2002-12-31\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.year\\n        0    2000\\n        1    2001\\n        2    2002\\n        dtype: int64\\n        ')",
+                            "month = _field_accessor('month', 'M', '\\n        The month as January=1, December=12.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"M\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-01-31\\n        1   2000-02-29\\n        2   2000-03-31\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.month\\n        0    1\\n        1    2\\n        2    3\\n        dtype: int64\\n        ')",
+                            "day = _field_accessor('day', 'D', '\\n        The day of the datetime.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"D\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-01-01\\n        1   2000-01-02\\n        2   2000-01-03\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.day\\n        0    1\\n        1    2\\n        2    3\\n        dtype: int64\\n        ')",
+                            "hour = _field_accessor('hour', 'h', '\\n        The hours of the datetime.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"h\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-01-01 00:00:00\\n        1   2000-01-01 01:00:00\\n        2   2000-01-01 02:00:00\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.hour\\n        0    0\\n        1    1\\n        2    2\\n        dtype: int64\\n        ')",
+                            "minute = _field_accessor('minute', 'm', '\\n        The minutes of the datetime.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"T\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-01-01 00:00:00\\n        1   2000-01-01 00:01:00\\n        2   2000-01-01 00:02:00\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.minute\\n        0    0\\n        1    1\\n        2    2\\n        dtype: int64\\n        ')",
+                            "second = _field_accessor('second', 's', '\\n        The seconds of the datetime.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"s\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-01-01 00:00:00\\n        1   2000-01-01 00:00:01\\n        2   2000-01-01 00:00:02\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.second\\n        0    0\\n        1    1\\n        2    2\\n        dtype: int64\\n        ')",
+                            "microsecond = _field_accessor('microsecond', 'us', '\\n        The microseconds of the datetime.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"us\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-01-01 00:00:00.000000\\n        1   2000-01-01 00:00:00.000001\\n        2   2000-01-01 00:00:00.000002\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.microsecond\\n        0       0\\n        1       1\\n        2       2\\n        dtype: int64\\n        ')",
+                            "nanosecond = _field_accessor('nanosecond', 'ns', '\\n        The nanoseconds of the datetime.\\n\\n        Examples\\n        --------\\n        >>> datetime_series = pd.Series(\\n        ...     pd.date_range(\"2000-01-01\", periods=3, freq=\"ns\")\\n        ... )\\n        >>> datetime_series\\n        0   2000-01-01 00:00:00.000000000\\n        1   2000-01-01 00:00:00.000000001\\n        2   2000-01-01 00:00:00.000000002\\n        dtype: datetime64[ns]\\n        >>> datetime_series.dt.nanosecond\\n        0       0\\n        1       1\\n        2       2\\n        dtype: int64\\n        ')",
+                            "weekofyear = _field_accessor('weekofyear', 'woy', '\\n        The week ordinal of the year.\\n        ')",
+                            "week = weekofyear",
+                            "_dayofweek_doc = \"\\n    The day of the week with Monday=0, Sunday=6.\\n\\n    Return the day of the week. It is assumed the week starts on\\n    Monday, which is denoted by 0 and ends on Sunday which is denoted\\n    by 6. This method is available on both Series with datetime\\n    values (using the `dt` accessor) or DatetimeIndex.\\n\\n    Returns\\n    -------\\n    Series or Index\\n        Containing integers indicating the day number.\\n\\n    See Also\\n    --------\\n    Series.dt.dayofweek : Alias.\\n    Series.dt.weekday : Alias.\\n    Series.dt.day_name : Returns the name of the day of the week.\\n\\n    Examples\\n    --------\\n    >>> s = pd.date_range('2016-12-31', '2017-01-08', freq='D').to_series()\\n    >>> s.dt.dayofweek\\n    2016-12-31    5\\n    2017-01-01    6\\n    2017-01-02    0\\n    2017-01-03    1\\n    2017-01-04    2\\n    2017-01-05    3\\n    2017-01-06    4\\n    2017-01-07    5\\n    2017-01-08    6\\n    Freq: D, dtype: int64\\n    \"",
+                            "dayofweek = _field_accessor('dayofweek', 'dow', _dayofweek_doc)",
+                            "weekday = dayofweek",
+                            "dayofyear = _field_accessor('dayofyear', 'doy', '\\n        The ordinal day of the year.\\n        ')",
+                            "quarter = _field_accessor('quarter', 'q', '\\n        The quarter of the date.\\n        ')",
+                            "days_in_month = _field_accessor('days_in_month', 'dim', '\\n        The number of days in the month.\\n        ')",
+                            "daysinmonth = days_in_month",
+                            "_is_month_doc = '\\n        Indicates whether the date is the {first_or_last} day of the month.\\n\\n        Returns\\n        -------\\n        Series or array\\n            For Series, returns a Series with boolean values.\\n            For DatetimeIndex, returns a boolean array.\\n\\n        See Also\\n        --------\\n        is_month_start : Return a boolean indicating whether the date\\n            is the first day of the month.\\n        is_month_end : Return a boolean indicating whether the date\\n            is the last day of the month.\\n\\n        Examples\\n        --------\\n        This method is available on Series with datetime values under\\n        the ``.dt`` accessor, and directly on DatetimeIndex.\\n\\n        >>> s = pd.Series(pd.date_range(\"2018-02-27\", periods=3))\\n        >>> s\\n        0   2018-02-27\\n        1   2018-02-28\\n        2   2018-03-01\\n        dtype: datetime64[ns]\\n        >>> s.dt.is_month_start\\n        0    False\\n        1    False\\n        2    True\\n        dtype: bool\\n        >>> s.dt.is_month_end\\n        0    False\\n        1    True\\n        2    False\\n        dtype: bool\\n\\n        >>> idx = pd.date_range(\"2018-02-27\", periods=3)\\n        >>> idx.is_month_start\\n        array([False, False, True])\\n        >>> idx.is_month_end\\n        array([False, True, False])\\n    '",
+                            "is_month_start = _field_accessor('is_month_start', 'is_month_start', _is_month_doc.format(first_or_last='first'))",
+                            "is_month_end = _field_accessor('is_month_end', 'is_month_end', _is_month_doc.format(first_or_last='last'))",
+                            "is_quarter_start = _field_accessor('is_quarter_start', 'is_quarter_start', '\\n        Indicator for whether the date is the first day of a quarter.\\n\\n        Returns\\n        -------\\n        is_quarter_start : Series or DatetimeIndex\\n            The same type as the original data with boolean values. Series will\\n            have the same name and index. DatetimeIndex will have the same\\n            name.\\n\\n        See Also\\n        --------\\n        quarter : Return the quarter of the date.\\n        is_quarter_end : Similar property for indicating the quarter start.\\n\\n        Examples\\n        --------\\n        This method is available on Series with datetime values under\\n        the ``.dt`` accessor, and directly on DatetimeIndex.\\n\\n        >>> df = pd.DataFrame({\\'dates\\': pd.date_range(\"2017-03-30\",\\n        ...                   periods=4)})\\n        >>> df.assign(quarter=df.dates.dt.quarter,\\n        ...           is_quarter_start=df.dates.dt.is_quarter_start)\\n               dates  quarter  is_quarter_start\\n        0 2017-03-30        1             False\\n        1 2017-03-31        1             False\\n        2 2017-04-01        2              True\\n        3 2017-04-02        2             False\\n\\n        >>> idx = pd.date_range(\\'2017-03-30\\', periods=4)\\n        >>> idx\\n        DatetimeIndex([\\'2017-03-30\\', \\'2017-03-31\\', \\'2017-04-01\\', \\'2017-04-02\\'],\\n                      dtype=\\'datetime64[ns]\\', freq=\\'D\\')\\n\\n        >>> idx.is_quarter_start\\n        array([False, False,  True, False])\\n        ')",
+                            "is_quarter_end = _field_accessor('is_quarter_end', 'is_quarter_end', '\\n        Indicator for whether the date is the last day of a quarter.\\n\\n        Returns\\n        -------\\n        is_quarter_end : Series or DatetimeIndex\\n            The same type as the original data with boolean values. Series will\\n            have the same name and index. DatetimeIndex will have the same\\n            name.\\n\\n        See Also\\n        --------\\n        quarter : Return the quarter of the date.\\n        is_quarter_start : Similar property indicating the quarter start.\\n\\n        Examples\\n        --------\\n        This method is available on Series with datetime values under\\n        the ``.dt`` accessor, and directly on DatetimeIndex.\\n\\n        >>> df = pd.DataFrame({\\'dates\\': pd.date_range(\"2017-03-30\",\\n        ...                    periods=4)})\\n        >>> df.assign(quarter=df.dates.dt.quarter,\\n        ...           is_quarter_end=df.dates.dt.is_quarter_end)\\n               dates  quarter    is_quarter_end\\n        0 2017-03-30        1             False\\n        1 2017-03-31        1              True\\n        2 2017-04-01        2             False\\n        3 2017-04-02        2             False\\n\\n        >>> idx = pd.date_range(\\'2017-03-30\\', periods=4)\\n        >>> idx\\n        DatetimeIndex([\\'2017-03-30\\', \\'2017-03-31\\', \\'2017-04-01\\', \\'2017-04-02\\'],\\n                      dtype=\\'datetime64[ns]\\', freq=\\'D\\')\\n\\n        >>> idx.is_quarter_end\\n        array([False,  True, False, False])\\n        ')",
+                            "is_year_start = _field_accessor('is_year_start', 'is_year_start', '\\n        Indicate whether the date is the first day of a year.\\n\\n        Returns\\n        -------\\n        Series or DatetimeIndex\\n            The same type as the original data with boolean values. Series will\\n            have the same name and index. DatetimeIndex will have the same\\n            name.\\n\\n        See Also\\n        --------\\n        is_year_end : Similar property indicating the last day of the year.\\n\\n        Examples\\n        --------\\n        This method is available on Series with datetime values under\\n        the ``.dt`` accessor, and directly on DatetimeIndex.\\n\\n        >>> dates = pd.Series(pd.date_range(\"2017-12-30\", periods=3))\\n        >>> dates\\n        0   2017-12-30\\n        1   2017-12-31\\n        2   2018-01-01\\n        dtype: datetime64[ns]\\n\\n        >>> dates.dt.is_year_start\\n        0    False\\n        1    False\\n        2    True\\n        dtype: bool\\n\\n        >>> idx = pd.date_range(\"2017-12-30\", periods=3)\\n        >>> idx\\n        DatetimeIndex([\\'2017-12-30\\', \\'2017-12-31\\', \\'2018-01-01\\'],\\n                      dtype=\\'datetime64[ns]\\', freq=\\'D\\')\\n\\n        >>> idx.is_year_start\\n        array([False, False,  True])\\n        ')",
+                            "is_year_end = _field_accessor('is_year_end', 'is_year_end', '\\n        Indicate whether the date is the last day of the year.\\n\\n        Returns\\n        -------\\n        Series or DatetimeIndex\\n            The same type as the original data with boolean values. Series will\\n            have the same name and index. DatetimeIndex will have the same\\n            name.\\n\\n        See Also\\n        --------\\n        is_year_start : Similar property indicating the start of the year.\\n\\n        Examples\\n        --------\\n        This method is available on Series with datetime values under\\n        the ``.dt`` accessor, and directly on DatetimeIndex.\\n\\n        >>> dates = pd.Series(pd.date_range(\"2017-12-30\", periods=3))\\n        >>> dates\\n        0   2017-12-30\\n        1   2017-12-31\\n        2   2018-01-01\\n        dtype: datetime64[ns]\\n\\n        >>> dates.dt.is_year_end\\n        0    False\\n        1     True\\n        2    False\\n        dtype: bool\\n\\n        >>> idx = pd.date_range(\"2017-12-30\", periods=3)\\n        >>> idx\\n        DatetimeIndex([\\'2017-12-30\\', \\'2017-12-31\\', \\'2018-01-01\\'],\\n                      dtype=\\'datetime64[ns]\\', freq=\\'D\\')\\n\\n        >>> idx.is_year_end\\n        array([False,  True, False])\\n        ')",
+                            "is_leap_year = _field_accessor('is_leap_year', 'is_leap_year', '\\n        Boolean indicator if the date belongs to a leap year.\\n\\n        A leap year is a year, which has 366 days (instead of 365) including\\n        29th of February as an intercalary day.\\n        Leap years are years which are multiples of four with the exception\\n        of years divisible by 100 but not by 400.\\n\\n        Returns\\n        -------\\n        Series or ndarray\\n             Booleans indicating if dates belong to a leap year.\\n\\n        Examples\\n        --------\\n        This method is available on Series with datetime values under\\n        the ``.dt`` accessor, and directly on DatetimeIndex.\\n\\n        >>> idx = pd.date_range(\"2012-01-01\", \"2015-01-01\", freq=\"Y\")\\n        >>> idx\\n        DatetimeIndex([\\'2012-12-31\\', \\'2013-12-31\\', \\'2014-12-31\\'],\\n                      dtype=\\'datetime64[ns]\\', freq=\\'A-DEC\\')\\n        >>> idx.is_leap_year\\n        array([ True, False, False])\\n\\n        >>> dates_series = pd.Series(idx)\\n        >>> dates_series\\n        0   2012-12-31\\n        1   2013-12-31\\n        2   2014-12-31\\n        dtype: datetime64[ns]\\n        >>> dates_series.dt.is_leap_year\\n        0     True\\n        1    False\\n        2    False\\n        dtype: bool\\n        ')"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -237,8 +231,64 @@
                             "date(self)",
                             "isocalendar(self)",
                             "to_julian_date(self)"
+                        ],
+                        "class_level_variable_names": [
+                            "_typ",
+                            "_scalar_type",
+                            "_recognized_scalars",
+                            "_is_recognized_dtype",
+                            "_bool_ops",
+                            "_object_ops",
+                            "_field_ops",
+                            "_other_ops",
+                            "_datetimelike_ops",
+                            "_datetimelike_methods",
+                            "__array_priority__",
+                            "_dtype",
+                            "_freq",
+                            "year",
+                            "month",
+                            "day",
+                            "hour",
+                            "minute",
+                            "second",
+                            "microsecond",
+                            "nanosecond",
+                            "weekofyear",
+                            "week",
+                            "_dayofweek_doc",
+                            "dayofweek",
+                            "weekday",
+                            "dayofyear",
+                            "quarter",
+                            "days_in_month",
+                            "daysinmonth",
+                            "_is_month_doc",
+                            "is_month_start",
+                            "is_month_end",
+                            "is_quarter_start",
+                            "is_quarter_end",
+                            "is_year_start",
+                            "is_year_end",
+                            "is_leap_year"
+                        ],
+                        "constructor_variable_names": [
+                            "freq",
+                            "_dtype",
+                            "_freq",
+                            "values",
+                            "inferred_freq",
+                            "_data",
+                            "dtype",
+                            "msg",
+                            "dtz"
                         ]
                     },
+                    "used_imports": [
+                        "import warnings",
+                        "from pandas.tseries.frequencies import get_period_alias, to_offset",
+                        "from pandas.core.arrays import PeriodArray"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -347,7 +397,7 @@
                                 "PeriodArray": {
                                     "variable_value": "<class 'pandas.core.arrays.period.PeriodArray'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1149052c0>"
+                                    "variable_shape": "<property object at 0x7fa450a42720>"
                                 },
                                 "self._data": {
                                     "variable_value": "array(['2019-12-22T06:40:00.000000000', '2019-12-22T06:45:00.000000000',\n       '2019-12-22T06:50:00.000000000', '2019-12-22T06:55:00.000000000',\n       '2019-12-22T07:00:00.000000000', '2019-12-22T07:05:00.000000000',\n       '2019-12-22T07:10:00.000000000', '2019-12-22T07:15:00.000000000',\n       '2019-12-22T07:20:00.000000000', '2019-12-22T07:25:00.000000000',\n       '2019-12-22T07:30:00.000000000', '2019-12-22T07:35:00.000000000',\n       '2019-12-22T07:40:00.000000000', '2019-12-22T07:45:00.000000000',\n       '2019-12-22T07:50:00.000000000', '2019-12-22T07:55:00.000000000',\n       '2019-12-22T08:00:00.000000000', '2019-12-22T08:05:00.000000000',\n       '2019-12-22T08:10:00.000000000', '2019-12-22T08:15:00.000000000',\n       '2019-12-22T08:20:00.000000000', '2019-12-22T08:25:00.000000000',\n       '2019-12-22T08:30:00.000000000', '2019-12-22T08:35:00.000000000',\n       '2019-12-22T08:40:00.000000000', '2019-12-22T08:45:00.000000000'],\n      dtype='datetime64[ns]')",
@@ -463,7 +513,7 @@
                                 "PeriodArray": {
                                     "variable_value": "<class 'pandas.core.arrays.period.PeriodArray'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1149052c0>"
+                                    "variable_shape": "<property object at 0x7fa450a42720>"
                                 },
                                 "self._data": {
                                     "variable_value": "array(['2019-12-22T06:40:00.000000000', '2019-12-22T06:45:00.000000000',\n       '2019-12-22T06:50:00.000000000', '2019-12-22T06:55:00.000000000',\n       '2019-12-22T07:00:00.000000000', '2019-12-22T07:05:00.000000000',\n       '2019-12-22T07:10:00.000000000', '2019-12-22T07:15:00.000000000',\n       '2019-12-22T07:20:00.000000000', '2019-12-22T07:25:00.000000000',\n       '2019-12-22T07:30:00.000000000', '2019-12-22T07:35:00.000000000',\n       '2019-12-22T07:40:00.000000000', '2019-12-22T07:45:00.000000000',\n       '2019-12-22T07:50:00.000000000', '2019-12-22T07:55:00.000000000',\n       '2019-12-22T08:00:00.000000000', '2019-12-22T08:05:00.000000000',\n       '2019-12-22T08:10:00.000000000', '2019-12-22T08:15:00.000000000',\n       '2019-12-22T08:20:00.000000000', '2019-12-22T08:25:00.000000000',\n       '2019-12-22T08:30:00.000000000', '2019-12-22T08:35:00.000000000',\n       '2019-12-22T08:40:00.000000000', '2019-12-22T08:45:00.000000000'],\n      dtype='datetime64[ns]')",
@@ -631,7 +681,7 @@
                                 "PeriodArray": {
                                     "variable_value": "<class 'pandas.core.arrays.period.PeriodArray'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1104f5540>"
+                                    "variable_shape": "<property object at 0x7fcc68d47810>"
                                 },
                                 "self._data": {
                                     "variable_value": "array(['2019-12-22T06:40:00.000000000', '2019-12-22T06:45:00.000000000',\n       '2019-12-22T06:50:00.000000000', '2019-12-22T06:55:00.000000000',\n       '2019-12-22T07:00:00.000000000', '2019-12-22T07:05:00.000000000',\n       '2019-12-22T07:10:00.000000000', '2019-12-22T07:15:00.000000000',\n       '2019-12-22T07:20:00.000000000', '2019-12-22T07:25:00.000000000',\n       '2019-12-22T07:30:00.000000000', '2019-12-22T07:35:00.000000000',\n       '2019-12-22T07:40:00.000000000', '2019-12-22T07:45:00.000000000',\n       '2019-12-22T07:50:00.000000000', '2019-12-22T07:55:00.000000000',\n       '2019-12-22T08:00:00.000000000', '2019-12-22T08:05:00.000000000',\n       '2019-12-22T08:10:00.000000000', '2019-12-22T08:15:00.000000000',\n       '2019-12-22T08:20:00.000000000', '2019-12-22T08:25:00.000000000',\n       '2019-12-22T08:30:00.000000000', '2019-12-22T08:35:00.000000000',\n       '2019-12-22T08:40:00.000000000', '2019-12-22T08:45:00.000000000'],\n      dtype='datetime64[ns]')",
@@ -797,7 +847,7 @@
                                 "PeriodArray": {
                                     "variable_value": "<class 'pandas.core.arrays.period.PeriodArray'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x1104f5540>"
+                                    "variable_shape": "<property object at 0x7fcc68d47810>"
                                 },
                                 "self._data": {
                                     "variable_value": "array(['2019-12-22T06:40:00.000000000', '2019-12-22T06:45:00.000000000',\n       '2019-12-22T06:50:00.000000000', '2019-12-22T06:55:00.000000000',\n       '2019-12-22T07:00:00.000000000', '2019-12-22T07:05:00.000000000',\n       '2019-12-22T07:10:00.000000000', '2019-12-22T07:15:00.000000000',\n       '2019-12-22T07:20:00.000000000', '2019-12-22T07:25:00.000000000',\n       '2019-12-22T07:30:00.000000000', '2019-12-22T07:35:00.000000000',\n       '2019-12-22T07:40:00.000000000', '2019-12-22T07:45:00.000000000',\n       '2019-12-22T07:50:00.000000000', '2019-12-22T07:55:00.000000000',\n       '2019-12-22T08:00:00.000000000', '2019-12-22T08:05:00.000000000',\n       '2019-12-22T08:10:00.000000000', '2019-12-22T08:15:00.000000000',\n       '2019-12-22T08:20:00.000000000', '2019-12-22T08:25:00.000000000',\n       '2019-12-22T08:30:00.000000000', '2019-12-22T08:35:00.000000000',\n       '2019-12-22T08:40:00.000000000', '2019-12-22T08:45:00.000000000'],\n      dtype='datetime64[ns]')",
@@ -5111,11 +5161,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_27/pandas/tests/indexes/datetimes/test_to_period.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_27/pandas/tests/indexes/datetimes/test_to_period.py",
                 "test_function": "test_to_period_infer",
                 "test_function_code": "    def test_to_period_infer(self):\n        # https://github.com/pandas-dev/pandas/issues/33358\n        rng = date_range(\n            start=\"2019-12-22 06:40:00+00:00\",\n            end=\"2019-12-22 08:45:00+00:00\",\n            freq=\"5min\",\n        )\n\n        with tm.assert_produces_warning(None):\n            # Using simple filter because we are not checking for the warning here\n            warnings.simplefilter(\"ignore\", UserWarning)\n\n            pi1 = rng.to_period(\"5min\")\n\n        with tm.assert_produces_warning(None):\n            # Using simple filter because we are not checking for the warning here\n            warnings.simplefilter(\"ignore\", UserWarning)\n\n            pi2 = rng.to_period()\n\n        tm.assert_index_equal(pi1, pi2)",
                 "test_error": "AttributeError: 'NoneType' object has no attribute 'n'",
-                "full_test_error": "self = <pandas.tests.indexes.datetimes.test_to_period.TestToPeriod object at 0x1166889d0>\n\n    def test_to_period_infer(self):\n        # https://github.com/pandas-dev/pandas/issues/33358\n        rng = date_range(\n            start=\"2019-12-22 06:40:00+00:00\",\n            end=\"2019-12-22 08:45:00+00:00\",\n            freq=\"5min\",\n        )\n    \n        with tm.assert_produces_warning(None):\n            # Using simple filter because we are not checking for the warning here\n            warnings.simplefilter(\"ignore\", UserWarning)\n    \n            pi1 = rng.to_period(\"5min\")\n    \n        with tm.assert_produces_warning(None):\n            # Using simple filter because we are not checking for the warning here\n            warnings.simplefilter(\"ignore\", UserWarning)\n    \n>           pi2 = rng.to_period()\n\npandas/tests/indexes/datetimes/test_to_period.py:98: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/indexes/extension.py:80: in method\n    result = attr(self._data, *args, **kwargs)\npandas/core/arrays/datetimes.py:1102: in to_period\n    return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)\npandas/core/arrays/period.py:221: in _from_datetime64\n    data, freq = dt64arr_to_periodarr(data, freq, tz)\npandas/core/arrays/period.py:919: in dt64arr_to_periodarr\n    freq = Period._maybe_convert_freq(freq)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   if freq.n <= 0:\nE   AttributeError: 'NoneType' object has no attribute 'n'\n\npandas/_libs/tslibs/period.pyx:1575: AttributeError",
+                "full_test_error": "self = <pandas.tests.indexes.datetimes.test_to_period.TestToPeriod object at 0x7eff7afebb80>\n\n    def test_to_period_infer(self):\n        # https://github.com/pandas-dev/pandas/issues/33358\n        rng = date_range(\n            start=\"2019-12-22 06:40:00+00:00\",\n            end=\"2019-12-22 08:45:00+00:00\",\n            freq=\"5min\",\n        )\n    \n        with tm.assert_produces_warning(None):\n            # Using simple filter because we are not checking for the warning here\n            warnings.simplefilter(\"ignore\", UserWarning)\n    \n            pi1 = rng.to_period(\"5min\")\n    \n        with tm.assert_produces_warning(None):\n            # Using simple filter because we are not checking for the warning here\n            warnings.simplefilter(\"ignore\", UserWarning)\n    \n>           pi2 = rng.to_period()\n\npandas/tests/indexes/datetimes/test_to_period.py:98: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/indexes/extension.py:80: in method\n    result = attr(self._data, *args, **kwargs)\npandas/core/arrays/datetimes.py:1102: in to_period\n    return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)\npandas/core/arrays/period.py:221: in _from_datetime64\n    data, freq = dt64arr_to_periodarr(data, freq, tz)\npandas/core/arrays/period.py:919: in dt64arr_to_periodarr\n    freq = Period._maybe_convert_freq(freq)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   if freq.n <= 0:\nE   AttributeError: 'NoneType' object has no attribute 'n'\n\npandas/_libs/tslibs/period.pyx:1575: AttributeError",
                 "traceback": "pandas/core/indexes/extension.py:80: in method\n    result = attr(self._data, *args, **kwargs)\npandas/core/arrays/datetimes.py:1102: in to_period\n    return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)\npandas/core/arrays/period.py:221: in _from_datetime64\n    data, freq = dt64arr_to_periodarr(data, freq, tz)\npandas/core/arrays/period.py:919: in dt64arr_to_periodarr\n    freq = Period._maybe_convert_freq(freq)",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   if freq.n <= 0:\nE   AttributeError: 'NoneType' object has no attribute 'n'\n\npandas/_libs/tslibs/period.pyx:1575: AttributeError",
                 "test_function_decorators": []

@@ -1,6 +1,6 @@
 {
     "ansible:8": {
-        "/Volumes/SSD2T/bgp_envs/repos/ansible_8/lib/ansible/plugins/shell/powershell.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/ansible_8/lib/ansible/plugins/shell/powershell.py": {
             "buggy_functions": [
                 {
                     "function_name": "join_path",
@@ -109,7 +109,7 @@
                             "def safe_env_value(self, key, value):\n    if len(value) > 32767:\n        raise AnsibleError(\"PowerShell environment value for key '%s' exceeds 32767 characters in length\" % key)\n    value = value.replace(\"'\", \"''\")\n    return to_text(value, errors='surrogate_or_strict')",
                             "def env_prefix(self, **kwargs):\n    return ''",
                             "def join_path(self, *args):\n    parts = []\n    for arg in args:\n        arg = self._unquote(arg).replace('/', '\\\\')\n        parts.extend([a for a in arg.split('\\\\') if a])\n    path = '\\\\'.join(parts)\n    if path.startswith('~'):\n        return path\n    return path",
-                            "def get_remote_filename(self, pathname):\n    base_name = os.path.basename(pathname.strip())\n    name, ext = os.path.splitext(base_name.strip())\n    if ext.lower() not in ['.ps1', '.exe']:\n        return name + '.ps1'\n    return base_name.strip()",
+                            "def get_remote_filename(self, pathname):\n    base_name = os.path.basename(pathname.strip())\n    (name, ext) = os.path.splitext(base_name.strip())\n    if ext.lower() not in ['.ps1', '.exe']:\n        return name + '.ps1'\n    return base_name.strip()",
                             "def path_has_trailing_slash(self, path):\n    path = self._unquote(path)\n    return path.endswith('/') or path.endswith('\\\\')",
                             "def chmod(self, paths, mode):\n    raise NotImplementedError('chmod is not implemented for Powershell')",
                             "def chown(self, paths, user):\n    raise NotImplementedError('chown is not implemented for Powershell')",
@@ -122,19 +122,19 @@
                             "def build_module_command(self, env_string, shebang, cmd, arg_path=None):\n    bootstrap_wrapper = pkgutil.get_data('ansible.executor.powershell', 'bootstrap_wrapper.ps1')\n    if cmd == '':\n        return self._encode_script(script=bootstrap_wrapper, strict_mode=False, preserve_rc=False)\n    cmd_parts = shlex.split(cmd, posix=False)\n    cmd_parts = list(map(to_text, cmd_parts))\n    if shebang and shebang.lower() == '#!powershell':\n        if not self._unquote(cmd_parts[0]).lower().endswith('.ps1'):\n            cmd_parts[0] = '\"%s.ps1\"' % self._unquote(cmd_parts[0])\n        wrapper_cmd = 'type ' + cmd_parts[0] + ' | ' + self._encode_script(script=bootstrap_wrapper, strict_mode=False, preserve_rc=False)\n        return wrapper_cmd\n    elif shebang and shebang.startswith('#!'):\n        cmd_parts.insert(0, shebang[2:])\n    elif not shebang:\n        cmd_parts[0] = self._unquote(cmd_parts[0])\n        cmd_parts.append(arg_path)\n    script = \"\\n            Try\\n            {\\n                %s\\n                %s\\n            }\\n            Catch\\n            {\\n                $_obj = @{ failed = $true }\\n                If ($_.Exception.GetType)\\n                {\\n                    $_obj.Add('msg', $_.Exception.Message)\\n                }\\n                Else\\n                {\\n                    $_obj.Add('msg', $_.ToString())\\n                }\\n                If ($_.InvocationInfo.PositionMessage)\\n                {\\n                    $_obj.Add('exception', $_.InvocationInfo.PositionMessage)\\n                }\\n                ElseIf ($_.ScriptStackTrace)\\n                {\\n                    $_obj.Add('exception', $_.ScriptStackTrace)\\n                }\\n                Try\\n                {\\n                    $_obj.Add('error_record', ($_ | ConvertTo-Json | ConvertFrom-Json))\\n                }\\n                Catch\\n                {\\n                }\\n                Echo $_obj | ConvertTo-Json -Compress -Depth 99\\n                Exit 1\\n            }\\n        \" % (env_string, ' '.join(cmd_parts))\n    return self._encode_script(script, preserve_rc=False)",
                             "def wrap_for_exec(self, cmd):\n    return '& %s; exit $LASTEXITCODE' % cmd",
                             "def _unquote(self, value):\n    \"\"\"Remove any matching quotes that wrap the given value.\"\"\"\n    value = to_text(value or '')\n    m = re.match(\"^\\\\s*?\\\\'(.*?)\\\\'\\\\s*?$\", value)\n    if m:\n        return m.group(1)\n    m = re.match('^\\\\s*?\"(.*?)\"\\\\s*?$', value)\n    if m:\n        return m.group(1)\n    return value",
-                            "def _escape(self, value, include_vars=False):\n    \"\"\"Return value escaped for use in PowerShell command.\"\"\"\n    subs = [('\\n', '`n'), ('\\r', '`r'), ('\\t', '`t'), ('\\x07', '`a'), ('\\x08', '`b'), ('\\x0c', '`f'), ('\\x0b', '`v'), ('\"', '`\"'), (\"'\", \"`'\"), ('`', '``'), ('\\x00', '`0')]\n    if include_vars:\n        subs.append(('$', '`$'))\n    pattern = '|'.join(('(%s)' % re.escape(p) for p, s in subs))\n    substs = [s for p, s in subs]\n\n    def replace(m):\n        return substs[m.lastindex - 1]\n    return re.sub(pattern, replace, value)",
+                            "def _escape(self, value, include_vars=False):\n    \"\"\"Return value escaped for use in PowerShell command.\"\"\"\n    subs = [('\\n', '`n'), ('\\r', '`r'), ('\\t', '`t'), ('\\x07', '`a'), ('\\x08', '`b'), ('\\x0c', '`f'), ('\\x0b', '`v'), ('\"', '`\"'), (\"'\", \"`'\"), ('`', '``'), ('\\x00', '`0')]\n    if include_vars:\n        subs.append(('$', '`$'))\n    pattern = '|'.join(('(%s)' % re.escape(p) for (p, s) in subs))\n    substs = [s for (p, s) in subs]\n\n    def replace(m):\n        return substs[m.lastindex - 1]\n    return re.sub(pattern, replace, value)",
                             "def _encode_script(self, script, as_list=False, strict_mode=True, preserve_rc=True):\n    \"\"\"Convert a PowerShell script to a single base64-encoded command.\"\"\"\n    script = to_text(script)\n    if script == u'-':\n        cmd_parts = _common_args + ['-Command', '-']\n    else:\n        if strict_mode:\n            script = u'Set-StrictMode -Version Latest\\r\\n%s' % script\n        if preserve_rc:\n            script = u'%s\\r\\nIf (-not $?) { If (Get-Variable LASTEXITCODE -ErrorAction SilentlyContinue) { exit $LASTEXITCODE } Else { exit 1 } }\\r\\n' % script\n        script = '\\n'.join([x.strip() for x in script.splitlines() if x.strip()])\n        encoded_script = to_text(base64.b64encode(script.encode('utf-16-le')), 'utf-8')\n        cmd_parts = _common_args + ['-EncodedCommand', encoded_script]\n    if as_list:\n        return cmd_parts\n    return ' '.join(cmd_parts)",
                             "def replace(m):\n    return substs[m.lastindex - 1]"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
-                            "COMPATIBLE_SHELLS",
-                            "SHELL_FAMILY",
-                            "_SHELL_REDIRECT_ALLNULL",
-                            "_SHELL_AND",
-                            "_IS_WINDOWS",
-                            "env",
-                            "safe_envkey"
+                            "COMPATIBLE_SHELLS = frozenset()",
+                            "SHELL_FAMILY = 'powershell'",
+                            "_SHELL_REDIRECT_ALLNULL = '> $null'",
+                            "_SHELL_AND = ';'",
+                            "_IS_WINDOWS = True",
+                            "env = dict()",
+                            "safe_envkey = re.compile('^[\\\\d\\\\w_]{1,255}$')"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -158,8 +158,19 @@
                             "_escape(self, value, include_vars=False)",
                             "_encode_script(self, script, as_list=False, strict_mode=True, preserve_rc=True)",
                             "replace(m)"
-                        ]
+                        ],
+                        "class_level_variable_names": [
+                            "COMPATIBLE_SHELLS",
+                            "SHELL_FAMILY",
+                            "_SHELL_REDIRECT_ALLNULL",
+                            "_SHELL_AND",
+                            "_IS_WINDOWS",
+                            "env",
+                            "safe_envkey"
+                        ],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -184,12 +195,12 @@
                                     "variable_shape": null
                                 },
                                 "self._unquote": {
-                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x10d681890>>",
+                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x7f82463bb090>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x10d681890>",
+                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x7f82463bb090>",
                                     "variable_type": "ShellModule",
                                     "variable_shape": null
                                 },
@@ -246,17 +257,17 @@
                                     "variable_shape": null
                                 },
                                 "self._unquote": {
-                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x10d681890>>",
+                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x7f82463bb090>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x10d681890>",
+                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x7f82463bb090>",
                                     "variable_type": "ShellModule",
                                     "variable_shape": null
                                 },
                                 "parts.extend": {
-                                    "variable_value": "<built-in method extend of list object at 0x10d740f00>",
+                                    "variable_value": "<built-in method extend of list object at 0x7f82462edd20>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -266,7 +277,7 @@
                                     "variable_shape": null
                                 },
                                 "arg.split": {
-                                    "variable_value": "<built-in method split of str object at 0x10d32b970>",
+                                    "variable_value": "<built-in method split of str object at 0x7f82466de9b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -281,7 +292,7 @@
                                     "variable_shape": null
                                 },
                                 "path.startswith": {
-                                    "variable_value": "<built-in method startswith of str object at 0x10d5b8270>",
+                                    "variable_value": "<built-in method startswith of str object at 0x7f8246405ed0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -307,12 +318,12 @@
                                     "variable_shape": null
                                 },
                                 "self._unquote": {
-                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x1058449d0>>",
+                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x7fbdfeece0d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x1058449d0>",
+                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x7fbdfeece0d0>",
                                     "variable_type": "ShellModule",
                                     "variable_shape": null
                                 },
@@ -359,12 +370,12 @@
                                     "variable_shape": null
                                 },
                                 "self._unquote": {
-                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x1058449d0>>",
+                                    "variable_value": "<bound method ShellModule._unquote of <ansible.plugins.shell.powershell.ShellModule object at 0x7fbdfeece0d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x1058449d0>",
+                                    "variable_value": "<ansible.plugins.shell.powershell.ShellModule object at 0x7fbdfeece0d0>",
                                     "variable_type": "ShellModule",
                                     "variable_shape": null
                                 },
@@ -1516,7 +1527,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/ansible_8/test/units/plugins/shell/test_powershell.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/ansible_8/test/units/plugins/shell/test_powershell.py",
                 "test_function": "test_join_path_unc",
                 "test_function_code": "def test_join_path_unc():\n    pwsh = ShellModule()\n    unc_path_parts = ['\\\\\\\\host\\\\share\\\\dir1\\\\\\\\dir2\\\\', '\\\\dir3/dir4', 'dir5', 'dir6\\\\']\n    expected = '\\\\\\\\host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6'\n    actual = pwsh.join_path(*unc_path_parts)\n    assert actual == expected",
                 "test_error": "AssertionError: assert 'host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6' == '\\\\\\\\host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6'\n  - \\\\host\\share\\dir1\\dir2\\dir3\\dir4\\dir5\\dir6\n  ? --\n  + host\\share\\dir1\\dir2\\dir3\\dir4\\dir5\\dir6",

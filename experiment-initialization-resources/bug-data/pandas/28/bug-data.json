@@ -1,6 +1,6 @@
 {
     "pandas:28": {
-        "/Volumes/SSD2T/bgp_envs/repos/pandas_28/pandas/core/strings.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_28/pandas/core/strings.py": {
             "buggy_functions": [
                 {
                     "function_name": "_get_series_list",
@@ -228,7 +228,7 @@
                             "def __iter__(self):\n    warnings.warn('Columnar iteration over characters will be deprecated in future releases.', FutureWarning, stacklevel=2)\n    i = 0\n    g = self.get(i)\n    while g.notna().any():\n        yield g\n        i += 1\n        g = self.get(i)",
                             "def _wrap_result(self, result, use_codes=True, name=None, expand=None, fill_value=np.nan, returns_string=True):\n    from pandas import Index, Series, MultiIndex\n    if use_codes and self._is_categorical:\n        result = take_1d(result, Series(self._orig, copy=False).cat.codes, fill_value=fill_value)\n    if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):\n        return result\n    assert result.ndim < 3\n    if self._is_string and returns_string:\n        dtype = 'string'\n    else:\n        dtype = None\n    if expand is None:\n        expand = result.ndim != 1\n    elif expand is True and (not isinstance(self._orig, ABCIndexClass)):\n\n        def cons_row(x):\n            if is_list_like(x):\n                return x\n            else:\n                return [x]\n        result = [cons_row(x) for x in result]\n        if result:\n            max_len = max((len(x) for x in result))\n            result = [x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result]\n    if not isinstance(expand, bool):\n        raise ValueError('expand must be True or False')\n    if expand is False:\n        if name is None:\n            name = getattr(result, 'name', None)\n        if name is None:\n            name = self._orig.name\n    if isinstance(self._orig, ABCIndexClass):\n        if is_bool_dtype(result):\n            return result\n        if expand:\n            result = list(result)\n            out = MultiIndex.from_tuples(result, names=name)\n            if out.nlevels == 1:\n                out = out.get_level_values(0)\n            return out\n        else:\n            return Index(result, name=name)\n    else:\n        index = self._orig.index\n        if expand:\n            cons = self._orig._constructor_expanddim\n            result = cons(result, columns=name, index=index, dtype=dtype)\n        else:\n            cons = self._orig._constructor\n            result = cons(result, name=name, index=index, dtype=dtype)\n        return result",
                             "def _get_series_list(self, others):\n    \"\"\"\n    Auxiliary function for :meth:`str.cat`. Turn potentially mixed input\n    into a list of Series (elements without an index must match the length\n    of the calling Series/Index).\n\n    Parameters\n    ----------\n    others : Series, DataFrame, np.ndarray, list-like or list-like of\n        Objects that are either Series, Index or np.ndarray (1-dim).\n\n    Returns\n    -------\n    list of Series\n        Others transformed into list of Series.\n    \"\"\"\n    from pandas import Series, DataFrame\n    idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index\n    if isinstance(others, ABCSeries):\n        return [others]\n    elif isinstance(others, ABCIndexClass):\n        return [Series(others._values, index=others)]\n    elif isinstance(others, ABCDataFrame):\n        return [others[x] for x in others]\n    elif isinstance(others, np.ndarray) and others.ndim == 2:\n        others = DataFrame(others, index=idx)\n        return [others[x] for x in others]\n    elif is_list_like(others, allow_sets=False):\n        others = list(others)\n        if all((isinstance(x, (ABCSeries, ABCIndexClass)) or (isinstance(x, np.ndarray) and x.ndim == 1) for x in others)):\n            los = []\n            while others:\n                los = los + self._get_series_list(others.pop(0))\n            return los\n        elif all((not is_list_like(x) for x in others)):\n            return [Series(others, index=idx)]\n    raise TypeError('others must be Series, Index, DataFrame, np.ndarrary or list-like (either containing only strings or containing only objects of type Series/Index/np.ndarray[1-dim])')",
-                            "@forbid_nonstring_types(['bytes', 'mixed', 'mixed-integer'])\ndef cat(self, others=None, sep=None, na_rep=None, join='left'):\n    \"\"\"\n    Concatenate strings in the Series/Index with given separator.\n\n    If `others` is specified, this function concatenates the Series/Index\n    and elements of `others` element-wise.\n    If `others` is not passed, then all values in the Series/Index are\n    concatenated into a single string with a given `sep`.\n\n    Parameters\n    ----------\n    others : Series, Index, DataFrame, np.ndarray or list-like\n        Series, Index, DataFrame, np.ndarray (one- or two-dimensional) and\n        other list-likes of strings must have the same length as the\n        calling Series/Index, with the exception of indexed objects (i.e.\n        Series/Index/DataFrame) if `join` is not None.\n\n        If others is a list-like that contains a combination of Series,\n        Index or np.ndarray (1-dim), then all elements will be unpacked and\n        must satisfy the above criteria individually.\n\n        If others is None, the method returns the concatenation of all\n        strings in the calling Series/Index.\n    sep : str, default ''\n        The separator between the different elements/columns. By default\n        the empty string `''` is used.\n    na_rep : str or None, default None\n        Representation that is inserted for all missing values:\n\n        - If `na_rep` is None, and `others` is None, missing values in the\n          Series/Index are omitted from the result.\n        - If `na_rep` is None, and `others` is not None, a row containing a\n          missing value in any of the columns (before concatenation) will\n          have a missing value in the result.\n    join : {'left', 'right', 'outer', 'inner'}, default 'left'\n        Determines the join-style between the calling Series/Index and any\n        Series/Index/DataFrame in `others` (objects without an index need\n        to match the length of the calling Series/Index). To disable\n        alignment, use `.values` on any Series/Index/DataFrame in `others`.\n\n        .. versionadded:: 0.23.0\n        .. versionchanged:: 1.0.0\n            Changed default of `join` from None to `'left'`.\n\n    Returns\n    -------\n    str, Series or Index\n        If `others` is None, `str` is returned, otherwise a `Series/Index`\n        (same type as caller) of objects is returned.\n\n    See Also\n    --------\n    split : Split each string in the Series/Index.\n    join : Join lists contained as elements in the Series/Index.\n\n    Examples\n    --------\n    When not passing `others`, all values are concatenated into a single\n    string:\n\n    >>> s = pd.Series(['a', 'b', np.nan, 'd'])\n    >>> s.str.cat(sep=' ')\n    'a b d'\n\n    By default, NA values in the Series are ignored. Using `na_rep`, they\n    can be given a representation:\n\n    >>> s.str.cat(sep=' ', na_rep='?')\n    'a b ? d'\n\n    If `others` is specified, corresponding values are concatenated with\n    the separator. Result will be a Series of strings.\n\n    >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',')\n    0    a,A\n    1    b,B\n    2    NaN\n    3    d,D\n    dtype: object\n\n    Missing values will remain missing in the result, but can again be\n    represented using `na_rep`\n\n    >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',', na_rep='-')\n    0    a,A\n    1    b,B\n    2    -,C\n    3    d,D\n    dtype: object\n\n    If `sep` is not specified, the values are concatenated without\n    separation.\n\n    >>> s.str.cat(['A', 'B', 'C', 'D'], na_rep='-')\n    0    aA\n    1    bB\n    2    -C\n    3    dD\n    dtype: object\n\n    Series with different indexes can be aligned before concatenation. The\n    `join`-keyword works as in other methods.\n\n    >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])\n    >>> s.str.cat(t, join='left', na_rep='-')\n    0    aa\n    1    b-\n    2    -c\n    3    dd\n    dtype: object\n    >>>\n    >>> s.str.cat(t, join='outer', na_rep='-')\n    0    aa\n    1    b-\n    2    -c\n    3    dd\n    4    -e\n    dtype: object\n    >>>\n    >>> s.str.cat(t, join='inner', na_rep='-')\n    0    aa\n    2    -c\n    3    dd\n    dtype: object\n    >>>\n    >>> s.str.cat(t, join='right', na_rep='-')\n    3    dd\n    0    aa\n    4    -e\n    2    -c\n    dtype: object\n\n    For more examples, see :ref:`here <text.concatenate>`.\n    \"\"\"\n    from pandas import Index, Series, concat\n    if isinstance(others, str):\n        raise ValueError('Did you mean to supply a `sep` keyword?')\n    if sep is None:\n        sep = ''\n    if isinstance(self._orig, ABCIndexClass):\n        data = Series(self._orig, index=self._orig)\n    else:\n        data = self._orig\n    if others is None:\n        data = ensure_object(data)\n        na_mask = isna(data)\n        if na_rep is None and na_mask.any():\n            data = data[~na_mask]\n        elif na_rep is not None and na_mask.any():\n            data = np.where(na_mask, na_rep, data)\n        return sep.join(data)\n    try:\n        others = self._get_series_list(others)\n    except ValueError as err:\n        raise ValueError('If `others` contains arrays or lists (or other list-likes without an index), these must all be of the same length as the calling Series/Index.') from err\n    if any((not data.index.equals(x.index) for x in others)):\n        others = concat(others, axis=1, join=join if join == 'inner' else 'outer', keys=range(len(others)), sort=False, copy=False)\n        data, others = data.align(others, join=join)\n        others = [others[x] for x in others]\n    all_cols = [ensure_object(x) for x in [data] + others]\n    na_masks = np.array([isna(x) for x in all_cols])\n    union_mask = np.logical_or.reduce(na_masks, axis=0)\n    if na_rep is None and union_mask.any():\n        result = np.empty(len(data), dtype=object)\n        np.putmask(result, union_mask, np.nan)\n        not_masked = ~union_mask\n        result[not_masked] = cat_safe([x[not_masked] for x in all_cols], sep)\n    elif na_rep is not None and union_mask.any():\n        all_cols = [np.where(nm, na_rep, col) for nm, col in zip(na_masks, all_cols)]\n        result = cat_safe(all_cols, sep)\n    else:\n        result = cat_safe(all_cols, sep)\n    if isinstance(self._orig, ABCIndexClass):\n        result = Index(result, dtype=object, name=self._orig.name)\n    else:\n        if is_categorical_dtype(self._orig.dtype):\n            dtype = None\n        else:\n            dtype = self._orig.dtype\n        result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)\n    return result",
+                            "@forbid_nonstring_types(['bytes', 'mixed', 'mixed-integer'])\ndef cat(self, others=None, sep=None, na_rep=None, join='left'):\n    \"\"\"\n    Concatenate strings in the Series/Index with given separator.\n\n    If `others` is specified, this function concatenates the Series/Index\n    and elements of `others` element-wise.\n    If `others` is not passed, then all values in the Series/Index are\n    concatenated into a single string with a given `sep`.\n\n    Parameters\n    ----------\n    others : Series, Index, DataFrame, np.ndarray or list-like\n        Series, Index, DataFrame, np.ndarray (one- or two-dimensional) and\n        other list-likes of strings must have the same length as the\n        calling Series/Index, with the exception of indexed objects (i.e.\n        Series/Index/DataFrame) if `join` is not None.\n\n        If others is a list-like that contains a combination of Series,\n        Index or np.ndarray (1-dim), then all elements will be unpacked and\n        must satisfy the above criteria individually.\n\n        If others is None, the method returns the concatenation of all\n        strings in the calling Series/Index.\n    sep : str, default ''\n        The separator between the different elements/columns. By default\n        the empty string `''` is used.\n    na_rep : str or None, default None\n        Representation that is inserted for all missing values:\n\n        - If `na_rep` is None, and `others` is None, missing values in the\n          Series/Index are omitted from the result.\n        - If `na_rep` is None, and `others` is not None, a row containing a\n          missing value in any of the columns (before concatenation) will\n          have a missing value in the result.\n    join : {'left', 'right', 'outer', 'inner'}, default 'left'\n        Determines the join-style between the calling Series/Index and any\n        Series/Index/DataFrame in `others` (objects without an index need\n        to match the length of the calling Series/Index). To disable\n        alignment, use `.values` on any Series/Index/DataFrame in `others`.\n\n        .. versionadded:: 0.23.0\n        .. versionchanged:: 1.0.0\n            Changed default of `join` from None to `'left'`.\n\n    Returns\n    -------\n    str, Series or Index\n        If `others` is None, `str` is returned, otherwise a `Series/Index`\n        (same type as caller) of objects is returned.\n\n    See Also\n    --------\n    split : Split each string in the Series/Index.\n    join : Join lists contained as elements in the Series/Index.\n\n    Examples\n    --------\n    When not passing `others`, all values are concatenated into a single\n    string:\n\n    >>> s = pd.Series(['a', 'b', np.nan, 'd'])\n    >>> s.str.cat(sep=' ')\n    'a b d'\n\n    By default, NA values in the Series are ignored. Using `na_rep`, they\n    can be given a representation:\n\n    >>> s.str.cat(sep=' ', na_rep='?')\n    'a b ? d'\n\n    If `others` is specified, corresponding values are concatenated with\n    the separator. Result will be a Series of strings.\n\n    >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',')\n    0    a,A\n    1    b,B\n    2    NaN\n    3    d,D\n    dtype: object\n\n    Missing values will remain missing in the result, but can again be\n    represented using `na_rep`\n\n    >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',', na_rep='-')\n    0    a,A\n    1    b,B\n    2    -,C\n    3    d,D\n    dtype: object\n\n    If `sep` is not specified, the values are concatenated without\n    separation.\n\n    >>> s.str.cat(['A', 'B', 'C', 'D'], na_rep='-')\n    0    aA\n    1    bB\n    2    -C\n    3    dD\n    dtype: object\n\n    Series with different indexes can be aligned before concatenation. The\n    `join`-keyword works as in other methods.\n\n    >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])\n    >>> s.str.cat(t, join='left', na_rep='-')\n    0    aa\n    1    b-\n    2    -c\n    3    dd\n    dtype: object\n    >>>\n    >>> s.str.cat(t, join='outer', na_rep='-')\n    0    aa\n    1    b-\n    2    -c\n    3    dd\n    4    -e\n    dtype: object\n    >>>\n    >>> s.str.cat(t, join='inner', na_rep='-')\n    0    aa\n    2    -c\n    3    dd\n    dtype: object\n    >>>\n    >>> s.str.cat(t, join='right', na_rep='-')\n    3    dd\n    0    aa\n    4    -e\n    2    -c\n    dtype: object\n\n    For more examples, see :ref:`here <text.concatenate>`.\n    \"\"\"\n    from pandas import Index, Series, concat\n    if isinstance(others, str):\n        raise ValueError('Did you mean to supply a `sep` keyword?')\n    if sep is None:\n        sep = ''\n    if isinstance(self._orig, ABCIndexClass):\n        data = Series(self._orig, index=self._orig)\n    else:\n        data = self._orig\n    if others is None:\n        data = ensure_object(data)\n        na_mask = isna(data)\n        if na_rep is None and na_mask.any():\n            data = data[~na_mask]\n        elif na_rep is not None and na_mask.any():\n            data = np.where(na_mask, na_rep, data)\n        return sep.join(data)\n    try:\n        others = self._get_series_list(others)\n    except ValueError as err:\n        raise ValueError('If `others` contains arrays or lists (or other list-likes without an index), these must all be of the same length as the calling Series/Index.') from err\n    if any((not data.index.equals(x.index) for x in others)):\n        others = concat(others, axis=1, join=join if join == 'inner' else 'outer', keys=range(len(others)), sort=False, copy=False)\n        (data, others) = data.align(others, join=join)\n        others = [others[x] for x in others]\n    all_cols = [ensure_object(x) for x in [data] + others]\n    na_masks = np.array([isna(x) for x in all_cols])\n    union_mask = np.logical_or.reduce(na_masks, axis=0)\n    if na_rep is None and union_mask.any():\n        result = np.empty(len(data), dtype=object)\n        np.putmask(result, union_mask, np.nan)\n        not_masked = ~union_mask\n        result[not_masked] = cat_safe([x[not_masked] for x in all_cols], sep)\n    elif na_rep is not None and union_mask.any():\n        all_cols = [np.where(nm, na_rep, col) for (nm, col) in zip(na_masks, all_cols)]\n        result = cat_safe(all_cols, sep)\n    else:\n        result = cat_safe(all_cols, sep)\n    if isinstance(self._orig, ABCIndexClass):\n        result = Index(result, dtype=object, name=self._orig.name)\n    else:\n        if is_categorical_dtype(self._orig.dtype):\n            dtype = None\n        else:\n            dtype = self._orig.dtype\n        result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)\n    return result",
                             "@Appender(_shared_docs['str_split'] % {'side': 'beginning', 'method': 'split'})\n@forbid_nonstring_types(['bytes'])\ndef split(self, pat=None, n=-1, expand=False):\n    result = str_split(self._parent, pat, n=n)\n    return self._wrap_result(result, expand=expand, returns_string=expand)",
                             "@Appender(_shared_docs['str_split'] % {'side': 'end', 'method': 'rsplit'})\n@forbid_nonstring_types(['bytes'])\ndef rsplit(self, pat=None, n=-1, expand=False):\n    result = str_rsplit(self._parent, pat, n=n)\n    return self._wrap_result(result, expand=expand, returns_string=expand)",
                             "@Appender(_shared_docs['str_partition'] % {'side': 'first', 'return': '3 elements containing the string itself, followed by two empty strings', 'also': 'rpartition : Split the string at the last occurrence of `sep`.'})\n@forbid_nonstring_types(['bytes'])\ndef partition(self, sep=' ', expand=True):\n    f = lambda x: x.partition(sep)\n    result = _na_map(f, self._parent)\n    return self._wrap_result(result, expand=expand, returns_string=expand)",
@@ -253,7 +253,7 @@
                             "@Appender(_shared_docs['str_strip'] % dict(side='left side', method='lstrip'))\n@forbid_nonstring_types(['bytes'])\ndef lstrip(self, to_strip=None):\n    result = str_strip(self._parent, to_strip, side='left')\n    return self._wrap_result(result)",
                             "@Appender(_shared_docs['str_strip'] % dict(side='right side', method='rstrip'))\n@forbid_nonstring_types(['bytes'])\ndef rstrip(self, to_strip=None):\n    result = str_strip(self._parent, to_strip, side='right')\n    return self._wrap_result(result)",
                             "@copy(str_wrap)\n@forbid_nonstring_types(['bytes'])\ndef wrap(self, width, **kwargs):\n    result = str_wrap(self._parent, width, **kwargs)\n    return self._wrap_result(result)",
-                            "@copy(str_get_dummies)\n@forbid_nonstring_types(['bytes'])\ndef get_dummies(self, sep='|'):\n    data = self._orig.astype(str) if self._is_categorical else self._parent\n    result, name = str_get_dummies(data, sep)\n    return self._wrap_result(result, use_codes=not self._is_categorical, name=name, expand=True, returns_string=False)",
+                            "@copy(str_get_dummies)\n@forbid_nonstring_types(['bytes'])\ndef get_dummies(self, sep='|'):\n    data = self._orig.astype(str) if self._is_categorical else self._parent\n    (result, name) = str_get_dummies(data, sep)\n    return self._wrap_result(result, use_codes=not self._is_categorical, name=name, expand=True, returns_string=False)",
                             "@copy(str_translate)\n@forbid_nonstring_types(['bytes'])\ndef translate(self, table):\n    result = str_translate(self._parent, table)\n    return self._wrap_result(result)",
                             "@copy(str_extract)\n@forbid_nonstring_types(['bytes'])\ndef extract(self, pat, flags=0, expand=True):\n    return str_extract(self, pat, flags=flags, expand=expand)",
                             "@copy(str_extractall)\n@forbid_nonstring_types(['bytes'])\ndef extractall(self, pat, flags=0):\n    return str_extractall(self._orig, pat, flags=flags)",
@@ -266,34 +266,58 @@
                             "def cons_row(x):\n    if is_list_like(x):\n        return x\n    else:\n        return [x]"
                         ],
                         "constructor_variables": [
-                            "_orig",
-                            "_is_string",
-                            "_inferred_dtype",
-                            "_parent",
-                            "_is_categorical"
+                            "self._inferred_dtype = self._validate(data)",
+                            "self._is_categorical = is_categorical_dtype(data)",
+                            "self._is_string = data.dtype.name == 'string'",
+                            "self._parent = data._values.categories if self._is_categorical else data",
+                            "self._orig = data"
                         ],
                         "class_level_variables": [
-                            "count",
-                            "startswith",
-                            "endswith",
-                            "findall",
-                            "len",
-                            "_doc_args",
-                            "lower",
-                            "upper",
-                            "title",
-                            "capitalize",
-                            "swapcase",
-                            "casefold",
-                            "isalnum",
-                            "isalpha",
-                            "isdigit",
-                            "isspace",
-                            "islower",
-                            "isupper",
-                            "istitle",
-                            "isnumeric",
-                            "isdecimal"
+                            "_shared_docs['str_split'] = '\\n    Split strings around given separator/delimiter.\\n\\n    Splits the string in the Series/Index from the %(side)s,\\n    at the specified delimiter string. Equivalent to :meth:`str.%(method)s`.\\n\\n    Parameters\\n    ----------\\n    pat : str, optional\\n        String or regular expression to split on.\\n        If not specified, split on whitespace.\\n    n : int, default -1 (all)\\n        Limit number of splits in output.\\n        ``None``, 0 and -1 will be interpreted as return all splits.\\n    expand : bool, default False\\n        Expand the split strings into separate columns.\\n\\n        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.\\n        * If ``False``, return Series/Index, containing lists of strings.\\n\\n    Returns\\n    -------\\n    Series, Index, DataFrame or MultiIndex\\n        Type matches caller unless ``expand=True`` (see Notes).\\n\\n    See Also\\n    --------\\n    Series.str.split : Split strings around given separator/delimiter.\\n    Series.str.rsplit : Splits string around given separator/delimiter,\\n        starting from the right.\\n    Series.str.join : Join lists contained as elements in the Series/Index\\n        with passed delimiter.\\n    str.split : Standard library version for split.\\n    str.rsplit : Standard library version for rsplit.\\n\\n    Notes\\n    -----\\n    The handling of the `n` keyword depends on the number of found splits:\\n\\n    - If found splits > `n`,  make first `n` splits only\\n    - If found splits <= `n`, make all splits\\n    - If for a certain row the number of found splits < `n`,\\n      append `None` for padding up to `n` if ``expand=True``\\n\\n    If using ``expand=True``, Series and Index callers return DataFrame and\\n    MultiIndex objects, respectively.\\n\\n    Examples\\n    --------\\n    >>> s = pd.Series(\\n    ...     [\\n    ...         \"this is a regular sentence\",\\n    ...         \"https://docs.python.org/3/tutorial/index.html\",\\n    ...         np.nan\\n    ...     ]\\n    ... )\\n    >>> s\\n    0                       this is a regular sentence\\n    1    https://docs.python.org/3/tutorial/index.html\\n    2                                              NaN\\n    dtype: object\\n\\n    In the default setting, the string is split by whitespace.\\n\\n    >>> s.str.split()\\n    0                   [this, is, a, regular, sentence]\\n    1    [https://docs.python.org/3/tutorial/index.html]\\n    2                                                NaN\\n    dtype: object\\n\\n    Without the `n` parameter, the outputs of `rsplit` and `split`\\n    are identical.\\n\\n    >>> s.str.rsplit()\\n    0                   [this, is, a, regular, sentence]\\n    1    [https://docs.python.org/3/tutorial/index.html]\\n    2                                                NaN\\n    dtype: object\\n\\n    The `n` parameter can be used to limit the number of splits on the\\n    delimiter. The outputs of `split` and `rsplit` are different.\\n\\n    >>> s.str.split(n=2)\\n    0                     [this, is, a regular sentence]\\n    1    [https://docs.python.org/3/tutorial/index.html]\\n    2                                                NaN\\n    dtype: object\\n\\n    >>> s.str.rsplit(n=2)\\n    0                     [this is a, regular, sentence]\\n    1    [https://docs.python.org/3/tutorial/index.html]\\n    2                                                NaN\\n    dtype: object\\n\\n    The `pat` parameter can be used to split by other characters.\\n\\n    >>> s.str.split(pat=\"/\")\\n    0                         [this is a regular sentence]\\n    1    [https:, , docs.python.org, 3, tutorial, index...\\n    2                                                  NaN\\n    dtype: object\\n\\n    When using ``expand=True``, the split elements will expand out into\\n    separate columns. If NaN is present, it is propagated throughout\\n    the columns during the split.\\n\\n    >>> s.str.split(expand=True)\\n                                                   0     1     2        3         4\\n    0                                           this    is     a  regular  sentence\\n    1  https://docs.python.org/3/tutorial/index.html  None  None     None      None\\n    2                                            NaN   NaN   NaN      NaN       NaN\\n\\n    For slightly more complex use cases like splitting the html document name\\n    from a url, a combination of parameter settings can be used.\\n\\n    >>> s.str.rsplit(\"/\", n=1, expand=True)\\n                                        0           1\\n    0          this is a regular sentence        None\\n    1  https://docs.python.org/3/tutorial  index.html\\n    2                                 NaN         NaN\\n\\n    Remember to escape special characters when explicitly using regular\\n    expressions.\\n\\n    >>> s = pd.Series([\"1+1=2\"])\\n    >>> s\\n    0    1+1=2\\n    dtype: object\\n    >>> s.str.split(r\"\\\\+|=\", expand=True)\\n         0    1    2\\n    0    1    1    2\\n    '",
+                            "_shared_docs['str_partition'] = \"\\n    Split the string at the %(side)s occurrence of `sep`.\\n\\n    This method splits the string at the %(side)s occurrence of `sep`,\\n    and returns 3 elements containing the part before the separator,\\n    the separator itself, and the part after the separator.\\n    If the separator is not found, return %(return)s.\\n\\n    Parameters\\n    ----------\\n    sep : str, default whitespace\\n        String to split on.\\n    expand : bool, default True\\n        If True, return DataFrame/MultiIndex expanding dimensionality.\\n        If False, return Series/Index.\\n\\n    Returns\\n    -------\\n    DataFrame/MultiIndex or Series/Index of objects\\n\\n    See Also\\n    --------\\n    %(also)s\\n    Series.str.split : Split strings around given separators.\\n    str.partition : Standard library version.\\n\\n    Examples\\n    --------\\n\\n    >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])\\n    >>> s\\n    0    Linda van der Berg\\n    1    George Pitt-Rivers\\n    dtype: object\\n\\n    >>> s.str.partition()\\n            0  1             2\\n    0   Linda     van der Berg\\n    1  George      Pitt-Rivers\\n\\n    To partition by the last space instead of the first one:\\n\\n    >>> s.str.rpartition()\\n                   0  1            2\\n    0  Linda van der            Berg\\n    1         George     Pitt-Rivers\\n\\n    To partition by something different than a space:\\n\\n    >>> s.str.partition('-')\\n                        0  1       2\\n    0  Linda van der Berg\\n    1         George Pitt  -  Rivers\\n\\n    To return a Series containing tuples instead of a DataFrame:\\n\\n    >>> s.str.partition('-', expand=False)\\n    0    (Linda van der Berg, , )\\n    1    (George Pitt, -, Rivers)\\n    dtype: object\\n\\n    Also available on indices:\\n\\n    >>> idx = pd.Index(['X 123', 'Y 999'])\\n    >>> idx\\n    Index(['X 123', 'Y 999'], dtype='object')\\n\\n    Which will create a MultiIndex:\\n\\n    >>> idx.str.partition()\\n    MultiIndex([('X', ' ', '123'),\\n                ('Y', ' ', '999')],\\n               )\\n\\n    Or an index with tuples with ``expand=False``:\\n\\n    >>> idx.str.partition(expand=False)\\n    Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')\\n    \"",
+                            "_shared_docs['str_pad'] = '\\n    Filling %(side)s side of strings in the Series/Index with an\\n    additional character. Equivalent to :meth:`str.%(method)s`.\\n\\n    Parameters\\n    ----------\\n    width : int\\n        Minimum width of resulting string; additional characters will be filled\\n        with ``fillchar``.\\n    fillchar : str\\n        Additional character for filling, default is whitespace.\\n\\n    Returns\\n    -------\\n    filled : Series/Index of objects.\\n    '",
+                            "_shared_docs['str_strip'] = \"\\n    Remove leading and trailing characters.\\n\\n    Strip whitespaces (including newlines) or a set of specified characters\\n    from each string in the Series/Index from %(side)s.\\n    Equivalent to :meth:`str.%(method)s`.\\n\\n    Parameters\\n    ----------\\n    to_strip : str or None, default None\\n        Specifying the set of characters to be removed.\\n        All combinations of this set of characters will be stripped.\\n        If None then whitespaces are removed.\\n\\n    Returns\\n    -------\\n    Series or Index of object\\n\\n    See Also\\n    --------\\n    Series.str.strip : Remove leading and trailing characters in Series/Index.\\n    Series.str.lstrip : Remove leading characters in Series/Index.\\n    Series.str.rstrip : Remove trailing characters in Series/Index.\\n\\n    Examples\\n    --------\\n    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\\\\n', '3. Cat?\\\\t', np.nan])\\n    >>> s\\n    0    1. Ant.\\n    1    2. Bee!\\\\n\\n    2    3. Cat?\\\\t\\n    3          NaN\\n    dtype: object\\n\\n    >>> s.str.strip()\\n    0    1. Ant.\\n    1    2. Bee!\\n    2    3. Cat?\\n    3        NaN\\n    dtype: object\\n\\n    >>> s.str.lstrip('123.')\\n    0    Ant.\\n    1    Bee!\\\\n\\n    2    Cat?\\\\t\\n    3       NaN\\n    dtype: object\\n\\n    >>> s.str.rstrip('.!? \\\\n\\\\t')\\n    0    1. Ant\\n    1    2. Bee\\n    2    3. Cat\\n    3       NaN\\n    dtype: object\\n\\n    >>> s.str.strip('123.!? \\\\n\\\\t')\\n    0    Ant\\n    1    Bee\\n    2    Cat\\n    3    NaN\\n    dtype: object\\n    \"",
+                            "count = _pat_wrapper(str_count, flags=True, name='count', returns_string=False)",
+                            "startswith = _pat_wrapper(str_startswith, na=True, name='startswith', returns_string=False)",
+                            "endswith = _pat_wrapper(str_endswith, na=True, name='endswith', returns_string=False)",
+                            "findall = _pat_wrapper(str_findall, flags=True, name='findall', returns_string=False)",
+                            "_shared_docs['find'] = '\\n    Return %(side)s indexes in each strings in the Series/Index\\n    where the substring is fully contained between [start:end].\\n    Return -1 on failure. Equivalent to standard :meth:`str.%(method)s`.\\n\\n    Parameters\\n    ----------\\n    sub : str\\n        Substring being searched.\\n    start : int\\n        Left edge index.\\n    end : int\\n        Right edge index.\\n\\n    Returns\\n    -------\\n    Series or Index of int.\\n\\n    See Also\\n    --------\\n    %(also)s\\n    '",
+                            "_shared_docs['index'] = '\\n    Return %(side)s indexes in each strings where the substring is\\n    fully contained between [start:end]. This is the same as\\n    ``str.%(similar)s`` except instead of returning -1, it raises a ValueError\\n    when the substring is not found. Equivalent to standard ``str.%(method)s``.\\n\\n    Parameters\\n    ----------\\n    sub : str\\n        Substring being searched.\\n    start : int\\n        Left edge index.\\n    end : int\\n        Right edge index.\\n\\n    Returns\\n    -------\\n    Series or Index of object\\n\\n    See Also\\n    --------\\n    %(also)s\\n    '",
+                            "_shared_docs['len'] = \"\\n    Compute the length of each element in the Series/Index. The element may be\\n    a sequence (such as a string, tuple or list) or a collection\\n    (such as a dictionary).\\n\\n    Returns\\n    -------\\n    Series or Index of int\\n        A Series or Index of integer values indicating the length of each\\n        element in the Series or Index.\\n\\n    See Also\\n    --------\\n    str.len : Python built-in function returning the length of an object.\\n    Series.size : Returns the length of the Series.\\n\\n    Examples\\n    --------\\n    Returns the length (number of characters) in a string. Returns the\\n    number of entries for dictionaries, lists or tuples.\\n\\n    >>> s = pd.Series(['dog',\\n    ...                 '',\\n    ...                 5,\\n    ...                 {'foo' : 'bar'},\\n    ...                 [2, 3, 5, 7],\\n    ...                 ('one', 'two', 'three')])\\n    >>> s\\n    0                  dog\\n    1\\n    2                    5\\n    3       {'foo': 'bar'}\\n    4         [2, 3, 5, 7]\\n    5    (one, two, three)\\n    dtype: object\\n    >>> s.str.len()\\n    0    3.0\\n    1    0.0\\n    2    NaN\\n    3    1.0\\n    4    4.0\\n    5    3.0\\n    dtype: float64\\n    \"",
+                            "len = _noarg_wrapper(len, docstring=_shared_docs['len'], forbidden_types=None, dtype='int64', returns_string=False)",
+                            "_shared_docs['casemethods'] = \"\\n    Convert strings in the Series/Index to %(type)s.\\n    %(version)s\\n    Equivalent to :meth:`str.%(method)s`.\\n\\n    Returns\\n    -------\\n    Series or Index of object\\n\\n    See Also\\n    --------\\n    Series.str.lower : Converts all characters to lowercase.\\n    Series.str.upper : Converts all characters to uppercase.\\n    Series.str.title : Converts first character of each word to uppercase and\\n        remaining to lowercase.\\n    Series.str.capitalize : Converts first character to uppercase and\\n        remaining to lowercase.\\n    Series.str.swapcase : Converts uppercase to lowercase and lowercase to\\n        uppercase.\\n    Series.str.casefold: Removes all case distinctions in the string.\\n\\n    Examples\\n    --------\\n    >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])\\n    >>> s\\n    0                 lower\\n    1              CAPITALS\\n    2    this is a sentence\\n    3              SwApCaSe\\n    dtype: object\\n\\n    >>> s.str.lower()\\n    0                 lower\\n    1              capitals\\n    2    this is a sentence\\n    3              swapcase\\n    dtype: object\\n\\n    >>> s.str.upper()\\n    0                 LOWER\\n    1              CAPITALS\\n    2    THIS IS A SENTENCE\\n    3              SWAPCASE\\n    dtype: object\\n\\n    >>> s.str.title()\\n    0                 Lower\\n    1              Capitals\\n    2    This Is A Sentence\\n    3              Swapcase\\n    dtype: object\\n\\n    >>> s.str.capitalize()\\n    0                 Lower\\n    1              Capitals\\n    2    This is a sentence\\n    3              Swapcase\\n    dtype: object\\n\\n    >>> s.str.swapcase()\\n    0                 LOWER\\n    1              capitals\\n    2    THIS IS A SENTENCE\\n    3              sWaPcAsE\\n    dtype: object\\n    \"",
+                            "_doc_args: Dict[str, Dict[str, str]] = {}",
+                            "_doc_args['lower'] = dict(type='lowercase', method='lower', version='')",
+                            "_doc_args['upper'] = dict(type='uppercase', method='upper', version='')",
+                            "_doc_args['title'] = dict(type='titlecase', method='title', version='')",
+                            "_doc_args['capitalize'] = dict(type='be capitalized', method='capitalize', version='')",
+                            "_doc_args['swapcase'] = dict(type='be swapcased', method='swapcase', version='')",
+                            "_doc_args['casefold'] = dict(type='be casefolded', method='casefold', version='\\n    .. versionadded:: 0.25.0\\n')",
+                            "lower = _noarg_wrapper(lambda x: x.lower(), name='lower', docstring=_shared_docs['casemethods'] % _doc_args['lower'], dtype=str)",
+                            "upper = _noarg_wrapper(lambda x: x.upper(), name='upper', docstring=_shared_docs['casemethods'] % _doc_args['upper'], dtype=str)",
+                            "title = _noarg_wrapper(lambda x: x.title(), name='title', docstring=_shared_docs['casemethods'] % _doc_args['title'], dtype=str)",
+                            "capitalize = _noarg_wrapper(lambda x: x.capitalize(), name='capitalize', docstring=_shared_docs['casemethods'] % _doc_args['capitalize'], dtype=str)",
+                            "swapcase = _noarg_wrapper(lambda x: x.swapcase(), name='swapcase', docstring=_shared_docs['casemethods'] % _doc_args['swapcase'], dtype=str)",
+                            "casefold = _noarg_wrapper(lambda x: x.casefold(), name='casefold', docstring=_shared_docs['casemethods'] % _doc_args['casefold'], dtype=str)",
+                            "_shared_docs['ismethods'] = \"\\n    Check whether all characters in each string are %(type)s.\\n\\n    This is equivalent to running the Python string method\\n    :meth:`str.%(method)s` for each element of the Series/Index. If a string\\n    has zero characters, ``False`` is returned for that check.\\n\\n    Returns\\n    -------\\n    Series or Index of bool\\n        Series or Index of boolean values with the same length as the original\\n        Series/Index.\\n\\n    See Also\\n    --------\\n    Series.str.isalpha : Check whether all characters are alphabetic.\\n    Series.str.isnumeric : Check whether all characters are numeric.\\n    Series.str.isalnum : Check whether all characters are alphanumeric.\\n    Series.str.isdigit : Check whether all characters are digits.\\n    Series.str.isdecimal : Check whether all characters are decimal.\\n    Series.str.isspace : Check whether all characters are whitespace.\\n    Series.str.islower : Check whether all characters are lowercase.\\n    Series.str.isupper : Check whether all characters are uppercase.\\n    Series.str.istitle : Check whether all characters are titlecase.\\n\\n    Examples\\n    --------\\n    **Checks for Alphabetic and Numeric Characters**\\n\\n    >>> s1 = pd.Series(['one', 'one1', '1', ''])\\n\\n    >>> s1.str.isalpha()\\n    0     True\\n    1    False\\n    2    False\\n    3    False\\n    dtype: bool\\n\\n    >>> s1.str.isnumeric()\\n    0    False\\n    1    False\\n    2     True\\n    3    False\\n    dtype: bool\\n\\n    >>> s1.str.isalnum()\\n    0     True\\n    1     True\\n    2     True\\n    3    False\\n    dtype: bool\\n\\n    Note that checks against characters mixed with any additional punctuation\\n    or whitespace will evaluate to false for an alphanumeric check.\\n\\n    >>> s2 = pd.Series(['A B', '1.5', '3,000'])\\n    >>> s2.str.isalnum()\\n    0    False\\n    1    False\\n    2    False\\n    dtype: bool\\n\\n    **More Detailed Checks for Numeric Characters**\\n\\n    There are several different but overlapping sets of numeric characters that\\n    can be checked for.\\n\\n    >>> s3 = pd.Series(['23', '\u00b3', '\u2155', ''])\\n\\n    The ``s3.str.isdecimal`` method checks for characters used to form numbers\\n    in base 10.\\n\\n    >>> s3.str.isdecimal()\\n    0     True\\n    1    False\\n    2    False\\n    3    False\\n    dtype: bool\\n\\n    The ``s.str.isdigit`` method is the same as ``s3.str.isdecimal`` but also\\n    includes special digits, like superscripted and subscripted digits in\\n    unicode.\\n\\n    >>> s3.str.isdigit()\\n    0     True\\n    1     True\\n    2    False\\n    3    False\\n    dtype: bool\\n\\n    The ``s.str.isnumeric`` method is the same as ``s3.str.isdigit`` but also\\n    includes other characters that can represent quantities such as unicode\\n    fractions.\\n\\n    >>> s3.str.isnumeric()\\n    0     True\\n    1     True\\n    2     True\\n    3    False\\n    dtype: bool\\n\\n    **Checks for Whitespace**\\n\\n    >>> s4 = pd.Series([' ', '\\\\t\\\\r\\\\n ', ''])\\n    >>> s4.str.isspace()\\n    0     True\\n    1     True\\n    2    False\\n    dtype: bool\\n\\n    **Checks for Character Case**\\n\\n    >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])\\n\\n    >>> s5.str.islower()\\n    0     True\\n    1    False\\n    2    False\\n    3    False\\n    dtype: bool\\n\\n    >>> s5.str.isupper()\\n    0    False\\n    1    False\\n    2     True\\n    3    False\\n    dtype: bool\\n\\n    The ``s5.str.istitle`` method checks for whether all words are in title\\n    case (whether only the first letter of each word is capitalized). Words are\\n    assumed to be as any sequence of non-numeric characters separated by\\n    whitespace characters.\\n\\n    >>> s5.str.istitle()\\n    0    False\\n    1     True\\n    2    False\\n    3    False\\n    dtype: bool\\n    \"",
+                            "_doc_args['isalnum'] = dict(type='alphanumeric', method='isalnum')",
+                            "_doc_args['isalpha'] = dict(type='alphabetic', method='isalpha')",
+                            "_doc_args['isdigit'] = dict(type='digits', method='isdigit')",
+                            "_doc_args['isspace'] = dict(type='whitespace', method='isspace')",
+                            "_doc_args['islower'] = dict(type='lowercase', method='islower')",
+                            "_doc_args['isupper'] = dict(type='uppercase', method='isupper')",
+                            "_doc_args['istitle'] = dict(type='titlecase', method='istitle')",
+                            "_doc_args['isnumeric'] = dict(type='numeric', method='isnumeric')",
+                            "_doc_args['isdecimal'] = dict(type='decimal', method='isdecimal')",
+                            "isalnum = _noarg_wrapper(lambda x: x.isalnum(), name='isalnum', docstring=_shared_docs['ismethods'] % _doc_args['isalnum'], returns_string=False, dtype=bool)",
+                            "isalpha = _noarg_wrapper(lambda x: x.isalpha(), name='isalpha', docstring=_shared_docs['ismethods'] % _doc_args['isalpha'], returns_string=False, dtype=bool)",
+                            "isdigit = _noarg_wrapper(lambda x: x.isdigit(), name='isdigit', docstring=_shared_docs['ismethods'] % _doc_args['isdigit'], returns_string=False, dtype=bool)",
+                            "isspace = _noarg_wrapper(lambda x: x.isspace(), name='isspace', docstring=_shared_docs['ismethods'] % _doc_args['isspace'], returns_string=False, dtype=bool)",
+                            "islower = _noarg_wrapper(lambda x: x.islower(), name='islower', docstring=_shared_docs['ismethods'] % _doc_args['islower'], returns_string=False, dtype=bool)",
+                            "isupper = _noarg_wrapper(lambda x: x.isupper(), name='isupper', docstring=_shared_docs['ismethods'] % _doc_args['isupper'], returns_string=False, dtype=bool)",
+                            "istitle = _noarg_wrapper(lambda x: x.istitle(), name='istitle', docstring=_shared_docs['ismethods'] % _doc_args['istitle'], returns_string=False, dtype=bool)",
+                            "isnumeric = _noarg_wrapper(lambda x: x.isnumeric(), name='isnumeric', docstring=_shared_docs['ismethods'] % _doc_args['isnumeric'], returns_string=False, dtype=bool)",
+                            "isdecimal = _noarg_wrapper(lambda x: x.isdecimal(), name='isdecimal', docstring=_shared_docs['ismethods'] % _doc_args['isdecimal'], returns_string=False, dtype=bool)"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -339,8 +363,48 @@
                             "rindex(self, sub, start=0, end=None)",
                             "_make_accessor(cls, data)",
                             "cons_row(x)"
+                        ],
+                        "class_level_variable_names": [
+                            "count",
+                            "startswith",
+                            "endswith",
+                            "findall",
+                            "len",
+                            "_doc_args",
+                            "lower",
+                            "upper",
+                            "title",
+                            "capitalize",
+                            "swapcase",
+                            "casefold",
+                            "isalnum",
+                            "isalpha",
+                            "isdigit",
+                            "isspace",
+                            "islower",
+                            "isupper",
+                            "istitle",
+                            "isnumeric",
+                            "isdecimal"
+                        ],
+                        "constructor_variable_names": [
+                            "_is_string",
+                            "_is_categorical",
+                            "_parent",
+                            "_inferred_dtype",
+                            "_orig"
                         ]
                     },
+                    "used_imports": [
+                        "import numpy as np",
+                        "from pandas.core.dtypes.common import ensure_object, is_bool_dtype, is_categorical_dtype, is_extension_array_dtype, is_integer, is_integer_dtype, is_list_like, is_object_dtype, is_re, is_scalar, is_string_dtype",
+                        "from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCSeries",
+                        "from pandas import DataFrame",
+                        "from pandas import DataFrame",
+                        "from pandas import Index, Series, MultiIndex",
+                        "from pandas import Series, DataFrame",
+                        "from pandas import Index, Series, concat"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -355,7 +419,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117c3a730>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3cda00>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -435,7 +499,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117c3a730>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3cda00>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -457,7 +521,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117c3a730>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3cda00>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -484,7 +548,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10e0797c0>"
+                                    "variable_shape": "<property object at 0x7f43236efc70>"
                                 },
                                 "others._values": {
                                     "variable_value": "None",
@@ -519,7 +583,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10eb3cea0>"
+                                    "variable_shape": "<property object at 0x7f432238f2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -537,12 +601,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117c3a730>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3cda00>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x11759b4c0>",
+                                    "variable_value": "<built-in method pop of list object at 0x7f433d3b6500>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -561,7 +625,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117ca72e0>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3ba820>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -641,12 +705,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117ca72e0>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3ba820>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x117ca2880>",
+                                    "variable_value": "<built-in method pop of list object at 0x7f433d3b6940>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -663,7 +727,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117ca72e0>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3ba820>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -690,7 +754,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10e0797c0>"
+                                    "variable_shape": "<property object at 0x7f43236efc70>"
                                 },
                                 "others._values": {
                                     "variable_value": "None",
@@ -725,7 +789,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10eb3cea0>"
+                                    "variable_shape": "<property object at 0x7f432238f2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -743,12 +807,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117ca72e0>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3ba820>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x1178dd7c0>",
+                                    "variable_value": "<built-in method pop of list object at 0x7f433d348440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -767,7 +831,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117b32a60>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3ba460>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -847,7 +911,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117b32a60>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3ba460>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -869,7 +933,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117b32a60>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3ba460>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -896,7 +960,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10e0797c0>"
+                                    "variable_shape": "<property object at 0x7f43236efc70>"
                                 },
                                 "others._values": {
                                     "variable_value": "None",
@@ -931,7 +995,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10eb3cea0>"
+                                    "variable_shape": "<property object at 0x7f432238f2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -949,12 +1013,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117b32a60>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3ba460>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x117ca2440>",
+                                    "variable_value": "<built-in method pop of list object at 0x7f433d348d00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -973,7 +1037,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117ca7af0>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d351490>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1053,7 +1117,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117ca7af0>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d351490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1075,7 +1139,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117ca7af0>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d351490>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1102,7 +1166,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10e0797c0>"
+                                    "variable_shape": "<property object at 0x7f43236efc70>"
                                 },
                                 "others._values": {
                                     "variable_value": "array(['x', 'y', 'z'], dtype=object)",
@@ -1137,7 +1201,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10eb3cea0>"
+                                    "variable_shape": "<property object at 0x7f432238f2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1155,7 +1219,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117ca7af0>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d351490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1179,7 +1243,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117cc0730>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3560d0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1259,7 +1323,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117cc0730>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3560d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1281,7 +1345,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x117cc0730>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7f433d3560d0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1308,7 +1372,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10e0797c0>"
+                                    "variable_shape": "<property object at 0x7f43236efc70>"
                                 },
                                 "others._values": {
                                     "variable_value": "array(['x', 'y', 'z'], dtype=object)",
@@ -1343,7 +1407,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x10eb3cea0>"
+                                    "variable_shape": "<property object at 0x7f432238f2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1361,7 +1425,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x117cc0730>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7f433d3560d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1387,7 +1451,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11aba6b50>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc461a9ee80>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1467,7 +1531,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11aba6b50>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc461a9ee80>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1489,7 +1553,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11aba6b50>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc461a9ee80>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1516,7 +1580,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110cd05e0>"
+                                    "variable_shape": "<property object at 0x7fc44bf62cc0>"
                                 },
                                 "others._values": {
                                     "variable_value": "None",
@@ -1551,7 +1615,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x111792d60>"
+                                    "variable_shape": "<property object at 0x7fc44abfb2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1569,12 +1633,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11aba6b50>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc461a9ee80>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x11a707540>",
+                                    "variable_value": "<built-in method pop of list object at 0x7fc460ec01c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1593,7 +1657,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11aa24a00>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc461454310>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1673,12 +1737,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11aa24a00>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc461454310>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x11b2ffa80>",
+                                    "variable_value": "<built-in method pop of list object at 0x7fc460ec0040>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1695,7 +1759,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11aa24a00>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc461454310>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1722,7 +1786,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110cd05e0>"
+                                    "variable_shape": "<property object at 0x7fc44bf62cc0>"
                                 },
                                 "others._values": {
                                     "variable_value": "None",
@@ -1757,7 +1821,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x111792d60>"
+                                    "variable_shape": "<property object at 0x7fc44abfb2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1775,12 +1839,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11aa24a00>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc461454310>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x11b3001c0>",
+                                    "variable_value": "<built-in method pop of list object at 0x7fc461455d40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1799,7 +1863,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11add5b80>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc4614548e0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1879,7 +1943,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11add5b80>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc4614548e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1901,7 +1965,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11add5b80>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc4614548e0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -1928,7 +1992,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110cd05e0>"
+                                    "variable_shape": "<property object at 0x7fc44bf62cc0>"
                                 },
                                 "others._values": {
                                     "variable_value": "None",
@@ -1963,7 +2027,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x111792d60>"
+                                    "variable_shape": "<property object at 0x7fc44abfb2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -1981,12 +2045,12 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11add5b80>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc4614548e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "others.pop": {
-                                    "variable_value": "<built-in method pop of list object at 0x11b300280>",
+                                    "variable_value": "<built-in method pop of list object at 0x7fc460f3fec0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -2005,7 +2069,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11add5730>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc460f329a0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -2085,7 +2149,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11add5730>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc460f329a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2107,7 +2171,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11add5730>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc460f329a0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -2134,7 +2198,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110cd05e0>"
+                                    "variable_shape": "<property object at 0x7fc44bf62cc0>"
                                 },
                                 "others._values": {
                                     "variable_value": "array(['x', 'y', 'z'], dtype=object)",
@@ -2169,7 +2233,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x111792d60>"
+                                    "variable_shape": "<property object at 0x7fc44abfb2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -2187,7 +2251,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11add5730>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc460f329a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2211,7 +2275,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11add53a0>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc460f322e0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -2291,7 +2355,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11add53a0>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc460f322e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2313,7 +2377,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x11add53a0>",
+                                    "variable_value": "<pandas.core.strings.StringMethods object at 0x7fc460f322e0>",
                                     "variable_type": "StringMethods",
                                     "variable_shape": null
                                 },
@@ -2340,7 +2404,7 @@
                                 "Series": {
                                     "variable_value": "<class 'pandas.core.series.Series'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x110cd05e0>"
+                                    "variable_shape": "<property object at 0x7fc44bf62cc0>"
                                 },
                                 "others._values": {
                                     "variable_value": "array(['x', 'y', 'z'], dtype=object)",
@@ -2375,7 +2439,7 @@
                                 "DataFrame": {
                                     "variable_value": "<class 'pandas.core.frame.DataFrame'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x111792d60>"
+                                    "variable_shape": "<property object at 0x7fc44abfb2c0>"
                                 },
                                 "is_list_like": {
                                     "variable_value": null,
@@ -2393,7 +2457,7 @@
                                     "variable_shape": null
                                 },
                                 "self._get_series_list": {
-                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x11add53a0>>",
+                                    "variable_value": "<bound method StringMethods._get_series_list of <pandas.core.strings.StringMethods object at 0x7fc460f322e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -8336,7 +8400,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/pandas_28/pandas/tests/test_strings.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_28/pandas/tests/test_strings.py",
                 "test_function": "test_cat_different_classes",
                 "test_function_code": "@pytest.mark.parametrize(\"klass\", [tuple, list, np.array, pd.Series, pd.Index])\ndef test_cat_different_classes(klass):\n    # https://github.com/pandas-dev/pandas/issues/33425\n    s = pd.Series([\"a\", \"b\", \"c\"])\n    result = s.str.cat(klass([\"x\", \"y\", \"z\"]))\n    expected = pd.Series([\"ax\", \"by\", \"cz\"])\n    tm.assert_series_equal(result, expected)",
                 "test_error": "AssertionError: Series.index are different  Series.index classes are not equivalent [left]:  Index([0, 1, 2], dtype='object') [right]: RangeIndex(start=0, stop=3, step=1)",

@@ -1,6 +1,6 @@
 {
     "luigi:4": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_4/luigi/contrib/redshift.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_4/luigi/contrib/redshift.py": {
             "buggy_functions": [
                 {
                     "function_name": "copy",
@@ -134,7 +134,7 @@
                             "@property\ndef queries(self):\n    \"\"\"\n    Override to return a list of queries to be executed in order.\n    \"\"\"\n    return []",
                             "def truncate_table(self, connection):\n    query = 'truncate %s' % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
                             "def prune(self, connection):\n    query = 'delete from %s where %s >= %s' % (self.prune_table, self.prune_column, self.prune_date)\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
-                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for name, type in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    elif len(self.columns[0]) == 3:\n        coldefs = ','.join(('{name} {type} ENCODE {encoding}'.format(name=name, type=type, encoding=encoding) for name, type, encoding in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    else:\n        raise ValueError('create_table() found no columns for %r' % self.table)",
+                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for (name, type) in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    elif len(self.columns[0]) == 3:\n        coldefs = ','.join(('{name} {type} ENCODE {encoding}'.format(name=name, type=type, encoding=encoding) for (name, type, encoding) in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    else:\n        raise ValueError('create_table() found no columns for %r' % self.table)",
                             "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not self.table:\n        raise Exception('table need to be specified')\n    path = self.s3_load_path()\n    output = self.output()\n    connection = output.connect()\n    cursor = connection.cursor()\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.post_copy(cursor)\n    output.touch(connection)\n    connection.commit()\n    connection.close()",
                             "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    logger.info('Inserting file: %s', f)\n    colnames = ''\n    if len(self.columns) > 0:\n        colnames = ','.join([x[0] for x in self.columns])\n        colnames = '({})'.format(colnames)\n    cursor.execute(\"\\n         COPY {table} {colnames} from '{source}'\\n         CREDENTIALS '{creds}'\\n         {options}\\n         ;\".format(table=self.table, colnames=colnames, source=f, creds=self._credentials(), options=self.copy_options))",
                             "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(host=self.host, database=self.database, user=self.user, password=self.password, table=self.table, update_id=self.update_id)",
@@ -165,8 +165,11 @@
                             "does_table_exist(self, connection)",
                             "init_copy(self, connection)",
                             "post_copy(self, cursor)"
-                        ]
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -211,12 +214,12 @@
                                     "variable_shape": null
                                 },
                                 "cursor.execute": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4509212144'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='140337437264864'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4509212480'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='140337437272000'>"
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4509199760'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='140337437248432'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
@@ -283,12 +286,12 @@
                                     "variable_shape": null
                                 },
                                 "cursor.execute": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4605313952'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='139954802731712'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4605314240'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='139954802742656'>"
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4605301616'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='139954802715280'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
@@ -350,12 +353,12 @@
                                     "variable_shape": null
                                 },
                                 "cursor.execute": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4605313952'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='139954802731712'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4605314240'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='139954802742656'>"
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4605301616'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='139954802715280'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
@@ -2059,13 +2062,13 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_4/test/contrib/redshift_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_4/test/contrib/redshift_test.py",
                 "test_function": "test_s3_copy_with_nonetype_columns",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_once_with(\n            database=task.database,\n            host=task.host,\n            update_id=task.task_id,\n            user=task.user,\n            table=task.table,\n            password=task.password,\n        )\n\n        # To get the proper intendation in the multiline `COPY` statement the\n        # SQL string was copied from redshift.py.\n        mock_cursor.execute.assert_called_with(\"\"\"\n         COPY {table} {colnames} from '{source}'\n         CREDENTIALS '{creds}'\n         {options}\n         ;\"\"\".format(\n            table='dummy_table',\n            colnames='',\n            source='s3://bucket/key',\n            creds='aws_access_key_id=key;aws_secret_access_key=secret',\n            options='')\n        )",
                 "test_error": "TypeError: object of type 'NoneType' has no len()",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4478224368'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4478800560'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_with_nonetype_columns>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='139981958210512'>\n\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):\n        task = DummyS3CopyToTableKey(columns=None)\n>       task.run()\n\ntest/contrib/redshift_test.py:337: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='139981955557984'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "traceback": "luigi/contrib/redshift.py:338: in run\n    self.copy(cursor, path)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='4478800560'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTableKey(table=dummy_table, columns=null)\ncursor = <MagicMock name='RedshiftTarget().connect().cursor()' id='139981955557984'>\nf = 's3://bucket/key'\n\n    def copy(self, cursor, f):\n        \"\"\"\n        Defines copying from s3 into redshift.\n    \n        If both key-based and role-based credentials are provided, role-based will be used.\n        \"\"\"\n        logger.info(\"Inserting file: %s\", f)\n        colnames = ''\n>       if len(self.columns) > 0:\nE       TypeError: object of type 'NoneType' has no len()\n\nluigi/contrib/redshift.py:356: TypeError",
                 "test_function_decorators": [
                     "mock.patch('luigi.contrib.redshift.RedshiftTarget')"
                 ]

@@ -1,6 +1,6 @@
 {
     "luigi:15": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_15/luigi/scheduler.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_15/luigi/scheduler.py": {
             "buggy_functions": [
                 {
                     "function_name": "get_necessary_tasks",
@@ -107,7 +107,7 @@
                         "functions": [
                             "def __init__(self, state_path):\n    self._state_path = state_path\n    self._tasks = {}\n    self._status_tasks = collections.defaultdict(dict)\n    self._active_workers = {}",
                             "def get_state(self):\n    return (self._tasks, self._active_workers)",
-                            "def set_state(self, state):\n    self._tasks, self._active_workers = state",
+                            "def set_state(self, state):\n    (self._tasks, self._active_workers) = state",
                             "def dump(self):\n    try:\n        with open(self._state_path, 'wb') as fobj:\n            pickle.dump(self.get_state(), fobj)\n    except IOError:\n        logger.warning('Failed saving scheduler state', exc_info=1)\n    else:\n        logger.info('Saved state in %s', self._state_path)",
                             "def load(self):\n    if os.path.exists(self._state_path):\n        logger.info('Attempting to load state from %s', self._state_path)\n        try:\n            with open(self._state_path, 'rb') as fobj:\n                state = pickle.load(fobj)\n        except BaseException:\n            logger.exception('Error when loading state. Starting from clean slate.')\n            return\n        self.set_state(state)\n        self._status_tasks = collections.defaultdict(dict)\n        for task in six.itervalues(self._tasks):\n            self._status_tasks[task.status][task.id] = task\n    else:\n        logger.info('No prior state file exists at %s. Starting with clean slate', self._state_path)",
                             "def get_active_tasks(self, status=None):\n    if status:\n        for task in six.itervalues(self._status_tasks[status]):\n            yield task\n    else:\n        for task in six.itervalues(self._tasks):\n            yield task",
@@ -132,10 +132,10 @@
                             "def get_necessary_tasks(self):\n    necessary_tasks = set()\n    for task in self.get_active_tasks():\n        if task.status not in (DONE, DISABLED) or getattr(task, 'scheduler_disable_time', None) is not None:\n            necessary_tasks.update(task.deps)\n            necessary_tasks.add(task.id)\n    return necessary_tasks"
                         ],
                         "constructor_variables": [
-                            "_status_tasks",
-                            "_tasks",
-                            "_active_workers",
-                            "_state_path"
+                            "self._state_path = state_path",
+                            "self._tasks = {}",
+                            "self._status_tasks = collections.defaultdict(dict)",
+                            "self._active_workers = {}"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -165,8 +165,18 @@
                             "_remove_workers_from_tasks(self, workers, remove_stakeholders=True)",
                             "disable_workers(self, workers)",
                             "get_necessary_tasks(self)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "_state_path",
+                            "_active_workers",
+                            "_status_tasks",
+                            "_tasks"
                         ]
                     },
+                    "used_imports": [
+                        "from luigi.task_status import DISABLED, DONE, FAILED, PENDING, RUNNING, SUSPENDED, UNKNOWN"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -181,12 +191,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -228,22 +238,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'unknown', 'pending', 'running', 'failed'}",
+                                    "variable_value": "{'running', 'unknown', 'failed', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "4"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x1096b90d0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f6b97b34700>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -263,7 +273,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x1096b8740>",
+                                    "variable_value": "<built-in method update of set object at 0x7f6b97a9be40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -273,7 +283,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x1096b8740>",
+                                    "variable_value": "<built-in method add of set object at 0x7f6b97a9be40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -297,12 +307,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -344,22 +354,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'unknown', 'pending', 'running', 'failed'}",
+                                    "variable_value": "{'running', 'unknown', 'failed', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "4"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x1096b90d0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f6b97b34700>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -379,7 +389,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x1096b8740>",
+                                    "variable_value": "<built-in method update of set object at 0x7f6b97a9be40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -389,7 +399,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x1096b8740>",
+                                    "variable_value": "<built-in method add of set object at 0x7f6b97a9be40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -413,12 +423,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -460,22 +470,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'unknown', 'pending', 'running', 'failed'}",
+                                    "variable_value": "{'running', 'unknown', 'failed', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "4"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x1096b90d0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f6b97b34700>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -495,7 +505,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x1096a3d60>",
+                                    "variable_value": "<built-in method update of set object at 0x7f6b97b2f580>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -505,7 +515,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x1096a3d60>",
+                                    "variable_value": "<built-in method add of set object at 0x7f6b97b2f580>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -529,12 +539,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -576,22 +586,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'unknown', 'pending', 'running', 'failed'}",
+                                    "variable_value": "{'running', 'unknown', 'failed', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "4"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x1096b90d0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f6b97b34700>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -611,7 +621,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x1096a3c80>",
+                                    "variable_value": "<built-in method update of set object at 0x7f6b97b2f660>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -621,7 +631,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x1096a3c80>",
+                                    "variable_value": "<built-in method add of set object at 0x7f6b97b2f660>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -645,12 +655,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -692,22 +702,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'unknown', 'pending', 'running', 'failed'}",
+                                    "variable_value": "{'running', 'unknown', 'failed', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "4"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x1096b90d0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f6b97b34700>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -727,7 +737,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x1096a3e40>",
+                                    "variable_value": "<built-in method update of set object at 0x7f6b97b2fba0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -737,7 +747,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x1096a3e40>",
+                                    "variable_value": "<built-in method add of set object at 0x7f6b97b2fba0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -761,12 +771,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -808,22 +818,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'unknown', 'pending', 'running', 'failed'}",
+                                    "variable_value": "{'running', 'unknown', 'failed', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "4"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x1096b90d0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f6b97b34700>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -843,7 +853,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x1096a3d60>",
+                                    "variable_value": "<built-in method update of set object at 0x7f6b97b2f580>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -853,7 +863,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x1096a3d60>",
+                                    "variable_value": "<built-in method add of set object at 0x7f6b97b2f580>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -877,12 +887,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -924,22 +934,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'unknown', 'pending', 'running', 'failed'}",
+                                    "variable_value": "{'running', 'unknown', 'failed', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "4"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x1096b90d0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f6b97b34700>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x10967ebb0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10967ebb0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f6b97c3d3a0>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -959,7 +969,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x1096a3c80>",
+                                    "variable_value": "<built-in method update of set object at 0x7f6b97b2f660>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -969,7 +979,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x1096a3c80>",
+                                    "variable_value": "<built-in method add of set object at 0x7f6b97b2f660>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -995,12 +1005,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1052,22 +1062,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f98400>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e2340>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1097,7 +1107,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106fd8580>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a03253c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1107,7 +1117,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106fd8580>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a03253c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1131,12 +1141,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1188,22 +1198,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f98400>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'unknown', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'UNKNOWN', 'time': 2, 'updated': 2, 'retry': None, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e2340>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1233,7 +1243,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106fd8580>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a03253c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1243,7 +1253,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106fd8580>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a03253c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1267,12 +1277,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1324,22 +1334,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f985b0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e23a0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1369,7 +1379,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106f9d2e0>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a04e63c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1379,7 +1389,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106f9d2e0>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a04e63c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1403,12 +1413,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1460,22 +1470,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f985b0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e23a0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1505,7 +1515,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106f9d3c0>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a04e64a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1515,7 +1525,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106f9d3c0>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a04e64a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1539,12 +1549,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1596,22 +1606,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f985b0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e23a0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1641,7 +1651,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106f9d200>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a04e62e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1651,7 +1661,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106f9d200>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a04e62e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1675,12 +1685,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1732,22 +1742,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f985b0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e23a0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1777,7 +1787,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106f9d2e0>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a04e63c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1787,7 +1797,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106f9d2e0>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a04e63c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1811,12 +1821,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1868,22 +1878,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f985b0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e23a0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1913,7 +1923,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106f9d3c0>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a04e64a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1923,7 +1933,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106f9d3c0>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a04e64a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1947,12 +1957,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -2004,22 +2014,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f985b0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e23a0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -2049,7 +2059,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106f9d200>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a04e62e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2059,7 +2069,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106f9d200>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a04e62e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2083,12 +2093,12 @@
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -2140,22 +2150,22 @@
                             },
                             {
                                 "necessary_tasks": {
-                                    "variable_value": "{'pending', 'failed', 'running'}",
+                                    "variable_value": "{'failed', 'running', 'pending'}",
                                     "variable_type": "set",
                                     "variable_shape": "3"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x106f985b0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'failed', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 2, 'updated': 2, 'retry': 100000000002, 'remove': 100600.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': None, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f25a04e23a0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
                                 "self.get_active_tasks": {
-                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x106f989a0>>",
+                                    "variable_value": "<bound method SimpleTaskState.get_active_tasks of <luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x106f989a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f25a04e2790>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -2185,7 +2195,7 @@
                                     "variable_shape": null
                                 },
                                 "necessary_tasks.update": {
-                                    "variable_value": "<built-in method update of set object at 0x106f9d200>",
+                                    "variable_value": "<built-in method update of set object at 0x7f25a04e62e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2195,7 +2205,7 @@
                                     "variable_shape": "0"
                                 },
                                 "necessary_tasks.add": {
-                                    "variable_value": "<built-in method add of set object at 0x106f9d200>",
+                                    "variable_value": "<built-in method add of set object at 0x7f25a04e62e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7719,7 +7729,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_15/test/central_planner_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_15/test/central_planner_test.py",
                 "test_function": "test_assistants_dont_nurture_finished_statuses",
                 "test_function_code": "    def test_assistants_dont_nurture_finished_statuses(self):\n        \"\"\"\n        Assistants should not affect longevity of DONE tasks\n\n        Also check for statuses DISABLED and UNKNOWN.\n        \"\"\"\n        self.sch = CentralPlannerScheduler(retry_delay=100000000000)  # Never pendify failed tasks\n        self.setTime(1)\n        self.sch.add_worker('assistant', [('assistant', True)])\n        self.sch.ping(worker='assistant')\n        self.sch.add_task(worker='uploader', task_id='running', status=PENDING)\n        self.assertEqual(self.sch.get_work(worker='assistant', assistant=True)['task_id'], 'running')\n\n        self.setTime(2)\n        self.sch.add_task(worker='uploader', task_id='done', status=DONE)\n        self.sch.add_task(worker='uploader', task_id='disabled', status=DISABLED)\n        self.sch.add_task(worker='uploader', task_id='pending', status=PENDING)\n        self.sch.add_task(worker='uploader', task_id='failed', status=FAILED)\n        self.sch.add_task(worker='uploader', task_id='unknown', status=UNKNOWN)\n\n        self.setTime(100000)\n        self.sch.ping(worker='assistant')\n        self.sch.prune()\n\n        self.setTime(200000)\n        self.sch.ping(worker='assistant')\n        self.sch.prune()\n        nurtured_statuses = ['PENDING', 'FAILED', 'RUNNING']\n        not_nurtured_statuses = ['DONE', 'UNKNOWN', 'DISABLED']\n\n        for status in nurtured_statuses:\n            print(status)\n            self.assertEqual(set([status.lower()]), set(self.sch.task_list(status, '')))\n\n        for status in not_nurtured_statuses:\n            print(status)\n            self.assertEqual(set([]), set(self.sch.task_list(status, '')))\n\n        self.assertEqual(3, len(self.sch.task_list(None, '')))  # None == All statuses",
                 "test_error": "AssertionError: Items in the second set but not the first: 'unknown'",

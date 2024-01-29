@@ -1,6 +1,6 @@
 {
     "scrapy:4": {
-        "/Volumes/SSD2T/bgp_envs/repos/scrapy_4/scrapy/contracts/__init__.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/scrapy/contracts/__init__.py": {
             "buggy_functions": [
                 {
                     "function_name": "_clean_req",
@@ -183,17 +183,17 @@
                         "constructor_docstring": null,
                         "functions": [
                             "def __init__(self, contracts):\n    for contract in contracts:\n        self.contracts[contract.name] = contract",
-                            "def tested_methods_from_spidercls(self, spidercls):\n    methods = []\n    for key, value in vars(spidercls).items():\n        if callable(value) and value.__doc__ and re.search('^\\\\s*@', value.__doc__, re.MULTILINE):\n            methods.append(key)\n    return methods",
-                            "def extract_contracts(self, method):\n    contracts = []\n    for line in method.__doc__.split('\\n'):\n        line = line.strip()\n        if line.startswith('@'):\n            name, args = re.match('@(\\\\w+)\\\\s*(.*)', line).groups()\n            args = re.split('\\\\s+', args)\n            contracts.append(self.contracts[name](method, *args))\n    return contracts",
+                            "def tested_methods_from_spidercls(self, spidercls):\n    methods = []\n    for (key, value) in vars(spidercls).items():\n        if callable(value) and value.__doc__ and re.search('^\\\\s*@', value.__doc__, re.MULTILINE):\n            methods.append(key)\n    return methods",
+                            "def extract_contracts(self, method):\n    contracts = []\n    for line in method.__doc__.split('\\n'):\n        line = line.strip()\n        if line.startswith('@'):\n            (name, args) = re.match('@(\\\\w+)\\\\s*(.*)', line).groups()\n            args = re.split('\\\\s+', args)\n            contracts.append(self.contracts[name](method, *args))\n    return contracts",
                             "def from_spider(self, spider, results):\n    requests = []\n    for method in self.tested_methods_from_spidercls(type(spider)):\n        bound_method = spider.__getattribute__(method)\n        requests.append(self.from_method(bound_method, results))\n    return requests",
-                            "def from_method(self, method, results):\n    contracts = self.extract_contracts(method)\n    if contracts:\n        args, kwargs = get_spec(Request.__init__)\n        kwargs['callback'] = method\n        for contract in contracts:\n            kwargs = contract.adjust_request_args(kwargs)\n        args.remove('self')\n        if set(args).issubset(set(kwargs)):\n            request = Request(**kwargs)\n            for contract in reversed(contracts):\n                request = contract.add_pre_hook(request, results)\n            for contract in contracts:\n                request = contract.add_post_hook(request, results)\n            self._clean_req(request, method, results)\n            return request",
+                            "def from_method(self, method, results):\n    contracts = self.extract_contracts(method)\n    if contracts:\n        (args, kwargs) = get_spec(Request.__init__)\n        kwargs['callback'] = method\n        for contract in contracts:\n            kwargs = contract.adjust_request_args(kwargs)\n        args.remove('self')\n        if set(args).issubset(set(kwargs)):\n            request = Request(**kwargs)\n            for contract in reversed(contracts):\n                request = contract.add_pre_hook(request, results)\n            for contract in contracts:\n                request = contract.add_post_hook(request, results)\n            self._clean_req(request, method, results)\n            return request",
                             "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = (failure.value, failure.type, failure.getTracebackObject())\n        results.addError(case, exc_info)\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper",
                             "@wraps(cb)\ndef cb_wrapper(response):\n    try:\n        output = cb(response)\n        output = list(iterate_spider_output(output))\n    except:\n        case = _create_testcase(method, 'callback')\n        results.addError(case, sys.exc_info())",
                             "def eb_wrapper(failure):\n    case = _create_testcase(method, 'errback')\n    exc_info = (failure.value, failure.type, failure.getTracebackObject())\n    results.addError(case, exc_info)"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
-                            "contracts"
+                            "contracts = {}"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -205,8 +205,17 @@
                             "_clean_req(self, request, method, results)",
                             "cb_wrapper(response)",
                             "eb_wrapper(failure)"
-                        ]
+                        ],
+                        "class_level_variable_names": [
+                            "contracts"
+                        ],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [
+                        "import sys",
+                        "from functools import wraps",
+                        "from scrapy.utils.spider import iterate_spider_output"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -216,7 +225,7 @@
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x10705d790>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154ea8ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -251,7 +260,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x106d6e250>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f91553afb20>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -323,12 +332,12 @@
                             },
                             {
                                 "cb": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x10705d790>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154ea8ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x107070b80>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154e43280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -363,7 +372,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x106d6e250>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f91553afb20>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -418,17 +427,17 @@
                                     "variable_shape": null
                                 },
                                 "cb_wrapper": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x107070b80>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154e43280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.errback": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x107070c10>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f9154e43310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "eb_wrapper": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x107070c10>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f9154e43310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 }
@@ -444,7 +453,7 @@
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x107670790>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e8776cf70>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -479,7 +488,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x1073813d0>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f1e880aa9d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -513,7 +522,7 @@
                                     "variable_type": "None",
                                     "variable_shape": null
                                 },
-                                "failure.type": {
+                                "failure.value": {
                                     "variable_value": null,
                                     "variable_type": "None",
                                     "variable_shape": null
@@ -523,7 +532,7 @@
                                     "variable_type": "None",
                                     "variable_shape": null
                                 },
-                                "failure.value": {
+                                "failure.type": {
                                     "variable_value": null,
                                     "variable_type": "None",
                                     "variable_shape": null
@@ -551,12 +560,12 @@
                             },
                             {
                                 "cb": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x107670790>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e8776cf70>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x107683b80>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e87703310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -591,7 +600,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x1073813d0>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f1e880aa9d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -625,7 +634,7 @@
                                     "variable_type": "None",
                                     "variable_shape": null
                                 },
-                                "failure.type": {
+                                "failure.value": {
                                     "variable_value": null,
                                     "variable_type": "None",
                                     "variable_shape": null
@@ -635,7 +644,7 @@
                                     "variable_type": "None",
                                     "variable_shape": null
                                 },
-                                "failure.value": {
+                                "failure.type": {
                                     "variable_value": null,
                                     "variable_type": "None",
                                     "variable_shape": null
@@ -646,17 +655,17 @@
                                     "variable_shape": null
                                 },
                                 "cb_wrapper": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x107683b80>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e87703310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.errback": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x107683c10>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f1e877033a0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "eb_wrapper": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x107683c10>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f1e877033a0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 }
@@ -1599,13 +1608,13 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/scrapy_4/tests/test_contracts.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/tests/test_contracts.py",
                 "test_function": "test_errback",
                 "test_function_code": "    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n\n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n\n        request = self.conman.from_method(spider.returns_request, self.results)\n        request.errback(failure_mock)\n\n        self.assertFalse(self.results.failures)\n        self.assertTrue(self.results.errors)",
                 "test_error": "AttributeError: 'getset_descriptor' object has no attribute '__traceback__'",
-                "full_test_error": "self = <tests.test_contracts.ContractsManagerTest testMethod=test_errback>\n\n    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n    \n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n    \n        request = self.conman.from_method(spider.returns_request, self.results)\n>       request.errback(failure_mock)\n\n/Volumes/SSD2T/bgp_envs/repos/scrapy_4/tests/test_contracts.py:201: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/Volumes/SSD2T/bgp_envs/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x1067f8a60>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x105d3e600>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/Cellar/python@3.8/3.8.18_1/Frameworks/Python.framework/Versions/3.8/lib/python3.8/traceback.py:484: AttributeError",
-                "traceback": "/Volumes/SSD2T/bgp_envs/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x1067f8a60>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x105d3e600>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/Cellar/python@3.8/3.8.18_1/Frameworks/Python.framework/Versions/3.8/lib/python3.8/traceback.py:484: AttributeError",
+                "full_test_error": "self = <tests.test_contracts.ContractsManagerTest testMethod=test_errback>\n\n    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n    \n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n    \n        request = self.conman.from_method(spider.returns_request, self.results)\n>       request.errback(failure_mock)\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/tests/test_contracts.py:201: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x7f923a0b3100>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x7f923a0a5880>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/lib/python3.8/traceback.py:484: AttributeError",
+                "traceback": "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x7f923a0b3100>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x7f923a0a5880>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/lib/python3.8/traceback.py:484: AttributeError",
                 "test_function_decorators": []
             }
         ]

@@ -1,6 +1,6 @@
 {
     "luigi:7": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_7/luigi/scheduler.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_7/luigi/scheduler.py": {
             "buggy_functions": [
                 {
                     "function_name": "add_task",
@@ -923,8 +923,8 @@
                             "def _update_priority(self, task, prio, worker):\n    \"\"\"\n    Update priority of the given task.\n\n    Priority can only be increased.\n    If the task doesn't exist, a placeholder task is created to preserve priority when the task is later scheduled.\n    \"\"\"\n    task.priority = prio = max(prio, task.priority)\n    for dep in task.deps or []:\n        t = self._state.get_task(dep)\n        if t is not None and prio > t.priority:\n            self._update_priority(t, prio, worker)",
                             "@rpc_method()\ndef add_task_batcher(self, worker, task_family, batched_args, max_batch_size=float('inf')):\n    self._state.set_batcher(worker, task_family, batched_args, max_batch_size)",
                             "@rpc_method()\ndef forgive_failures(self, task_id=None):\n    status = PENDING\n    task = self._state.get_task(task_id)\n    if task is None:\n        return {'task_id': task_id, 'status': None}\n    if task.status == FAILED:\n        self._update_task_history(task, status)\n        self._state.set_status(task, status, self._config)\n    return {'task_id': task_id, 'status': task.status}",
-                            "@rpc_method()\ndef add_task(self, task_id=None, status=PENDING, runnable=True, deps=None, new_deps=None, expl=None, resources=None, priority=0, family='', module=None, params=None, assistant=False, tracking_url=None, worker=None, batchable=None, batch_id=None, retry_policy_dict={}, owners=None, **kwargs):\n    \"\"\"\n    * add task identified by task_id if it doesn't exist\n    * if deps is not None, update dependency list\n    * update status of task\n    * add additional workers/stakeholders\n    * update priority when needed\n    \"\"\"\n    assert worker is not None\n    worker_id = worker\n    worker = self._update_worker(worker_id)\n    retry_policy = self._generate_retry_policy(retry_policy_dict)\n    if worker.enabled:\n        _default_task = self._make_task(task_id=task_id, status=PENDING, deps=deps, resources=resources, priority=priority, family=family, module=module, params=params)\n    else:\n        _default_task = None\n    task = self._state.get_task(task_id, setdefault=_default_task)\n    if task is None or (task.status != RUNNING and (not worker.enabled)):\n        return\n    if not task.family:\n        task.family = family\n    if not getattr(task, 'module', None):\n        task.module = module\n    if not task.params:\n        task.params = _get_default(params, {})\n    if batch_id is not None:\n        task.batch_id = batch_id\n    if status == RUNNING and (not task.worker_running):\n        task.worker_running = worker_id\n        if batch_id:\n            task.resources_running = self._state.get_batch_running_tasks(batch_id)[0].resources_running\n        task.time_running = time.time()\n    if tracking_url is not None or task.status != RUNNING:\n        task.tracking_url = tracking_url\n        if task.batch_id is not None:\n            for batch_task in self._state.get_batch_running_tasks(task.batch_id):\n                batch_task.tracking_url = tracking_url\n    if batchable is not None:\n        task.batchable = batchable\n    if task.remove is not None:\n        task.remove = None\n    if expl is not None:\n        task.expl = expl\n        if task.batch_id is not None:\n            for batch_task in self._state.get_batch_running_tasks(task.batch_id):\n                batch_task.expl = expl\n    if not (task.status in (RUNNING, BATCH_RUNNING) and status == PENDING) or new_deps:\n        if status == PENDING or status != task.status:\n            self._update_task_history(task, status)\n        self._state.set_status(task, PENDING if status == SUSPENDED else status, self._config)\n    if status == FAILED and self._config.batch_emails:\n        batched_params, _ = self._state.get_batcher(worker_id, family)\n        if batched_params:\n            unbatched_params = {param: value for param, value in six.iteritems(task.params) if param not in batched_params}\n        else:\n            unbatched_params = task.params\n        try:\n            expl_raw = json.loads(expl)\n        except ValueError:\n            expl_raw = expl\n        self._email_batcher.add_failure(task.pretty_id, task.family, unbatched_params, expl_raw, owners)\n        if task.status == DISABLED:\n            self._email_batcher.add_disable(task.pretty_id, task.family, unbatched_params, owners)\n    if deps is not None:\n        task.deps = set(deps)\n    if new_deps is not None:\n        task.deps.update(new_deps)\n    if resources is not None:\n        task.resources = resources\n    if worker.enabled and (not assistant):\n        task.stakeholders.add(worker_id)\n        for dep in task.deps or []:\n            t = self._state.get_task(dep, setdefault=self._make_task(task_id=dep, status=UNKNOWN, deps=None, priority=priority))\n            t.stakeholders.add(worker_id)\n    self._update_priority(task, priority, worker_id)\n    task.retry_policy = retry_policy\n    if runnable and status != FAILED and worker.enabled:\n        task.workers.add(worker_id)\n        self._state.get_worker(worker_id).tasks.add(task)\n        task.runnable = runnable",
-                            "@rpc_method()\ndef announce_scheduling_failure(self, task_name, family, params, expl, owners, **kwargs):\n    if not self._config.batch_emails:\n        return\n    worker_id = kwargs['worker']\n    batched_params, _ = self._state.get_batcher(worker_id, family)\n    if batched_params:\n        unbatched_params = {param: value for param, value in six.iteritems(params) if param not in batched_params}\n    else:\n        unbatched_params = params\n    self._email_batcher.add_scheduling_fail(task_name, family, unbatched_params, expl, owners)",
+                            "@rpc_method()\ndef add_task(self, task_id=None, status=PENDING, runnable=True, deps=None, new_deps=None, expl=None, resources=None, priority=0, family='', module=None, params=None, assistant=False, tracking_url=None, worker=None, batchable=None, batch_id=None, retry_policy_dict={}, owners=None, **kwargs):\n    \"\"\"\n    * add task identified by task_id if it doesn't exist\n    * if deps is not None, update dependency list\n    * update status of task\n    * add additional workers/stakeholders\n    * update priority when needed\n    \"\"\"\n    assert worker is not None\n    worker_id = worker\n    worker = self._update_worker(worker_id)\n    retry_policy = self._generate_retry_policy(retry_policy_dict)\n    if worker.enabled:\n        _default_task = self._make_task(task_id=task_id, status=PENDING, deps=deps, resources=resources, priority=priority, family=family, module=module, params=params)\n    else:\n        _default_task = None\n    task = self._state.get_task(task_id, setdefault=_default_task)\n    if task is None or (task.status != RUNNING and (not worker.enabled)):\n        return\n    if not task.family:\n        task.family = family\n    if not getattr(task, 'module', None):\n        task.module = module\n    if not task.params:\n        task.params = _get_default(params, {})\n    if batch_id is not None:\n        task.batch_id = batch_id\n    if status == RUNNING and (not task.worker_running):\n        task.worker_running = worker_id\n        if batch_id:\n            task.resources_running = self._state.get_batch_running_tasks(batch_id)[0].resources_running\n        task.time_running = time.time()\n    if tracking_url is not None or task.status != RUNNING:\n        task.tracking_url = tracking_url\n        if task.batch_id is not None:\n            for batch_task in self._state.get_batch_running_tasks(task.batch_id):\n                batch_task.tracking_url = tracking_url\n    if batchable is not None:\n        task.batchable = batchable\n    if task.remove is not None:\n        task.remove = None\n    if expl is not None:\n        task.expl = expl\n        if task.batch_id is not None:\n            for batch_task in self._state.get_batch_running_tasks(task.batch_id):\n                batch_task.expl = expl\n    if not (task.status in (RUNNING, BATCH_RUNNING) and status == PENDING) or new_deps:\n        if status == PENDING or status != task.status:\n            self._update_task_history(task, status)\n        self._state.set_status(task, PENDING if status == SUSPENDED else status, self._config)\n    if status == FAILED and self._config.batch_emails:\n        (batched_params, _) = self._state.get_batcher(worker_id, family)\n        if batched_params:\n            unbatched_params = {param: value for (param, value) in six.iteritems(task.params) if param not in batched_params}\n        else:\n            unbatched_params = task.params\n        try:\n            expl_raw = json.loads(expl)\n        except ValueError:\n            expl_raw = expl\n        self._email_batcher.add_failure(task.pretty_id, task.family, unbatched_params, expl_raw, owners)\n        if task.status == DISABLED:\n            self._email_batcher.add_disable(task.pretty_id, task.family, unbatched_params, owners)\n    if deps is not None:\n        task.deps = set(deps)\n    if new_deps is not None:\n        task.deps.update(new_deps)\n    if resources is not None:\n        task.resources = resources\n    if worker.enabled and (not assistant):\n        task.stakeholders.add(worker_id)\n        for dep in task.deps or []:\n            t = self._state.get_task(dep, setdefault=self._make_task(task_id=dep, status=UNKNOWN, deps=None, priority=priority))\n            t.stakeholders.add(worker_id)\n    self._update_priority(task, priority, worker_id)\n    task.retry_policy = retry_policy\n    if runnable and status != FAILED and worker.enabled:\n        task.workers.add(worker_id)\n        self._state.get_worker(worker_id).tasks.add(task)\n        task.runnable = runnable",
+                            "@rpc_method()\ndef announce_scheduling_failure(self, task_name, family, params, expl, owners, **kwargs):\n    if not self._config.batch_emails:\n        return\n    worker_id = kwargs['worker']\n    (batched_params, _) = self._state.get_batcher(worker_id, family)\n    if batched_params:\n        unbatched_params = {param: value for (param, value) in six.iteritems(params) if param not in batched_params}\n    else:\n        unbatched_params = params\n    self._email_batcher.add_scheduling_fail(task_name, family, unbatched_params, expl, owners)",
                             "@rpc_method()\ndef add_worker(self, worker, info, **kwargs):\n    self._state.get_worker(worker).add_info(info)",
                             "@rpc_method()\ndef disable_worker(self, worker):\n    self._state.disable_workers({worker})",
                             "@rpc_method()\ndef set_worker_processes(self, worker, n):\n    self._state.get_worker(worker).add_rpc_message('set_worker_processes', n=n)",
@@ -933,14 +933,14 @@
                             "@rpc_method()\ndef unpause(self):\n    self._paused = False",
                             "@rpc_method()\ndef update_resources(self, **resources):\n    if self._resources is None:\n        self._resources = {}\n    self._resources.update(resources)",
                             "@rpc_method()\ndef update_resource(self, resource, amount):\n    if not isinstance(amount, int) or amount < 0:\n        return False\n    self._resources[resource] = amount\n    return True",
-                            "def _generate_retry_policy(self, task_retry_policy_dict):\n    retry_policy_dict = self._config._get_retry_policy()._asdict()\n    retry_policy_dict.update({k: v for k, v in six.iteritems(task_retry_policy_dict) if v is not None})\n    return RetryPolicy(**retry_policy_dict)",
-                            "def _has_resources(self, needed_resources, used_resources):\n    if needed_resources is None:\n        return True\n    available_resources = self._resources or {}\n    for resource, amount in six.iteritems(needed_resources):\n        if amount + used_resources[resource] > available_resources.get(resource, 1):\n            return False\n    return True",
-                            "def _used_resources(self):\n    used_resources = collections.defaultdict(int)\n    if self._resources is not None:\n        for task in self._state.get_active_tasks_by_status(RUNNING):\n            if getattr(task, 'resources_running', task.resources):\n                for resource, amount in six.iteritems(getattr(task, 'resources_running', task.resources)):\n                    used_resources[resource] += amount\n    return used_resources",
+                            "def _generate_retry_policy(self, task_retry_policy_dict):\n    retry_policy_dict = self._config._get_retry_policy()._asdict()\n    retry_policy_dict.update({k: v for (k, v) in six.iteritems(task_retry_policy_dict) if v is not None})\n    return RetryPolicy(**retry_policy_dict)",
+                            "def _has_resources(self, needed_resources, used_resources):\n    if needed_resources is None:\n        return True\n    available_resources = self._resources or {}\n    for (resource, amount) in six.iteritems(needed_resources):\n        if amount + used_resources[resource] > available_resources.get(resource, 1):\n            return False\n    return True",
+                            "def _used_resources(self):\n    used_resources = collections.defaultdict(int)\n    if self._resources is not None:\n        for task in self._state.get_active_tasks_by_status(RUNNING):\n            if getattr(task, 'resources_running', task.resources):\n                for (resource, amount) in six.iteritems(getattr(task, 'resources_running', task.resources)):\n                    used_resources[resource] += amount\n    return used_resources",
                             "def _rank(self, task):\n    \"\"\"\n    Return worker's rank function for task scheduling.\n\n    :return:\n    \"\"\"\n    return (task.priority, -task.time)",
                             "def _schedulable(self, task):\n    if task.status != PENDING:\n        return False\n    for dep in task.deps:\n        dep_task = self._state.get_task(dep, default=None)\n        if dep_task is None or dep_task.status != DONE:\n            return False\n    return True",
                             "def _reset_orphaned_batch_running_tasks(self, worker_id):\n    running_batch_ids = {task.batch_id for task in self._state.get_active_tasks_by_status(RUNNING) if task.worker_running == worker_id}\n    orphaned_tasks = [task for task in self._state.get_active_tasks_by_status(BATCH_RUNNING) if task.worker_running == worker_id and task.batch_id not in running_batch_ids]\n    for task in orphaned_tasks:\n        self._state.set_status(task, PENDING)",
-                            "@rpc_method()\ndef count_pending(self, worker):\n    worker_id, worker = (worker, self._state.get_worker(worker))\n    num_pending, num_unique_pending, num_pending_last_scheduled = (0, 0, 0)\n    running_tasks = []\n    upstream_status_table = {}\n    for task in worker.get_tasks(self._state, RUNNING):\n        if self._upstream_status(task.id, upstream_status_table) == UPSTREAM_DISABLED:\n            continue\n        other_worker = self._state.get_worker(task.worker_running)\n        if other_worker is not None:\n            more_info = {'task_id': task.id, 'worker': str(other_worker)}\n            more_info.update(other_worker.info)\n            running_tasks.append(more_info)\n    for task in worker.get_tasks(self._state, PENDING, FAILED):\n        if self._upstream_status(task.id, upstream_status_table) == UPSTREAM_DISABLED:\n            continue\n        num_pending += 1\n        num_unique_pending += int(len(task.workers) == 1)\n        num_pending_last_scheduled += int(task.workers.peek(last=True) == worker_id)\n    return {'n_pending_tasks': num_pending, 'n_unique_pending': num_unique_pending, 'n_pending_last_scheduled': num_pending_last_scheduled, 'worker_state': worker.state, 'running_tasks': running_tasks}",
-                            "@rpc_method(allow_null=False)\ndef get_work(self, host=None, assistant=False, current_tasks=None, worker=None, **kwargs):\n    if self._config.prune_on_get_work:\n        self.prune()\n    assert worker is not None\n    worker_id = worker\n    worker = self._update_worker(worker_id, worker_reference={'host': host}, get_work=True)\n    if not worker.enabled:\n        reply = {'n_pending_tasks': 0, 'running_tasks': [], 'task_id': None, 'n_unique_pending': 0, 'worker_state': worker.state}\n        return reply\n    if assistant:\n        self.add_worker(worker_id, [('assistant', assistant)])\n    batched_params, unbatched_params, batched_tasks, max_batch_size = (None, None, [], 1)\n    best_task = None\n    if current_tasks is not None:\n        ct_set = set(current_tasks)\n        for task in sorted(self._state.get_active_tasks_by_status(RUNNING), key=self._rank):\n            if task.worker_running == worker_id and task.id not in ct_set:\n                best_task = task\n    if current_tasks is not None:\n        self._reset_orphaned_batch_running_tasks(worker_id)\n    greedy_resources = collections.defaultdict(int)\n    worker = self._state.get_worker(worker_id)\n    if self._paused:\n        relevant_tasks = []\n    elif worker.is_trivial_worker(self._state):\n        relevant_tasks = worker.get_tasks(self._state, PENDING, RUNNING)\n        used_resources = collections.defaultdict(int)\n        greedy_workers = dict()\n    else:\n        relevant_tasks = self._state.get_active_tasks_by_status(PENDING, RUNNING)\n        used_resources = self._used_resources()\n        activity_limit = time.time() - self._config.worker_disconnect_delay\n        active_workers = self._state.get_active_workers(last_get_work_gt=activity_limit)\n        greedy_workers = dict(((worker.id, worker.info.get('workers', 1)) for worker in active_workers))\n    tasks = list(relevant_tasks)\n    tasks.sort(key=self._rank, reverse=True)\n    for task in tasks:\n        if best_task and batched_params and (task.family == best_task.family) and (len(batched_tasks) < max_batch_size) and task.is_batchable() and all((task.params.get(name) == value for name, value in unbatched_params.items())) and (task.resources == best_task.resources) and self._schedulable(task):\n            for name, params in batched_params.items():\n                params.append(task.params.get(name))\n            batched_tasks.append(task)\n        if best_task:\n            continue\n        if task.status == RUNNING and task.worker_running in greedy_workers:\n            greedy_workers[task.worker_running] -= 1\n            for resource, amount in six.iteritems(getattr(task, 'resources_running', task.resources) or {}):\n                greedy_resources[resource] += amount\n        if self._schedulable(task) and self._has_resources(task.resources, greedy_resources):\n            in_workers = assistant and task.runnable or worker_id in task.workers\n            if in_workers and self._has_resources(task.resources, used_resources):\n                best_task = task\n                batch_param_names, max_batch_size = self._state.get_batcher(worker_id, task.family)\n                if batch_param_names and task.is_batchable():\n                    try:\n                        batched_params = {name: [task.params[name]] for name in batch_param_names}\n                        unbatched_params = {name: value for name, value in task.params.items() if name not in batched_params}\n                        batched_tasks.append(task)\n                    except KeyError:\n                        batched_params, unbatched_params = (None, None)\n            else:\n                workers = itertools.chain(task.workers, [worker_id]) if assistant else task.workers\n                for task_worker in workers:\n                    if greedy_workers.get(task_worker, 0) > 0:\n                        greedy_workers[task_worker] -= 1\n                        for resource, amount in six.iteritems(task.resources or {}):\n                            greedy_resources[resource] += amount\n                        break\n    reply = self.count_pending(worker_id)\n    if len(batched_tasks) > 1:\n        batch_string = '|'.join((task.id for task in batched_tasks))\n        batch_id = hashlib.md5(batch_string.encode('utf-8')).hexdigest()\n        for task in batched_tasks:\n            self._state.set_batch_running(task, batch_id, worker_id)\n        combined_params = best_task.params.copy()\n        combined_params.update(batched_params)\n        reply['task_id'] = None\n        reply['task_family'] = best_task.family\n        reply['task_module'] = getattr(best_task, 'module', None)\n        reply['task_params'] = combined_params\n        reply['batch_id'] = batch_id\n        reply['batch_task_ids'] = [task.id for task in batched_tasks]\n    elif best_task:\n        self._state.set_status(best_task, RUNNING, self._config)\n        best_task.worker_running = worker_id\n        best_task.resources_running = best_task.resources\n        best_task.time_running = time.time()\n        self._update_task_history(best_task, RUNNING, host=host)\n        reply['task_id'] = best_task.id\n        reply['task_family'] = best_task.family\n        reply['task_module'] = getattr(best_task, 'module', None)\n        reply['task_params'] = best_task.params\n    else:\n        reply['task_id'] = None\n    return reply",
+                            "@rpc_method()\ndef count_pending(self, worker):\n    (worker_id, worker) = (worker, self._state.get_worker(worker))\n    (num_pending, num_unique_pending, num_pending_last_scheduled) = (0, 0, 0)\n    running_tasks = []\n    upstream_status_table = {}\n    for task in worker.get_tasks(self._state, RUNNING):\n        if self._upstream_status(task.id, upstream_status_table) == UPSTREAM_DISABLED:\n            continue\n        other_worker = self._state.get_worker(task.worker_running)\n        if other_worker is not None:\n            more_info = {'task_id': task.id, 'worker': str(other_worker)}\n            more_info.update(other_worker.info)\n            running_tasks.append(more_info)\n    for task in worker.get_tasks(self._state, PENDING, FAILED):\n        if self._upstream_status(task.id, upstream_status_table) == UPSTREAM_DISABLED:\n            continue\n        num_pending += 1\n        num_unique_pending += int(len(task.workers) == 1)\n        num_pending_last_scheduled += int(task.workers.peek(last=True) == worker_id)\n    return {'n_pending_tasks': num_pending, 'n_unique_pending': num_unique_pending, 'n_pending_last_scheduled': num_pending_last_scheduled, 'worker_state': worker.state, 'running_tasks': running_tasks}",
+                            "@rpc_method(allow_null=False)\ndef get_work(self, host=None, assistant=False, current_tasks=None, worker=None, **kwargs):\n    if self._config.prune_on_get_work:\n        self.prune()\n    assert worker is not None\n    worker_id = worker\n    worker = self._update_worker(worker_id, worker_reference={'host': host}, get_work=True)\n    if not worker.enabled:\n        reply = {'n_pending_tasks': 0, 'running_tasks': [], 'task_id': None, 'n_unique_pending': 0, 'worker_state': worker.state}\n        return reply\n    if assistant:\n        self.add_worker(worker_id, [('assistant', assistant)])\n    (batched_params, unbatched_params, batched_tasks, max_batch_size) = (None, None, [], 1)\n    best_task = None\n    if current_tasks is not None:\n        ct_set = set(current_tasks)\n        for task in sorted(self._state.get_active_tasks_by_status(RUNNING), key=self._rank):\n            if task.worker_running == worker_id and task.id not in ct_set:\n                best_task = task\n    if current_tasks is not None:\n        self._reset_orphaned_batch_running_tasks(worker_id)\n    greedy_resources = collections.defaultdict(int)\n    worker = self._state.get_worker(worker_id)\n    if self._paused:\n        relevant_tasks = []\n    elif worker.is_trivial_worker(self._state):\n        relevant_tasks = worker.get_tasks(self._state, PENDING, RUNNING)\n        used_resources = collections.defaultdict(int)\n        greedy_workers = dict()\n    else:\n        relevant_tasks = self._state.get_active_tasks_by_status(PENDING, RUNNING)\n        used_resources = self._used_resources()\n        activity_limit = time.time() - self._config.worker_disconnect_delay\n        active_workers = self._state.get_active_workers(last_get_work_gt=activity_limit)\n        greedy_workers = dict(((worker.id, worker.info.get('workers', 1)) for worker in active_workers))\n    tasks = list(relevant_tasks)\n    tasks.sort(key=self._rank, reverse=True)\n    for task in tasks:\n        if best_task and batched_params and (task.family == best_task.family) and (len(batched_tasks) < max_batch_size) and task.is_batchable() and all((task.params.get(name) == value for (name, value) in unbatched_params.items())) and (task.resources == best_task.resources) and self._schedulable(task):\n            for (name, params) in batched_params.items():\n                params.append(task.params.get(name))\n            batched_tasks.append(task)\n        if best_task:\n            continue\n        if task.status == RUNNING and task.worker_running in greedy_workers:\n            greedy_workers[task.worker_running] -= 1\n            for (resource, amount) in six.iteritems(getattr(task, 'resources_running', task.resources) or {}):\n                greedy_resources[resource] += amount\n        if self._schedulable(task) and self._has_resources(task.resources, greedy_resources):\n            in_workers = assistant and task.runnable or worker_id in task.workers\n            if in_workers and self._has_resources(task.resources, used_resources):\n                best_task = task\n                (batch_param_names, max_batch_size) = self._state.get_batcher(worker_id, task.family)\n                if batch_param_names and task.is_batchable():\n                    try:\n                        batched_params = {name: [task.params[name]] for name in batch_param_names}\n                        unbatched_params = {name: value for (name, value) in task.params.items() if name not in batched_params}\n                        batched_tasks.append(task)\n                    except KeyError:\n                        (batched_params, unbatched_params) = (None, None)\n            else:\n                workers = itertools.chain(task.workers, [worker_id]) if assistant else task.workers\n                for task_worker in workers:\n                    if greedy_workers.get(task_worker, 0) > 0:\n                        greedy_workers[task_worker] -= 1\n                        for (resource, amount) in six.iteritems(task.resources or {}):\n                            greedy_resources[resource] += amount\n                        break\n    reply = self.count_pending(worker_id)\n    if len(batched_tasks) > 1:\n        batch_string = '|'.join((task.id for task in batched_tasks))\n        batch_id = hashlib.md5(batch_string.encode('utf-8')).hexdigest()\n        for task in batched_tasks:\n            self._state.set_batch_running(task, batch_id, worker_id)\n        combined_params = best_task.params.copy()\n        combined_params.update(batched_params)\n        reply['task_id'] = None\n        reply['task_family'] = best_task.family\n        reply['task_module'] = getattr(best_task, 'module', None)\n        reply['task_params'] = combined_params\n        reply['batch_id'] = batch_id\n        reply['batch_task_ids'] = [task.id for task in batched_tasks]\n    elif best_task:\n        self._state.set_status(best_task, RUNNING, self._config)\n        best_task.worker_running = worker_id\n        best_task.resources_running = best_task.resources\n        best_task.time_running = time.time()\n        self._update_task_history(best_task, RUNNING, host=host)\n        reply['task_id'] = best_task.id\n        reply['task_family'] = best_task.family\n        reply['task_module'] = getattr(best_task, 'module', None)\n        reply['task_params'] = best_task.params\n    else:\n        reply['task_id'] = None\n    return reply",
                             "@rpc_method(attempts=1)\ndef ping(self, **kwargs):\n    worker_id = kwargs['worker']\n    worker = self._update_worker(worker_id)\n    return {'rpc_messages': worker.fetch_rpc_messages()}",
                             "def _upstream_status(self, task_id, upstream_status_table):\n    if task_id in upstream_status_table:\n        return upstream_status_table[task_id]\n    elif self._state.has_task(task_id):\n        task_stack = [task_id]\n        while task_stack:\n            dep_id = task_stack.pop()\n            dep = self._state.get_task(dep_id)\n            if dep:\n                if dep.status == DONE:\n                    continue\n                if dep_id not in upstream_status_table:\n                    if dep.status == PENDING and dep.deps:\n                        task_stack += [dep_id] + list(dep.deps)\n                        upstream_status_table[dep_id] = ''\n                    else:\n                        dep_status = STATUS_TO_UPSTREAM_MAP.get(dep.status, '')\n                        upstream_status_table[dep_id] = dep_status\n                elif upstream_status_table[dep_id] == '' and dep.deps:\n                    status = max((upstream_status_table.get(a_task_id, '') for a_task_id in dep.deps), key=UPSTREAM_SEVERITY_KEY)\n                    upstream_status_table[dep_id] = status\n        return upstream_status_table[dep_id]",
                             "def _serialize_task(self, task_id, include_deps=True, deps=None):\n    task = self._state.get_task(task_id)\n    ret = {'display_name': task.pretty_id, 'status': task.status, 'workers': list(task.workers), 'worker_running': task.worker_running, 'time_running': getattr(task, 'time_running', None), 'start_time': task.time, 'last_updated': getattr(task, 'updated', task.time), 'params': task.params, 'name': task.family, 'priority': task.priority, 'resources': task.resources, 'tracking_url': getattr(task, 'tracking_url', None), 'status_message': getattr(task, 'status_message', None)}\n    if task.status == DISABLED:\n        ret['re_enable_able'] = task.scheduler_disable_time is not None\n    if include_deps:\n        ret['deps'] = list(task.deps if deps is None else deps)\n    return ret",
@@ -952,8 +952,8 @@
                             "@rpc_method()\ndef task_list(self, status='', upstream_status='', limit=True, search=None, max_shown_tasks=None, **kwargs):\n    \"\"\"\n    Query for a subset of tasks by status.\n    \"\"\"\n    self.prune()\n    result = {}\n    upstream_status_table = {}\n    if search is None:\n\n        def filter_func(_):\n            return True\n    else:\n        terms = search.split()\n\n        def filter_func(t):\n            return all((term in t.pretty_id for term in terms))\n    tasks = self._state.get_active_tasks_by_status(status) if status else self._state.get_active_tasks()\n    for task in filter(filter_func, tasks):\n        if task.status != PENDING or not upstream_status or upstream_status == self._upstream_status(task.id, upstream_status_table):\n            serialized = self._serialize_task(task.id, include_deps=False)\n            result[task.id] = serialized\n    if limit and len(result) > (max_shown_tasks or self._config.max_shown_tasks):\n        return {'num_tasks': len(result)}\n    return result",
                             "def _first_task_display_name(self, worker):\n    task_id = worker.info.get('first_task', '')\n    if self._state.has_task(task_id):\n        return self._state.get_task(task_id).pretty_id\n    else:\n        return task_id",
                             "@rpc_method()\ndef worker_list(self, include_running=True, **kwargs):\n    self.prune()\n    workers = [dict(name=worker.id, last_active=worker.last_active, started=worker.started, state=worker.state, first_task_display_name=self._first_task_display_name(worker), num_unread_rpc_messages=len(worker.rpc_messages), **worker.info) for worker in self._state.get_active_workers()]\n    workers.sort(key=lambda worker: worker['started'], reverse=True)\n    if include_running:\n        running = collections.defaultdict(dict)\n        for task in self._state.get_active_tasks_by_status(RUNNING):\n            if task.worker_running:\n                running[task.worker_running][task.id] = self._serialize_task(task.id, include_deps=False)\n        num_pending = collections.defaultdict(int)\n        num_uniques = collections.defaultdict(int)\n        for task in self._state.get_active_tasks_by_status(PENDING):\n            for worker in task.workers:\n                num_pending[worker] += 1\n            if len(task.workers) == 1:\n                num_uniques[list(task.workers)[0]] += 1\n        for worker in workers:\n            tasks = running[worker['name']]\n            worker['num_running'] = len(tasks)\n            worker['num_pending'] = num_pending[worker['name']]\n            worker['num_uniques'] = num_uniques[worker['name']]\n            worker['running'] = tasks\n    return workers",
-                            "@rpc_method()\ndef resource_list(self):\n    \"\"\"\n    Resources usage info and their consumers (tasks).\n    \"\"\"\n    self.prune()\n    resources = [dict(name=resource, num_total=r_dict['total'], num_used=r_dict['used']) for resource, r_dict in six.iteritems(self.resources())]\n    if self._resources is not None:\n        consumers = collections.defaultdict(dict)\n        for task in self._state.get_active_tasks_by_status(RUNNING):\n            if task.status == RUNNING and task.resources:\n                for resource, amount in six.iteritems(task.resources):\n                    consumers[resource][task.id] = self._serialize_task(task.id, include_deps=False)\n        for resource in resources:\n            tasks = consumers[resource['name']]\n            resource['num_consumer'] = len(tasks)\n            resource['running'] = tasks\n    return resources",
-                            "def resources(self):\n    \"\"\" get total resources and available ones \"\"\"\n    used_resources = self._used_resources()\n    ret = collections.defaultdict(dict)\n    for resource, total in six.iteritems(self._resources):\n        ret[resource]['total'] = total\n        if resource in used_resources:\n            ret[resource]['used'] = used_resources[resource]\n        else:\n            ret[resource]['used'] = 0\n    return ret",
+                            "@rpc_method()\ndef resource_list(self):\n    \"\"\"\n    Resources usage info and their consumers (tasks).\n    \"\"\"\n    self.prune()\n    resources = [dict(name=resource, num_total=r_dict['total'], num_used=r_dict['used']) for (resource, r_dict) in six.iteritems(self.resources())]\n    if self._resources is not None:\n        consumers = collections.defaultdict(dict)\n        for task in self._state.get_active_tasks_by_status(RUNNING):\n            if task.status == RUNNING and task.resources:\n                for (resource, amount) in six.iteritems(task.resources):\n                    consumers[resource][task.id] = self._serialize_task(task.id, include_deps=False)\n        for resource in resources:\n            tasks = consumers[resource['name']]\n            resource['num_consumer'] = len(tasks)\n            resource['running'] = tasks\n    return resources",
+                            "def resources(self):\n    \"\"\" get total resources and available ones \"\"\"\n    used_resources = self._used_resources()\n    ret = collections.defaultdict(dict)\n    for (resource, total) in six.iteritems(self._resources):\n        ret[resource]['total'] = total\n        if resource in used_resources:\n            ret[resource]['used'] = used_resources[resource]\n        else:\n            ret[resource]['used'] = 0\n    return ret",
                             "@rpc_method()\ndef task_search(self, task_str, **kwargs):\n    \"\"\"\n    Query for a subset of tasks by task_id.\n\n    :param task_str:\n    :return:\n    \"\"\"\n    self.prune()\n    result = collections.defaultdict(dict)\n    for task in self._state.get_active_tasks():\n        if task.id.find(task_str) != -1:\n            serialized = self._serialize_task(task.id, include_deps=False)\n            result[task.status][task.id] = serialized\n    return result",
                             "@rpc_method()\ndef re_enable_task(self, task_id):\n    serialized = {}\n    task = self._state.get_task(task_id)\n    if task and task.status == DISABLED and task.scheduler_disable_time:\n        self._state.re_enable(task, self._config)\n        serialized = self._serialize_task(task_id)\n    return serialized",
                             "@rpc_method()\ndef fetch_error(self, task_id, **kwargs):\n    if self._state.has_task(task_id):\n        task = self._state.get_task(task_id)\n        return {'taskId': task_id, 'error': task.expl, 'displayName': task.pretty_id}\n    else:\n        return {'taskId': task_id, 'error': ''}",
@@ -966,14 +966,16 @@
                             "def filter_func(t):\n    return all((term in t.pretty_id for term in terms))"
                         ],
                         "constructor_variables": [
-                            "_paused",
-                            "_resources",
-                            "_make_task",
-                            "_config",
-                            "_state",
-                            "_email_batcher",
-                            "_worker_requests",
-                            "_task_history"
+                            "self._config = config or scheduler(**kwargs)",
+                            "self._state = SimpleTaskState(self._config.state_path)",
+                            "self._task_history = task_history_impl",
+                            "self._task_history = db_task_history.DbTaskHistory()",
+                            "self._task_history = history.NopHistory()",
+                            "self._resources = resources or configuration.get_config().getintdict('resources')",
+                            "self._make_task = functools.partial(Task, retry_policy=self._config._get_retry_policy())",
+                            "self._worker_requests = {}",
+                            "self._paused = False",
+                            "self._email_batcher = BatchNotifier()"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -1030,8 +1032,25 @@
                             "dep_func(t)",
                             "filter_func(_)",
                             "filter_func(t)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "_worker_requests",
+                            "_make_task",
+                            "_task_history",
+                            "_state",
+                            "_resources",
+                            "_email_batcher",
+                            "_config",
+                            "_paused"
                         ]
                     },
+                    "used_imports": [
+                        "import json",
+                        "import time",
+                        "from luigi import six",
+                        "from luigi.task_status import DISABLED, DONE, FAILED, PENDING, RUNNING, SUSPENDED, UNKNOWN, BATCH_RUNNING"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -1051,12 +1070,12 @@
                                     "variable_shape": null
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1097658b0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -1066,7 +1085,7 @@
                                     "variable_shape": null
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1136,7 +1155,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x1097296a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f48d4af4b20>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1281,7 +1300,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1451,7 +1470,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1508,7 +1527,7 @@
                                     "variable_shape": null
                                 },
                                 "worker": {
-                                    "variable_value": "<luigi.scheduler.Worker object at 0x109729040>",
+                                    "variable_value": "<luigi.scheduler.Worker object at 0x7f48d4af4340>",
                                     "variable_type": "Worker",
                                     "variable_shape": null
                                 },
@@ -1518,12 +1537,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1097658b0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -1533,7 +1552,7 @@
                                     "variable_shape": "3"
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1548,7 +1567,7 @@
                                     "variable_shape": null
                                 },
                                 "_default_task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1702303166.831773, 'updated': 1702303166.831773, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x10971efd0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1706547712.969634, 'updated': 1706547712.969634, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f48d4af4580>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -1593,7 +1612,7 @@
                                     "variable_shape": null
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1702303166.831773, 'updated': 1702303166.831773, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x10971efd0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1706547712.969634, 'updated': 1706547712.969634, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f48d4af4580>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -1603,7 +1622,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x1097296a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f48d4af4b20>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1748,7 +1767,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1918,7 +1937,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1987,12 +2006,12 @@
                                     "variable_shape": null
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1097658b0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -2002,7 +2021,7 @@
                                     "variable_shape": null
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2072,7 +2091,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x1097296a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f48d4af4b20>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -2217,7 +2236,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2387,7 +2406,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2444,7 +2463,7 @@
                                     "variable_shape": null
                                 },
                                 "worker": {
-                                    "variable_value": "<luigi.scheduler.Worker object at 0x109792190>",
+                                    "variable_value": "<luigi.scheduler.Worker object at 0x7f48d4a5d580>",
                                     "variable_type": "Worker",
                                     "variable_shape": null
                                 },
@@ -2454,12 +2473,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1097658b0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -2469,7 +2488,7 @@
                                     "variable_shape": "3"
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2484,7 +2503,7 @@
                                     "variable_shape": null
                                 },
                                 "_default_task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': OrderedSet(), 'deps': set(), 'status': 'PENDING', 'time': 1702303166.839568, 'updated': 1702303166.839568, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x109792280>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': False, 'batchable': False, 'batch_id': None})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': OrderedSet(), 'deps': set(), 'status': 'PENDING', 'time': 1706547712.971338, 'updated': 1706547712.971338, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f48d4a5d670>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': False, 'batchable': False, 'batch_id': None})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -2529,7 +2548,7 @@
                                     "variable_shape": null
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X', 'Y'}, 'workers': OrderedSet(['X', 'Y']), 'deps': set(), 'status': 'UNKNOWN', 'time': 1702303166.831773, 'updated': 1702303166.8397481, 'retry': None, 'remove': None, 'worker_running': 'X', 'time_running': 1702303166.837491, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x10971efd0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None, 'resources_running': {}})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'Y', 'X'}, 'workers': OrderedSet(['X', 'Y']), 'deps': set(), 'status': 'UNKNOWN', 'time': 1706547712.969634, 'updated': 1706547712.9713497, 'retry': None, 'remove': None, 'worker_running': 'X', 'time_running': 1706547712.9705527, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f48d4af4580>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None, 'resources_running': {}})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -2539,7 +2558,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x1097296a0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f48d4af4b20>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -2609,7 +2628,7 @@
                                     "variable_shape": null
                                 },
                                 "task.time_running": {
-                                    "variable_value": "1702303166.837491",
+                                    "variable_value": "1706547712.9705527",
                                     "variable_type": "float",
                                     "variable_shape": null
                                 },
@@ -2684,7 +2703,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2824,7 +2843,7 @@
                                     "variable_shape": null
                                 },
                                 "task.stakeholders": {
-                                    "variable_value": "{'X', 'Y'}",
+                                    "variable_value": "{'Y', 'X'}",
                                     "variable_type": "set",
                                     "variable_shape": "2"
                                 },
@@ -2854,7 +2873,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1097658b0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f48d4ab28b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -2925,12 +2944,12 @@
                                     "variable_shape": null
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1108377f0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f5b9fb43940>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -2940,7 +2959,7 @@
                                     "variable_shape": null
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3010,7 +3029,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x110837850>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f5b9fb43f70>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -3165,7 +3184,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3330,7 +3349,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3387,7 +3406,7 @@
                                     "variable_shape": null
                                 },
                                 "worker": {
-                                    "variable_value": "<luigi.scheduler.Worker object at 0x11033e340>",
+                                    "variable_value": "<luigi.scheduler.Worker object at 0x7f5ba006fb20>",
                                     "variable_type": "Worker",
                                     "variable_shape": null
                                 },
@@ -3397,12 +3416,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1108377f0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f5b9fb43940>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -3412,7 +3431,7 @@
                                     "variable_shape": "3"
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3427,7 +3446,7 @@
                                     "variable_shape": null
                                 },
                                 "_default_task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1702303169.160887, 'updated': 1702303169.160887, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x11033e310>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1706547714.0280218, 'updated': 1706547714.0280218, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f5ba006fa00>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -3472,7 +3491,7 @@
                                     "variable_shape": null
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1702303169.160887, 'updated': 1702303169.160887, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x11033e310>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X'}, 'workers': OrderedSet(['X']), 'deps': set(), 'status': 'PENDING', 'time': 1706547714.0280218, 'updated': 1706547714.0280218, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f5ba006fa00>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -3482,7 +3501,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x110837850>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f5b9fb43f70>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -3637,7 +3656,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3802,7 +3821,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3871,12 +3890,12 @@
                                     "variable_shape": null
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1108377f0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f5b9fb43940>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -3886,7 +3905,7 @@
                                     "variable_shape": null
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -3956,7 +3975,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x110837850>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f5b9fb43f70>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -4111,7 +4130,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -4276,7 +4295,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -4333,7 +4352,7 @@
                                     "variable_shape": null
                                 },
                                 "worker": {
-                                    "variable_value": "<luigi.scheduler.Worker object at 0x11085b850>",
+                                    "variable_value": "<luigi.scheduler.Worker object at 0x7f5b9fb12d90>",
                                     "variable_type": "Worker",
                                     "variable_shape": null
                                 },
@@ -4343,12 +4362,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self._update_worker": {
-                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_worker of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x1108377f0>",
+                                    "variable_value": "<luigi.scheduler.Scheduler object at 0x7f5b9fb43940>",
                                     "variable_type": "Scheduler",
                                     "variable_shape": null
                                 },
@@ -4358,7 +4377,7 @@
                                     "variable_shape": "3"
                                 },
                                 "self._generate_retry_policy": {
-                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._generate_retry_policy of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -4373,7 +4392,7 @@
                                     "variable_shape": null
                                 },
                                 "_default_task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': OrderedSet(), 'deps': set(), 'status': 'PENDING', 'time': 1702303169.166207, 'updated': 1702303169.166207, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x11085b940>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': False, 'batchable': False, 'batch_id': None})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': OrderedSet(), 'deps': set(), 'status': 'PENDING', 'time': 1706547714.0297482, 'updated': 1706547714.0297482, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f5b9fb12e80>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': False, 'batchable': False, 'batch_id': None})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -4418,7 +4437,7 @@
                                     "variable_shape": null
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X', 'Y'}, 'workers': OrderedSet(['X', 'Y']), 'deps': set(), 'status': 'RUNNING', 'time': 1702303169.160887, 'updated': 1702303169.163647, 'retry': None, 'remove': None, 'worker_running': 'X', 'time_running': 1702303169.16365, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x11033e310>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None, 'resources_running': {}})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': {'X', 'Y'}, 'workers': OrderedSet(['X', 'Y']), 'deps': set(), 'status': 'RUNNING', 'time': 1706547714.0280218, 'updated': 1706547714.028953, 'retry': None, 'remove': None, 'worker_running': 'X', 'time_running': 1706547714.0289545, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f5ba006fa00>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': False, 'batch_id': None, 'resources_running': {}})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -4428,7 +4447,7 @@
                                     "variable_shape": null
                                 },
                                 "self._state": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x110837850>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f5b9fb43f70>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -4498,7 +4517,7 @@
                                     "variable_shape": null
                                 },
                                 "task.time_running": {
-                                    "variable_value": "1702303169.16365",
+                                    "variable_value": "1706547714.0289545",
                                     "variable_type": "float",
                                     "variable_shape": null
                                 },
@@ -4583,7 +4602,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_task_history": {
-                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_task_history of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -4748,7 +4767,7 @@
                                     "variable_shape": null
                                 },
                                 "self._update_priority": {
-                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x1108377f0>>",
+                                    "variable_value": "<bound method Scheduler._update_priority of <luigi.scheduler.Scheduler object at 0x7f5b9fb43940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -12433,7 +12452,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_7/test/scheduler_api_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_7/test/scheduler_api_test.py",
                 "test_function": "test_status_wont_override",
                 "test_function_code": "    def test_status_wont_override(self):\n        # Worker X is running A\n        # Worker Y wants to override the status to UNKNOWN (e.g. complete is throwing an exception)\n        self.sch.add_task(worker='X', task_id='A')\n        self.assertEqual(self.sch.get_work(worker='X')['task_id'], 'A')\n        self.sch.add_task(worker='Y', task_id='A', status=UNKNOWN)\n        self.assertEqual({'A'}, set(self.sch.task_list(RUNNING, '').keys()))",
                 "test_error": "AssertionError: Items in the first set but not the second: 'A'",

@@ -1,6 +1,6 @@
 {
     "sanic:4": {
-        "/Volumes/SSD2T/bgp_envs/repos/sanic_4/sanic/request.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/sanic_4/sanic/request.py": {
             "buggy_functions": [
                 {
                     "function_name": "url_for",
@@ -167,12 +167,12 @@
                             "@property\ndef json(self):\n    if self.parsed_json is None:\n        self.load_json()\n    return self.parsed_json",
                             "def load_json(self, loads=json_loads):\n    try:\n        self.parsed_json = loads(self.body)\n    except Exception:\n        if not self.body:\n            return None\n        raise InvalidUsage('Failed when parsing body as json')\n    return self.parsed_json",
                             "@property\ndef token(self):\n    \"\"\"Attempt to return the auth header token.\n\n    :return: token related to request\n    \"\"\"\n    prefixes = ('Bearer', 'Token')\n    auth_header = self.headers.get('Authorization')\n    if auth_header is not None:\n        for prefix in prefixes:\n            if prefix in auth_header:\n                return auth_header.partition(prefix)[-1].strip()\n    return auth_header",
-                            "@property\ndef form(self):\n    if self.parsed_form is None:\n        self.parsed_form = RequestParameters()\n        self.parsed_files = RequestParameters()\n        content_type = self.headers.get('Content-Type', DEFAULT_HTTP_CONTENT_TYPE)\n        content_type, parameters = parse_content_header(content_type)\n        try:\n            if content_type == 'application/x-www-form-urlencoded':\n                self.parsed_form = RequestParameters(parse_qs(self.body.decode('utf-8')))\n            elif content_type == 'multipart/form-data':\n                boundary = parameters['boundary'].encode('utf-8')\n                self.parsed_form, self.parsed_files = parse_multipart_form(self.body, boundary)\n        except Exception:\n            error_logger.exception('Failed when parsing form')\n    return self.parsed_form",
+                            "@property\ndef form(self):\n    if self.parsed_form is None:\n        self.parsed_form = RequestParameters()\n        self.parsed_files = RequestParameters()\n        content_type = self.headers.get('Content-Type', DEFAULT_HTTP_CONTENT_TYPE)\n        (content_type, parameters) = parse_content_header(content_type)\n        try:\n            if content_type == 'application/x-www-form-urlencoded':\n                self.parsed_form = RequestParameters(parse_qs(self.body.decode('utf-8')))\n            elif content_type == 'multipart/form-data':\n                boundary = parameters['boundary'].encode('utf-8')\n                (self.parsed_form, self.parsed_files) = parse_multipart_form(self.body, boundary)\n        except Exception:\n            error_logger.exception('Failed when parsing form')\n    return self.parsed_form",
                             "@property\ndef files(self):\n    if self.parsed_files is None:\n        self.form\n    return self.parsed_files",
                             "def get_args(self, keep_blank_values: bool=False, strict_parsing: bool=False, encoding: str='utf-8', errors: str='replace') -> RequestParameters:\n    \"\"\"\n    Method to parse `query_string` using `urllib.parse.parse_qs`.\n    This methods is used by `args` property.\n    Can be used directly if you need to change default parameters.\n\n    :param keep_blank_values:\n        flag indicating whether blank values in\n        percent-encoded queries should be treated as blank strings.\n        A true value indicates that blanks should be retained as blank\n        strings.  The default false value indicates that blank values\n        are to be ignored and treated as if they were  not included.\n    :type keep_blank_values: bool\n    :param strict_parsing:\n        flag indicating what to do with parsing errors.\n        If false (the default), errors are silently ignored. If true,\n        errors raise a ValueError exception.\n    :type strict_parsing: bool\n    :param encoding:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type encoding: str\n    :param errors:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type errors: str\n    :return: RequestParameters\n    \"\"\"\n    if not self.parsed_args[keep_blank_values, strict_parsing, encoding, errors]:\n        if self.query_string:\n            self.parsed_args[keep_blank_values, strict_parsing, encoding, errors] = RequestParameters(parse_qs(qs=self.query_string, keep_blank_values=keep_blank_values, strict_parsing=strict_parsing, encoding=encoding, errors=errors))\n    return self.parsed_args[keep_blank_values, strict_parsing, encoding, errors]",
-                            "@property\ndef raw_args(self) -> dict:\n    if self.app.debug:\n        warnings.simplefilter('default')\n    warnings.warn('Use of raw_args will be deprecated in the future versions. Please use args or query_args properties instead', DeprecationWarning)\n    return {k: v[0] for k, v in self.args.items()}",
+                            "@property\ndef raw_args(self) -> dict:\n    if self.app.debug:\n        warnings.simplefilter('default')\n    warnings.warn('Use of raw_args will be deprecated in the future versions. Please use args or query_args properties instead', DeprecationWarning)\n    return {k: v[0] for (k, v) in self.args.items()}",
                             "def get_query_args(self, keep_blank_values: bool=False, strict_parsing: bool=False, encoding: str='utf-8', errors: str='replace') -> list:\n    \"\"\"\n    Method to parse `query_string` using `urllib.parse.parse_qsl`.\n    This methods is used by `query_args` property.\n    Can be used directly if you need to change default parameters.\n\n    :param keep_blank_values:\n        flag indicating whether blank values in\n        percent-encoded queries should be treated as blank strings.\n        A true value indicates that blanks should be retained as blank\n        strings.  The default false value indicates that blank values\n        are to be ignored and treated as if they were  not included.\n    :type keep_blank_values: bool\n    :param strict_parsing:\n        flag indicating what to do with parsing errors.\n        If false (the default), errors are silently ignored. If true,\n        errors raise a ValueError exception.\n    :type strict_parsing: bool\n    :param encoding:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type encoding: str\n    :param errors:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type errors: str\n    :return: list\n    \"\"\"\n    if not self.parsed_not_grouped_args[keep_blank_values, strict_parsing, encoding, errors]:\n        if self.query_string:\n            self.parsed_not_grouped_args[keep_blank_values, strict_parsing, encoding, errors] = parse_qsl(qs=self.query_string, keep_blank_values=keep_blank_values, strict_parsing=strict_parsing, encoding=encoding, errors=errors)\n    return self.parsed_not_grouped_args[keep_blank_values, strict_parsing, encoding, errors]",
-                            "@property\ndef cookies(self):\n    if self._cookies is None:\n        cookie = self.headers.get('Cookie')\n        if cookie is not None:\n            cookies = SimpleCookie()\n            cookies.load(cookie)\n            self._cookies = {name: cookie.value for name, cookie in cookies.items()}\n        else:\n            self._cookies = {}\n    return self._cookies",
+                            "@property\ndef cookies(self):\n    if self._cookies is None:\n        cookie = self.headers.get('Cookie')\n        if cookie is not None:\n            cookies = SimpleCookie()\n            cookies.load(cookie)\n            self._cookies = {name: cookie.value for (name, cookie) in cookies.items()}\n        else:\n            self._cookies = {}\n    return self._cookies",
                             "@property\ndef ip(self):\n    \"\"\"\n    :return: peer ip of the socket\n    \"\"\"\n    if not hasattr(self, '_socket'):\n        self._get_address()\n    return self._ip",
                             "@property\ndef port(self):\n    \"\"\"\n    :return: peer port of the socket\n    \"\"\"\n    if not hasattr(self, '_socket'):\n        self._get_address()\n    return self._port",
                             "@property\ndef socket(self):\n    if not hasattr(self, '_socket'):\n        self._get_address()\n    return self._socket",
@@ -191,29 +191,29 @@
                             "def url_for(self, view_name, **kwargs):\n    \"\"\"\n    Same as :func:`sanic.Sanic.url_for`, but automatically determine\n    `scheme` and `netloc` base on the request. Since this method is aiming\n    to generate correct schema & netloc, `_external` is implied.\n\n    :param kwargs: takes same parameters as in :func:`sanic.Sanic.url_for`\n    :return: an absolute url to the given view\n    :rtype: str\n    \"\"\"\n    if '//' in self.app.config.SERVER_NAME:\n        return self.app.url_for(view_name, _external=True, **kwargs)\n    scheme = self.scheme\n    host = self.server_name\n    port = self.server_port\n    if scheme.lower() in ('http', 'ws') and port == 80 or (scheme.lower() in ('https', 'wss') and port == 443):\n        netloc = host\n    else:\n        netloc = '{}:{}'.format(host, port)\n    return self.app.url_for(view_name, _external=True, _scheme=scheme, _server=netloc, **kwargs)"
                         ],
                         "constructor_variables": [
-                            "app",
-                            "parsed_not_grouped_args",
-                            "parsed_json",
-                            "method",
-                            "parsed_forwarded",
-                            "parsed_form",
-                            "headers",
-                            "parsed_files",
-                            "parsed_args",
-                            "uri_template",
-                            "stream",
-                            "transport",
-                            "_cookies",
-                            "_parsed_url",
-                            "ctx",
-                            "endpoint",
-                            "raw_url",
-                            "version"
+                            "self.raw_url = url_bytes",
+                            "self._parsed_url = parse_url(url_bytes)",
+                            "self.app = app",
+                            "self.headers = headers",
+                            "self.version = version",
+                            "self.method = method",
+                            "self.transport = transport",
+                            "self.ctx = SimpleNamespace()",
+                            "self.parsed_forwarded = None",
+                            "self.parsed_json = None",
+                            "self.parsed_form = None",
+                            "self.parsed_files = None",
+                            "self.parsed_args = defaultdict(RequestParameters)",
+                            "self.parsed_not_grouped_args = defaultdict(list)",
+                            "self.uri_template = None",
+                            "self._cookies = None",
+                            "self.stream = None",
+                            "self.endpoint = None"
                         ],
                         "class_level_variables": [
-                            "__slots__",
-                            "args",
-                            "query_args"
+                            "__slots__ = ('__weakref__', '_cookies', '_ip', '_parsed_url', '_port', '_remote_addr', '_socket', 'app', 'body', 'ctx', 'endpoint', 'headers', 'method', 'parsed_args', 'parsed_not_grouped_args', 'parsed_files', 'parsed_form', 'parsed_json', 'parsed_forwarded', 'raw_url', 'stream', 'transport', 'uri_template', 'version')",
+                            "args = property(get_args)",
+                            "query_args = property(get_query_args)"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -252,8 +252,34 @@
                             "query_string(self)",
                             "url(self)",
                             "url_for(self, view_name, **kwargs)"
+                        ],
+                        "class_level_variable_names": [
+                            "__slots__",
+                            "args",
+                            "query_args"
+                        ],
+                        "constructor_variable_names": [
+                            "raw_url",
+                            "ctx",
+                            "app",
+                            "headers",
+                            "transport",
+                            "parsed_args",
+                            "parsed_files",
+                            "version",
+                            "parsed_not_grouped_args",
+                            "_cookies",
+                            "stream",
+                            "_parsed_url",
+                            "parsed_forwarded",
+                            "parsed_form",
+                            "endpoint",
+                            "parsed_json",
+                            "uri_template",
+                            "method"
                         ]
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -268,7 +294,7 @@
                                     "variable_shape": null
                                 },
                                 "self.app": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x10c87dfa0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7fb11958ffa0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -350,7 +376,7 @@
                                     "variable_shape": null
                                 },
                                 "self.app": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x10a5f1ca0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7ff8fb63f400>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -427,7 +453,7 @@
                                     "variable_shape": null
                                 },
                                 "self.app": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x10a5f1ca0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7ff8fb63f400>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -482,7 +508,7 @@
                                     "variable_shape": null
                                 },
                                 "scheme.lower": {
-                                    "variable_value": "<built-in method lower of str object at 0x107afba70>",
+                                    "variable_value": "<built-in method lower of str object at 0x7ff8ffa8def0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2460,11 +2486,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/sanic_4/tests/test_requests.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/sanic_4/tests/test_requests.py",
                 "test_function": "test_url_for_without_server_name",
                 "test_function_code": "def test_url_for_without_server_name(app):\n    @app.route(\"/sample\")\n    def sample(request):\n        return json({\"url\": request.url_for(\"url_for\")})\n\n    @app.route(\"/url-for\")\n    def url_for(request):\n        return text(\"url-for\")\n\n    request, response = app.test_client.get(\"/sample\")\n    assert (\n        response.json[\"url\"]\n        == f\"http://127.0.0.1:{app.test_client.port}/url-for\"\n    )",
                 "test_error": "TypeError: 'NoneType' object is not subscriptable",
-                "full_test_error": "app = <sanic.app.Sanic object at 0x10a74bc10>\n\n    def test_url_for_without_server_name(app):\n        @app.route(\"/sample\")\n        def sample(request):\n            return json({\"url\": request.url_for(\"url_for\")})\n    \n        @app.route(\"/url-for\")\n        def url_for(request):\n            return text(\"url-for\")\n    \n        request, response = app.test_client.get(\"/sample\")\n>       assert (\n            response.json[\"url\"]\n            == f\"http://127.0.0.1:{app.test_client.port}/url-for\"\n        )\nE       TypeError: 'NoneType' object is not subscriptable\n\ntests/test_requests.py:2118: TypeError",
+                "full_test_error": "app = <sanic.app.Sanic object at 0x7fb44100ce80>\n\n    def test_url_for_without_server_name(app):\n        @app.route(\"/sample\")\n        def sample(request):\n            return json({\"url\": request.url_for(\"url_for\")})\n    \n        @app.route(\"/url-for\")\n        def url_for(request):\n            return text(\"url-for\")\n    \n        request, response = app.test_client.get(\"/sample\")\n>       assert (\n            response.json[\"url\"]\n            == f\"http://127.0.0.1:{app.test_client.port}/url-for\"\n        )\nE       TypeError: 'NoneType' object is not subscriptable\n\ntests/test_requests.py:2118: TypeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

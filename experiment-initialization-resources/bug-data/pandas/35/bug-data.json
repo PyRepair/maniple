@@ -1,6 +1,6 @@
 {
     "pandas:35": {
-        "/Volumes/SSD2T/bgp_envs/repos/pandas_35/pandas/core/indexes/period.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_35/pandas/core/indexes/period.py": {
             "buggy_functions": [
                 {
                     "function_name": "_engine",
@@ -64,7 +64,7 @@
                         "docstring": "Immutable ndarray holding ordinal values indicating regular periods in time.\n\nIndex keys are boxed to Period objects which carries the metadata (eg,\nfrequency information).\n\nParameters\n----------\ndata : array-like (1d int np.ndarray or PeriodArray), optional\n    Optional period-like data to construct index with.\ncopy : bool\n    Make a copy of input ndarray.\nfreq : str or period object, optional\n    One of pandas period strings or corresponding objects.\nyear : int, array, or Series, default None\nmonth : int, array, or Series, default None\nquarter : int, array, or Series, default None\nday : int, array, or Series, default None\nhour : int, array, or Series, default None\nminute : int, array, or Series, default None\nsecond : int, array, or Series, default None\ntz : object, default None\n    Timezone for converting datetime64 data to Periods.\ndtype : str or PeriodDtype, default None\n\nAttributes\n----------\nday\ndayofweek\ndayofyear\ndays_in_month\ndaysinmonth\nend_time\nfreq\nfreqstr\nhour\nis_leap_year\nminute\nmonth\nquarter\nqyear\nsecond\nstart_time\nweek\nweekday\nweekofyear\nyear\n\nMethods\n-------\nasfreq\nstrftime\nto_timestamp\n\nSee Also\n--------\nIndex : The base pandas Index type.\nPeriod : Represents a period of time.\nDatetimeIndex : Index with datetime64 data.\nTimedeltaIndex : Index of timedelta64 data.\nperiod_range : Create a fixed-frequency PeriodIndex.\n\nExamples\n--------\n>>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)",
                         "constructor_docstring": null,
                         "functions": [
-                            "def __new__(cls, data=None, ordinal=None, freq=None, tz=None, dtype=None, copy=False, name=None, **fields):\n    valid_field_set = {'year', 'month', 'day', 'quarter', 'hour', 'minute', 'second'}\n    if not set(fields).issubset(valid_field_set):\n        argument = list(set(fields) - valid_field_set)[0]\n        raise TypeError(f'__new__() got an unexpected keyword argument {argument}')\n    name = maybe_extract_name(name, data, cls)\n    if data is None and ordinal is None:\n        data, freq2 = PeriodArray._generate_range(None, None, None, freq, fields)\n        freq = freq2\n        data = PeriodArray(data, freq=freq)\n    else:\n        freq = validate_dtype_freq(dtype, freq)\n        if freq and isinstance(data, cls) and (data.freq != freq):\n            data = data.asfreq(freq)\n        if data is None and ordinal is not None:\n            ordinal = np.asarray(ordinal, dtype=np.int64)\n            data = PeriodArray(ordinal, freq)\n        else:\n            data = period_array(data=data, freq=freq)\n    if copy:\n        data = data.copy()\n    return cls._simple_new(data, name=name)",
+                            "def __new__(cls, data=None, ordinal=None, freq=None, tz=None, dtype=None, copy=False, name=None, **fields):\n    valid_field_set = {'year', 'month', 'day', 'quarter', 'hour', 'minute', 'second'}\n    if not set(fields).issubset(valid_field_set):\n        argument = list(set(fields) - valid_field_set)[0]\n        raise TypeError(f'__new__() got an unexpected keyword argument {argument}')\n    name = maybe_extract_name(name, data, cls)\n    if data is None and ordinal is None:\n        (data, freq2) = PeriodArray._generate_range(None, None, None, freq, fields)\n        freq = freq2\n        data = PeriodArray(data, freq=freq)\n    else:\n        freq = validate_dtype_freq(dtype, freq)\n        if freq and isinstance(data, cls) and (data.freq != freq):\n            data = data.asfreq(freq)\n        if data is None and ordinal is not None:\n            ordinal = np.asarray(ordinal, dtype=np.int64)\n            data = PeriodArray(ordinal, freq)\n        else:\n            data = period_array(data=data, freq=freq)\n    if copy:\n        data = data.copy()\n    return cls._simple_new(data, name=name)",
                             "@classmethod\ndef _simple_new(cls, values: PeriodArray, name: Label=None):\n    \"\"\"\n    Create a new PeriodIndex.\n\n    Parameters\n    ----------\n    values : PeriodArray\n        Values that can be converted to a PeriodArray without inference\n        or coercion.\n    \"\"\"\n    assert isinstance(values, PeriodArray), type(values)\n    result = object.__new__(cls)\n    result._data = values\n    result._index_data = values._data\n    result.name = name\n    result._cache = {}\n    result._reset_identity()\n    return result",
                             "@property\ndef values(self):\n    return np.asarray(self)",
                             "@property\ndef _has_complex_internals(self):\n    return True",
@@ -82,14 +82,14 @@
                             "@property\ndef is_full(self) -> bool:\n    \"\"\"\n    Returns True if this PeriodIndex is range-like in that all Periods\n    between start and end are present, in order.\n    \"\"\"\n    if len(self) == 0:\n        return True\n    if not self.is_monotonic:\n        raise ValueError('Index is not monotonic')\n    values = self.asi8\n    return (values[1:] - values[:-1] < 2).all()",
                             "@property\ndef inferred_type(self) -> str:\n    return 'period'",
                             "@Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)\ndef get_indexer(self, target, method=None, limit=None, tolerance=None):\n    target = ensure_index(target)\n    if isinstance(target, PeriodIndex):\n        if target.freq != self.freq:\n            no_matches = -1 * np.ones(self.shape, dtype=np.intp)\n            return no_matches\n        target = target.asi8\n        self_index = self._int64index\n    else:\n        self_index = self\n    if tolerance is not None:\n        tolerance = self._convert_tolerance(tolerance, target)\n        if self_index is not self:\n            tolerance = self._maybe_convert_timedelta(tolerance)\n    return Index.get_indexer(self_index, target, method, limit, tolerance)",
-                            "@Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)\ndef get_indexer_non_unique(self, target):\n    target = ensure_index(target)\n    if not self._is_comparable_dtype(target.dtype):\n        no_matches = -1 * np.ones(self.shape, dtype=np.intp)\n        return (no_matches, no_matches)\n    target = target.asi8\n    indexer, missing = self._int64index.get_indexer_non_unique(target)\n    return (ensure_platform_int(indexer), missing)",
-                            "def get_loc(self, key, method=None, tolerance=None):\n    \"\"\"\n    Get integer location for requested label.\n\n    Parameters\n    ----------\n    key : Period, NaT, str, or datetime\n        String or datetime key must be parseable as Period.\n\n    Returns\n    -------\n    loc : int or ndarray[int64]\n\n    Raises\n    ------\n    KeyError\n        Key is not present in the index.\n    TypeError\n        If key is listlike or otherwise not hashable.\n    \"\"\"\n    orig_key = key\n    if not is_scalar(key):\n        raise InvalidIndexError(key)\n    if isinstance(key, str):\n        try:\n            loc = self._get_string_slice(key)\n            return loc\n        except (TypeError, ValueError):\n            pass\n        try:\n            asdt, reso = parse_time_string(key, self.freq)\n        except DateParseError as err:\n            raise KeyError(f\"Cannot interpret '{key}' as period\") from err\n        grp = resolution.Resolution.get_freq_group(reso)\n        freqn = resolution.get_freq_group(self.freq)\n        assert grp >= freqn\n        if grp == freqn:\n            key = Period(asdt, freq=self.freq)\n            loc = self.get_loc(key, method=method, tolerance=tolerance)\n            return loc\n        elif method is None:\n            raise KeyError(key)\n        else:\n            key = asdt\n    elif is_integer(key):\n        raise KeyError(key)\n    try:\n        key = Period(key, freq=self.freq)\n    except ValueError as err:\n        raise KeyError(orig_key) from err\n    try:\n        return Index.get_loc(self, key, method, tolerance)\n    except KeyError as err:\n        raise KeyError(orig_key) from err",
-                            "def _maybe_cast_slice_bound(self, label, side: str, kind: str):\n    \"\"\"\n    If label is a string or a datetime, cast it to Period.ordinal according\n    to resolution.\n\n    Parameters\n    ----------\n    label : object\n    side : {'left', 'right'}\n    kind : {'loc', 'getitem'}\n\n    Returns\n    -------\n    bound : Period or object\n\n    Notes\n    -----\n    Value of `side` parameter should be validated in caller.\n\n    \"\"\"\n    assert kind in ['loc', 'getitem']\n    if isinstance(label, datetime):\n        return Period(label, freq=self.freq)\n    elif isinstance(label, str):\n        try:\n            parsed, reso = parse_time_string(label, self.freq)\n            bounds = self._parsed_string_to_bounds(reso, parsed)\n            return bounds[0 if side == 'left' else 1]\n        except ValueError as err:\n            raise KeyError(label) from err\n    elif is_integer(label) or is_float(label):\n        self._invalid_indexer('slice', label)\n    return label",
+                            "@Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)\ndef get_indexer_non_unique(self, target):\n    target = ensure_index(target)\n    if not self._is_comparable_dtype(target.dtype):\n        no_matches = -1 * np.ones(self.shape, dtype=np.intp)\n        return (no_matches, no_matches)\n    target = target.asi8\n    (indexer, missing) = self._int64index.get_indexer_non_unique(target)\n    return (ensure_platform_int(indexer), missing)",
+                            "def get_loc(self, key, method=None, tolerance=None):\n    \"\"\"\n    Get integer location for requested label.\n\n    Parameters\n    ----------\n    key : Period, NaT, str, or datetime\n        String or datetime key must be parseable as Period.\n\n    Returns\n    -------\n    loc : int or ndarray[int64]\n\n    Raises\n    ------\n    KeyError\n        Key is not present in the index.\n    TypeError\n        If key is listlike or otherwise not hashable.\n    \"\"\"\n    orig_key = key\n    if not is_scalar(key):\n        raise InvalidIndexError(key)\n    if isinstance(key, str):\n        try:\n            loc = self._get_string_slice(key)\n            return loc\n        except (TypeError, ValueError):\n            pass\n        try:\n            (asdt, reso) = parse_time_string(key, self.freq)\n        except DateParseError as err:\n            raise KeyError(f\"Cannot interpret '{key}' as period\") from err\n        grp = resolution.Resolution.get_freq_group(reso)\n        freqn = resolution.get_freq_group(self.freq)\n        assert grp >= freqn\n        if grp == freqn:\n            key = Period(asdt, freq=self.freq)\n            loc = self.get_loc(key, method=method, tolerance=tolerance)\n            return loc\n        elif method is None:\n            raise KeyError(key)\n        else:\n            key = asdt\n    elif is_integer(key):\n        raise KeyError(key)\n    try:\n        key = Period(key, freq=self.freq)\n    except ValueError as err:\n        raise KeyError(orig_key) from err\n    try:\n        return Index.get_loc(self, key, method, tolerance)\n    except KeyError as err:\n        raise KeyError(orig_key) from err",
+                            "def _maybe_cast_slice_bound(self, label, side: str, kind: str):\n    \"\"\"\n    If label is a string or a datetime, cast it to Period.ordinal according\n    to resolution.\n\n    Parameters\n    ----------\n    label : object\n    side : {'left', 'right'}\n    kind : {'loc', 'getitem'}\n\n    Returns\n    -------\n    bound : Period or object\n\n    Notes\n    -----\n    Value of `side` parameter should be validated in caller.\n\n    \"\"\"\n    assert kind in ['loc', 'getitem']\n    if isinstance(label, datetime):\n        return Period(label, freq=self.freq)\n    elif isinstance(label, str):\n        try:\n            (parsed, reso) = parse_time_string(label, self.freq)\n            bounds = self._parsed_string_to_bounds(reso, parsed)\n            return bounds[0 if side == 'left' else 1]\n        except ValueError as err:\n            raise KeyError(label) from err\n    elif is_integer(label) or is_float(label):\n        self._invalid_indexer('slice', label)\n    return label",
                             "def _parsed_string_to_bounds(self, reso: str, parsed: datetime):\n    if reso not in ['year', 'month', 'quarter', 'day', 'hour', 'minute', 'second']:\n        raise KeyError(reso)\n    grp = resolution.Resolution.get_freq_group(reso)\n    iv = Period(parsed, freq=(grp, 1))\n    return (iv.asfreq(self.freq, how='start'), iv.asfreq(self.freq, how='end'))",
                             "def _validate_partial_date_slice(self, reso: str):\n    grp = resolution.Resolution.get_freq_group(reso)\n    freqn = resolution.get_freq_group(self.freq)\n    if not grp < freqn:\n        raise ValueError",
-                            "def _get_string_slice(self, key: str, use_lhs: bool=True, use_rhs: bool=True):\n    parsed, reso = parse_time_string(key, self.freq)\n    try:\n        return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)\n    except KeyError as err:\n        raise KeyError(key) from err",
+                            "def _get_string_slice(self, key: str, use_lhs: bool=True, use_rhs: bool=True):\n    (parsed, reso) = parse_time_string(key, self.freq)\n    try:\n        return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)\n    except KeyError as err:\n        raise KeyError(key) from err",
                             "def insert(self, loc, item):\n    if not isinstance(item, Period) or self.freq != item.freq:\n        return self.astype(object).insert(loc, item)\n    i8result = np.concatenate((self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8))\n    arr = type(self._data)._simple_new(i8result, dtype=self.dtype)\n    return type(self)._simple_new(arr, name=self.name)",
-                            "def join(self, other, how='left', level=None, return_indexers=False, sort=False):\n    \"\"\"\n    See Index.join\n    \"\"\"\n    self._assert_can_do_setop(other)\n    if not isinstance(other, PeriodIndex):\n        return self.astype(object).join(other, how=how, level=level, return_indexers=return_indexers, sort=sort)\n    result = Int64Index.join(self, other, how=how, level=level, return_indexers=return_indexers, sort=sort)\n    if return_indexers:\n        result, lidx, ridx = result\n        return (self._apply_meta(result), lidx, ridx)\n    return self._apply_meta(result)",
+                            "def join(self, other, how='left', level=None, return_indexers=False, sort=False):\n    \"\"\"\n    See Index.join\n    \"\"\"\n    self._assert_can_do_setop(other)\n    if not isinstance(other, PeriodIndex):\n        return self.astype(object).join(other, how=how, level=level, return_indexers=return_indexers, sort=sort)\n    result = Int64Index.join(self, other, how=how, level=level, return_indexers=return_indexers, sort=sort)\n    if return_indexers:\n        (result, lidx, ridx) = result\n        return (self._apply_meta(result), lidx, ridx)\n    return self._apply_meta(result)",
                             "def _assert_can_do_setop(self, other):\n    super()._assert_can_do_setop(other)\n    if isinstance(other, PeriodIndex) and self.freq != other.freq:\n        raise raise_on_incompatible(self, other)",
                             "def _setop(self, other, sort, opname: str):\n    \"\"\"\n    Perform a set operation by dispatching to the Int64Index implementation.\n    \"\"\"\n    self._validate_sort_keyword(sort)\n    self._assert_can_do_setop(other)\n    res_name = get_op_result_name(self, other)\n    other = ensure_index(other)\n    i8self = Int64Index._simple_new(self.asi8)\n    i8other = Int64Index._simple_new(other.asi8)\n    i8result = getattr(i8self, opname)(i8other, sort=sort)\n    parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)\n    result = type(self)._simple_new(parr, name=res_name)\n    return result",
                             "def intersection(self, other, sort=False):\n    self._validate_sort_keyword(sort)\n    self._assert_can_do_setop(other)\n    other = ensure_index(other)\n    if self.equals(other):\n        return self._get_reconciled_name_object(other)\n    if not is_dtype_equal(self.dtype, other.dtype):\n        this = self.astype('O')\n        other = other.astype('O')\n        return this.intersection(other, sort=sort)\n    return self._setop(other, sort, opname='intersection')",
@@ -100,14 +100,14 @@
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
-                            "_typ",
-                            "_attributes",
-                            "_is_numeric_dtype",
-                            "_infer_as_myclass",
-                            "_data",
-                            "freq",
-                            "_engine_type",
-                            "_supports_partial_string_indexing"
+                            "_typ = 'periodindex'",
+                            "_attributes = ['name', 'freq']",
+                            "_is_numeric_dtype = False",
+                            "_infer_as_myclass = True",
+                            "_data: PeriodArray",
+                            "freq: DateOffset",
+                            "_engine_type = libindex.PeriodEngine",
+                            "_supports_partial_string_indexing = True"
                         ],
                         "class_decorators": [
                             "inherit_names(['strftime', 'to_timestamp', 'asfreq', 'start_time', 'end_time'] + PeriodArray._field_ops, PeriodArray, wrap=True)",
@@ -147,8 +147,23 @@
                             "_union(self, other, sort)",
                             "_apply_meta(self, rawarr) -> 'PeriodIndex'",
                             "memory_usage(self, deep=False)"
-                        ]
+                        ],
+                        "class_level_variable_names": [
+                            "_typ",
+                            "_attributes",
+                            "_is_numeric_dtype",
+                            "_infer_as_myclass",
+                            "_data",
+                            "freq",
+                            "_engine_type",
+                            "_supports_partial_string_indexing"
+                        ],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [
+                        "import weakref",
+                        "from pandas.util._decorators import Appender, cache_readonly, doc"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -185,7 +200,7 @@
                             },
                             {
                                 "period": {
-                                    "variable_value": "<weakref at 0x119f9adb0; to 'PeriodIndex' at 0x119f87130>",
+                                    "variable_value": "<weakref at 0x7f895d0a5d10; to 'PeriodIndex' at 0x7f895d0b4a60>",
                                     "variable_type": "weakref",
                                     "variable_shape": null
                                 },
@@ -251,7 +266,7 @@
                             },
                             {
                                 "period": {
-                                    "variable_value": "<weakref at 0x119fc3360; to 'PeriodIndex' at 0x119f87430>",
+                                    "variable_value": "<weakref at 0x7f895d0633b0; to 'PeriodIndex' at 0x7f895d0b48b0>",
                                     "variable_type": "weakref",
                                     "variable_shape": null
                                 },
@@ -324,7 +339,7 @@
                             },
                             {
                                 "period": {
-                                    "variable_value": "<weakref at 0x112df0540; to 'PeriodArray' at 0x112ecf3a0>",
+                                    "variable_value": "<weakref at 0x7f1cdc5db7c0; to 'PeriodArray' at 0x7f1cdc5e4b80>",
                                     "variable_type": "weakref",
                                     "variable_shape": null
                                 },
@@ -400,7 +415,7 @@
                             },
                             {
                                 "period": {
-                                    "variable_value": "<weakref at 0x112ea9540; to 'PeriodArray' at 0x112ecf5b0>",
+                                    "variable_value": "<weakref at 0x7f1cdc5db900; to 'PeriodArray' at 0x7f1cdc5e4a60>",
                                     "variable_type": "weakref",
                                     "variable_shape": null
                                 },
@@ -3318,7 +3333,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/pandas_35/pandas/tests/indexes/multi/test_get_level_values.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_35/pandas/tests/indexes/multi/test_get_level_values.py",
                 "test_function": "test_get_level_values_when_periods",
                 "test_function_code": "def test_get_level_values_when_periods():\n    # GH33131. See also discussion in GH32669.\n    # This test can probably be removed when PeriodIndex._engine is removed.\n    from pandas import Period, PeriodIndex\n\n    idx = MultiIndex.from_arrays(\n        [PeriodIndex([Period(\"2019Q1\"), Period(\"2019Q2\")], name=\"b\")]\n    )\n    idx2 = MultiIndex.from_arrays(\n        [idx._get_level_values(level) for level in range(idx.nlevels)]\n    )\n    assert all(x.is_monotonic for x in idx2.levels)",
                 "test_error": "AttributeError: 'NoneType' object has no attribute 'view'",

@@ -1,6 +1,6 @@
 {
     "luigi:24": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_24/luigi/contrib/spark.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_24/luigi/contrib/spark.py": {
             "buggy_functions": [
                 {
                     "function_name": "_dict_arg",
@@ -93,19 +93,19 @@
                             "def get_environment(self):\n    env = os.environ.copy()\n    hadoop_conf_dir = self.hadoop_conf_dir\n    if hadoop_conf_dir:\n        env['HADOOP_CONF_DIR'] = hadoop_conf_dir\n    return env",
                             "def spark_command(self):\n    command = [self.spark_submit]\n    command += self._text_arg('--master', self.master)\n    command += self._text_arg('--deploy-mode', self.deploy_mode)\n    command += self._text_arg('--name', self.name)\n    command += self._text_arg('--class', self.entry_class)\n    command += self._list_arg('--jars', self.jars)\n    command += self._list_arg('--py-files', self.py_files)\n    command += self._list_arg('--files', self.files)\n    command += self._list_arg('--archives', self.archives)\n    command += self._dict_arg('--conf', self.conf)\n    command += self._text_arg('--properties-file', self.properties_file)\n    command += self._text_arg('--driver-memory', self.driver_memory)\n    command += self._text_arg('--driver-java-options', self.driver_java_options)\n    command += self._text_arg('--driver-library-path', self.driver_library_path)\n    command += self._text_arg('--driver-class-path', self.driver_class_path)\n    command += self._text_arg('--executor-memory', self.executor_memory)\n    command += self._text_arg('--driver-cores', self.driver_cores)\n    command += self._flag_arg('--supervise', self.supervise)\n    command += self._text_arg('--total-executor-cores', self.total_executor_cores)\n    command += self._text_arg('--executor-cores', self.executor_cores)\n    command += self._text_arg('--queue', self.queue)\n    command += self._text_arg('--num-executors', self.num_executors)\n    return command",
                             "def app_command(self):\n    if not self.app:\n        raise NotImplementedError('subclass should define an app (.jar or .py file)')\n    return [self.app] + self.app_options()",
-                            "def run(self):\n    args = list(map(str, self.spark_command() + self.app_command()))\n    logger.info('Running: %s', repr(args))\n    tmp_stdout, tmp_stderr = (tempfile.TemporaryFile(), tempfile.TemporaryFile())\n    proc = subprocess.Popen(args, stdout=tmp_stdout, stderr=tmp_stderr, env=self.get_environment(), close_fds=True, universal_newlines=True)\n    try:\n        with SparkRunContext(proc):\n            proc.wait()\n        tmp_stdout.seek(0)\n        stdout = ''.join(map(lambda s: s.decode('utf-8'), tmp_stdout.readlines()))\n        logger.info('Spark job stdout:\\n{0}'.format(stdout))\n        if proc.returncode != 0:\n            tmp_stderr.seek(0)\n            stderr = ''.join(map(lambda s: s.decode('utf-8'), tmp_stderr.readlines()))\n            raise SparkJobError('Spark job failed {0}'.format(repr(args)), out=stdout, err=stderr)\n    finally:\n        tmp_stderr.close()\n        tmp_stdout.close()",
+                            "def run(self):\n    args = list(map(str, self.spark_command() + self.app_command()))\n    logger.info('Running: %s', repr(args))\n    (tmp_stdout, tmp_stderr) = (tempfile.TemporaryFile(), tempfile.TemporaryFile())\n    proc = subprocess.Popen(args, stdout=tmp_stdout, stderr=tmp_stderr, env=self.get_environment(), close_fds=True, universal_newlines=True)\n    try:\n        with SparkRunContext(proc):\n            proc.wait()\n        tmp_stdout.seek(0)\n        stdout = ''.join(map(lambda s: s.decode('utf-8'), tmp_stdout.readlines()))\n        logger.info('Spark job stdout:\\n{0}'.format(stdout))\n        if proc.returncode != 0:\n            tmp_stderr.seek(0)\n            stderr = ''.join(map(lambda s: s.decode('utf-8'), tmp_stderr.readlines()))\n            raise SparkJobError('Spark job failed {0}'.format(repr(args)), out=stdout, err=stderr)\n    finally:\n        tmp_stderr.close()\n        tmp_stdout.close()",
                             "def _list_config(self, config):\n    if config and isinstance(config, six.string_types):\n        return list(map(lambda x: x.strip(), config.split(',')))",
                             "def _dict_config(self, config):\n    if config and isinstance(config, six.string_types):\n        return dict(map(lambda i: i.split('='), config.split('|')))",
                             "def _text_arg(self, name, value):\n    if value:\n        return [name, value]\n    return []",
                             "def _list_arg(self, name, value):\n    if value and isinstance(value, (list, tuple)):\n        return [name, ','.join(value)]\n    return []",
-                            "def _dict_arg(self, name, value):\n    command = []\n    if value and isinstance(value, dict):\n        for prop, value in value.items():\n            command += [name, '\"{0}={1}\"'.format(prop, value)]\n    return command",
+                            "def _dict_arg(self, name, value):\n    command = []\n    if value and isinstance(value, dict):\n        for (prop, value) in value.items():\n            command += [name, '\"{0}={1}\"'.format(prop, value)]\n    return command",
                             "def _flag_arg(self, name, value):\n    if value:\n        return [name]\n    return []"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
-                            "name",
-                            "entry_class",
-                            "app"
+                            "name = None",
+                            "entry_class = None",
+                            "app = None"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -141,8 +141,15 @@
                             "_list_arg(self, name, value)",
                             "_dict_arg(self, name, value)",
                             "_flag_arg(self, name, value)"
-                        ]
+                        ],
+                        "class_level_variable_names": [
+                            "name",
+                            "entry_class",
+                            "app"
+                        ],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -162,7 +169,7 @@
                                     "variable_shape": null
                                 },
                                 "value.items": {
-                                    "variable_value": "<built-in method items of dict object at 0x108e77dc0>",
+                                    "variable_value": "<built-in method items of dict object at 0x7f0e0c109900>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -218,7 +225,7 @@
                                     "variable_shape": null
                                 },
                                 "value.items": {
-                                    "variable_value": "<built-in method items of dict object at 0x109601c40>",
+                                    "variable_value": "<built-in method items of dict object at 0x7f0e08500c00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -276,7 +283,7 @@
                                     "variable_shape": null
                                 },
                                 "value.items": {
-                                    "variable_value": "<built-in method items of dict object at 0x11233d580>",
+                                    "variable_value": "<built-in method items of dict object at 0x7f1312685c00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -332,7 +339,7 @@
                                     "variable_shape": null
                                 },
                                 "value.items": {
-                                    "variable_value": "<built-in method items of dict object at 0x1123d5d80>",
+                                    "variable_value": "<built-in method items of dict object at 0x7f1312520100>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3035,11 +3042,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_24/test/contrib/spark_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_24/test/contrib/spark_test.py",
                 "test_function": "test_run",
                 "test_function_code": "    @with_config({'spark': {'spark-submit': ss, 'master': \"yarn-client\", 'hadoop-conf-dir': 'path'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_run(self, proc):\n        setup_run_process(proc)\n        job = TestSparkSubmitTask()\n        job.run()\n\n        self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',\n                          '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',\n                          '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',\n                          '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',\n                          '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',\n                          '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',\n                          '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])",
                 "test_error": "AssertionError: Lists differ: ['ss-[240 chars]f', '\"Prop=Value\"', '--properties-file', 'conf[346 chars]rg2'] != ['ss-[240 chars]f', 'Prop=Value', '--properties-file', 'conf/s[344 chars]rg2']  First differing element 18: '\"Prop=Value\"' 'Prop=Value'  Diff is 812 characters long. Set self.maxDiff to None to see it.",
-                "full_test_error": "self = <contrib.spark_test.SparkSubmitTaskTest testMethod=test_run>\nproc = <MagicMock name='Popen' id='4522315984'>\n\n    @with_config({'spark': {'spark-submit': ss, 'master': \"yarn-client\", 'hadoop-conf-dir': 'path'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_run(self, proc):\n        setup_run_process(proc)\n        job = TestSparkSubmitTask()\n        job.run()\n    \n>       self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',\n                          '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',\n                          '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',\n                          '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',\n                          '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',\n                          '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',\n                          '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])\nE       AssertionError: Lists differ: ['ss-[240 chars]f', '\"Prop=Value\"', '--properties-file', 'conf[346 chars]rg2'] != ['ss-[240 chars]f', 'Prop=Value', '--properties-file', 'conf/s[344 chars]rg2']\nE       \nE       First differing element 18:\nE       '\"Prop=Value\"'\nE       'Prop=Value'\nE       \nE       Diff is 812 characters long. Set self.maxDiff to None to see it.\n\ntest/contrib/spark_test.py:149: AssertionError",
+                "full_test_error": "self = <contrib.spark_test.SparkSubmitTaskTest testMethod=test_run>\nproc = <MagicMock name='Popen' id='140101468021376'>\n\n    @with_config({'spark': {'spark-submit': ss, 'master': \"yarn-client\", 'hadoop-conf-dir': 'path'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_run(self, proc):\n        setup_run_process(proc)\n        job = TestSparkSubmitTask()\n        job.run()\n    \n>       self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',\n                          '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',\n                          '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',\n                          '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',\n                          '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',\n                          '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',\n                          '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])\nE       AssertionError: Lists differ: ['ss-[240 chars]f', '\"Prop=Value\"', '--properties-file', 'conf[346 chars]rg2'] != ['ss-[240 chars]f', 'Prop=Value', '--properties-file', 'conf/s[344 chars]rg2']\nE       \nE       First differing element 18:\nE       '\"Prop=Value\"'\nE       'Prop=Value'\nE       \nE       Diff is 812 characters long. Set self.maxDiff to None to see it.\n\ntest/contrib/spark_test.py:149: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [
@@ -3048,11 +3055,11 @@
                 ]
             },
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_24/test/contrib/spark_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_24/test/contrib/spark_test.py",
                 "test_function": "test_defaults",
                 "test_function_code": "    @with_config({'spark': {'spark-submit': ss, 'master': 'spark://host:7077', 'conf': 'prop1=val1', 'jars': 'jar1.jar,jar2.jar',\n                            'files': 'file1,file2', 'py-files': 'file1.py,file2.py', 'archives': 'archive1'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_defaults(self, proc):\n        proc.return_value.returncode = 0\n        job = TestDefaultSparkSubmitTask()\n        job.run()\n        self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'spark://host:7077', '--jars', 'jar1.jar,jar2.jar',\n                          '--py-files', 'file1.py,file2.py', '--files', 'file1,file2', '--archives', 'archive1',\n                          '--conf', 'prop1=val1', 'test.py'])",
                 "test_error": "AssertionError: Lists differ: ['ss-[131 chars] '--archives', 'archive1', '--conf', '\"prop1=val1\"', 'test.py'] != ['ss-[131 chars] '--archives', 'archive1', '--conf', 'prop1=val1', 'test.py']  First differing element 12: '\"prop1=val1\"' 'prop1=val1'    ['ss-stub',    '--master',    'spark://host:7077',    '--jars',    'jar1.jar,jar2.jar',    '--py-files',    'file1.py,file2.py',    '--files',    'file1,file2',    '--archives',    'archive1',    '--conf', -  '\"prop1=val1\"', ?   -          -  +  'prop1=val1',    'test.py']",
-                "full_test_error": "self = <contrib.spark_test.SparkSubmitTaskTest testMethod=test_defaults>\nproc = <MagicMock name='Popen' id='4522656528'>\n\n    @with_config({'spark': {'spark-submit': ss, 'master': 'spark://host:7077', 'conf': 'prop1=val1', 'jars': 'jar1.jar,jar2.jar',\n                            'files': 'file1,file2', 'py-files': 'file1.py,file2.py', 'archives': 'archive1'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_defaults(self, proc):\n        proc.return_value.returncode = 0\n        job = TestDefaultSparkSubmitTask()\n        job.run()\n>       self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'spark://host:7077', '--jars', 'jar1.jar,jar2.jar',\n                          '--py-files', 'file1.py,file2.py', '--files', 'file1,file2', '--archives', 'archive1',\n                          '--conf', 'prop1=val1', 'test.py'])\nE       AssertionError: Lists differ: ['ss-[131 chars] '--archives', 'archive1', '--conf', '\"prop1=val1\"', 'test.py'] != ['ss-[131 chars] '--archives', 'archive1', '--conf', 'prop1=val1', 'test.py']\nE       \nE       First differing element 12:\nE       '\"prop1=val1\"'\nE       'prop1=val1'\nE       \nE         ['ss-stub',\nE          '--master',\nE          'spark://host:7077',\nE          '--jars',\nE          'jar1.jar,jar2.jar',\nE          '--py-files',\nE          'file1.py,file2.py',\nE          '--files',\nE          'file1,file2',\nE          '--archives',\nE          'archive1',\nE          '--conf',\nE       -  '\"prop1=val1\"',\nE       ?   -          -\nE       \nE       +  'prop1=val1',\nE          'test.py']\n\ntest/contrib/spark_test.py:165: AssertionError",
+                "full_test_error": "self = <contrib.spark_test.SparkSubmitTaskTest testMethod=test_defaults>\nproc = <MagicMock name='Popen' id='140101467642224'>\n\n    @with_config({'spark': {'spark-submit': ss, 'master': 'spark://host:7077', 'conf': 'prop1=val1', 'jars': 'jar1.jar,jar2.jar',\n                            'files': 'file1,file2', 'py-files': 'file1.py,file2.py', 'archives': 'archive1'}})\n    @patch('luigi.contrib.spark.subprocess.Popen')\n    def test_defaults(self, proc):\n        proc.return_value.returncode = 0\n        job = TestDefaultSparkSubmitTask()\n        job.run()\n>       self.assertEqual(proc.call_args[0][0],\n                         ['ss-stub', '--master', 'spark://host:7077', '--jars', 'jar1.jar,jar2.jar',\n                          '--py-files', 'file1.py,file2.py', '--files', 'file1,file2', '--archives', 'archive1',\n                          '--conf', 'prop1=val1', 'test.py'])\nE       AssertionError: Lists differ: ['ss-[131 chars] '--archives', 'archive1', '--conf', '\"prop1=val1\"', 'test.py'] != ['ss-[131 chars] '--archives', 'archive1', '--conf', 'prop1=val1', 'test.py']\nE       \nE       First differing element 12:\nE       '\"prop1=val1\"'\nE       'prop1=val1'\nE       \nE         ['ss-stub',\nE          '--master',\nE          'spark://host:7077',\nE          '--jars',\nE          'jar1.jar,jar2.jar',\nE          '--py-files',\nE          'file1.py,file2.py',\nE          '--files',\nE          'file1,file2',\nE          '--archives',\nE          'archive1',\nE          '--conf',\nE       -  '\"prop1=val1\"',\nE       ?   -          -\nE       \nE       +  'prop1=val1',\nE          'test.py']\n\ntest/contrib/spark_test.py:165: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [

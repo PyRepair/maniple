@@ -1,6 +1,6 @@
 {
     "pandas:34": {
-        "/Volumes/SSD2T/bgp_envs/repos/pandas_34/pandas/core/resample.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_34/pandas/core/resample.py": {
             "buggy_functions": [
                 {
                     "function_name": "_get_time_bins",
@@ -303,28 +303,26 @@
                             "def __init__(self, freq='Min', closed=None, label=None, how='mean', axis=0, fill_method=None, limit=None, loffset=None, kind=None, convention=None, base=0, **kwargs):\n    if label not in {None, 'left', 'right'}:\n        raise ValueError(f'Unsupported value {label} for `label`')\n    if closed not in {None, 'left', 'right'}:\n        raise ValueError(f'Unsupported value {closed} for `closed`')\n    if convention not in {None, 'start', 'end', 'e', 's'}:\n        raise ValueError(f'Unsupported value {convention} for `convention`')\n    freq = to_offset(freq)\n    end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}\n    rule = freq.rule_code\n    if rule in end_types or ('-' in rule and rule[:rule.find('-')] in end_types):\n        if closed is None:\n            closed = 'right'\n        if label is None:\n            label = 'right'\n    else:\n        if closed is None:\n            closed = 'left'\n        if label is None:\n            label = 'left'\n    self.closed = closed\n    self.label = label\n    self.kind = kind\n    self.convention = convention or 'E'\n    self.convention = self.convention.lower()\n    if isinstance(loffset, str):\n        loffset = to_offset(loffset)\n    self.loffset = loffset\n    self.how = how\n    self.fill_method = fill_method\n    self.limit = limit\n    self.base = base\n    kwargs['sort'] = True\n    super().__init__(freq=freq, axis=axis, **kwargs)",
                             "def _get_resampler(self, obj, kind=None):\n    \"\"\"\n    Return my resampler or raise if we have an invalid axis.\n\n    Parameters\n    ----------\n    obj : input object\n    kind : string, optional\n        'period','timestamp','timedelta' are valid\n\n    Returns\n    -------\n    a Resampler\n\n    Raises\n    ------\n    TypeError if incompatible axis\n\n    \"\"\"\n    self._set_grouper(obj)\n    ax = self.ax\n    if isinstance(ax, DatetimeIndex):\n        return DatetimeIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)\n    elif isinstance(ax, PeriodIndex) or kind == 'period':\n        return PeriodIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)\n    elif isinstance(ax, TimedeltaIndex):\n        return TimedeltaIndexResampler(obj, groupby=self, axis=self.axis)\n    raise TypeError(f\"Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, but got an instance of '{type(ax).__name__}'\")",
                             "def _get_grouper(self, obj, validate: bool=True):\n    r = self._get_resampler(obj)\n    r._set_binner()\n    return (r.binner, r.grouper, r.obj)",
-                            "def _get_time_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(f'axis must be a DatetimeIndex, but got an instance of {type(ax).__name__}')\n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    first, last = _get_timestamp_range_edges(ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base)\n    binner = labels = date_range(freq=self.freq, start=first, end=last, tz=ax.tz, name=ax.name, ambiguous='infer', nonexistent='shift_forward')\n    ax_values = ax.asi8\n    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)\n    bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=ax.hasnans)\n    if self.closed == 'right':\n        labels = binner\n        if self.label == 'right':\n            labels = labels[1:]\n    elif self.label == 'right':\n        labels = labels[1:]\n    if ax.hasnans:\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n    if len(bins) < len(labels):\n        labels = labels[:len(bins)]\n    return (binner, bins, labels)",
+                            "def _get_time_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(f'axis must be a DatetimeIndex, but got an instance of {type(ax).__name__}')\n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    (first, last) = _get_timestamp_range_edges(ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base)\n    binner = labels = date_range(freq=self.freq, start=first, end=last, tz=ax.tz, name=ax.name, ambiguous='infer', nonexistent='shift_forward')\n    ax_values = ax.asi8\n    (binner, bin_edges) = self._adjust_bin_edges(binner, ax_values)\n    bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=ax.hasnans)\n    if self.closed == 'right':\n        labels = binner\n        if self.label == 'right':\n            labels = labels[1:]\n    elif self.label == 'right':\n        labels = labels[1:]\n    if ax.hasnans:\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n    if len(bins) < len(labels):\n        labels = labels[:len(bins)]\n    return (binner, bins, labels)",
                             "def _adjust_bin_edges(self, binner, ax_values):\n    if self.freq != 'D' and is_superperiod(self.freq, 'D'):\n        if self.closed == 'right':\n            bin_edges = binner.tz_localize(None)\n            bin_edges = bin_edges + timedelta(1) - Nano(1)\n            bin_edges = bin_edges.tz_localize(binner.tz).asi8\n        else:\n            bin_edges = binner.asi8\n        if bin_edges[-2] > ax_values.max():\n            bin_edges = bin_edges[:-1]\n            binner = binner[:-1]\n    else:\n        bin_edges = binner.asi8\n    return (binner, bin_edges)",
-                            "def _get_time_delta_bins(self, ax):\n    if not isinstance(ax, TimedeltaIndex):\n        raise TypeError(f'axis must be a TimedeltaIndex, but got an instance of {type(ax).__name__}')\n    if not len(ax):\n        binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    start, end = (ax.min(), ax.max())\n    labels = binner = timedelta_range(start=start, end=end, freq=self.freq, name=ax.name)\n    end_stamps = labels + self.freq\n    bins = ax.searchsorted(end_stamps, side='left')\n    if self.base > 0:\n        labels += type(self.freq)(self.base)\n    return (binner, bins, labels)",
+                            "def _get_time_delta_bins(self, ax):\n    if not isinstance(ax, TimedeltaIndex):\n        raise TypeError(f'axis must be a TimedeltaIndex, but got an instance of {type(ax).__name__}')\n    if not len(ax):\n        binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    (start, end) = (ax.min(), ax.max())\n    labels = binner = timedelta_range(start=start, end=end, freq=self.freq, name=ax.name)\n    end_stamps = labels + self.freq\n    bins = ax.searchsorted(end_stamps, side='left')\n    if self.base > 0:\n        labels += type(self.freq)(self.base)\n    return (binner, bins, labels)",
                             "def _get_time_period_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(f'axis must be a DatetimeIndex, but got an instance of {type(ax).__name__}')\n    freq = self.freq\n    if not len(ax):\n        binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)\n        return (binner, [], labels)\n    labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)\n    end_stamps = (labels + freq).asfreq(freq, 's').to_timestamp()\n    if ax.tzinfo:\n        end_stamps = end_stamps.tz_localize(ax.tzinfo)\n    bins = ax.searchsorted(end_stamps, side='left')\n    return (binner, bins, labels)",
-                            "def _get_period_bins(self, ax):\n    if not isinstance(ax, PeriodIndex):\n        raise TypeError(f'axis must be a PeriodIndex, but got an instance of {type(ax).__name__}')\n    memb = ax.asfreq(self.freq, how=self.convention)\n    nat_count = 0\n    if memb.hasnans:\n        nat_count = np.sum(memb._isnan)\n        memb = memb[~memb._isnan]\n    if not len(memb):\n        binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    freq_mult = self.freq.n\n    start = ax.min().asfreq(self.freq, how=self.convention)\n    end = ax.max().asfreq(self.freq, how='end')\n    bin_shift = 0\n    if self.base:\n        p_start, end = _get_period_range_edges(start, end, self.freq, closed=self.closed, base=self.base)\n        start_offset = Period(start, self.freq) - Period(p_start, self.freq)\n        bin_shift = start_offset.n % freq_mult\n        start = p_start\n    labels = binner = period_range(start=start, end=end, freq=self.freq, name=ax.name)\n    i8 = memb.asi8\n    expected_bins_count = len(binner) * freq_mult\n    i8_extend = expected_bins_count - (i8[-1] - i8[0])\n    rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)\n    rng += freq_mult\n    rng -= bin_shift\n    prng = type(memb._data)(rng, dtype=memb.dtype)\n    bins = memb.searchsorted(prng, side='left')\n    if nat_count > 0:\n        bins += nat_count\n        bins = np.insert(bins, 0, nat_count)\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n    return (binner, bins, labels)"
+                            "def _get_period_bins(self, ax):\n    if not isinstance(ax, PeriodIndex):\n        raise TypeError(f'axis must be a PeriodIndex, but got an instance of {type(ax).__name__}')\n    memb = ax.asfreq(self.freq, how=self.convention)\n    nat_count = 0\n    if memb.hasnans:\n        nat_count = np.sum(memb._isnan)\n        memb = memb[~memb._isnan]\n    if not len(memb):\n        binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)\n        return (binner, [], labels)\n    freq_mult = self.freq.n\n    start = ax.min().asfreq(self.freq, how=self.convention)\n    end = ax.max().asfreq(self.freq, how='end')\n    bin_shift = 0\n    if self.base:\n        (p_start, end) = _get_period_range_edges(start, end, self.freq, closed=self.closed, base=self.base)\n        start_offset = Period(start, self.freq) - Period(p_start, self.freq)\n        bin_shift = start_offset.n % freq_mult\n        start = p_start\n    labels = binner = period_range(start=start, end=end, freq=self.freq, name=ax.name)\n    i8 = memb.asi8\n    expected_bins_count = len(binner) * freq_mult\n    i8_extend = expected_bins_count - (i8[-1] - i8[0])\n    rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)\n    rng += freq_mult\n    rng -= bin_shift\n    prng = type(memb._data)(rng, dtype=memb.dtype)\n    bins = memb.searchsorted(prng, side='left')\n    if nat_count > 0:\n        bins += nat_count\n        bins = np.insert(bins, 0, nat_count)\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n    return (binner, bins, labels)"
                         ],
                         "constructor_variables": [
-                            "freq",
-                            "limit",
-                            "closed",
-                            "base",
-                            "convention",
-                            "rule",
-                            "kind",
-                            "fill_method",
-                            "label",
-                            "how",
-                            "end_types",
-                            "loffset"
+                            "self.closed = closed",
+                            "self.label = label",
+                            "self.kind = kind",
+                            "self.convention = convention or 'E'",
+                            "self.convention = self.convention.lower()",
+                            "self.loffset = loffset",
+                            "self.how = how",
+                            "self.fill_method = fill_method",
+                            "self.limit = limit",
+                            "self.base = base"
                         ],
                         "class_level_variables": [
-                            "_attributes"
+                            "_attributes = Grouper._attributes + ('closed', 'label', 'how', 'loffset', 'kind', 'convention', 'base')"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -336,8 +334,30 @@
                             "_get_time_delta_bins(self, ax)",
                             "_get_time_period_bins(self, ax)",
                             "_get_period_bins(self, ax)"
+                        ],
+                        "class_level_variable_names": [
+                            "_attributes"
+                        ],
+                        "constructor_variable_names": [
+                            "rule",
+                            "closed",
+                            "freq",
+                            "end_types",
+                            "kind",
+                            "label",
+                            "loffset",
+                            "how",
+                            "base",
+                            "limit",
+                            "convention",
+                            "fill_method"
                         ]
                     },
+                    "used_imports": [
+                        "from pandas._libs import lib",
+                        "from pandas._libs.tslibs import NaT, Period, Timestamp",
+                        "from pandas.core.indexes.datetimes import DatetimeIndex, date_range"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -5403,7 +5423,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/pandas_34/pandas/tests/resample/test_datetime_index.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_34/pandas/tests/resample/test_datetime_index.py",
                 "test_function": "test_downsample_dst_at_midnight",
                 "test_function_code": "def test_downsample_dst_at_midnight():\n    # GH 25758\n    start = datetime(2018, 11, 3, 12)\n    end = datetime(2018, 11, 5, 12)\n    index = pd.date_range(start, end, freq=\"1H\")\n    index = index.tz_localize(\"UTC\").tz_convert(\"America/Havana\")\n    data = list(range(len(index)))\n    dataframe = pd.DataFrame(data, index=index)\n    result = dataframe.groupby(pd.Grouper(freq=\"1D\")).mean()\n    expected = DataFrame(\n        [7.5, 28.0, 44.5],\n        index=date_range(\"2018-11-03\", periods=3).tz_localize(\n            \"America/Havana\", ambiguous=True\n        ),\n    )\n    tm.assert_frame_equal(result, expected)",
                 "test_error": "pytz.exceptions.AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times",

@@ -1,6 +1,6 @@
 {
     "scrapy:18": {
-        "/Volumes/SSD2T/bgp_envs/repos/scrapy_18/scrapy/responsetypes.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/scrapy/responsetypes.py": {
             "buggy_functions": [
                 {
                     "function_name": "from_content_disposition",
@@ -74,22 +74,21 @@
                         "docstring": null,
                         "constructor_docstring": null,
                         "functions": [
-                            "def __init__(self):\n    self.classes = {}\n    self.mimetypes = MimeTypes()\n    mimedata = get_data('scrapy', 'mime.types').decode('utf8')\n    self.mimetypes.readfp(StringIO(mimedata))\n    for mimetype, cls in six.iteritems(self.CLASSES):\n        self.classes[mimetype] = load_object(cls)",
+                            "def __init__(self):\n    self.classes = {}\n    self.mimetypes = MimeTypes()\n    mimedata = get_data('scrapy', 'mime.types').decode('utf8')\n    self.mimetypes.readfp(StringIO(mimedata))\n    for (mimetype, cls) in six.iteritems(self.CLASSES):\n        self.classes[mimetype] = load_object(cls)",
                             "def from_mimetype(self, mimetype):\n    \"\"\"Return the most appropriate Response class for the given mimetype\"\"\"\n    if mimetype is None:\n        return Response\n    elif mimetype in self.classes:\n        return self.classes[mimetype]\n    else:\n        basetype = '%s/*' % mimetype.split('/')[0]\n        return self.classes.get(basetype, Response)",
                             "def from_content_type(self, content_type, content_encoding=None):\n    \"\"\"Return the most appropriate Response class from an HTTP Content-Type\n    header \"\"\"\n    if content_encoding:\n        return Response\n    mimetype = to_native_str(content_type).split(';')[0].strip().lower()\n    return self.from_mimetype(mimetype)",
                             "def from_content_disposition(self, content_disposition):\n    try:\n        filename = to_native_str(content_disposition).split(';')[1].split('=')[1]\n        filename = filename.strip('\"\\'')\n        return self.from_filename(filename)\n    except IndexError:\n        return Response",
                             "def from_headers(self, headers):\n    \"\"\"Return the most appropriate Response class by looking at the HTTP\n    headers\"\"\"\n    cls = Response\n    if b'Content-Type' in headers:\n        cls = self.from_content_type(content_type=headers[b'Content-type'], content_encoding=headers.get(b'Content-Encoding'))\n    if cls is Response and b'Content-Disposition' in headers:\n        cls = self.from_content_disposition(headers[b'Content-Disposition'])\n    return cls",
-                            "def from_filename(self, filename):\n    \"\"\"Return the most appropriate Response class from a file name\"\"\"\n    mimetype, encoding = self.mimetypes.guess_type(filename)\n    if mimetype and (not encoding):\n        return self.from_mimetype(mimetype)\n    else:\n        return Response",
+                            "def from_filename(self, filename):\n    \"\"\"Return the most appropriate Response class from a file name\"\"\"\n    (mimetype, encoding) = self.mimetypes.guess_type(filename)\n    if mimetype and (not encoding):\n        return self.from_mimetype(mimetype)\n    else:\n        return Response",
                             "def from_body(self, body):\n    \"\"\"Try to guess the appropriate response based on the body content.\n    This method is a bit magic and could be improved in the future, but\n    it's not meant to be used except for special cases where response types\n    cannot be guess using more straightforward methods.\"\"\"\n    chunk = body[:5000]\n    chunk = to_bytes(chunk)\n    if isbinarytext(chunk):\n        return self.from_mimetype('application/octet-stream')\n    elif b'<html>' in chunk.lower():\n        return self.from_mimetype('text/html')\n    elif b'<?xml' in chunk.lower():\n        return self.from_mimetype('text/xml')\n    else:\n        return self.from_mimetype('text')",
                             "def from_args(self, headers=None, url=None, filename=None, body=None):\n    \"\"\"Guess the most appropriate Response class based on\n    the given arguments.\"\"\"\n    cls = Response\n    if headers is not None:\n        cls = self.from_headers(headers)\n    if cls is Response and url is not None:\n        cls = self.from_filename(url)\n    if cls is Response and filename is not None:\n        cls = self.from_filename(filename)\n    if cls is Response and body is not None:\n        cls = self.from_body(body)\n    return cls"
                         ],
                         "constructor_variables": [
-                            "classes",
-                            "mimetypes",
-                            "mimedata"
+                            "self.classes = {}",
+                            "self.mimetypes = MimeTypes()"
                         ],
                         "class_level_variables": [
-                            "CLASSES"
+                            "CLASSES = {'text/html': 'scrapy.http.HtmlResponse', 'application/atom+xml': 'scrapy.http.XmlResponse', 'application/rdf+xml': 'scrapy.http.XmlResponse', 'application/rss+xml': 'scrapy.http.XmlResponse', 'application/xhtml+xml': 'scrapy.http.HtmlResponse', 'application/vnd.wap.xhtml+xml': 'scrapy.http.HtmlResponse', 'application/xml': 'scrapy.http.XmlResponse', 'application/json': 'scrapy.http.TextResponse', 'application/x-json': 'scrapy.http.TextResponse', 'application/javascript': 'scrapy.http.TextResponse', 'application/x-javascript': 'scrapy.http.TextResponse', 'text/xml': 'scrapy.http.XmlResponse', 'text/*': 'scrapy.http.TextResponse'}"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -101,8 +100,20 @@
                             "from_filename(self, filename)",
                             "from_body(self, body)",
                             "from_args(self, headers=None, url=None, filename=None, body=None)"
+                        ],
+                        "class_level_variable_names": [
+                            "CLASSES"
+                        ],
+                        "constructor_variable_names": [
+                            "mimedata",
+                            "classes",
+                            "mimetypes"
                         ]
                     },
+                    "used_imports": [
+                        "from scrapy.http import Response",
+                        "from scrapy.utils.python import isbinarytext, to_bytes, to_native_str"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -132,12 +143,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -169,17 +180,17 @@
                                     "variable_shape": "31"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x106c23870>",
+                                    "variable_value": "<built-in method strip of str object at 0x7f3f382fd330>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -218,12 +229,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -255,17 +266,17 @@
                                     "variable_shape": "29"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x106c4b8b0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7f3f382fd5b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -304,12 +315,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -341,17 +352,17 @@
                                     "variable_shape": "33"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x106c20db0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7f3f38363ab0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x105f3acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7f3f39688370>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -392,12 +403,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -429,17 +440,17 @@
                                     "variable_shape": "31"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x111c477f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fea01739cb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -478,12 +489,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -515,17 +526,17 @@
                                     "variable_shape": "29"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x111c71730>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fea016013b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -564,12 +575,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -601,17 +612,17 @@
                                     "variable_shape": "33"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x111c44db0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fea01724b10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -650,12 +661,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -687,17 +698,17 @@
                                     "variable_shape": "32"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x111c44bd0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fea01724930>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -736,12 +747,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -773,17 +784,17 @@
                                     "variable_shape": "30"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x111c44c90>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fea017249f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -822,12 +833,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -859,17 +870,17 @@
                                     "variable_shape": "33"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x111c44ed0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fea01724ab0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -908,12 +919,12 @@
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -945,17 +956,17 @@
                                     "variable_shape": "K\\\\8lHG\\x1b(BWikipedia.xml'"
                                 },
                                 "filename.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x111c736c0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fea0173f990>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "self.from_filename": {
-                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>>",
+                                    "variable_value": "<bound method ResponseTypes.from_filename of <scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x110f7acd0>",
+                                    "variable_value": "<scrapy.responsetypes.ResponseTypes object at 0x7fea029e62e0>",
                                     "variable_type": "ResponseTypes",
                                     "variable_shape": null
                                 },
@@ -1470,13 +1481,13 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/scrapy_18/tests/test_responsetypes.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/tests/test_responsetypes.py",
                 "test_function": "test_from_content_disposition",
                 "test_function_code": "    def test_from_content_disposition(self):\n        mappings = [\n            (b'attachment; filename=\"data.xml\"', XmlResponse),\n            (b'attachment; filename=data.xml', XmlResponse),\n            (u'attachment;filename=data\u00a3.tar.gz'.encode('utf-8'), Response),\n            (u'attachment;filename=data\u00b5.tar.gz'.encode('latin-1'), Response),\n            (u'attachment;filename=data\u9ad8.doc'.encode('gbk'), Response),\n            (u'attachment;filename=\u062f\u0648\u0631\u0647data.html'.encode('cp720'), HtmlResponse),\n            (u'attachment;filename=\u65e5\u672c\u8a9e\u7248Wikipedia.xml'.encode('iso2022_jp'), XmlResponse),\n\n        ]\n        for source, cls in mappings:\n            retcls = responsetypes.from_content_disposition(source)\n            assert retcls is cls, \"%s ==> %s != %s\" % (source, retcls, cls)",
                 "test_error": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 24: invalid start byte",
-                "full_test_error": "self = <tests.test_responsetypes.ResponseTypesTest testMethod=test_from_content_disposition>\n\n    def test_from_content_disposition(self):\n        mappings = [\n            (b'attachment; filename=\"data.xml\"', XmlResponse),\n            (b'attachment; filename=data.xml', XmlResponse),\n            (u'attachment;filename=data\u00a3.tar.gz'.encode('utf-8'), Response),\n            (u'attachment;filename=data\u00b5.tar.gz'.encode('latin-1'), Response),\n            (u'attachment;filename=data\u9ad8.doc'.encode('gbk'), Response),\n            (u'attachment;filename=\u062f\u0648\u0631\u0647data.html'.encode('cp720'), HtmlResponse),\n            (u'attachment;filename=\u65e5\u672c\u8a9e\u7248Wikipedia.xml'.encode('iso2022_jp'), XmlResponse),\n    \n        ]\n        for source, cls in mappings:\n>           retcls = responsetypes.from_content_disposition(source)\n\n/Volumes/SSD2T/bgp_envs/repos/scrapy_18/tests/test_responsetypes.py:34: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/Volumes/SSD2T/bgp_envs/repos/scrapy_18/scrapy/responsetypes.py:62: in from_content_disposition\n    filename = to_native_str(content_disposition).split(';')[1].split('=')[1]\n/Volumes/SSD2T/bgp_envs/repos/scrapy_18/scrapy/utils/python.py:129: in to_native_str\n    return to_unicode(text, encoding, errors)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntext = b'attachment;filename=data\\xb5.tar.gz', encoding = 'utf-8'\nerrors = 'strict'\n\n    def to_unicode(text, encoding=None, errors='strict'):\n        \"\"\"Return the unicode representation of a bytes object `text`. If `text`\n        is already an unicode object, return it as-is.\"\"\"\n        if isinstance(text, six.text_type):\n            return text\n        if not isinstance(text, (bytes, six.text_type)):\n            raise TypeError('to_unicode must receive a bytes, str or unicode '\n                            'object, got %s' % type(text).__name__)\n        if encoding is None:\n            encoding = 'utf-8'\n>       return text.decode(encoding, errors)\nE       UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 24: invalid start byte\n\n/Volumes/SSD2T/bgp_envs/repos/scrapy_18/scrapy/utils/python.py:107: UnicodeDecodeError",
-                "traceback": "/Volumes/SSD2T/bgp_envs/repos/scrapy_18/scrapy/responsetypes.py:62: in from_content_disposition\n    filename = to_native_str(content_disposition).split(';')[1].split('=')[1]\n/Volumes/SSD2T/bgp_envs/repos/scrapy_18/scrapy/utils/python.py:129: in to_native_str\n    return to_unicode(text, encoding, errors)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntext = b'attachment;filename=data\\xb5.tar.gz', encoding = 'utf-8'\nerrors = 'strict'\n\n    def to_unicode(text, encoding=None, errors='strict'):\n        \"\"\"Return the unicode representation of a bytes object `text`. If `text`\n        is already an unicode object, return it as-is.\"\"\"\n        if isinstance(text, six.text_type):\n            return text\n        if not isinstance(text, (bytes, six.text_type)):\n            raise TypeError('to_unicode must receive a bytes, str or unicode '\n                            'object, got %s' % type(text).__name__)\n        if encoding is None:\n            encoding = 'utf-8'\n>       return text.decode(encoding, errors)\nE       UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 24: invalid start byte\n\n/Volumes/SSD2T/bgp_envs/repos/scrapy_18/scrapy/utils/python.py:107: UnicodeDecodeError",
+                "full_test_error": "self = <tests.test_responsetypes.ResponseTypesTest testMethod=test_from_content_disposition>\n\n    def test_from_content_disposition(self):\n        mappings = [\n            (b'attachment; filename=\"data.xml\"', XmlResponse),\n            (b'attachment; filename=data.xml', XmlResponse),\n            (u'attachment;filename=data\u00a3.tar.gz'.encode('utf-8'), Response),\n            (u'attachment;filename=data\u00b5.tar.gz'.encode('latin-1'), Response),\n            (u'attachment;filename=data\u9ad8.doc'.encode('gbk'), Response),\n            (u'attachment;filename=\u062f\u0648\u0631\u0647data.html'.encode('cp720'), HtmlResponse),\n            (u'attachment;filename=\u65e5\u672c\u8a9e\u7248Wikipedia.xml'.encode('iso2022_jp'), XmlResponse),\n    \n        ]\n        for source, cls in mappings:\n>           retcls = responsetypes.from_content_disposition(source)\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/tests/test_responsetypes.py:34: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/scrapy/responsetypes.py:62: in from_content_disposition\n    filename = to_native_str(content_disposition).split(';')[1].split('=')[1]\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/scrapy/utils/python.py:129: in to_native_str\n    return to_unicode(text, encoding, errors)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntext = b'attachment;filename=data\\xb5.tar.gz', encoding = 'utf-8'\nerrors = 'strict'\n\n    def to_unicode(text, encoding=None, errors='strict'):\n        \"\"\"Return the unicode representation of a bytes object `text`. If `text`\n        is already an unicode object, return it as-is.\"\"\"\n        if isinstance(text, six.text_type):\n            return text\n        if not isinstance(text, (bytes, six.text_type)):\n            raise TypeError('to_unicode must receive a bytes, str or unicode '\n                            'object, got %s' % type(text).__name__)\n        if encoding is None:\n            encoding = 'utf-8'\n>       return text.decode(encoding, errors)\nE       UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 24: invalid start byte\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/scrapy/utils/python.py:107: UnicodeDecodeError",
+                "traceback": "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/scrapy/responsetypes.py:62: in from_content_disposition\n    filename = to_native_str(content_disposition).split(';')[1].split('=')[1]\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/scrapy/utils/python.py:129: in to_native_str\n    return to_unicode(text, encoding, errors)",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\ntext = b'attachment;filename=data\\xb5.tar.gz', encoding = 'utf-8'\nerrors = 'strict'\n\n    def to_unicode(text, encoding=None, errors='strict'):\n        \"\"\"Return the unicode representation of a bytes object `text`. If `text`\n        is already an unicode object, return it as-is.\"\"\"\n        if isinstance(text, six.text_type):\n            return text\n        if not isinstance(text, (bytes, six.text_type)):\n            raise TypeError('to_unicode must receive a bytes, str or unicode '\n                            'object, got %s' % type(text).__name__)\n        if encoding is None:\n            encoding = 'utf-8'\n>       return text.decode(encoding, errors)\nE       UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 24: invalid start byte\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_18/scrapy/utils/python.py:107: UnicodeDecodeError",
                 "test_function_decorators": []
             }
         ]

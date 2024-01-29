@@ -1,6 +1,6 @@
 {
     "luigi:8": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_8/luigi/contrib/redshift.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_8/luigi/contrib/redshift.py": {
             "buggy_functions": [
                 {
                     "function_name": "does_table_exist",
@@ -124,7 +124,7 @@
                             "@property\ndef queries(self):\n    \"\"\"\n    Override to return a list of queries to be executed in order.\n    \"\"\"\n    return []",
                             "def truncate_table(self, connection):\n    query = 'truncate %s' % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
                             "def prune(self, connection):\n    query = 'delete from %s where %s >= %s' % (self.prune_table, self.prune_column, self.prune_date)\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
-                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for name, type in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    else:\n        raise ValueError('create_table() found no columns for %r' % self.table)",
+                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for (name, type) in self.columns))\n        query = 'CREATE {type} TABLE {table} ({coldefs}) {table_attributes}'.format(type=self.table_type, table=self.table, coldefs=coldefs, table_attributes=self.table_attributes)\n        connection.cursor().execute(query)\n    else:\n        raise ValueError('create_table() found no columns for %r' % self.table)",
                             "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not self.table:\n        raise Exception('table need to be specified')\n    path = self.s3_load_path()\n    output = self.output()\n    connection = output.connect()\n    cursor = connection.cursor()\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.post_copy(cursor)\n    output.touch(connection)\n    connection.commit()\n    connection.close()",
                             "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n\n    If both key-based and role-based credentials are provided, role-based will be used.\n    \"\"\"\n    if self.aws_account_id and self.aws_arn_role_name:\n        cred_str = 'aws_iam_role=arn:aws:iam::{id}:role/{role}'.format(id=self.aws_account_id, role=self.aws_arn_role_name)\n    elif self.aws_access_key_id and self.aws_secret_access_key:\n        cred_str = 'aws_access_key_id={key};aws_secret_access_key={secret}{opt}'.format(key=self.aws_access_key_id, secret=self.aws_secret_access_key, opt=';token={}'.format(self.aws_session_token) if self.aws_session_token else '')\n    else:\n        raise NotImplementedError(\"Missing Credentials. Override one of the following pairs of auth-args: 'aws_access_key_id' AND 'aws_secret_access_key' OR 'aws_account_id' AND 'aws_arn_role_name'\")\n    logger.info('Inserting file: %s', f)\n    cursor.execute(\"\\n         COPY {table} from '{source}'\\n         CREDENTIALS '{creds}'\\n         {options}\\n         ;\".format(table=self.table, source=f, creds=cred_str, options=self.copy_options))",
                             "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(host=self.host, database=self.database, user=self.user, password=self.password, table=self.table, update_id=self.update_id)",
@@ -160,8 +160,11 @@
                             "does_table_exist(self, connection)",
                             "init_copy(self, connection)",
                             "post_copy(self, cursor)"
-                        ]
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -186,12 +189,12 @@
                                     "variable_shape": null
                                 },
                                 "connection.cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='4559550160'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='140617739554144'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='4559558112'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='140617739554672'>"
                                 },
                                 "connection": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='4559538160'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='140617739538048'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
@@ -238,24 +241,24 @@
                                     "variable_shape": "107"
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4559566544'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='140617739566432'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
                                 "connection.cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='4559550160'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='140617739554144'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='4559558112'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='140617739554672'>"
                                 },
                                 "connection": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='4559538160'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='140617739538048'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
                                 "cursor.execute": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4559628320'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='140617739628208'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4559636272'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='140617739636992'>"
                                 },
                                 "self.table.split": {
                                     "variable_value": "None",
@@ -263,19 +266,19 @@
                                     "variable_shape": null
                                 },
                                 "result": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone()' id='4559672272'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone()' id='140617739151968'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
                                 "cursor.fetchone": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone' id='4559659888'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone' id='140617739659776'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone.shape' id='4559663744'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone.shape' id='140617739660304'>"
                                 },
                                 "cursor.close": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().close' id='4559776256'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().close' id='140617739260112'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().close.shape' id='4559784208'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().close.shape' id='140617739260640'>"
                                 }
                             }
                         ]
@@ -304,12 +307,12 @@
                                     "variable_shape": null
                                 },
                                 "connection.cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='4467431120'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='139978523438576'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='4467433920'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='139978523444992'>"
                                 },
                                 "connection": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='4467415408'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='139978523426576'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
@@ -356,24 +359,24 @@
                                     "variable_shape": "121"
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4467443408'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='139978523454960'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
                                 "connection.cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='4467431120'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='139978523438576'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='4467433920'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='139978523444992'>"
                                 },
                                 "connection": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='4467415408'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='139978523426576'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
                                 "cursor.execute": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='4467513376'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().execute' id='139978523516736'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='4467520272'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().execute.shape' id='139978523523152'>"
                                 },
                                 "self.table.split": {
                                     "variable_value": "None",
@@ -381,19 +384,19 @@
                                     "variable_shape": null
                                 },
                                 "result": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone()' id='4467561424'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone()' id='139978523044592'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
                                 "cursor.fetchone": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone' id='4467550096'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone' id='139978523029168'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone.shape' id='4467556992'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().fetchone.shape' id='139978523035584'>"
                                 },
                                 "cursor.close": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().close' id='4467665408'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor().close' id='139978523152736'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().close.shape' id='4467668208'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor().close.shape' id='139978523154992'>"
                                 }
                             }
                         ]
@@ -2008,11 +2011,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_8/test/contrib/redshift_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_8/test/contrib/redshift_test.py",
                 "test_function": "test_s3_copy_to_table",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTableKey()\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_with(database=task.database,\n                                                host=task.host,\n                                                update_id=task.task_id,\n                                                user=task.user,\n                                                table=task.table,\n                                                password=task.password)\n\n        # Check if the `S3CopyToTable.s3_load_path` class attribute was\n        # successfully referenced in the `S3CopyToTable.run` method, which is\n        # in-turn passed to `S3CopyToTable.copy` and other functions in `run`\n        # (see issue #995).\n        mock_copy.assert_called_with(mock_cursor, task.s3_load_path())\n\n        # Check the SQL query in `S3CopyToTable.does_table_exist`.\n        mock_cursor.execute.assert_called_with(\"select 1 as table_exists \"\n                                               \"from pg_table_def \"\n                                               \"where tablename = lower(%s) limit 1\",\n                                               (task.table,))\n\n        return",
                 "test_error": "AssertionError: expected call not found. Expected: execute('select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1', ('dummy_schema', 'dummy_table')) Actual: execute('select 1 as table_exists from information_schema.tables where table_schema = %s and table_name = %s limit 1', ('dummy_schema', 'dummy_table'))",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToSchemaTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4411784016'>\nmock_copy = <MagicMock name='copy' id='4411898560'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTableKey(table='dummy_schema.dummy_table')\n        task.run()\n    \n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n    \n        # Check the SQL query in `S3CopyToTable.does_table_exist`.\n>       mock_cursor.execute.assert_called_with(\n            \"select 1 as table_exists \"\n            \"from information_schema.tables \"\n            \"where table_schema = lower(%s) and \"\n            \"table_name = lower(%s) limit 1\",\n            tuple(task.table.split('.')),\n        )\n\ntest/contrib/redshift_test.py:212: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n_mock_self = <MagicMock name='RedshiftTarget().connect().cursor().execute' id='4412007952'>\nargs = ('select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1', ('dummy_schema', 'dummy_table'))\nkwargs = {}\nexpected = call('select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1', ('dummy_schema', 'dummy_table'))\nactual = call('select 1 as table_exists from information_schema.tables where table_schema = %s and table_name = %s limit 1', ('dummy_schema', 'dummy_table'))\n_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x106a274c0>\ncause = None\n\n    def assert_called_with(_mock_self, *args, **kwargs):\n        \"\"\"assert that the last call was made with the specified arguments.\n    \n        Raises an AssertionError if the args and keyword args passed in are\n        different to the last call to the mock.\"\"\"\n        self = _mock_self\n        if self.call_args is None:\n            expected = self._format_mock_call_signature(args, kwargs)\n            actual = 'not called.'\n            error_message = ('expected call not found.\\nExpected: %s\\nActual: %s'\n                    % (expected, actual))\n            raise AssertionError(error_message)\n    \n        def _error_message():\n            msg = self._format_mock_failure_message(args, kwargs)\n            return msg\n        expected = self._call_matcher(_Call((args, kwargs), two=True))\n        actual = self._call_matcher(self.call_args)\n        if actual != expected:\n            cause = expected if isinstance(expected, Exception) else None\n>           raise AssertionError(_error_message()) from cause\nE           AssertionError: expected call not found.\nE           Expected: execute('select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1', ('dummy_schema', 'dummy_table'))\nE           Actual: execute('select 1 as table_exists from information_schema.tables where table_schema = %s and table_name = %s limit 1', ('dummy_schema', 'dummy_table'))\n\n../../envs/luigi_8/lib/python3.8/site-packages/mock/mock.py:913: AssertionError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToSchemaTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='140404194808304'>\nmock_copy = <MagicMock name='copy' id='140404194864864'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTableKey(table='dummy_schema.dummy_table')\n        task.run()\n    \n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n    \n        # Check the SQL query in `S3CopyToTable.does_table_exist`.\n>       mock_cursor.execute.assert_called_with(\n            \"select 1 as table_exists \"\n            \"from information_schema.tables \"\n            \"where table_schema = lower(%s) and \"\n            \"table_name = lower(%s) limit 1\",\n            tuple(task.table.split('.')),\n        )\n\ntest/contrib/redshift_test.py:212: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n_mock_self = <MagicMock name='RedshiftTarget().connect().cursor().execute' id='140404194978880'>\nargs = ('select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1', ('dummy_schema', 'dummy_table'))\nkwargs = {}\nexpected = call('select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1', ('dummy_schema', 'dummy_table'))\nactual = call('select 1 as table_exists from information_schema.tables where table_schema = %s and table_name = %s limit 1', ('dummy_schema', 'dummy_table'))\n_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x7fb266c66ca0>\ncause = None\n\n    def assert_called_with(_mock_self, *args, **kwargs):\n        \"\"\"assert that the last call was made with the specified arguments.\n    \n        Raises an AssertionError if the args and keyword args passed in are\n        different to the last call to the mock.\"\"\"\n        self = _mock_self\n        if self.call_args is None:\n            expected = self._format_mock_call_signature(args, kwargs)\n            actual = 'not called.'\n            error_message = ('expected call not found.\\nExpected: %s\\nActual: %s'\n                    % (expected, actual))\n            raise AssertionError(error_message)\n    \n        def _error_message():\n            msg = self._format_mock_failure_message(args, kwargs)\n            return msg\n        expected = self._call_matcher(_Call((args, kwargs), two=True))\n        actual = self._call_matcher(self.call_args)\n        if actual != expected:\n            cause = expected if isinstance(expected, Exception) else None\n>           raise AssertionError(_error_message()) from cause\nE           AssertionError: expected call not found.\nE           Expected: execute('select 1 as table_exists from information_schema.tables where table_schema = lower(%s) and table_name = lower(%s) limit 1', ('dummy_schema', 'dummy_table'))\nE           Actual: execute('select 1 as table_exists from information_schema.tables where table_schema = %s and table_name = %s limit 1', ('dummy_schema', 'dummy_table'))\n\n../../envs/luigi_8/lib/python3.8/site-packages/mock/mock.py:913: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [

@@ -1,6 +1,6 @@
 {
     "tornado:11": {
-        "/Volumes/SSD2T/bgp_envs/repos/tornado_11/tornado/http1connection.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_11/tornado/http1connection.py": {
             "buggy_functions": [
                 {
                     "function_name": "_read_body",
@@ -196,7 +196,7 @@
                         "functions": [
                             "def __init__(self, stream, is_client, params=None, context=None):\n    \"\"\"\n    :arg stream: an `.IOStream`\n    :arg bool is_client: client or server\n    :arg params: a `.HTTP1ConnectionParameters` instance or ``None``\n    :arg context: an opaque application-defined object that can be accessed\n        as ``connection.context``.\n    \"\"\"\n    self.is_client = is_client\n    self.stream = stream\n    if params is None:\n        params = HTTP1ConnectionParameters()\n    self.params = params\n    self.context = context\n    self.no_keep_alive = params.no_keep_alive\n    self._max_body_size = self.params.max_body_size or self.stream.max_buffer_size\n    self._body_timeout = self.params.body_timeout\n    self._write_finished = False\n    self._read_finished = False\n    self._finish_future = Future()\n    self._disconnect_on_finish = False\n    self._clear_callbacks()\n    self._request_start_line = None\n    self._response_start_line = None\n    self._request_headers = None\n    self._chunking_output = None\n    self._expected_content_remaining = None\n    self._pending_write = None",
                             "def read_response(self, delegate):\n    \"\"\"Read a single HTTP response.\n\n    Typical client-mode usage is to write a request using `write_headers`,\n    `write`, and `finish`, and then call ``read_response``.\n\n    :arg delegate: a `.HTTPMessageDelegate`\n\n    Returns a `.Future` that resolves to None after the full response has\n    been read.\n    \"\"\"\n    if self.params.decompress:\n        delegate = _GzipMessageDelegate(delegate, self.params.chunk_size)\n    return self._read_message(delegate)",
-                            "@gen.coroutine\ndef _read_message(self, delegate):\n    need_delegate_close = False\n    try:\n        header_future = self.stream.read_until_regex(b'\\r?\\n\\r?\\n', max_bytes=self.params.max_header_size)\n        if self.params.header_timeout is None:\n            header_data = (yield header_future)\n        else:\n            try:\n                header_data = (yield gen.with_timeout(self.stream.io_loop.time() + self.params.header_timeout, header_future, io_loop=self.stream.io_loop, quiet_exceptions=iostream.StreamClosedError))\n            except gen.TimeoutError:\n                self.close()\n                raise gen.Return(False)\n        start_line, headers = self._parse_headers(header_data)\n        if self.is_client:\n            start_line = httputil.parse_response_start_line(start_line)\n            self._response_start_line = start_line\n        else:\n            start_line = httputil.parse_request_start_line(start_line)\n            self._request_start_line = start_line\n            self._request_headers = headers\n        self._disconnect_on_finish = not self._can_keep_alive(start_line, headers)\n        need_delegate_close = True\n        with _ExceptionLoggingContext(app_log):\n            header_future = delegate.headers_received(start_line, headers)\n            if header_future is not None:\n                yield header_future\n        if self.stream is None:\n            need_delegate_close = False\n            raise gen.Return(False)\n        skip_body = False\n        if self.is_client:\n            if self._request_start_line is not None and self._request_start_line.method == 'HEAD':\n                skip_body = True\n            code = start_line.code\n            if code == 304:\n                skip_body = True\n            if code >= 100 and code < 200:\n                if 'Content-Length' in headers or 'Transfer-Encoding' in headers:\n                    raise httputil.HTTPInputError('Response code %d cannot have body' % code)\n                yield self._read_message(delegate)\n        elif headers.get('Expect') == '100-continue' and (not self._write_finished):\n            self.stream.write(b'HTTP/1.1 100 (Continue)\\r\\n\\r\\n')\n        if not skip_body:\n            body_future = self._read_body(start_line.code if self.is_client else 0, headers, delegate)\n            if body_future is not None:\n                if self._body_timeout is None:\n                    yield body_future\n                else:\n                    try:\n                        yield gen.with_timeout(self.stream.io_loop.time() + self._body_timeout, body_future, self.stream.io_loop, quiet_exceptions=iostream.StreamClosedError)\n                    except gen.TimeoutError:\n                        gen_log.info('Timeout reading body from %s', self.context)\n                        self.stream.close()\n                        raise gen.Return(False)\n        self._read_finished = True\n        if not self._write_finished or self.is_client:\n            need_delegate_close = False\n            with _ExceptionLoggingContext(app_log):\n                delegate.finish()\n        if not self._finish_future.done() and self.stream is not None and (not self.stream.closed()):\n            self.stream.set_close_callback(self._on_connection_close)\n            yield self._finish_future\n        if self.is_client and self._disconnect_on_finish:\n            self.close()\n        if self.stream is None:\n            raise gen.Return(False)\n    except httputil.HTTPInputError as e:\n        gen_log.info('Malformed HTTP message from %s: %s', self.context, e)\n        self.close()\n        raise gen.Return(False)\n    finally:\n        if need_delegate_close:\n            with _ExceptionLoggingContext(app_log):\n                delegate.on_connection_close()\n        self._clear_callbacks()\n    raise gen.Return(True)",
+                            "@gen.coroutine\ndef _read_message(self, delegate):\n    need_delegate_close = False\n    try:\n        header_future = self.stream.read_until_regex(b'\\r?\\n\\r?\\n', max_bytes=self.params.max_header_size)\n        if self.params.header_timeout is None:\n            header_data = (yield header_future)\n        else:\n            try:\n                header_data = (yield gen.with_timeout(self.stream.io_loop.time() + self.params.header_timeout, header_future, io_loop=self.stream.io_loop, quiet_exceptions=iostream.StreamClosedError))\n            except gen.TimeoutError:\n                self.close()\n                raise gen.Return(False)\n        (start_line, headers) = self._parse_headers(header_data)\n        if self.is_client:\n            start_line = httputil.parse_response_start_line(start_line)\n            self._response_start_line = start_line\n        else:\n            start_line = httputil.parse_request_start_line(start_line)\n            self._request_start_line = start_line\n            self._request_headers = headers\n        self._disconnect_on_finish = not self._can_keep_alive(start_line, headers)\n        need_delegate_close = True\n        with _ExceptionLoggingContext(app_log):\n            header_future = delegate.headers_received(start_line, headers)\n            if header_future is not None:\n                yield header_future\n        if self.stream is None:\n            need_delegate_close = False\n            raise gen.Return(False)\n        skip_body = False\n        if self.is_client:\n            if self._request_start_line is not None and self._request_start_line.method == 'HEAD':\n                skip_body = True\n            code = start_line.code\n            if code == 304:\n                skip_body = True\n            if code >= 100 and code < 200:\n                if 'Content-Length' in headers or 'Transfer-Encoding' in headers:\n                    raise httputil.HTTPInputError('Response code %d cannot have body' % code)\n                yield self._read_message(delegate)\n        elif headers.get('Expect') == '100-continue' and (not self._write_finished):\n            self.stream.write(b'HTTP/1.1 100 (Continue)\\r\\n\\r\\n')\n        if not skip_body:\n            body_future = self._read_body(start_line.code if self.is_client else 0, headers, delegate)\n            if body_future is not None:\n                if self._body_timeout is None:\n                    yield body_future\n                else:\n                    try:\n                        yield gen.with_timeout(self.stream.io_loop.time() + self._body_timeout, body_future, self.stream.io_loop, quiet_exceptions=iostream.StreamClosedError)\n                    except gen.TimeoutError:\n                        gen_log.info('Timeout reading body from %s', self.context)\n                        self.stream.close()\n                        raise gen.Return(False)\n        self._read_finished = True\n        if not self._write_finished or self.is_client:\n            need_delegate_close = False\n            with _ExceptionLoggingContext(app_log):\n                delegate.finish()\n        if not self._finish_future.done() and self.stream is not None and (not self.stream.closed()):\n            self.stream.set_close_callback(self._on_connection_close)\n            yield self._finish_future\n        if self.is_client and self._disconnect_on_finish:\n            self.close()\n        if self.stream is None:\n            raise gen.Return(False)\n    except httputil.HTTPInputError as e:\n        gen_log.info('Malformed HTTP message from %s: %s', self.context, e)\n        self.close()\n        raise gen.Return(False)\n    finally:\n        if need_delegate_close:\n            with _ExceptionLoggingContext(app_log):\n                delegate.on_connection_close()\n        self._clear_callbacks()\n    raise gen.Return(True)",
                             "def _clear_callbacks(self):\n    \"\"\"Clears the callback attributes.\n\n    This allows the request handler to be garbage collected more\n    quickly in CPython by breaking up reference cycles.\n    \"\"\"\n    self._write_callback = None\n    self._write_future = None\n    self._close_callback = None\n    if self.stream is not None:\n        self.stream.set_close_callback(None)",
                             "def set_close_callback(self, callback):\n    \"\"\"Sets a callback that will be run when the connection is closed.\n\n    .. deprecated:: 4.0\n        Use `.HTTPMessageDelegate.on_connection_close` instead.\n    \"\"\"\n    self._close_callback = stack_context.wrap(callback)",
                             "def _on_connection_close(self):\n    if self._close_callback is not None:\n        callback = self._close_callback\n        self._close_callback = None\n        callback()\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)\n    self._clear_callbacks()",
@@ -204,7 +204,7 @@
                             "def detach(self):\n    \"\"\"Take control of the underlying stream.\n\n    Returns the underlying `.IOStream` object and stops all further\n    HTTP processing.  May only be called during\n    `.HTTPMessageDelegate.headers_received`.  Intended for implementing\n    protocols like websockets that tunnel over an HTTP handshake.\n    \"\"\"\n    self._clear_callbacks()\n    stream = self.stream\n    self.stream = None\n    if not self._finish_future.done():\n        self._finish_future.set_result(None)\n    return stream",
                             "def set_body_timeout(self, timeout):\n    \"\"\"Sets the body timeout for a single request.\n\n    Overrides the value from `.HTTP1ConnectionParameters`.\n    \"\"\"\n    self._body_timeout = timeout",
                             "def set_max_body_size(self, max_body_size):\n    \"\"\"Sets the body size limit for a single request.\n\n    Overrides the value from `.HTTP1ConnectionParameters`.\n    \"\"\"\n    self._max_body_size = max_body_size",
-                            "def write_headers(self, start_line, headers, chunk=None, callback=None):\n    \"\"\"Implements `.HTTPConnection.write_headers`.\"\"\"\n    lines = []\n    if self.is_client:\n        self._request_start_line = start_line\n        lines.append(utf8('%s %s HTTP/1.1' % (start_line[0], start_line[1])))\n        self._chunking_output = start_line.method in ('POST', 'PUT', 'PATCH') and 'Content-Length' not in headers and ('Transfer-Encoding' not in headers)\n    else:\n        self._response_start_line = start_line\n        lines.append(utf8('HTTP/1.1 %d %s' % (start_line[1], start_line[2])))\n        self._chunking_output = self._request_start_line.version == 'HTTP/1.1' and start_line.code not in (204, 304) and ('Content-Length' not in headers) and ('Transfer-Encoding' not in headers)\n        if self._request_start_line.version == 'HTTP/1.0' and self._request_headers.get('Connection', '').lower() == 'keep-alive':\n            headers['Connection'] = 'Keep-Alive'\n    if self._chunking_output:\n        headers['Transfer-Encoding'] = 'chunked'\n    if not self.is_client and (self._request_start_line.method == 'HEAD' or start_line.code == 304):\n        self._expected_content_remaining = 0\n    elif 'Content-Length' in headers:\n        self._expected_content_remaining = int(headers['Content-Length'])\n    else:\n        self._expected_content_remaining = None\n    header_lines = (native_str(n) + ': ' + native_str(v) for n, v in headers.get_all())\n    if PY3:\n        lines.extend((l.encode('latin1') for l in header_lines))\n    else:\n        lines.extend(header_lines)\n    for line in lines:\n        if b'\\n' in line:\n            raise ValueError('Newline in header: ' + repr(line))\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        future.set_exception(iostream.StreamClosedError())\n        future.exception()\n    else:\n        if callback is not None:\n            self._write_callback = stack_context.wrap(callback)\n        else:\n            future = self._write_future = Future()\n        data = b'\\r\\n'.join(lines) + b'\\r\\n\\r\\n'\n        if chunk:\n            data += self._format_chunk(chunk)\n        self._pending_write = self.stream.write(data)\n        self._pending_write.add_done_callback(self._on_write_complete)\n    return future",
+                            "def write_headers(self, start_line, headers, chunk=None, callback=None):\n    \"\"\"Implements `.HTTPConnection.write_headers`.\"\"\"\n    lines = []\n    if self.is_client:\n        self._request_start_line = start_line\n        lines.append(utf8('%s %s HTTP/1.1' % (start_line[0], start_line[1])))\n        self._chunking_output = start_line.method in ('POST', 'PUT', 'PATCH') and 'Content-Length' not in headers and ('Transfer-Encoding' not in headers)\n    else:\n        self._response_start_line = start_line\n        lines.append(utf8('HTTP/1.1 %d %s' % (start_line[1], start_line[2])))\n        self._chunking_output = self._request_start_line.version == 'HTTP/1.1' and start_line.code not in (204, 304) and ('Content-Length' not in headers) and ('Transfer-Encoding' not in headers)\n        if self._request_start_line.version == 'HTTP/1.0' and self._request_headers.get('Connection', '').lower() == 'keep-alive':\n            headers['Connection'] = 'Keep-Alive'\n    if self._chunking_output:\n        headers['Transfer-Encoding'] = 'chunked'\n    if not self.is_client and (self._request_start_line.method == 'HEAD' or start_line.code == 304):\n        self._expected_content_remaining = 0\n    elif 'Content-Length' in headers:\n        self._expected_content_remaining = int(headers['Content-Length'])\n    else:\n        self._expected_content_remaining = None\n    header_lines = (native_str(n) + ': ' + native_str(v) for (n, v) in headers.get_all())\n    if PY3:\n        lines.extend((l.encode('latin1') for l in header_lines))\n    else:\n        lines.extend(header_lines)\n    for line in lines:\n        if b'\\n' in line:\n            raise ValueError('Newline in header: ' + repr(line))\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        future.set_exception(iostream.StreamClosedError())\n        future.exception()\n    else:\n        if callback is not None:\n            self._write_callback = stack_context.wrap(callback)\n        else:\n            future = self._write_future = Future()\n        data = b'\\r\\n'.join(lines) + b'\\r\\n\\r\\n'\n        if chunk:\n            data += self._format_chunk(chunk)\n        self._pending_write = self.stream.write(data)\n        self._pending_write.add_done_callback(self._on_write_complete)\n    return future",
                             "def _format_chunk(self, chunk):\n    if self._expected_content_remaining is not None:\n        self._expected_content_remaining -= len(chunk)\n        if self._expected_content_remaining < 0:\n            self.stream.close()\n            raise httputil.HTTPOutputError('Tried to write more data than Content-Length')\n    if self._chunking_output and chunk:\n        return utf8('%x' % len(chunk)) + b'\\r\\n' + chunk + b'\\r\\n'\n    else:\n        return chunk",
                             "def write(self, chunk, callback=None):\n    \"\"\"Implements `.HTTPConnection.write`.\n\n    For backwards compatibility is is allowed but deprecated to\n    skip `write_headers` and instead call `write()` with a\n    pre-encoded header block.\n    \"\"\"\n    future = None\n    if self.stream.closed():\n        future = self._write_future = Future()\n        self._write_future.set_exception(iostream.StreamClosedError())\n        self._write_future.exception()\n    else:\n        if callback is not None:\n            self._write_callback = stack_context.wrap(callback)\n        else:\n            future = self._write_future = Future()\n        self._pending_write = self.stream.write(self._format_chunk(chunk))\n        self._pending_write.add_done_callback(self._on_write_complete)\n    return future",
                             "def finish(self):\n    \"\"\"Implements `.HTTPConnection.finish`.\"\"\"\n    if self._expected_content_remaining is not None and self._expected_content_remaining != 0 and (not self.stream.closed()):\n        self.stream.close()\n        raise httputil.HTTPOutputError('Tried to write %d bytes less than Content-Length' % self._expected_content_remaining)\n    if self._chunking_output:\n        if not self.stream.closed():\n            self._pending_write = self.stream.write(b'0\\r\\n\\r\\n')\n            self._pending_write.add_done_callback(self._on_write_complete)\n    self._write_finished = True\n    if not self._read_finished:\n        self._disconnect_on_finish = True\n    self.stream.set_nodelay(True)\n    if self._pending_write is None:\n        self._finish_request(None)\n    else:\n        self._pending_write.add_done_callback(self._finish_request)",
@@ -218,23 +218,23 @@
                             "@gen.coroutine\ndef _read_body_until_close(self, delegate):\n    body = (yield self.stream.read_until_close())\n    if not self._write_finished or self.is_client:\n        with _ExceptionLoggingContext(app_log):\n            delegate.data_received(body)"
                         ],
                         "constructor_variables": [
-                            "context",
-                            "_request_start_line",
-                            "_disconnect_on_finish",
-                            "_body_timeout",
-                            "_pending_write",
-                            "_expected_content_remaining",
-                            "params",
-                            "stream",
-                            "_response_start_line",
-                            "_max_body_size",
-                            "_request_headers",
-                            "_finish_future",
-                            "is_client",
-                            "_write_finished",
-                            "no_keep_alive",
-                            "_read_finished",
-                            "_chunking_output"
+                            "self.is_client = is_client",
+                            "self.stream = stream",
+                            "self.params = params",
+                            "self.context = context",
+                            "self.no_keep_alive = params.no_keep_alive",
+                            "self._max_body_size = self.params.max_body_size or self.stream.max_buffer_size",
+                            "self._body_timeout = self.params.body_timeout",
+                            "self._write_finished = False",
+                            "self._read_finished = False",
+                            "self._finish_future = Future()",
+                            "self._disconnect_on_finish = False",
+                            "self._request_start_line = None",
+                            "self._response_start_line = None",
+                            "self._request_headers = None",
+                            "self._chunking_output = None",
+                            "self._expected_content_remaining = None",
+                            "self._pending_write = None"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -261,13 +261,37 @@
                             "_read_fixed_body(self, content_length, delegate)",
                             "_read_chunked_body(self, delegate)",
                             "_read_body_until_close(self, delegate)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "_write_finished",
+                            "_pending_write",
+                            "_read_finished",
+                            "_request_headers",
+                            "_body_timeout",
+                            "_finish_future",
+                            "stream",
+                            "_max_body_size",
+                            "_response_start_line",
+                            "is_client",
+                            "_chunking_output",
+                            "_disconnect_on_finish",
+                            "_request_start_line",
+                            "no_keep_alive",
+                            "params",
+                            "_expected_content_remaining",
+                            "context"
                         ]
                     },
+                    "used_imports": [
+                        "import re",
+                        "from tornado import httputil"
+                    ],
                     "variable_values": [
                         [
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10b44ad50>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f3a31760d10>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -312,7 +336,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10b470250>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -322,22 +346,22 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10b470250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x10b470050>",
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x7f3a32786410>",
                                     "variable_type": "_ServerRequestAdapter",
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10b44ad50>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f3a31760d10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10b470250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -347,14 +371,14 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10b470250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10b44ad50>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f3a31760d10>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -399,7 +423,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10b470250>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -409,22 +433,22 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10b470250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x10b470050>",
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x7f3a32786410>",
                                     "variable_type": "_ServerRequestAdapter",
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10b44ad50>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f3a31760d10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10b470250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -434,7 +458,7 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10b470250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f3a32786350>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -443,7 +467,7 @@
                         [
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10b497c90>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f3a31760c10>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -488,7 +512,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10b497850>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -498,22 +522,22 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10b497850>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10b497ed0>",
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x7f3a32786090>",
                                     "variable_type": "Delegate",
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10b497c90>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f3a31760c10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10b497850>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -523,14 +547,14 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10b497850>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10b497c90>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f3a31760c10>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -575,7 +599,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10b497850>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -585,22 +609,22 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10b497850>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10b497ed0>",
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x7f3a32786090>",
                                     "variable_type": "Delegate",
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10b497c90>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f3a31760c10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10b497850>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -610,7 +634,7 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10b497850>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f3a327eaf10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -621,7 +645,7 @@
                         [
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10c3b85d0>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f41d6f79d10>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -666,7 +690,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10c3b8250>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -676,12 +700,12 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10c3b8250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x10c3b8310>",
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x7f41d7c9b490>",
                                     "variable_type": "_ServerRequestAdapter",
                                     "variable_shape": null
                                 },
@@ -691,12 +715,12 @@
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10c3b85d0>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f41d6f79d10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10c3b8250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -706,14 +730,14 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10c3b8250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10c3b85d0>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f41d6f79d10>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -758,7 +782,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10c3b8250>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -768,12 +792,12 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10c3b8250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x10c3b8310>",
+                                    "variable_value": "<tornado.httpserver._ServerRequestAdapter object at 0x7f41d7c9b490>",
                                     "variable_type": "_ServerRequestAdapter",
                                     "variable_shape": null
                                 },
@@ -783,12 +807,12 @@
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10c3b85d0>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f41d6f79d10>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10c3b8250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -798,7 +822,7 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10c3b8250>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f41d7c9b3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -807,7 +831,7 @@
                         [
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10c3cc950>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f41d6f79d50>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -852,7 +876,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10c398ed0>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -862,12 +886,12 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10c398ed0>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10c398e90>",
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x7f41d7c9b090>",
                                     "variable_type": "Delegate",
                                     "variable_shape": null
                                 },
@@ -877,12 +901,12 @@
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10c3cc950>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f41d6f79d50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10c398ed0>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -892,14 +916,14 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10c398ed0>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "headers": {
-                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x10c3cc950>",
+                                    "variable_value": "<tornado.httputil.HTTPHeaders object at 0x7f41d6f79d50>",
                                     "variable_type": "HTTPHeaders",
                                     "variable_shape": null
                                 },
@@ -944,7 +968,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x10c398ed0>",
+                                    "variable_value": "<tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>",
                                     "variable_type": "HTTP1Connection",
                                     "variable_shape": null
                                 },
@@ -954,12 +978,12 @@
                                     "variable_shape": null
                                 },
                                 "self._read_fixed_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x10c398ed0>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_fixed_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "delegate": {
-                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x10c398e90>",
+                                    "variable_value": "<tornado.test.httpserver_test.read_stream_body.<locals>.Delegate object at 0x7f41d7c9b090>",
                                     "variable_type": "Delegate",
                                     "variable_shape": null
                                 },
@@ -969,12 +993,12 @@
                                     "variable_shape": null
                                 },
                                 "headers.get": {
-                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x10c3cc950>>",
+                                    "variable_value": "<bound method Mapping.get of <tornado.httputil.HTTPHeaders object at 0x7f41d6f79d50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._read_chunked_body": {
-                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x10c398ed0>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_chunked_body of <tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -984,7 +1008,7 @@
                                     "variable_shape": null
                                 },
                                 "self._read_body_until_close": {
-                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x10c398ed0>>",
+                                    "variable_value": "<bound method HTTP1Connection._read_body_until_close of <tornado.http1connection.HTTP1Connection object at 0x7f41d7cff710>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -3825,7 +3849,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/tornado_11/tornado/test/httpserver_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_11/tornado/test/httpserver_test.py",
                 "test_function": "test_chunked_request_uppercase",
                 "test_function_code": "    def test_chunked_request_uppercase(self):\n        # As per RFC 2616 section 3.6, \"Transfer-Encoding\" header's value is\n        # case-insensitive.\n        self.stream.write(b\"\"\"\\\nPOST /echo HTTP/1.1\nTransfer-Encoding: Chunked\nContent-Type: application/x-www-form-urlencoded\n\n4\nfoo=\n3\nbar\n0\n\n\"\"\".replace(b\"\\n\", b\"\\r\\n\"))\n        read_stream_body(self.stream, self.stop)\n        headers, response = self.wait()\n        self.assertEqual(json_decode(response), {u'foo': [u'bar']})",
                 "test_error": "AssertionError: {} != {'foo': ['bar']}\n- {}\n+ {'foo': ['bar']}",

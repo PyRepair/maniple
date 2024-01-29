@@ -1,6 +1,6 @@
 {
     "black:19": {
-        "/Volumes/SSD2T/bgp_envs/repos/black_19/black.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/black_19/black.py": {
             "buggy_functions": [
                 {
                     "function_name": "_maybe_empty_lines",
@@ -299,14 +299,14 @@
                         "docstring": "Provides a stateful method that returns the number of potential extra\nempty lines needed before and after the currently processed line.\n\nNote: this tracker works on lines that haven't been split yet.  It assumes\nthe prefix of the first leaf consists of optional newlines.  Those newlines\nare consumed by `maybe_empty_lines()` and included in the computation.",
                         "constructor_docstring": null,
                         "functions": [
-                            "def maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:\n    \"\"\"Return the number of extra empty lines before and after the `current_line`.\n\n    This is for separating `def`, `async def` and `class` with extra empty\n    lines (two on module-level), as well as providing an extra empty line\n    after flow control keywords to make them more prominent.\n    \"\"\"\n    if isinstance(current_line, UnformattedLines):\n        return (0, 0)\n    before, after = self._maybe_empty_lines(current_line)\n    before -= self.previous_after\n    self.previous_after = after\n    self.previous_line = current_line\n    return (before, after)",
+                            "def maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:\n    \"\"\"Return the number of extra empty lines before and after the `current_line`.\n\n    This is for separating `def`, `async def` and `class` with extra empty\n    lines (two on module-level), as well as providing an extra empty line\n    after flow control keywords to make them more prominent.\n    \"\"\"\n    if isinstance(current_line, UnformattedLines):\n        return (0, 0)\n    (before, after) = self._maybe_empty_lines(current_line)\n    before -= self.previous_after\n    self.previous_after = after\n    self.previous_line = current_line\n    return (before, after)",
                             "def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:\n    max_allowed = 1\n    if current_line.depth == 0:\n        max_allowed = 2\n    if current_line.leaves:\n        first_leaf = current_line.leaves[0]\n        before = first_leaf.prefix.count('\\n')\n        before = min(before, max_allowed)\n        first_leaf.prefix = ''\n    else:\n        before = 0\n    depth = current_line.depth\n    while self.previous_defs and self.previous_defs[-1] >= depth:\n        self.previous_defs.pop()\n        before = 1 if depth else 2\n    is_decorator = current_line.is_decorator\n    if is_decorator or current_line.is_def or current_line.is_class:\n        if not is_decorator:\n            self.previous_defs.append(depth)\n        if self.previous_line is None:\n            return (0, 0)\n        if self.previous_line and self.previous_line.is_decorator:\n            return (0, 0)\n        newlines = 2\n        if current_line.depth:\n            newlines -= 1\n        return (newlines, 0)\n    if current_line.is_flow_control:\n        return (before, 1)\n    if self.previous_line and self.previous_line.is_import and (not current_line.is_import) and (depth == self.previous_line.depth):\n        return (before or 1, 0)\n    if self.previous_line and self.previous_line.is_yield and (not current_line.is_yield or depth != self.previous_line.depth):\n        return (before or 1, 0)\n    return (before, 0)"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
-                            "previous_line",
-                            "previous_after",
-                            "previous_defs"
+                            "previous_line: Optional[Line] = None",
+                            "previous_after: int = 0",
+                            "previous_defs: List[int] = Factory(list)"
                         ],
                         "class_decorators": [
                             "dataclass"
@@ -314,8 +314,17 @@
                         "function_signatures": [
                             "maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]",
                             "_maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]"
-                        ]
+                        ],
+                        "class_level_variable_names": [
+                            "previous_line",
+                            "previous_after",
+                            "previous_defs"
+                        ],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [
+                        "from typing import Any, Callable, Collection, Dict, Generic, Iterable, Iterator, List, Optional, Pattern, Set, Tuple, Type, TypeVar, Union"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -17565,7 +17574,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/black_19/tests/test_black.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/black_19/tests/test_black.py",
                 "test_function": "test_comment_in_decorator",
                 "test_function_code": "    @patch(\"black.dump_to_file\", dump_to_stderr)\n    def test_comment_in_decorator(self) -> None:\n        source, expected = read_data(\"comments6\")\n        actual = fs(source)\n        self.assertFormatEqual(expected, actual)\n        black.assert_equivalent(source, actual)\n        black.assert_stable(source, actual, line_length=ll)",
                 "test_error": "AssertionError: '@pro[13 chars]: X\\n@property\\n# TODO: Y\\n# TODO: Z\\n@propert[21 chars]ss\\n' != '@pro[13 chars]: X\\n\\n\\n@property\\n# TODO: Y\\n# TODO: Z\\n\\n\\n[29 chars]ss\\n'\n  @property\n  # TODO: X\n+ \n+ \n  @property\n  # TODO: Y\n  # TODO: Z\n+ \n+ \n  @property\n  def foo():\n      pass",

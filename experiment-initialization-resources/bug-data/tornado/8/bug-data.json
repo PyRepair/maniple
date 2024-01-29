@@ -1,6 +1,6 @@
 {
     "tornado:8": {
-        "/Volumes/SSD2T/bgp_envs/repos/tornado_8/tornado/websocket.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_8/tornado/websocket.py": {
             "buggy_functions": [
                 {
                     "function_name": "accept_connection",
@@ -76,7 +76,7 @@
                             "def write_message(self, message, binary=False):\n    \"\"\"Sends the given message to the client of this Web Socket.\"\"\"\n    if binary:\n        opcode = 2\n    else:\n        opcode = 1\n    message = tornado.escape.utf8(message)\n    assert isinstance(message, bytes)\n    self._message_bytes_out += len(message)\n    flags = 0\n    if self._compressor:\n        message = self._compressor.compress(message)\n        flags |= self.RSV1\n    return self._write_frame(True, opcode, message, flags=flags)",
                             "def write_ping(self, data):\n    \"\"\"Send ping frame.\"\"\"\n    assert isinstance(data, bytes)\n    self._write_frame(True, 9, data)",
                             "def _receive_frame(self):\n    try:\n        self.stream.read_bytes(2, self._on_frame_start)\n    except StreamClosedError:\n        self._abort()",
-                            "def _on_frame_start(self, data):\n    self._wire_bytes_in += len(data)\n    header, payloadlen = struct.unpack('BB', data)\n    self._final_frame = header & self.FIN\n    reserved_bits = header & self.RSV_MASK\n    self._frame_opcode = header & self.OPCODE_MASK\n    self._frame_opcode_is_control = self._frame_opcode & 8\n    if self._decompressor is not None and self._frame_opcode != 0:\n        self._frame_compressed = bool(reserved_bits & self.RSV1)\n        reserved_bits &= ~self.RSV1\n    if reserved_bits:\n        self._abort()\n        return\n    self._masked_frame = bool(payloadlen & 128)\n    payloadlen = payloadlen & 127\n    if self._frame_opcode_is_control and payloadlen >= 126:\n        self._abort()\n        return\n    try:\n        if payloadlen < 126:\n            self._frame_length = payloadlen\n            if self._masked_frame:\n                self.stream.read_bytes(4, self._on_masking_key)\n            else:\n                self._read_frame_data(False)\n        elif payloadlen == 126:\n            self.stream.read_bytes(2, self._on_frame_length_16)\n        elif payloadlen == 127:\n            self.stream.read_bytes(8, self._on_frame_length_64)\n    except StreamClosedError:\n        self._abort()",
+                            "def _on_frame_start(self, data):\n    self._wire_bytes_in += len(data)\n    (header, payloadlen) = struct.unpack('BB', data)\n    self._final_frame = header & self.FIN\n    reserved_bits = header & self.RSV_MASK\n    self._frame_opcode = header & self.OPCODE_MASK\n    self._frame_opcode_is_control = self._frame_opcode & 8\n    if self._decompressor is not None and self._frame_opcode != 0:\n        self._frame_compressed = bool(reserved_bits & self.RSV1)\n        reserved_bits &= ~self.RSV1\n    if reserved_bits:\n        self._abort()\n        return\n    self._masked_frame = bool(payloadlen & 128)\n    payloadlen = payloadlen & 127\n    if self._frame_opcode_is_control and payloadlen >= 126:\n        self._abort()\n        return\n    try:\n        if payloadlen < 126:\n            self._frame_length = payloadlen\n            if self._masked_frame:\n                self.stream.read_bytes(4, self._on_masking_key)\n            else:\n                self._read_frame_data(False)\n        elif payloadlen == 126:\n            self.stream.read_bytes(2, self._on_frame_length_16)\n        elif payloadlen == 127:\n            self.stream.read_bytes(8, self._on_frame_length_64)\n    except StreamClosedError:\n        self._abort()",
                             "def _read_frame_data(self, masked):\n    new_len = self._frame_length\n    if self._fragmented_message_buffer is not None:\n        new_len += len(self._fragmented_message_buffer)\n    if new_len > (self.handler.max_message_size or 10 * 1024 * 1024):\n        self.close(1009, 'message too big')\n        return\n    self.stream.read_bytes(self._frame_length, self._on_masked_frame_data if masked else self._on_frame_data)",
                             "def _on_frame_length_16(self, data):\n    self._wire_bytes_in += len(data)\n    self._frame_length = struct.unpack('!H', data)[0]\n    try:\n        if self._masked_frame:\n            self.stream.read_bytes(4, self._on_masking_key)\n        else:\n            self._read_frame_data(False)\n    except StreamClosedError:\n        self._abort()",
                             "def _on_frame_length_64(self, data):\n    self._wire_bytes_in += len(data)\n    self._frame_length = struct.unpack('!Q', data)[0]\n    try:\n        if self._masked_frame:\n            self.stream.read_bytes(4, self._on_masking_key)\n        else:\n            self._read_frame_data(False)\n    except StreamClosedError:\n        self._abort()",
@@ -91,34 +91,34 @@
                             "def periodic_ping(self):\n    \"\"\"Send a ping to keep the websocket alive\n\n    Called periodically if the websocket_ping_interval is set and non-zero.\n    \"\"\"\n    if self.stream.closed() and self.ping_callback is not None:\n        self.ping_callback.stop()\n        return\n    now = IOLoop.current().time()\n    since_last_pong = now - self.last_pong\n    since_last_ping = now - self.last_ping\n    if since_last_ping < 2 * self.ping_interval and since_last_pong > self.ping_timeout:\n        self.close()\n        return\n    self.write_ping(b'')\n    self.last_ping = now"
                         ],
                         "constructor_variables": [
-                            "_message_bytes_out",
-                            "_frame_compressed",
-                            "last_pong",
-                            "_message_bytes_in",
-                            "_decompressor",
-                            "_compression_options",
-                            "_wire_bytes_in",
-                            "_compressor",
-                            "mask_outgoing",
-                            "_final_frame",
-                            "_masked_frame",
-                            "_wire_bytes_out",
-                            "ping_callback",
-                            "_frame_opcode",
-                            "last_ping",
-                            "_fragmented_message_opcode",
-                            "_fragmented_message_buffer",
-                            "_frame_mask",
-                            "_waiting",
-                            "_frame_length"
+                            "self.mask_outgoing = mask_outgoing",
+                            "self._final_frame = False",
+                            "self._frame_opcode = None",
+                            "self._masked_frame = None",
+                            "self._frame_mask = None",
+                            "self._frame_length = None",
+                            "self._fragmented_message_buffer = None",
+                            "self._fragmented_message_opcode = None",
+                            "self._waiting = None",
+                            "self._compression_options = compression_options",
+                            "self._decompressor = None",
+                            "self._compressor = None",
+                            "self._frame_compressed = None",
+                            "self._message_bytes_in = 0",
+                            "self._message_bytes_out = 0",
+                            "self._wire_bytes_in = 0",
+                            "self._wire_bytes_out = 0",
+                            "self.ping_callback = None",
+                            "self.last_ping = 0",
+                            "self.last_pong = 0"
                         ],
                         "class_level_variables": [
-                            "FIN",
-                            "RSV1",
-                            "RSV2",
-                            "RSV3",
-                            "RSV_MASK",
-                            "OPCODE_MASK"
+                            "FIN = 128",
+                            "RSV1 = 64",
+                            "RSV2 = 32",
+                            "RSV3 = 16",
+                            "RSV_MASK = RSV1 | RSV2 | RSV3",
+                            "OPCODE_MASK = 15"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -149,23 +149,56 @@
                             "ping_timeout(self)",
                             "start_pinging(self)",
                             "periodic_ping(self)"
+                        ],
+                        "class_level_variable_names": [
+                            "FIN",
+                            "RSV1",
+                            "RSV2",
+                            "RSV3",
+                            "RSV_MASK",
+                            "OPCODE_MASK"
+                        ],
+                        "constructor_variable_names": [
+                            "_message_bytes_out",
+                            "_message_bytes_in",
+                            "last_ping",
+                            "_frame_length",
+                            "_waiting",
+                            "_compression_options",
+                            "_fragmented_message_opcode",
+                            "_decompressor",
+                            "_masked_frame",
+                            "ping_callback",
+                            "_frame_mask",
+                            "last_pong",
+                            "_compressor",
+                            "mask_outgoing",
+                            "_fragmented_message_buffer",
+                            "_frame_compressed",
+                            "_wire_bytes_out",
+                            "_final_frame",
+                            "_frame_opcode",
+                            "_wire_bytes_in"
                         ]
                     },
+                    "used_imports": [
+                        "from tornado.log import gen_log, app_log"
+                    ],
                     "variable_values": [
                         [
                             {
                                 "self._handle_websocket_headers": {
-                                    "variable_value": "<bound method WebSocketProtocol13._handle_websocket_headers of <tornado.websocket.WebSocketProtocol13 object at 0x10eb22ad0>>",
+                                    "variable_value": "<bound method WebSocketProtocol13._handle_websocket_headers of <tornado.websocket.WebSocketProtocol13 object at 0x7fb50e509210>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.websocket.WebSocketProtocol13 object at 0x10eb22ad0>",
+                                    "variable_value": "<tornado.websocket.WebSocketProtocol13 object at 0x7fb50e509210>",
                                     "variable_type": "WebSocketProtocol13",
                                     "variable_shape": null
                                 },
                                 "self._accept_connection": {
-                                    "variable_value": "<bound method WebSocketProtocol13._accept_connection of <tornado.websocket.WebSocketProtocol13 object at 0x10eb22ad0>>",
+                                    "variable_value": "<bound method WebSocketProtocol13._accept_connection of <tornado.websocket.WebSocketProtocol13 object at 0x7fb50e509210>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -180,7 +213,7 @@
                                     "variable_shape": null
                                 },
                                 "self._abort": {
-                                    "variable_value": "<bound method WebSocketProtocol._abort of <tornado.websocket.WebSocketProtocol13 object at 0x10eb22ad0>>",
+                                    "variable_value": "<bound method WebSocketProtocol._abort of <tornado.websocket.WebSocketProtocol13 object at 0x7fb50e509210>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -192,12 +225,12 @@
                         [
                             {
                                 "self._handle_websocket_headers": {
-                                    "variable_value": "<bound method WebSocketProtocol13._handle_websocket_headers of <tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>>",
+                                    "variable_value": "<bound method WebSocketProtocol13._handle_websocket_headers of <tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>",
+                                    "variable_value": "<tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>",
                                     "variable_type": "WebSocketProtocol13",
                                     "variable_shape": null
                                 },
@@ -207,7 +240,7 @@
                                     "variable_shape": null
                                 },
                                 "self.handler": {
-                                    "variable_value": "<tornado.test.websocket_test.EchoHandler object at 0x10863ffd0>",
+                                    "variable_value": "<tornado.test.websocket_test.EchoHandler object at 0x7f6ce265cd50>",
                                     "variable_type": "EchoHandler",
                                     "variable_shape": null
                                 },
@@ -232,24 +265,24 @@
                                     "variable_shape": null
                                 },
                                 "self._accept_connection": {
-                                    "variable_value": "<bound method WebSocketProtocol13._accept_connection of <tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>>",
+                                    "variable_value": "<bound method WebSocketProtocol13._accept_connection of <tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._abort": {
-                                    "variable_value": "<bound method WebSocketProtocol._abort of <tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>>",
+                                    "variable_value": "<bound method WebSocketProtocol._abort of <tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._handle_websocket_headers": {
-                                    "variable_value": "<bound method WebSocketProtocol13._handle_websocket_headers of <tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>>",
+                                    "variable_value": "<bound method WebSocketProtocol13._handle_websocket_headers of <tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>",
+                                    "variable_value": "<tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>",
                                     "variable_type": "WebSocketProtocol13",
                                     "variable_shape": null
                                 },
@@ -259,7 +292,7 @@
                                     "variable_shape": null
                                 },
                                 "self.handler": {
-                                    "variable_value": "<tornado.test.websocket_test.EchoHandler object at 0x10863ffd0>",
+                                    "variable_value": "<tornado.test.websocket_test.EchoHandler object at 0x7f6ce265cd50>",
                                     "variable_type": "EchoHandler",
                                     "variable_shape": null
                                 },
@@ -284,12 +317,12 @@
                                     "variable_shape": null
                                 },
                                 "self._accept_connection": {
-                                    "variable_value": "<bound method WebSocketProtocol13._accept_connection of <tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>>",
+                                    "variable_value": "<bound method WebSocketProtocol13._accept_connection of <tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._abort": {
-                                    "variable_value": "<bound method WebSocketProtocol._abort of <tornado.websocket.WebSocketProtocol13 object at 0x1086506d0>>",
+                                    "variable_value": "<bound method WebSocketProtocol._abort of <tornado.websocket.WebSocketProtocol13 object at 0x7f6ce267b410>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -4561,7 +4594,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/tornado_8/tornado/test/websocket_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_8/tornado/test/websocket_test.py",
                 "test_function": "test_missing_websocket_key",
                 "test_function_code": "    def test_missing_websocket_key(self):\n        response = self.fetch('/echo',\n                              headers={'Connection': 'Upgrade',\n                                       'Upgrade': 'WebSocket',\n                                       'Sec-WebSocket-Version': '13'})\n        self.assertEqual(response.code, 400)",
                 "test_error": "AssertionError: 500 != 400",

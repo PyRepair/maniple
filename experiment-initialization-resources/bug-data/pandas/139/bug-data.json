@@ -1,6 +1,6 @@
 {
     "pandas:139": {
-        "/Volumes/SSD2T/bgp_envs/repos/pandas_139/pandas/core/groupby/grouper.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_139/pandas/core/groupby/grouper.py": {
             "buggy_functions": [
                 {
                     "function_name": "__init__",
@@ -727,7 +727,7 @@
                         "docstring": "Holds the grouping information for a single key\n\nParameters\n----------\nindex : Index\ngrouper :\nobj :\nname :\nlevel :\nobserved : boolean, default False\n    If we are a Categorical, use the observed values\nin_axis : if the Grouping is a column in self.obj and hence among\n    Groupby.exclusions list\n\nReturns\n-------\n**Attributes**:\n  * indices : dict of {group -> index_list}\n  * labels : ndarray, group labels\n  * ids : mapping of label -> group\n  * counts : array of group counts\n  * group_index : unique groups\n  * groups : dict of {group -> label_list}",
                         "constructor_docstring": null,
                         "functions": [
-                            "def __init__(self, index, grouper=None, obj=None, name=None, level=None, sort=True, observed=False, in_axis=False):\n    self.name = name\n    self.level = level\n    self.grouper = _convert_grouper(index, grouper)\n    self.all_grouper = None\n    self.index = index\n    self.sort = sort\n    self.obj = obj\n    self.observed = observed\n    self.in_axis = in_axis\n    if isinstance(grouper, (Series, Index)) and name is None:\n        self.name = grouper.name\n    if isinstance(grouper, MultiIndex):\n        self.grouper = grouper.values\n    if level is not None:\n        if not isinstance(level, int):\n            if level not in index.names:\n                raise AssertionError('Level {} not in index'.format(level))\n            level = index.names.index(level)\n        if self.name is None:\n            self.name = index.names[level]\n        self.grouper, self._labels, self._group_index = index._get_grouper_for_level(self.grouper, level)\n    elif isinstance(self.grouper, Grouper):\n        _, grouper, _ = self.grouper._get_grouper(self.obj, validate=False)\n        if self.name is None:\n            self.name = grouper.result_index.name\n        self.obj = self.grouper.obj\n        self.grouper = grouper._get_grouper()\n    else:\n        if self.grouper is None and self.name is not None:\n            self.grouper = self.obj[self.name]\n        elif isinstance(self.grouper, (list, tuple)):\n            self.grouper = com.asarray_tuplesafe(self.grouper)\n        elif is_categorical_dtype(self.grouper):\n            self.grouper, self.all_grouper = recode_for_groupby(self.grouper, self.sort, observed)\n            categories = self.grouper.categories\n            self._labels = self.grouper.codes\n            if observed:\n                codes = algorithms.unique1d(self.grouper.codes)\n                codes = codes[codes != -1]\n                if sort or self.grouper.ordered:\n                    codes = np.sort(codes)\n            else:\n                codes = np.arange(len(categories))\n            self._group_index = CategoricalIndex(Categorical.from_codes(codes=codes, categories=categories, ordered=self.grouper.ordered))\n        if isinstance(self.grouper, Grouping):\n            self.grouper = self.grouper.grouper\n        elif not isinstance(self.grouper, (Series, Index, ExtensionArray, np.ndarray)):\n            if getattr(self.grouper, 'ndim', 1) != 1:\n                t = self.name or str(type(self.grouper))\n                raise ValueError(\"Grouper for '{}' not 1-dimensional\".format(t))\n            self.grouper = self.index.map(self.grouper)\n            if not (hasattr(self.grouper, '__len__') and len(self.grouper) == len(self.index)):\n                errmsg = 'Grouper result violates len(labels) == len(data)\\nresult: %s' % pprint_thing(self.grouper)\n                self.grouper = None\n                raise AssertionError(errmsg)\n    if getattr(self.grouper, 'dtype', None) is not None:\n        if is_datetime64_dtype(self.grouper):\n            self.grouper = self.grouper.astype('datetime64[ns]')\n        elif is_timedelta64_dtype(self.grouper):\n            self.grouper = self.grouper.astype('timedelta64[ns]')",
+                            "def __init__(self, index, grouper=None, obj=None, name=None, level=None, sort=True, observed=False, in_axis=False):\n    self.name = name\n    self.level = level\n    self.grouper = _convert_grouper(index, grouper)\n    self.all_grouper = None\n    self.index = index\n    self.sort = sort\n    self.obj = obj\n    self.observed = observed\n    self.in_axis = in_axis\n    if isinstance(grouper, (Series, Index)) and name is None:\n        self.name = grouper.name\n    if isinstance(grouper, MultiIndex):\n        self.grouper = grouper.values\n    if level is not None:\n        if not isinstance(level, int):\n            if level not in index.names:\n                raise AssertionError('Level {} not in index'.format(level))\n            level = index.names.index(level)\n        if self.name is None:\n            self.name = index.names[level]\n        (self.grouper, self._labels, self._group_index) = index._get_grouper_for_level(self.grouper, level)\n    elif isinstance(self.grouper, Grouper):\n        (_, grouper, _) = self.grouper._get_grouper(self.obj, validate=False)\n        if self.name is None:\n            self.name = grouper.result_index.name\n        self.obj = self.grouper.obj\n        self.grouper = grouper._get_grouper()\n    else:\n        if self.grouper is None and self.name is not None:\n            self.grouper = self.obj[self.name]\n        elif isinstance(self.grouper, (list, tuple)):\n            self.grouper = com.asarray_tuplesafe(self.grouper)\n        elif is_categorical_dtype(self.grouper):\n            (self.grouper, self.all_grouper) = recode_for_groupby(self.grouper, self.sort, observed)\n            categories = self.grouper.categories\n            self._labels = self.grouper.codes\n            if observed:\n                codes = algorithms.unique1d(self.grouper.codes)\n                codes = codes[codes != -1]\n                if sort or self.grouper.ordered:\n                    codes = np.sort(codes)\n            else:\n                codes = np.arange(len(categories))\n            self._group_index = CategoricalIndex(Categorical.from_codes(codes=codes, categories=categories, ordered=self.grouper.ordered))\n        if isinstance(self.grouper, Grouping):\n            self.grouper = self.grouper.grouper\n        elif not isinstance(self.grouper, (Series, Index, ExtensionArray, np.ndarray)):\n            if getattr(self.grouper, 'ndim', 1) != 1:\n                t = self.name or str(type(self.grouper))\n                raise ValueError(\"Grouper for '{}' not 1-dimensional\".format(t))\n            self.grouper = self.index.map(self.grouper)\n            if not (hasattr(self.grouper, '__len__') and len(self.grouper) == len(self.index)):\n                errmsg = 'Grouper result violates len(labels) == len(data)\\nresult: %s' % pprint_thing(self.grouper)\n                self.grouper = None\n                raise AssertionError(errmsg)\n    if getattr(self.grouper, 'dtype', None) is not None:\n        if is_datetime64_dtype(self.grouper):\n            self.grouper = self.grouper.astype('datetime64[ns]')\n        elif is_timedelta64_dtype(self.grouper):\n            self.grouper = self.grouper.astype('timedelta64[ns]')",
                             "def __repr__(self):\n    return 'Grouping({0})'.format(self.name)",
                             "def __iter__(self):\n    return iter(self.indices)",
                             "@property\ndef ngroups(self):\n    return len(self.group_index)",
@@ -735,29 +735,38 @@
                             "@property\ndef labels(self):\n    if self._labels is None:\n        self._make_labels()\n    return self._labels",
                             "@cache_readonly\ndef result_index(self):\n    if self.all_grouper is not None:\n        return recode_from_groupby(self.all_grouper, self.sort, self.group_index)\n    return self.group_index",
                             "@property\ndef group_index(self):\n    if self._group_index is None:\n        self._make_labels()\n    return self._group_index",
-                            "def _make_labels(self):\n    if self._labels is None or self._group_index is None:\n        if isinstance(self.grouper, BaseGrouper):\n            labels = self.grouper.label_info\n            uniques = self.grouper.result_index\n        else:\n            labels, uniques = algorithms.factorize(self.grouper, sort=self.sort)\n            uniques = Index(uniques, name=self.name)\n        self._labels = labels\n        self._group_index = uniques",
+                            "def _make_labels(self):\n    if self._labels is None or self._group_index is None:\n        if isinstance(self.grouper, BaseGrouper):\n            labels = self.grouper.label_info\n            uniques = self.grouper.result_index\n        else:\n            (labels, uniques) = algorithms.factorize(self.grouper, sort=self.sort)\n            uniques = Index(uniques, name=self.name)\n        self._labels = labels\n        self._group_index = uniques",
                             "@cache_readonly\ndef groups(self):\n    return self.index.groupby(Categorical.from_codes(self.labels, self.group_index))"
                         ],
                         "constructor_variables": [
-                            "sort",
-                            "observed",
-                            "name",
-                            "in_axis",
-                            "_labels",
-                            "index",
-                            "categories",
-                            "obj",
-                            "errmsg",
-                            "grouper",
-                            "_group_index",
-                            "codes",
-                            "all_grouper",
-                            "level",
-                            "t"
+                            "self.name = name",
+                            "self.level = level",
+                            "self.grouper = _convert_grouper(index, grouper)",
+                            "self.all_grouper = None",
+                            "self.index = index",
+                            "self.sort = sort",
+                            "self.obj = obj",
+                            "self.observed = observed",
+                            "self.in_axis = in_axis",
+                            "self.name = grouper.name",
+                            "self.grouper = grouper.values",
+                            "self.name = index.names[level]",
+                            "self.name = grouper.result_index.name",
+                            "self.obj = self.grouper.obj",
+                            "self.grouper = grouper._get_grouper()",
+                            "self.grouper = self.obj[self.name]",
+                            "self.grouper = com.asarray_tuplesafe(self.grouper)",
+                            "self._labels = self.grouper.codes",
+                            "self._group_index = CategoricalIndex(Categorical.from_codes(codes=codes, categories=categories, ordered=self.grouper.ordered))",
+                            "self.grouper = self.grouper.grouper",
+                            "self.grouper = self.index.map(self.grouper)",
+                            "self.grouper = None",
+                            "self.grouper = self.grouper.astype('datetime64[ns]')",
+                            "self.grouper = self.grouper.astype('timedelta64[ns]')"
                         ],
                         "class_level_variables": [
-                            "_labels",
-                            "_group_index"
+                            "_labels = None",
+                            "_group_index = None"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -771,8 +780,40 @@
                             "group_index(self)",
                             "_make_labels(self)",
                             "groups(self)"
+                        ],
+                        "class_level_variable_names": [
+                            "_labels",
+                            "_group_index"
+                        ],
+                        "constructor_variable_names": [
+                            "sort",
+                            "observed",
+                            "index",
+                            "grouper",
+                            "level",
+                            "t",
+                            "in_axis",
+                            "all_grouper",
+                            "codes",
+                            "_labels",
+                            "errmsg",
+                            "_group_index",
+                            "categories",
+                            "name",
+                            "obj"
                         ]
                     },
+                    "used_imports": [
+                        "import numpy as np",
+                        "from pandas.core.dtypes.common import ensure_categorical, is_categorical_dtype, is_datetime64_dtype, is_hashable, is_list_like, is_scalar, is_timedelta64_dtype",
+                        "import pandas.core.algorithms as algorithms",
+                        "from pandas.core.arrays import Categorical, ExtensionArray",
+                        "import pandas.core.common as com",
+                        "from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby",
+                        "from pandas.core.index import CategoricalIndex, Index, MultiIndex",
+                        "from pandas.core.series import Series",
+                        "from pandas.io.formats.printing import pprint_thing"
+                    ],
                     "variable_values": [
                         [
                             {},
@@ -3151,7 +3192,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/pandas_139/pandas/tests/groupby/test_categorical.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_139/pandas/tests/groupby/test_categorical.py",
                 "test_function": "test_preserve_categories",
                 "test_function_code": "def test_preserve_categories():\n    # GH-13179\n    categories = list(\"abc\")\n\n    # ordered=True\n    df = DataFrame({\"A\": Categorical(list(\"ba\"), categories=categories, ordered=True)})\n    index = CategoricalIndex(categories, categories, ordered=True, name=\"A\")\n    tm.assert_index_equal(\n        df.groupby(\"A\", sort=True, observed=False).first().index, index\n    )\n    tm.assert_index_equal(\n        df.groupby(\"A\", sort=False, observed=False).first().index, index\n    )\n\n    # ordered=False\n    df = DataFrame({\"A\": Categorical(list(\"ba\"), categories=categories, ordered=False)})\n    sort_index = CategoricalIndex(categories, categories, ordered=False, name=\"A\")\n    nosort_index = CategoricalIndex(list(\"bac\"), list(\"bac\"), ordered=False, name=\"A\")\n    tm.assert_index_equal(\n        df.groupby(\"A\", sort=True, observed=False).first().index, sort_index\n    )\n    tm.assert_index_equal(\n        df.groupby(\"A\", sort=False, observed=False).first().index, nosort_index\n    )",
                 "test_error": "AssertionError: Index are different  Attribute \"names\" are different [left]:  [None] [right]: ['A']",

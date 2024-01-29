@@ -1,6 +1,6 @@
 {
     "pandas:96": {
-        "/Volumes/JerrySSD/bgp_envs/repos/pandas_96/pandas/tseries/offsets.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_96/pandas/tseries/offsets.py": {
             "buggy_functions": [
                 {
                     "function_name": "apply",
@@ -461,24 +461,18 @@
                         "functions": [
                             "def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):\n    if not is_list_like(start):\n        start = [start]\n    if not len(start):\n        raise ValueError('Must include at least 1 start time')\n    if not is_list_like(end):\n        end = [end]\n    if not len(end):\n        raise ValueError('Must include at least 1 end time')\n    start = np.array([liboffsets._validate_business_time(x) for x in start])\n    end = np.array([liboffsets._validate_business_time(x) for x in end])\n    if len(start) != len(end):\n        raise ValueError('number of starting time and ending time must be the same')\n    num_openings = len(start)\n    index = np.argsort(start)\n    start = tuple(start[index])\n    end = tuple(end[index])\n    total_secs = 0\n    for i in range(num_openings):\n        total_secs += self._get_business_hours_by_sec(start[i], end[i])\n        total_secs += self._get_business_hours_by_sec(end[i], start[(i + 1) % num_openings])\n    if total_secs != 24 * 60 * 60:\n        raise ValueError('invalid starting and ending time(s): opening hours should not touch or overlap with one another')\n    object.__setattr__(self, 'start', start)\n    object.__setattr__(self, 'end', end)\n    object.__setattr__(self, '_offset', offset)",
                             "@cache_readonly\ndef next_bday(self):\n    \"\"\"\n    Used for moving to next business day.\n    \"\"\"\n    if self.n >= 0:\n        nb_offset = 1\n    else:\n        nb_offset = -1\n    if self._prefix.startswith('C'):\n        return CustomBusinessDay(n=nb_offset, weekmask=self.weekmask, holidays=self.holidays, calendar=self.calendar)\n    else:\n        return BusinessDay(n=nb_offset)",
-                            "def _next_opening_time(self, other, sign=1):\n    \"\"\"\n    If self.n and sign have the same sign, return the earliest opening time\n    later than or equal to current time.\n    Otherwise the latest opening time earlier than or equal to current\n    time.\n\n    Opening time always locates on BusinessDay.\n    However, closing time may not if business hour extends over midnight.\n\n    Parameters\n    ----------\n    other : datetime\n        Current time.\n    sign : int, default 1.\n        Either 1 or -1. Going forward in time if it has the same sign as\n        self.n. Going backward in time otherwise.\n\n    Returns\n    -------\n    result : datetime\n        Next opening time.\n    \"\"\"\n    earliest_start = self.start[0]\n    latest_start = self.start[-1]\n    if not self.next_bday.is_on_offset(other):\n        other = other + sign * self.next_bday\n        if self.n * sign >= 0:\n            hour, minute = (earliest_start.hour, earliest_start.minute)\n        else:\n            hour, minute = (latest_start.hour, latest_start.minute)\n    elif self.n * sign >= 0:\n        if latest_start < other.time():\n            other = other + sign * self.next_bday\n            hour, minute = (earliest_start.hour, earliest_start.minute)\n        else:\n            for st in self.start:\n                if other.time() <= st:\n                    hour, minute = (st.hour, st.minute)\n                    break\n    elif other.time() < earliest_start:\n        other = other + sign * self.next_bday\n        hour, minute = (latest_start.hour, latest_start.minute)\n    else:\n        for st in reversed(self.start):\n            if other.time() >= st:\n                hour, minute = (st.hour, st.minute)\n                break\n    return datetime(other.year, other.month, other.day, hour, minute)",
+                            "def _next_opening_time(self, other, sign=1):\n    \"\"\"\n    If self.n and sign have the same sign, return the earliest opening time\n    later than or equal to current time.\n    Otherwise the latest opening time earlier than or equal to current\n    time.\n\n    Opening time always locates on BusinessDay.\n    However, closing time may not if business hour extends over midnight.\n\n    Parameters\n    ----------\n    other : datetime\n        Current time.\n    sign : int, default 1.\n        Either 1 or -1. Going forward in time if it has the same sign as\n        self.n. Going backward in time otherwise.\n\n    Returns\n    -------\n    result : datetime\n        Next opening time.\n    \"\"\"\n    earliest_start = self.start[0]\n    latest_start = self.start[-1]\n    if not self.next_bday.is_on_offset(other):\n        other = other + sign * self.next_bday\n        if self.n * sign >= 0:\n            (hour, minute) = (earliest_start.hour, earliest_start.minute)\n        else:\n            (hour, minute) = (latest_start.hour, latest_start.minute)\n    elif self.n * sign >= 0:\n        if latest_start < other.time():\n            other = other + sign * self.next_bday\n            (hour, minute) = (earliest_start.hour, earliest_start.minute)\n        else:\n            for st in self.start:\n                if other.time() <= st:\n                    (hour, minute) = (st.hour, st.minute)\n                    break\n    elif other.time() < earliest_start:\n        other = other + sign * self.next_bday\n        (hour, minute) = (latest_start.hour, latest_start.minute)\n    else:\n        for st in reversed(self.start):\n            if other.time() >= st:\n                (hour, minute) = (st.hour, st.minute)\n                break\n    return datetime(other.year, other.month, other.day, hour, minute)",
                             "def _prev_opening_time(self, other):\n    \"\"\"\n    If n is positive, return the latest opening time earlier than or equal\n    to current time.\n    Otherwise the earliest opening time later than or equal to current\n    time.\n\n    Parameters\n    ----------\n    other : datetime\n        Current time.\n\n    Returns\n    -------\n    result : datetime\n        Previous opening time.\n    \"\"\"\n    return self._next_opening_time(other, sign=-1)",
                             "def _get_business_hours_by_sec(self, start, end):\n    \"\"\"\n    Return business hours in a day by seconds.\n    \"\"\"\n    dtstart = datetime(2014, 4, 1, start.hour, start.minute)\n    day = 1 if start < end else 2\n    until = datetime(2014, 4, day, end.hour, end.minute)\n    return int((until - dtstart).total_seconds())",
                             "@apply_wraps\ndef rollback(self, dt):\n    \"\"\"\n    Roll provided date backward to next offset only if not on offset.\n    \"\"\"\n    if not self.is_on_offset(dt):\n        if self.n >= 0:\n            dt = self._prev_opening_time(dt)\n        else:\n            dt = self._next_opening_time(dt)\n        return self._get_closing_time(dt)\n    return dt",
                             "@apply_wraps\ndef rollforward(self, dt):\n    \"\"\"\n    Roll provided date forward to next offset only if not on offset.\n    \"\"\"\n    if not self.is_on_offset(dt):\n        if self.n >= 0:\n            return self._next_opening_time(dt)\n        else:\n            return self._prev_opening_time(dt)\n    return dt",
-                            "def _get_closing_time(self, dt):\n    \"\"\"\n    Get the closing time of a business hour interval by its opening time.\n\n    Parameters\n    ----------\n    dt : datetime\n        Opening time of a business hour interval.\n\n    Returns\n    -------\n    result : datetime\n        Corresponding closing time.\n    \"\"\"\n    for i, st in enumerate(self.start):\n        if st.hour == dt.hour and st.minute == dt.minute:\n            return dt + timedelta(seconds=self._get_business_hours_by_sec(st, self.end[i]))\n    assert False",
-                            "@apply_wraps\ndef apply(self, other):\n    if isinstance(other, datetime):\n        nanosecond = getattr(other, 'nanosecond', 0)\n        other = datetime(other.year, other.month, other.day, other.hour, other.minute, other.second, other.microsecond)\n        n = self.n\n        if n >= 0:\n            if other.time() in self.end or not self._is_on_offset(other):\n                other = self._next_opening_time(other)\n        else:\n            if other.time() in self.start:\n                other = other - timedelta(seconds=1)\n            if not self._is_on_offset(other):\n                other = self._next_opening_time(other)\n                other = self._get_closing_time(other)\n        businesshours = sum((self._get_business_hours_by_sec(st, en) for st, en in zip(self.start, self.end)))\n        bd, r = divmod(abs(n * 60), businesshours // 60)\n        if n < 0:\n            bd, r = (-bd, -r)\n        if bd != 0:\n            skip_bd = BusinessDay(n=bd)\n            if not self.next_bday.is_on_offset(other):\n                prev_open = self._prev_opening_time(other)\n                remain = other - prev_open\n                other = prev_open + skip_bd + remain\n            else:\n                other = other + skip_bd\n        bhour_remain = timedelta(minutes=r)\n        if n >= 0:\n            while bhour_remain != timedelta(0):\n                bhour = self._get_closing_time(self._prev_opening_time(other)) - other\n                if bhour_remain < bhour:\n                    other += bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    bhour_remain -= bhour\n                    other = self._next_opening_time(other + bhour)\n        else:\n            while bhour_remain != timedelta(0):\n                bhour = self._next_opening_time(other) - other\n                if bhour_remain > bhour or (bhour_remain == bhour and nanosecond != 0):\n                    other += bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    bhour_remain -= bhour\n                    other = self._get_closing_time(self._next_opening_time(other + bhour - timedelta(seconds=1)))\n        return other\n    else:\n        raise ApplyTypeError('Only know how to combine business hour with datetime')",
+                            "def _get_closing_time(self, dt):\n    \"\"\"\n    Get the closing time of a business hour interval by its opening time.\n\n    Parameters\n    ----------\n    dt : datetime\n        Opening time of a business hour interval.\n\n    Returns\n    -------\n    result : datetime\n        Corresponding closing time.\n    \"\"\"\n    for (i, st) in enumerate(self.start):\n        if st.hour == dt.hour and st.minute == dt.minute:\n            return dt + timedelta(seconds=self._get_business_hours_by_sec(st, self.end[i]))\n    assert False",
+                            "@apply_wraps\ndef apply(self, other):\n    if isinstance(other, datetime):\n        nanosecond = getattr(other, 'nanosecond', 0)\n        other = datetime(other.year, other.month, other.day, other.hour, other.minute, other.second, other.microsecond)\n        n = self.n\n        if n >= 0:\n            if other.time() in self.end or not self._is_on_offset(other):\n                other = self._next_opening_time(other)\n        else:\n            if other.time() in self.start:\n                other = other - timedelta(seconds=1)\n            if not self._is_on_offset(other):\n                other = self._next_opening_time(other)\n                other = self._get_closing_time(other)\n        businesshours = sum((self._get_business_hours_by_sec(st, en) for (st, en) in zip(self.start, self.end)))\n        (bd, r) = divmod(abs(n * 60), businesshours // 60)\n        if n < 0:\n            (bd, r) = (-bd, -r)\n        if bd != 0:\n            skip_bd = BusinessDay(n=bd)\n            if not self.next_bday.is_on_offset(other):\n                prev_open = self._prev_opening_time(other)\n                remain = other - prev_open\n                other = prev_open + skip_bd + remain\n            else:\n                other = other + skip_bd\n        bhour_remain = timedelta(minutes=r)\n        if n >= 0:\n            while bhour_remain != timedelta(0):\n                bhour = self._get_closing_time(self._prev_opening_time(other)) - other\n                if bhour_remain < bhour:\n                    other += bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    bhour_remain -= bhour\n                    other = self._next_opening_time(other + bhour)\n        else:\n            while bhour_remain != timedelta(0):\n                bhour = self._next_opening_time(other) - other\n                if bhour_remain > bhour or (bhour_remain == bhour and nanosecond != 0):\n                    other += bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    bhour_remain -= bhour\n                    other = self._get_closing_time(self._next_opening_time(other + bhour - timedelta(seconds=1)))\n        return other\n    else:\n        raise ApplyTypeError('Only know how to combine business hour with datetime')",
                             "def is_on_offset(self, dt):\n    if self.normalize and (not _is_normalized(dt)):\n        return False\n    if dt.tzinfo is not None:\n        dt = datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)\n    return self._is_on_offset(dt)",
-                            "def _is_on_offset(self, dt):\n    \"\"\"\n    Slight speedups using calculated values.\n    \"\"\"\n    if self.n >= 0:\n        op = self._prev_opening_time(dt)\n    else:\n        op = self._next_opening_time(dt)\n    span = (dt - op).total_seconds()\n    businesshours = 0\n    for i, st in enumerate(self.start):\n        if op.hour == st.hour and op.minute == st.minute:\n            businesshours = self._get_business_hours_by_sec(st, self.end[i])\n    if span <= businesshours:\n        return True\n    else:\n        return False",
-                            "def _repr_attrs(self):\n    out = super()._repr_attrs()\n    hours = ','.join((f\"{st.strftime('%H:%M')}-{en.strftime('%H:%M')}\" for st, en in zip(self.start, self.end)))\n    attrs = [f'{self._prefix}={hours}']\n    out += ': ' + ', '.join(attrs)\n    return out"
+                            "def _is_on_offset(self, dt):\n    \"\"\"\n    Slight speedups using calculated values.\n    \"\"\"\n    if self.n >= 0:\n        op = self._prev_opening_time(dt)\n    else:\n        op = self._next_opening_time(dt)\n    span = (dt - op).total_seconds()\n    businesshours = 0\n    for (i, st) in enumerate(self.start):\n        if op.hour == st.hour and op.minute == st.minute:\n            businesshours = self._get_business_hours_by_sec(st, self.end[i])\n    if span <= businesshours:\n        return True\n    else:\n        return False",
+                            "def _repr_attrs(self):\n    out = super()._repr_attrs()\n    hours = ','.join((f\"{st.strftime('%H:%M')}-{en.strftime('%H:%M')}\" for (st, en) in zip(self.start, self.end)))\n    attrs = [f'{self._prefix}={hours}']\n    out += ': ' + ', '.join(attrs)\n    return out"
                         ],
-                        "constructor_variables": [
-                            "start",
-                            "end",
-                            "num_openings",
-                            "total_secs",
-                            "index"
-                        ],
+                        "constructor_variables": [],
                         "class_level_variables": [],
                         "class_decorators": [],
                         "function_signatures": [
@@ -494,8 +488,20 @@
                             "is_on_offset(self, dt)",
                             "_is_on_offset(self, dt)",
                             "_repr_attrs(self)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "total_secs",
+                            "start",
+                            "index",
+                            "end",
+                            "num_openings"
                         ]
                     },
+                    "used_imports": [
+                        "from datetime import date, datetime, timedelta",
+                        "from pandas._libs.tslibs.offsets import ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64, apply_index_wraps, as_datetime, roll_yearday, shift_month"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -565,7 +571,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -752,7 +758,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b1150>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5d630>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -941,7 +947,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1128,7 +1134,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b1930>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5de10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1317,7 +1323,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1504,7 +1510,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b91b0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dc690>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1693,7 +1699,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1880,7 +1886,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b9a80>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dcf60>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2069,7 +2075,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2256,7 +2262,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b1ab0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dc990>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2445,7 +2451,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2632,7 +2638,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x116852510>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5dd20>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2821,7 +2827,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3008,7 +3014,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b9840>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5d8d0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3197,7 +3203,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3384,7 +3390,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b9ed0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e63f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3573,7 +3579,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3760,7 +3766,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169ba720>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e6c00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3949,7 +3955,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -4136,7 +4142,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169bafc0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e9510>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -4325,7 +4331,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a56c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca640>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -4512,7 +4518,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b2840>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e9d20>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -4701,7 +4707,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -4888,7 +4894,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d1150>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1630>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5077,7 +5083,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5264,7 +5270,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d1960>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1e40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5453,7 +5459,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a56c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca640>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5640,7 +5646,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d0270>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7ee750>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -5829,7 +5835,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6016,7 +6022,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d0a80>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7eef60>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6205,7 +6211,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6392,7 +6398,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d1630>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7ee300>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6581,7 +6587,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a56c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca640>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6768,7 +6774,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b2d20>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1fc0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6957,7 +6963,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7144,7 +7150,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b26f0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1210>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7333,7 +7339,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7520,7 +7526,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169badb0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e9a20>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7709,7 +7715,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7896,7 +7902,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169ba450>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e9150>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -8085,7 +8091,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -8272,7 +8278,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b90f0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e67b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -8461,7 +8467,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -8648,7 +8654,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b99c0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e62d0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -8837,7 +8843,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9024,7 +9030,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b1420>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5dbd0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9213,7 +9219,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9400,7 +9406,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b1bd0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dc540>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9589,7 +9595,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a54c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca440>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9776,7 +9782,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d0480>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dccf0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9965,7 +9971,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10152,7 +10158,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169f9150>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7fa630>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10341,7 +10347,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a55c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca540>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10528,7 +10534,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b99c0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e6570>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10717,7 +10723,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a55c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca540>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -10904,7 +10910,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b9e40>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e6e70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11093,7 +11099,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11280,7 +11286,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b2120>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1660>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11469,7 +11475,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11656,7 +11662,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b2990>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7ee930>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -11845,7 +11851,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -12032,7 +12038,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d1810>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7ee6f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -12221,7 +12227,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -12408,7 +12414,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d1f00>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5df30>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -12597,7 +12603,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -12784,7 +12790,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169ba4e0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5d3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -12973,7 +12979,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -13160,7 +13166,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b1420>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dca50>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -13349,7 +13355,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -13536,7 +13542,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b10c0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dcea0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -13725,7 +13731,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -13912,7 +13918,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169fe300>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7fa7e0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -14101,7 +14107,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -14288,7 +14294,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169feb10>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7b6030>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -14477,7 +14483,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -14664,7 +14670,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b1c60>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7faa50>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -14853,7 +14859,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -15040,7 +15046,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d1f00>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7fa0f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -15229,7 +15235,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -15416,7 +15422,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169d1c00>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7dc300>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -15605,7 +15611,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -15792,7 +15798,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b25d0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7eedb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -15981,7 +15987,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -16168,7 +16174,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b2a80>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7ee450>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -16357,7 +16363,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5540>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca4c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -16544,7 +16550,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b9570>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1de0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -16733,7 +16739,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -16920,7 +16926,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b9180>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1810>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -17109,7 +17115,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -17296,7 +17302,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169baf60>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e6c30>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -17485,7 +17491,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -17672,7 +17678,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169bae40>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e62a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -17861,7 +17867,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -18048,7 +18054,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169fea50>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b82a5d9c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -18237,7 +18243,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -18424,7 +18430,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169e01e0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7b66c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -18613,7 +18619,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -18800,7 +18806,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169ba330>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7e6510>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -18989,7 +18995,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -19176,7 +19182,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x11696ba80>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f12a0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -19365,7 +19371,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5440>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -19552,7 +19558,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b9c90>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7f1c90>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -19741,7 +19747,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1169a5640>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f8b7e7ca5c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -19928,7 +19934,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1169b23c0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f8b7e7eeae0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -20119,7 +20125,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x117832840>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f61ec7c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -20209,7 +20215,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -20331,7 +20337,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x117832940>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f61ec940>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -20421,7 +20427,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -20545,7 +20551,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x117832840>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f61ec7c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -20635,7 +20641,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -20757,7 +20763,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x11752ec30>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f31f61dd6c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -20847,7 +20853,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -20971,7 +20977,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1178bd8c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f5703840>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -21061,7 +21067,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -21183,7 +21189,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x11760bc90>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f31f5b49150>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -21273,7 +21279,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -21397,7 +21403,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1178bd840>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f57037c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -21487,7 +21493,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -21609,7 +21615,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x1176173c0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f31f5b49db0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -21699,7 +21705,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -21823,7 +21829,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1178bd7c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f57038c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -21913,7 +21919,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -22035,7 +22041,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1175e9ec0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f61ecd40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -22125,7 +22131,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -22249,7 +22255,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1178bd7c0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f57038c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -22339,7 +22345,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -22461,7 +22467,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x117703480>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f31f6187150>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -22551,7 +22557,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -22675,7 +22681,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x1175e9ec0>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f64fea40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -22765,7 +22771,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -22887,7 +22893,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x117709cf0>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f31f6187b10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -22977,7 +22983,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -23101,7 +23107,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of Timestamp object at 0x117832740>",
+                                    "variable_value": "<built-in method time of Timestamp object at 0x7f31f61ecf40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -23191,7 +23197,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -23313,7 +23319,7 @@
                                     "variable_shape": null
                                 },
                                 "other.time": {
-                                    "variable_value": "<built-in method time of datetime.datetime object at 0x11763e420>",
+                                    "variable_value": "<built-in method time of datetime.datetime object at 0x7f31f5ba0a80>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -23403,7 +23409,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self.calendar": {
-                                    "variable_value": "<numpy.busdaycalendar object at 0x117621840>",
+                                    "variable_value": "<numpy.busdaycalendar object at 0x7f31f61ddb70>",
                                     "variable_type": "busdaycalendar",
                                     "variable_shape": null
                                 },
@@ -31834,7 +31840,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_96/pandas/tests/indexes/datetimes/test_date_range.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_96/pandas/tests/indexes/datetimes/test_date_range.py",
                 "test_function": "test_date_range_with_custom_holidays",
                 "test_function_code": "def test_date_range_with_custom_holidays():\n    # GH 30593\n    freq = pd.offsets.CustomBusinessHour(start=\"15:00\", holidays=[\"2020-11-26\"])\n    result = pd.date_range(start=\"2020-11-25 15:00\", periods=4, freq=freq)\n    expected = pd.DatetimeIndex(\n        [\n            \"2020-11-25 15:00:00\",\n            \"2020-11-25 16:00:00\",\n            \"2020-11-27 15:00:00\",\n            \"2020-11-27 16:00:00\",\n        ],\n        freq=freq,\n    )\n    tm.assert_index_equal(result, expected)",
                 "test_error": "ValueError: Inferred frequency None from passed values does not conform to passed frequency CBH",

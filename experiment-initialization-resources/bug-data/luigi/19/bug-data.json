@@ -1,6 +1,6 @@
 {
     "luigi:19": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_19/luigi/scheduler.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_19/luigi/scheduler.py": {
             "buggy_functions": [
                 {
                     "function_name": "set_status",
@@ -245,9 +245,9 @@
                         "functions": [
                             "def __init__(self, state_path):\n    self._state_path = state_path\n    self._tasks = {}\n    self._status_tasks = collections.defaultdict(dict)\n    self._active_workers = {}",
                             "def get_state(self):\n    return (self._tasks, self._active_workers)",
-                            "def set_state(self, state):\n    self._tasks, self._active_workers = state",
+                            "def set_state(self, state):\n    (self._tasks, self._active_workers) = state",
                             "def dump(self):\n    try:\n        with open(self._state_path, 'wb') as fobj:\n            pickle.dump(self.get_state(), fobj)\n    except IOError:\n        logger.warning('Failed saving scheduler state', exc_info=1)\n    else:\n        logger.info('Saved state in %s', self._state_path)",
-                            "def load(self):\n    if os.path.exists(self._state_path):\n        logger.info('Attempting to load state from %s', self._state_path)\n        try:\n            with open(self._state_path, 'rb') as fobj:\n                state = pickle.load(fobj)\n        except BaseException:\n            logger.exception('Error when loading state. Starting from clean slate.')\n            return\n        self.set_state(state)\n        self._status_tasks = collections.defaultdict(dict)\n        for task in six.itervalues(self._tasks):\n            self._status_tasks[task.status][task.id] = task\n        for k, v in six.iteritems(self._active_workers):\n            if isinstance(v, float):\n                self._active_workers[k] = Worker(worker_id=k, last_active=v)\n        if any((not hasattr(w, 'tasks') for k, w in six.iteritems(self._active_workers))):\n            for k, worker in six.iteritems(self._active_workers):\n                worker.tasks = set()\n            for task in six.itervalues(self._tasks):\n                for worker_id in task.workers:\n                    self._active_workers[worker_id].tasks.add(task)\n        if any((not hasattr(t, 'disable_hard_timeout') for t in six.itervalues(self._tasks))):\n            for t in six.itervalues(self._tasks):\n                t.disable_hard_timeout = None\n    else:\n        logger.info('No prior state file exists at %s. Starting with clean slate', self._state_path)",
+                            "def load(self):\n    if os.path.exists(self._state_path):\n        logger.info('Attempting to load state from %s', self._state_path)\n        try:\n            with open(self._state_path, 'rb') as fobj:\n                state = pickle.load(fobj)\n        except BaseException:\n            logger.exception('Error when loading state. Starting from clean slate.')\n            return\n        self.set_state(state)\n        self._status_tasks = collections.defaultdict(dict)\n        for task in six.itervalues(self._tasks):\n            self._status_tasks[task.status][task.id] = task\n        for (k, v) in six.iteritems(self._active_workers):\n            if isinstance(v, float):\n                self._active_workers[k] = Worker(worker_id=k, last_active=v)\n        if any((not hasattr(w, 'tasks') for (k, w) in six.iteritems(self._active_workers))):\n            for (k, worker) in six.iteritems(self._active_workers):\n                worker.tasks = set()\n            for task in six.itervalues(self._tasks):\n                for worker_id in task.workers:\n                    self._active_workers[worker_id].tasks.add(task)\n        if any((not hasattr(t, 'disable_hard_timeout') for t in six.itervalues(self._tasks))):\n            for t in six.itervalues(self._tasks):\n                t.disable_hard_timeout = None\n    else:\n        logger.info('No prior state file exists at %s. Starting with clean slate', self._state_path)",
                             "def get_active_tasks(self, status=None):\n    if status:\n        for task in six.itervalues(self._status_tasks[status]):\n            yield task\n    else:\n        for task in six.itervalues(self._tasks):\n            yield task",
                             "def get_running_tasks(self):\n    return six.itervalues(self._status_tasks[RUNNING])",
                             "def get_pending_tasks(self):\n    return itertools.chain.from_iterable((six.itervalues(self._status_tasks[status]) for status in [PENDING, RUNNING]))",
@@ -267,10 +267,10 @@
                             "def get_necessary_tasks(self):\n    necessary_tasks = set()\n    for task in self.get_active_tasks():\n        if task.status not in (DONE, DISABLED) or getattr(task, 'scheduler_disable_time', None) is not None:\n            necessary_tasks.update(task.deps)\n            necessary_tasks.add(task.id)\n    return necessary_tasks"
                         ],
                         "constructor_variables": [
-                            "_active_workers",
-                            "_status_tasks",
-                            "_state_path",
-                            "_tasks"
+                            "self._state_path = state_path",
+                            "self._tasks = {}",
+                            "self._status_tasks = collections.defaultdict(dict)",
+                            "self._active_workers = {}"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -297,8 +297,20 @@
                             "get_worker(self, worker_id)",
                             "inactivate_workers(self, delete_workers)",
                             "get_necessary_tasks(self)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "_status_tasks",
+                            "_state_path",
+                            "_tasks",
+                            "_active_workers"
                         ]
                     },
+                    "used_imports": [
+                        "import time",
+                        "from luigi import notifications",
+                        "from luigi.task_status import DISABLED, DONE, FAILED, PENDING, RUNNING, SUSPENDED, UNKNOWN"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -328,7 +340,7 @@
                                     "variable_shape": "7"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -343,12 +355,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x103b72820>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x103b72820>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -358,17 +370,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -418,7 +430,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "1"
                                 }
@@ -450,7 +462,7 @@
                                     "variable_shape": "8"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -465,12 +477,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x103b72820>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x103b72820>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -480,17 +492,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -540,7 +552,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "2"
                                 }
@@ -574,7 +586,7 @@
                                     "variable_shape": "8"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -589,12 +601,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x103b72820>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x103b72820>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -604,17 +616,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -664,7 +676,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "2"
                                 }
@@ -696,7 +708,7 @@
                                     "variable_shape": "8"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -711,12 +723,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x103b72820>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x103b72820>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f35d9982700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -726,17 +738,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -786,7 +798,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x103b72be0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f35d9982ac0>, 'tracking_url': None, 'scheduler_disable_time': 101, 'runnable': True})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "2"
                                 }
@@ -822,7 +834,7 @@
                                     "variable_shape": "7"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -837,12 +849,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f037783f700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f037783f700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -852,17 +864,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -912,7 +924,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'PENDING', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': False})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "1"
                                 }
@@ -944,7 +956,7 @@
                                     "variable_shape": "8"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -959,12 +971,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f037783f700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f037783f700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -974,17 +986,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1034,7 +1046,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': None, 'remove': None, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': 0, 'runnable': False})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "2"
                                 }
@@ -1068,7 +1080,7 @@
                                     "variable_shape": "8"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -1083,12 +1095,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f037783f700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f037783f700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1098,17 +1110,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1158,7 +1170,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'DISABLED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "2"
                                 }
@@ -1190,7 +1202,7 @@
                                     "variable_shape": "6"
                                 },
                                 "task": {
-                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
+                                    "variable_value": "Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})",
                                     "variable_type": "Task",
                                     "variable_shape": null
                                 },
@@ -1205,12 +1217,12 @@
                                     "variable_shape": null
                                 },
                                 "self.re_enable": {
-                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>>",
+                                    "variable_value": "<bound method SimpleTaskState.re_enable of <luigi.scheduler.SimpleTaskState object at 0x7f037783f700>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x10afaa8e0>",
+                                    "variable_value": "<luigi.scheduler.SimpleTaskState object at 0x7f037783f700>",
                                     "variable_type": "SimpleTaskState",
                                     "variable_shape": null
                                 },
@@ -1220,17 +1232,17 @@
                                     "variable_shape": null
                                 },
                                 "task.can_disable": {
-                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.can_disable of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.add_failure": {
-                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.add_failure of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "task.has_excessive_failures": {
-                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
+                                    "variable_value": "<bound method Task.has_excessive_failures of Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1280,7 +1292,7 @@
                                     "variable_shape": null
                                 },
                                 "self._status_tasks": {
-                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {}, 'FAILED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x10afaa970>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})}})",
+                                    "variable_value": "defaultdict(<class 'dict'>, {'PENDING': {}, 'DISABLED': {}, 'FAILED': {'A': Task({'id': 'A', 'stakeholders': set(), 'workers': set(), 'deps': set(), 'status': 'FAILED', 'time': 0, 'retry': 900.0, 'remove': 701.0, 'worker_running': None, 'time_running': None, 'expl': None, 'priority': 0, 'resources': {}, 'family': '', 'module': None, 'params': {}, 'disable_failures': 1, 'disable_hard_timeout': None, 'failures': <luigi.scheduler.Failures object at 0x7f037783fac0>, 'tracking_url': None, 'scheduler_disable_time': None, 'runnable': True})}})",
                                     "variable_type": "defaultdict",
                                     "variable_shape": "3"
                                 }
@@ -6401,7 +6413,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_19/test/central_planner_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_19/test/central_planner_test.py",
                 "test_function": "test_automatic_re_enable_with_one_failure_allowed",
                 "test_function_code": "    def test_automatic_re_enable_with_one_failure_allowed(self):\n        self.sch = CentralPlannerScheduler(disable_failures=1, disable_persist=100)\n        self.setTime(0)\n        self.sch.add_task(worker=WORKER, task_id='A', status=FAILED)\n\n        # should be disabled now\n        self.assertEqual(DISABLED, self.sch.task_list('', '')['A']['status'])\n\n        # re-enables after 100 seconds\n        self.setTime(101)\n        self.assertEqual(FAILED, self.sch.task_list('', '')['A']['status'])",
                 "test_error": "AssertionError: 'FAILED' != 'DISABLED' - FAILED + DISABLED",

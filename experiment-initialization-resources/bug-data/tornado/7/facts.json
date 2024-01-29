@@ -4,8 +4,6 @@
     "1.2.1": "class IOLoop(Configurable)",
     "1.2.2": "A level-triggered I/O loop.\n\nWe use ``epoll`` (Linux) or ``kqueue`` (BSD and Mac OS X) if they\nare available, or else we fall back on select(). If you are\nimplementing a system that needs to handle thousands of\nsimultaneous connections, you should use a system that supports\neither ``epoll`` or ``kqueue``.\n\nExample usage for a simple TCP server:\n\n.. testcode::\n\n    import errno\n    import functools\n    import tornado.ioloop\n    import socket\n\n    def connection_ready(sock, fd, events):\n        while True:\n            try:\n                connection, address = sock.accept()\n            except socket.error as e:\n                if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):\n                    raise\n                return\n            connection.setblocking(0)\n            handle_connection(connection, address)\n\n    if __name__ == '__main__':\n        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)\n        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n        sock.setblocking(0)\n        sock.bind((\"\", port))\n        sock.listen(128)\n\n        io_loop = tornado.ioloop.IOLoop.current()\n        callback = functools.partial(connection_ready, sock)\n        io_loop.add_handler(sock.fileno(), callback, io_loop.READ)\n        io_loop.start()\n\n.. testoutput::\n   :hide:\n\nBy default, a newly-constructed `IOLoop` becomes the thread's current\n`IOLoop`, unless there already is a current `IOLoop`. This behavior\ncan be controlled with the ``make_current`` argument to the `IOLoop`\nconstructor: if ``make_current=True``, the new `IOLoop` will always\ntry to become current and it raises an error if there is already a\ncurrent instance. If ``make_current=False``, the new `IOLoop` will\nnot try to become current.\n\nIn general, an `IOLoop` cannot survive a fork or be shared across\nprocesses in any way. When multiple processes are being used, each\nprocess should create its own `IOLoop`, which also implies that\nany objects which depend on the `IOLoop` (such as\n`.AsyncHTTPClient`) must also be created in the child processes.\nAs a guideline, anything that starts processes (including the\n`tornado.process` and `multiprocessing` modules) should do so as\nearly as possible, ideally the first thing the application does\nafter loading its configuration in ``main()``.\n\n.. versionchanged:: 4.2\n   Added the ``make_current`` keyword argument to the `IOLoop`\n   constructor.",
     "1.2.3": null,
-    "1.2.4": null,
-    "1.2.5": null,
     "1.3.1": "tornado/ioloop.py",
     "1.3.2": null,
     "1.4.1": [
@@ -21,7 +19,7 @@
     ],
     "2.1.2": [
         [
-            "self = <tornado.test.ioloop_test.TestIOLoopFutures testMethod=test_run_in_executor_native>\n\n    @skipBefore35\n    @gen_test\n    def test_run_in_executor_native(self):\n        event1 = threading.Event()\n        event2 = threading.Event()\n    \n        def sync_func(self_event, other_event):\n            self_event.set()\n            other_event.wait()\n            return self_event\n    \n        # Go through an async wrapper to ensure that the result of\n        # run_in_executor works with await and not just gen.coroutine\n        # (simply passing the underlying concurrrent future would do that).\n        namespace = exec_test(globals(), locals(), \"\"\"\n            async def async_wrapper(self_event, other_event):\n                return await IOLoop.current().run_in_executor(\n                    None, sync_func, self_event, other_event)\n        \"\"\")\n    \n        res = yield [\n            namespace[\"async_wrapper\"](event1, event2),\n>           namespace[\"async_wrapper\"](event2, event1)\n            ]\n\ntornado/test/ioloop_test.py:646: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/gen.py:1049: in run\n    value = future.result()\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:823: in callback\n    result_list.append(f.result())\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:303: in wrapper\n    yielded = next(result)\n<string>:6: in _wrap_awaitable\n    ???\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself_event = <threading.Event object at 0x10510c190>\nother_event = <threading.Event object at 0x10510c1d0>\n\n>   ???",
+            "self = <tornado.test.ioloop_test.TestIOLoopFutures testMethod=test_run_in_executor_native>\n\n    @skipBefore35\n    @gen_test\n    def test_run_in_executor_native(self):\n        event1 = threading.Event()\n        event2 = threading.Event()\n    \n        def sync_func(self_event, other_event):\n            self_event.set()\n            other_event.wait()\n            return self_event\n    \n        # Go through an async wrapper to ensure that the result of\n        # run_in_executor works with await and not just gen.coroutine\n        # (simply passing the underlying concurrrent future would do that).\n        namespace = exec_test(globals(), locals(), \"\"\"\n            async def async_wrapper(self_event, other_event):\n                return await IOLoop.current().run_in_executor(\n                    None, sync_func, self_event, other_event)\n        \"\"\")\n    \n        res = yield [\n            namespace[\"async_wrapper\"](event1, event2),\n>           namespace[\"async_wrapper\"](event2, event1)\n            ]\n\ntornado/test/ioloop_test.py:646: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/gen.py:1049: in run\n    value = future.result()\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:823: in callback\n    result_list.append(f.result())\ntornado/concurrent.py:238: in result\n    raise_exc_info(self._exc_info)\n<string>:4: in raise_exc_info\n    ???\ntornado/gen.py:303: in wrapper\n    yielded = next(result)\n<string>:6: in _wrap_awaitable\n    ???\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself_event = <threading.Event object at 0x7fb980cadf10>\nother_event = <threading.Event object at 0x7fb980cadf50>\n\n>   ???",
             "\n<string>:4: TypeError"
         ]
     ],
@@ -29,7 +27,7 @@
         [
             {
                 "args": {
-                    "value": "(<threading.Event object at 0x1024c7a90>, <threading.Event object at 0x103f71b10>)",
+                    "value": "(<threading.Event object at 0x7ff803142310>, <threading.Event object at 0x7ff803142390>)",
                     "shape": "2",
                     "omitted": false
                 }
@@ -39,7 +37,7 @@
         [
             {
                 "args": {
-                    "value": "(<threading.Event object at 0x103f71b10>, <threading.Event object at 0x1024c7a90>)",
+                    "value": "(<threading.Event object at 0x7ff803142390>, <threading.Event object at 0x7ff803142310>)",
                     "shape": "2",
                     "omitted": false
                 }
@@ -65,14 +63,14 @@
         [
             {
                 "args": {
-                    "value": "(<threading.Event object at 0x108613510>, <threading.Event object at 0x1083a9d10>)",
+                    "value": "(<threading.Event object at 0x7fb3fd289050>, <threading.Event object at 0x7fb3fd835810>)",
                     "shape": "2",
                     "omitted": false
                 }
             },
             {
                 "c_future": {
-                    "value": "<Future at 0x10862f350 state=running>",
+                    "value": "<Future at 0x7fb3fd289e10 state=running>",
                     "shape": null,
                     "omitted": false
                 }
@@ -81,14 +79,14 @@
         [
             {
                 "args": {
-                    "value": "(<threading.Event object at 0x1083a9d10>, <threading.Event object at 0x108613510>)",
+                    "value": "(<threading.Event object at 0x7fb3fd835810>, <threading.Event object at 0x7fb3fd289050>)",
                     "shape": "2",
                     "omitted": false
                 }
             },
             {
                 "c_future": {
-                    "value": "<Future at 0x108637ad0 state=finished returned Event>",
+                    "value": "<Future at 0x7fb3fd2965d0 state=finished returned Event>",
                     "shape": null,
                     "omitted": false
                 }
@@ -114,5 +112,6 @@
         ]
     ],
     "3.1.1": null,
-    "3.1.2": null
+    "3.1.2": null,
+    "used_imports": "from concurrent.futures import ThreadPoolExecutor\nfrom tornado.process import cpu_count"
 }

@@ -1,6 +1,6 @@
 {
     "matplotlib:7": {
-        "/Volumes/SSD2T/bgp_envs/repos/matplotlib_7/lib/matplotlib/colors.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/matplotlib_7/lib/matplotlib/colors.py": {
             "buggy_functions": [
                 {
                     "function_name": "shade_rgb",
@@ -216,21 +216,21 @@
                         "functions": [
                             "def __init__(self, azdeg=315, altdeg=45, hsv_min_val=0, hsv_max_val=1, hsv_min_sat=1, hsv_max_sat=0):\n    \"\"\"\n    Specify the azimuth (measured clockwise from south) and altitude\n    (measured up from the plane of the surface) of the light source\n    in degrees.\n\n    Parameters\n    ----------\n    azdeg : float, default: 315 degrees (from the northwest)\n        The azimuth (0-360, degrees clockwise from North) of the light\n        source.\n    altdeg : float, default: 45 degrees\n        The altitude (0-90, degrees up from horizontal) of the light\n        source.\n\n    Notes\n    -----\n    For backwards compatibility, the parameters *hsv_min_val*,\n    *hsv_max_val*, *hsv_min_sat*, and *hsv_max_sat* may be supplied at\n    initialization as well.  However, these parameters will only be used if\n    \"blend_mode='hsv'\" is passed into `shade` or `shade_rgb`.\n    See the documentation for `blend_hsv` for more details.\n    \"\"\"\n    self.azdeg = azdeg\n    self.altdeg = altdeg\n    self.hsv_min_val = hsv_min_val\n    self.hsv_max_val = hsv_max_val\n    self.hsv_min_sat = hsv_min_sat\n    self.hsv_max_sat = hsv_max_sat",
                             "@property\ndef direction(self):\n    \"\"\"The unit vector direction towards the light source.\"\"\"\n    az = np.radians(90 - self.azdeg)\n    alt = np.radians(self.altdeg)\n    return np.array([np.cos(az) * np.cos(alt), np.sin(az) * np.cos(alt), np.sin(alt)])",
-                            "def hillshade(self, elevation, vert_exag=1, dx=1, dy=1, fraction=1.0):\n    \"\"\"\n    Calculate the illumination intensity for a surface using the defined\n    azimuth and elevation for the light source.\n\n    This computes the normal vectors for the surface, and then passes them\n    on to `shade_normals`\n\n    Parameters\n    ----------\n    elevation : array-like\n        A 2d array (or equivalent) of the height values used to generate an\n        illumination map\n    vert_exag : number, optional\n        The amount to exaggerate the elevation values by when calculating\n        illumination. This can be used either to correct for differences in\n        units between the x-y coordinate system and the elevation\n        coordinate system (e.g. decimal degrees vs. meters) or to\n        exaggerate or de-emphasize topographic effects.\n    dx : number, optional\n        The x-spacing (columns) of the input *elevation* grid.\n    dy : number, optional\n        The y-spacing (rows) of the input *elevation* grid.\n    fraction : number, optional\n        Increases or decreases the contrast of the hillshade.  Values\n        greater than one will cause intermediate values to move closer to\n        full illumination or shadow (and clipping any values that move\n        beyond 0 or 1). Note that this is not visually or mathematically\n        the same as vertical exaggeration.\n\n    Returns\n    -------\n    ndarray\n        A 2d array of illumination values between 0-1, where 0 is\n        completely in shadow and 1 is completely illuminated.\n    \"\"\"\n    dy = -dy\n    e_dy, e_dx = np.gradient(vert_exag * elevation, dy, dx)\n    normal = np.empty(elevation.shape + (3,)).view(type(elevation))\n    normal[..., 0] = -e_dx\n    normal[..., 1] = -e_dy\n    normal[..., 2] = 1\n    normal /= _vector_magnitude(normal)\n    return self.shade_normals(normal, fraction)",
-                            "def shade_normals(self, normals, fraction=1.0):\n    \"\"\"\n    Calculate the illumination intensity for the normal vectors of a\n    surface using the defined azimuth and elevation for the light source.\n\n    Imagine an artificial sun placed at infinity in some azimuth and\n    elevation position illuminating our surface. The parts of the surface\n    that slope toward the sun should brighten while those sides facing away\n    should become darker.\n\n    Parameters\n    ----------\n    fraction : number, optional\n        Increases or decreases the contrast of the hillshade.  Values\n        greater than one will cause intermediate values to move closer to\n        full illumination or shadow (and clipping any values that move\n        beyond 0 or 1). Note that this is not visually or mathematically\n        the same as vertical exaggeration.\n\n    Returns\n    -------\n    ndarray\n        A 2d array of illumination values between 0-1, where 0 is\n        completely in shadow and 1 is completely illuminated.\n    \"\"\"\n    intensity = normals.dot(self.direction)\n    imin, imax = (intensity.min(), intensity.max())\n    intensity *= fraction\n    if imax - imin > 1e-06:\n        intensity -= imin\n        intensity /= imax - imin\n    intensity = np.clip(intensity, 0, 1)\n    return intensity",
+                            "def hillshade(self, elevation, vert_exag=1, dx=1, dy=1, fraction=1.0):\n    \"\"\"\n    Calculate the illumination intensity for a surface using the defined\n    azimuth and elevation for the light source.\n\n    This computes the normal vectors for the surface, and then passes them\n    on to `shade_normals`\n\n    Parameters\n    ----------\n    elevation : array-like\n        A 2d array (or equivalent) of the height values used to generate an\n        illumination map\n    vert_exag : number, optional\n        The amount to exaggerate the elevation values by when calculating\n        illumination. This can be used either to correct for differences in\n        units between the x-y coordinate system and the elevation\n        coordinate system (e.g. decimal degrees vs. meters) or to\n        exaggerate or de-emphasize topographic effects.\n    dx : number, optional\n        The x-spacing (columns) of the input *elevation* grid.\n    dy : number, optional\n        The y-spacing (rows) of the input *elevation* grid.\n    fraction : number, optional\n        Increases or decreases the contrast of the hillshade.  Values\n        greater than one will cause intermediate values to move closer to\n        full illumination or shadow (and clipping any values that move\n        beyond 0 or 1). Note that this is not visually or mathematically\n        the same as vertical exaggeration.\n\n    Returns\n    -------\n    ndarray\n        A 2d array of illumination values between 0-1, where 0 is\n        completely in shadow and 1 is completely illuminated.\n    \"\"\"\n    dy = -dy\n    (e_dy, e_dx) = np.gradient(vert_exag * elevation, dy, dx)\n    normal = np.empty(elevation.shape + (3,)).view(type(elevation))\n    normal[..., 0] = -e_dx\n    normal[..., 1] = -e_dy\n    normal[..., 2] = 1\n    normal /= _vector_magnitude(normal)\n    return self.shade_normals(normal, fraction)",
+                            "def shade_normals(self, normals, fraction=1.0):\n    \"\"\"\n    Calculate the illumination intensity for the normal vectors of a\n    surface using the defined azimuth and elevation for the light source.\n\n    Imagine an artificial sun placed at infinity in some azimuth and\n    elevation position illuminating our surface. The parts of the surface\n    that slope toward the sun should brighten while those sides facing away\n    should become darker.\n\n    Parameters\n    ----------\n    fraction : number, optional\n        Increases or decreases the contrast of the hillshade.  Values\n        greater than one will cause intermediate values to move closer to\n        full illumination or shadow (and clipping any values that move\n        beyond 0 or 1). Note that this is not visually or mathematically\n        the same as vertical exaggeration.\n\n    Returns\n    -------\n    ndarray\n        A 2d array of illumination values between 0-1, where 0 is\n        completely in shadow and 1 is completely illuminated.\n    \"\"\"\n    intensity = normals.dot(self.direction)\n    (imin, imax) = (intensity.min(), intensity.max())\n    intensity *= fraction\n    if imax - imin > 1e-06:\n        intensity -= imin\n        intensity /= imax - imin\n    intensity = np.clip(intensity, 0, 1)\n    return intensity",
                             "def shade(self, data, cmap, norm=None, blend_mode='overlay', vmin=None, vmax=None, vert_exag=1, dx=1, dy=1, fraction=1, **kwargs):\n    \"\"\"\n    Combine colormapped data values with an illumination intensity map\n    (a.k.a.  \"hillshade\") of the values.\n\n    Parameters\n    ----------\n    data : array-like\n        A 2d array (or equivalent) of the height values used to generate a\n        shaded map.\n    cmap : `~matplotlib.colors.Colormap`\n        The colormap used to color the *data* array. Note that this must be\n        a `~matplotlib.colors.Colormap` instance.  For example, rather than\n        passing in ``cmap='gist_earth'``, use\n        ``cmap=plt.get_cmap('gist_earth')`` instead.\n    norm : `~matplotlib.colors.Normalize` instance, optional\n        The normalization used to scale values before colormapping. If\n        None, the input will be linearly scaled between its min and max.\n    blend_mode : {'hsv', 'overlay', 'soft'} or callable, optional\n        The type of blending used to combine the colormapped data\n        values with the illumination intensity.  Default is\n        \"overlay\".  Note that for most topographic surfaces,\n        \"overlay\" or \"soft\" appear more visually realistic. If a\n        user-defined function is supplied, it is expected to\n        combine an MxNx3 RGB array of floats (ranging 0 to 1) with\n        an MxNx1 hillshade array (also 0 to 1).  (Call signature\n        ``func(rgb, illum, **kwargs)``) Additional kwargs supplied\n        to this function will be passed on to the *blend_mode*\n        function.\n    vmin : float or None, optional\n        The minimum value used in colormapping *data*. If *None* the\n        minimum value in *data* is used. If *norm* is specified, then this\n        argument will be ignored.\n    vmax : float or None, optional\n        The maximum value used in colormapping *data*. If *None* the\n        maximum value in *data* is used. If *norm* is specified, then this\n        argument will be ignored.\n    vert_exag : number, optional\n        The amount to exaggerate the elevation values by when calculating\n        illumination. This can be used either to correct for differences in\n        units between the x-y coordinate system and the elevation\n        coordinate system (e.g. decimal degrees vs. meters) or to\n        exaggerate or de-emphasize topography.\n    dx : number, optional\n        The x-spacing (columns) of the input *elevation* grid.\n    dy : number, optional\n        The y-spacing (rows) of the input *elevation* grid.\n    fraction : number, optional\n        Increases or decreases the contrast of the hillshade.  Values\n        greater than one will cause intermediate values to move closer to\n        full illumination or shadow (and clipping any values that move\n        beyond 0 or 1). Note that this is not visually or mathematically\n        the same as vertical exaggeration.\n    Additional kwargs are passed on to the *blend_mode* function.\n\n    Returns\n    -------\n    ndarray\n        An MxNx4 array of floats ranging between 0-1.\n    \"\"\"\n    if vmin is None:\n        vmin = data.min()\n    if vmax is None:\n        vmax = data.max()\n    if norm is None:\n        norm = Normalize(vmin=vmin, vmax=vmax)\n    rgb0 = cmap(norm(data))\n    rgb1 = self.shade_rgb(rgb0, elevation=data, blend_mode=blend_mode, vert_exag=vert_exag, dx=dx, dy=dy, fraction=fraction, **kwargs)\n    rgb0[..., :3] = rgb1[..., :3]\n    return rgb0",
                             "def shade_rgb(self, rgb, elevation, fraction=1.0, blend_mode='hsv', vert_exag=1, dx=1, dy=1, **kwargs):\n    \"\"\"\n    Use this light source to adjust the colors of the *rgb* input array to\n    give the impression of a shaded relief map with the given *elevation*.\n\n    Parameters\n    ----------\n    rgb : array-like\n        An (M, N, 3) RGB array, assumed to be in the range of 0 to 1.\n    elevation : array-like\n        An (M, N) array of the height values used to generate a shaded map.\n    fraction : number\n        Increases or decreases the contrast of the hillshade.  Values\n        greater than one will cause intermediate values to move closer to\n        full illumination or shadow (and clipping any values that move\n        beyond 0 or 1). Note that this is not visually or mathematically\n        the same as vertical exaggeration.\n    blend_mode : {'hsv', 'overlay', 'soft'} or callable, optional\n        The type of blending used to combine the colormapped data values\n        with the illumination intensity.  For backwards compatibility, this\n        defaults to \"hsv\". Note that for most topographic surfaces,\n        \"overlay\" or \"soft\" appear more visually realistic. If a\n        user-defined function is supplied, it is expected to combine an\n        MxNx3 RGB array of floats (ranging 0 to 1) with an MxNx1 hillshade\n        array (also 0 to 1).  (Call signature\n        ``func(rgb, illum, **kwargs)``)\n        Additional kwargs supplied to this function will be passed on to\n        the *blend_mode* function.\n    vert_exag : number, optional\n        The amount to exaggerate the elevation values by when calculating\n        illumination. This can be used either to correct for differences in\n        units between the x-y coordinate system and the elevation\n        coordinate system (e.g. decimal degrees vs. meters) or to\n        exaggerate or de-emphasize topography.\n    dx : number, optional\n        The x-spacing (columns) of the input *elevation* grid.\n    dy : number, optional\n        The y-spacing (rows) of the input *elevation* grid.\n    Additional kwargs are passed on to the *blend_mode* function.\n\n    Returns\n    -------\n    ndarray\n        An (m, n, 3) array of floats ranging between 0-1.\n    \"\"\"\n    intensity = self.hillshade(elevation, vert_exag, dx, dy, fraction)\n    intensity = intensity[..., np.newaxis]\n    lookup = {'hsv': self.blend_hsv, 'soft': self.blend_soft_light, 'overlay': self.blend_overlay}\n    if blend_mode in lookup:\n        blend = lookup[blend_mode](rgb, intensity, **kwargs)\n    else:\n        try:\n            blend = blend_mode(rgb, intensity, **kwargs)\n        except TypeError as err:\n            raise ValueError('\"blend_mode\" must be callable or one of {}'.format(lookup.keys)) from err\n    if hasattr(intensity, 'mask'):\n        mask = intensity.mask[..., 0]\n        for i in range(3):\n            blend[..., i][mask] = rgb[..., i][mask]\n    return blend",
-                            "def blend_hsv(self, rgb, intensity, hsv_max_sat=None, hsv_max_val=None, hsv_min_val=None, hsv_min_sat=None):\n    \"\"\"\n    Take the input data array, convert to HSV values in the given colormap,\n    then adjust those color values to give the impression of a shaded\n    relief map with a specified light source.  RGBA values are returned,\n    which can then be used to plot the shaded image with imshow.\n\n    The color of the resulting image will be darkened by moving the (s, v)\n    values (in hsv colorspace) toward (hsv_min_sat, hsv_min_val) in the\n    shaded regions, or lightened by sliding (s, v) toward (hsv_max_sat,\n    hsv_max_val) in regions that are illuminated.  The default extremes are\n    chose so that completely shaded points are nearly black (s = 1, v = 0)\n    and completely illuminated points are nearly white (s = 0, v = 1).\n\n    Parameters\n    ----------\n    rgb : ndarray\n        An MxNx3 RGB array of floats ranging from 0 to 1 (color image).\n    intensity : ndarray\n        An MxNx1 array of floats ranging from 0 to 1 (grayscale image).\n    hsv_max_sat : number, default: 1\n        The maximum saturation value that the *intensity* map can shift the\n        output image to.\n    hsv_min_sat : number, optional\n        The minimum saturation value that the *intensity* map can shift the\n        output image to. Defaults to 0.\n    hsv_max_val : number, optional\n        The maximum value (\"v\" in \"hsv\") that the *intensity* map can shift\n        the output image to. Defaults to 1.\n    hsv_min_val : number, optional\n        The minimum value (\"v\" in \"hsv\") that the *intensity* map can shift\n        the output image to. Defaults to 0.\n\n    Returns\n    -------\n    ndarray\n        An MxNx3 RGB array representing the combined images.\n    \"\"\"\n    if hsv_max_sat is None:\n        hsv_max_sat = self.hsv_max_sat\n    if hsv_max_val is None:\n        hsv_max_val = self.hsv_max_val\n    if hsv_min_sat is None:\n        hsv_min_sat = self.hsv_min_sat\n    if hsv_min_val is None:\n        hsv_min_val = self.hsv_min_val\n    intensity = intensity[..., 0]\n    intensity = 2 * intensity - 1\n    hsv = rgb_to_hsv(rgb[:, :, 0:3])\n    hue, sat, val = np.moveaxis(hsv, -1, 0)\n    np.putmask(sat, (np.abs(sat) > 1e-10) & (intensity > 0), (1 - intensity) * sat + intensity * hsv_max_sat)\n    np.putmask(sat, (np.abs(sat) > 1e-10) & (intensity < 0), (1 + intensity) * sat - intensity * hsv_min_sat)\n    np.putmask(val, intensity > 0, (1 - intensity) * val + intensity * hsv_max_val)\n    np.putmask(val, intensity < 0, (1 + intensity) * val - intensity * hsv_min_val)\n    np.clip(hsv[:, :, 1:], 0, 1, out=hsv[:, :, 1:])\n    return hsv_to_rgb(hsv)",
+                            "def blend_hsv(self, rgb, intensity, hsv_max_sat=None, hsv_max_val=None, hsv_min_val=None, hsv_min_sat=None):\n    \"\"\"\n    Take the input data array, convert to HSV values in the given colormap,\n    then adjust those color values to give the impression of a shaded\n    relief map with a specified light source.  RGBA values are returned,\n    which can then be used to plot the shaded image with imshow.\n\n    The color of the resulting image will be darkened by moving the (s, v)\n    values (in hsv colorspace) toward (hsv_min_sat, hsv_min_val) in the\n    shaded regions, or lightened by sliding (s, v) toward (hsv_max_sat,\n    hsv_max_val) in regions that are illuminated.  The default extremes are\n    chose so that completely shaded points are nearly black (s = 1, v = 0)\n    and completely illuminated points are nearly white (s = 0, v = 1).\n\n    Parameters\n    ----------\n    rgb : ndarray\n        An MxNx3 RGB array of floats ranging from 0 to 1 (color image).\n    intensity : ndarray\n        An MxNx1 array of floats ranging from 0 to 1 (grayscale image).\n    hsv_max_sat : number, default: 1\n        The maximum saturation value that the *intensity* map can shift the\n        output image to.\n    hsv_min_sat : number, optional\n        The minimum saturation value that the *intensity* map can shift the\n        output image to. Defaults to 0.\n    hsv_max_val : number, optional\n        The maximum value (\"v\" in \"hsv\") that the *intensity* map can shift\n        the output image to. Defaults to 1.\n    hsv_min_val : number, optional\n        The minimum value (\"v\" in \"hsv\") that the *intensity* map can shift\n        the output image to. Defaults to 0.\n\n    Returns\n    -------\n    ndarray\n        An MxNx3 RGB array representing the combined images.\n    \"\"\"\n    if hsv_max_sat is None:\n        hsv_max_sat = self.hsv_max_sat\n    if hsv_max_val is None:\n        hsv_max_val = self.hsv_max_val\n    if hsv_min_sat is None:\n        hsv_min_sat = self.hsv_min_sat\n    if hsv_min_val is None:\n        hsv_min_val = self.hsv_min_val\n    intensity = intensity[..., 0]\n    intensity = 2 * intensity - 1\n    hsv = rgb_to_hsv(rgb[:, :, 0:3])\n    (hue, sat, val) = np.moveaxis(hsv, -1, 0)\n    np.putmask(sat, (np.abs(sat) > 1e-10) & (intensity > 0), (1 - intensity) * sat + intensity * hsv_max_sat)\n    np.putmask(sat, (np.abs(sat) > 1e-10) & (intensity < 0), (1 + intensity) * sat - intensity * hsv_min_sat)\n    np.putmask(val, intensity > 0, (1 - intensity) * val + intensity * hsv_max_val)\n    np.putmask(val, intensity < 0, (1 + intensity) * val - intensity * hsv_min_val)\n    np.clip(hsv[:, :, 1:], 0, 1, out=hsv[:, :, 1:])\n    return hsv_to_rgb(hsv)",
                             "def blend_soft_light(self, rgb, intensity):\n    \"\"\"\n    Combine an rgb image with an intensity map using \"soft light\" blending,\n    using the \"pegtop\" formula.\n\n    Parameters\n    ----------\n    rgb : ndarray\n        An MxNx3 RGB array of floats ranging from 0 to 1 (color image).\n    intensity : ndarray\n        An MxNx1 array of floats ranging from 0 to 1 (grayscale image).\n\n    Returns\n    -------\n    ndarray\n        An MxNx3 RGB array representing the combined images.\n    \"\"\"\n    return 2 * intensity * rgb + (1 - 2 * intensity) * rgb ** 2",
                             "def blend_overlay(self, rgb, intensity):\n    \"\"\"\n    Combines an rgb image with an intensity map using \"overlay\" blending.\n\n    Parameters\n    ----------\n    rgb : ndarray\n        An MxNx3 RGB array of floats ranging from 0 to 1 (color image).\n    intensity : ndarray\n        An MxNx1 array of floats ranging from 0 to 1 (grayscale image).\n\n    Returns\n    -------\n    ndarray\n        An MxNx3 RGB array representing the combined images.\n    \"\"\"\n    low = 2 * intensity * rgb\n    high = 1 - 2 * (1 - intensity) * (1 - rgb)\n    return np.where(rgb <= 0.5, low, high)"
                         ],
                         "constructor_variables": [
-                            "azdeg",
-                            "hsv_min_val",
-                            "hsv_max_val",
-                            "altdeg",
-                            "hsv_max_sat",
-                            "hsv_min_sat"
+                            "self.azdeg = azdeg",
+                            "self.altdeg = altdeg",
+                            "self.hsv_min_val = hsv_min_val",
+                            "self.hsv_max_val = hsv_max_val",
+                            "self.hsv_min_sat = hsv_min_sat",
+                            "self.hsv_max_sat = hsv_max_sat"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -244,8 +244,20 @@
                             "blend_hsv(self, rgb, intensity, hsv_max_sat=None, hsv_max_val=None, hsv_min_val=None, hsv_min_sat=None)",
                             "blend_soft_light(self, rgb, intensity)",
                             "blend_overlay(self, rgb, intensity)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "hsv_min_val",
+                            "azdeg",
+                            "hsv_min_sat",
+                            "hsv_max_val",
+                            "altdeg",
+                            "hsv_max_sat"
                         ]
                     },
+                    "used_imports": [
+                        "import numpy as np"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -255,12 +267,12 @@
                                     "variable_shape": null
                                 },
                                 "self.hillshade": {
-                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<matplotlib.colors.LightSource object at 0x10fee6520>",
+                                    "variable_value": "<matplotlib.colors.LightSource object at 0x7f8987d3b940>",
                                     "variable_type": "LightSource",
                                     "variable_shape": null
                                 },
@@ -305,17 +317,17 @@
                                     "variable_shape": null
                                 },
                                 "self.blend_hsv": {
-                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_soft_light": {
-                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_overlay": {
-                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -372,12 +384,12 @@
                                     "variable_shape": "(8, 8, 1)"
                                 },
                                 "self.hillshade": {
-                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<matplotlib.colors.LightSource object at 0x10fee6520>",
+                                    "variable_value": "<matplotlib.colors.LightSource object at 0x7f8987d3b940>",
                                     "variable_type": "LightSource",
                                     "variable_shape": null
                                 },
@@ -417,22 +429,22 @@
                                     "variable_shape": null
                                 },
                                 "lookup": {
-                                    "variable_value": "{'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x10fee6520>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x10fee6520>>, 'overlay': <bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x10fee6520>>}",
+                                    "variable_value": "{'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>, 'overlay': <bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>}",
                                     "variable_type": "dict",
                                     "variable_shape": "3"
                                 },
                                 "self.blend_hsv": {
-                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_soft_light": {
-                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_overlay": {
-                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x10fee6520>>",
+                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f8987d3b940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -457,7 +469,7 @@
                                     "variable_shape": "0"
                                 },
                                 "lookup.keys": {
-                                    "variable_value": "<built-in method keys of dict object at 0x10fee16c0>",
+                                    "variable_value": "<built-in method keys of dict object at 0x7f8987d398c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -493,12 +505,12 @@
                                     "variable_shape": null
                                 },
                                 "self.hillshade": {
-                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<matplotlib.colors.LightSource object at 0x110da8df0>",
+                                    "variable_value": "<matplotlib.colors.LightSource object at 0x7f30facd5ee0>",
                                     "variable_type": "LightSource",
                                     "variable_shape": null
                                 },
@@ -543,17 +555,17 @@
                                     "variable_shape": null
                                 },
                                 "self.blend_hsv": {
-                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_soft_light": {
-                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_overlay": {
-                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -620,12 +632,12 @@
                                     "variable_shape": "(8, 8, 1)"
                                 },
                                 "self.hillshade": {
-                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<matplotlib.colors.LightSource object at 0x110da8df0>",
+                                    "variable_value": "<matplotlib.colors.LightSource object at 0x7f30facd5ee0>",
                                     "variable_type": "LightSource",
                                     "variable_shape": null
                                 },
@@ -665,22 +677,22 @@
                                     "variable_shape": null
                                 },
                                 "lookup": {
-                                    "variable_value": "{'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x110da8df0>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x110da8df0>>, 'overlay': <bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x110da8df0>>}",
+                                    "variable_value": "{'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>, 'overlay': <bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>}",
                                     "variable_type": "dict",
                                     "variable_shape": "3"
                                 },
                                 "self.blend_hsv": {
-                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_soft_light": {
-                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_overlay": {
-                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -705,7 +717,7 @@
                                     "variable_shape": "0"
                                 },
                                 "lookup.keys": {
-                                    "variable_value": "<built-in method keys of dict object at 0x110da9180>",
+                                    "variable_value": "<built-in method keys of dict object at 0x7f30facf2c00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -749,12 +761,12 @@
                                     "variable_shape": null
                                 },
                                 "self.hillshade": {
-                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<matplotlib.colors.LightSource object at 0x110da8df0>",
+                                    "variable_value": "<matplotlib.colors.LightSource object at 0x7f30facd5ee0>",
                                     "variable_type": "LightSource",
                                     "variable_shape": null
                                 },
@@ -799,17 +811,17 @@
                                     "variable_shape": null
                                 },
                                 "self.blend_hsv": {
-                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_soft_light": {
-                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_overlay": {
-                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -876,12 +888,12 @@
                                     "variable_shape": "(8, 8, 1)"
                                 },
                                 "self.hillshade": {
-                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.hillshade of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<matplotlib.colors.LightSource object at 0x110da8df0>",
+                                    "variable_value": "<matplotlib.colors.LightSource object at 0x7f30facd5ee0>",
                                     "variable_type": "LightSource",
                                     "variable_shape": null
                                 },
@@ -921,22 +933,22 @@
                                     "variable_shape": null
                                 },
                                 "lookup": {
-                                    "variable_value": "{'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x110da8df0>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x110da8df0>>, 'overlay': <bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x110da8df0>>}",
+                                    "variable_value": "{'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>, 'overlay': <bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>}",
                                     "variable_type": "dict",
                                     "variable_shape": "3"
                                 },
                                 "self.blend_hsv": {
-                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_soft_light": {
-                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self.blend_overlay": {
-                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x110da8df0>>",
+                                    "variable_value": "<bound method LightSource.blend_overlay of <matplotlib.colors.LightSource object at 0x7f30facd5ee0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -961,7 +973,7 @@
                                     "variable_shape": "0"
                                 },
                                 "lookup.keys": {
-                                    "variable_value": "<built-in method keys of dict object at 0x110d78c80>",
+                                    "variable_value": "<built-in method keys of dict object at 0x7f30facf3d80>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -7104,13 +7116,13 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/matplotlib_7/lib/matplotlib/tests/test_colors.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/matplotlib_7/lib/matplotlib/tests/test_colors.py",
                 "test_function": "test_light_source_shading_empty_mask",
                 "test_function_code": "def test_light_source_shading_empty_mask():\n    y, x = np.mgrid[-1.2:1.2:8j, -1.2:1.2:8j]\n    z0 = 10 * np.cos(x**2 + y**2)\n    z1 = np.ma.array(z0)\n\n    cmap = plt.cm.copper\n    ls = mcolors.LightSource(315, 45)\n    rgb0 = ls.shade(z0, cmap)\n    rgb1 = ls.shade(z1, cmap)\n\n    assert_array_almost_equal(rgb0, rgb1)",
                 "test_error": "IndexError: invalid index to scalar variable.",
-                "full_test_error": "def test_light_source_shading_empty_mask():\n        y, x = np.mgrid[-1.2:1.2:8j, -1.2:1.2:8j]\n        z0 = 10 * np.cos(x**2 + y**2)\n        z1 = np.ma.array(z0)\n    \n        cmap = plt.cm.copper\n        ls = mcolors.LightSource(315, 45)\n        rgb0 = ls.shade(z0, cmap)\n>       rgb1 = ls.shade(z1, cmap)\n\nlib/matplotlib/tests/test_colors.py:703: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nlib/matplotlib/colors.py:1866: in shade\n    rgb1 = self.shade_rgb(rgb0, elevation=data, blend_mode=blend_mode,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <matplotlib.colors.LightSource object at 0x1091e7f70>\nrgb = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n  ...,\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\nelevation = masked_array(\n  data=[[-9.65979312, -5.67854964, -1.33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854...33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854964, -9.65979312]],\n  mask=False,\n  fill_value=1e+20)\nfraction = 1, blend_mode = 'overlay', vert_exag = 1, dx = 1, dy = 1, kwargs = {}\nintensity = masked_array(\n  data=[[[0.93286093],\n         [0.90181886],\n         [0.89217264],\n         [0.84661419],\n         [0.... [0.09484714],\n         [0.02658046],\n         [0.01158178],\n         [0.02567518]]],\n  mask=False,\n  fill_value=1e+20)\nlookup = {'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x1091e7f70>>, 'overlay': <bou...1e7f70>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x1091e7f70>>}\nblend = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.44560451, 0.28180036, 0.17946195, 1.        ],\n  ...,\n        [0.00572276, 0.00361908, 0.00230477, 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\n\n    def shade_rgb(self, rgb, elevation, fraction=1., blend_mode='hsv',\n                  vert_exag=1, dx=1, dy=1, **kwargs):\n        \"\"\"\n        Use this light source to adjust the colors of the *rgb* input array to\n        give the impression of a shaded relief map with the given *elevation*.\n    \n        Parameters\n        ----------\n        rgb : array-like\n            An (M, N, 3) RGB array, assumed to be in the range of 0 to 1.\n        elevation : array-like\n            An (M, N) array of the height values used to generate a shaded map.\n        fraction : number\n            Increases or decreases the contrast of the hillshade.  Values\n            greater than one will cause intermediate values to move closer to\n            full illumination or shadow (and clipping any values that move\n            beyond 0 or 1). Note that this is not visually or mathematically\n            the same as vertical exaggeration.\n        blend_mode : {'hsv', 'overlay', 'soft'} or callable, optional\n            The type of blending used to combine the colormapped data values\n            with the illumination intensity.  For backwards compatibility, this\n            defaults to \"hsv\". Note that for most topographic surfaces,\n            \"overlay\" or \"soft\" appear more visually realistic. If a\n            user-defined function is supplied, it is expected to combine an\n            MxNx3 RGB array of floats (ranging 0 to 1) with an MxNx1 hillshade\n            array (also 0 to 1).  (Call signature\n            ``func(rgb, illum, **kwargs)``)\n            Additional kwargs supplied to this function will be passed on to\n            the *blend_mode* function.\n        vert_exag : number, optional\n            The amount to exaggerate the elevation values by when calculating\n            illumination. This can be used either to correct for differences in\n            units between the x-y coordinate system and the elevation\n            coordinate system (e.g. decimal degrees vs. meters) or to\n            exaggerate or de-emphasize topography.\n        dx : number, optional\n            The x-spacing (columns) of the input *elevation* grid.\n        dy : number, optional\n            The y-spacing (rows) of the input *elevation* grid.\n        Additional kwargs are passed on to the *blend_mode* function.\n    \n        Returns\n        -------\n        ndarray\n            An (m, n, 3) array of floats ranging between 0-1.\n        \"\"\"\n        # Calculate the \"hillshade\" intensity.\n        intensity = self.hillshade(elevation, vert_exag, dx, dy, fraction)\n        intensity = intensity[..., np.newaxis]\n    \n        # Blend the hillshade and rgb data using the specified mode\n        lookup = {\n                'hsv': self.blend_hsv,\n                'soft': self.blend_soft_light,\n                'overlay': self.blend_overlay,\n                }\n        if blend_mode in lookup:\n            blend = lookup[blend_mode](rgb, intensity, **kwargs)\n        else:\n            try:\n                blend = blend_mode(rgb, intensity, **kwargs)\n            except TypeError as err:\n                raise ValueError('\"blend_mode\" must be callable or one of {}'\n                                 .format(lookup.keys)) from err\n    \n        # Only apply result where hillshade intensity isn't masked\n        if hasattr(intensity, 'mask'):\n>           mask = intensity.mask[..., 0]\nE           IndexError: invalid index to scalar variable.\n\nlib/matplotlib/colors.py:1940: IndexError",
+                "full_test_error": "def test_light_source_shading_empty_mask():\n        y, x = np.mgrid[-1.2:1.2:8j, -1.2:1.2:8j]\n        z0 = 10 * np.cos(x**2 + y**2)\n        z1 = np.ma.array(z0)\n    \n        cmap = plt.cm.copper\n        ls = mcolors.LightSource(315, 45)\n        rgb0 = ls.shade(z0, cmap)\n>       rgb1 = ls.shade(z1, cmap)\n\nlib/matplotlib/tests/test_colors.py:703: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nlib/matplotlib/colors.py:1866: in shade\n    rgb1 = self.shade_rgb(rgb0, elevation=data, blend_mode=blend_mode,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <matplotlib.colors.LightSource object at 0x7faf67514fa0>\nrgb = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n  ...,\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\nelevation = masked_array(\n  data=[[-9.65979312, -5.67854964, -1.33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854...33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854964, -9.65979312]],\n  mask=False,\n  fill_value=1e+20)\nfraction = 1, blend_mode = 'overlay', vert_exag = 1, dx = 1, dy = 1, kwargs = {}\nintensity = masked_array(\n  data=[[[0.93286093],\n         [0.90181886],\n         [0.89217264],\n         [0.84661419],\n         [0.... [0.09484714],\n         [0.02658046],\n         [0.01158178],\n         [0.02567518]]],\n  mask=False,\n  fill_value=1e+20)\nlookup = {'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7faf67514fa0>>, 'overlay': <...fa0>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7faf67514fa0>>}\nblend = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.44560451, 0.28180036, 0.17946195, 1.        ],\n  ...,\n        [0.00572276, 0.00361908, 0.00230477, 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\n\n    def shade_rgb(self, rgb, elevation, fraction=1., blend_mode='hsv',\n                  vert_exag=1, dx=1, dy=1, **kwargs):\n        \"\"\"\n        Use this light source to adjust the colors of the *rgb* input array to\n        give the impression of a shaded relief map with the given *elevation*.\n    \n        Parameters\n        ----------\n        rgb : array-like\n            An (M, N, 3) RGB array, assumed to be in the range of 0 to 1.\n        elevation : array-like\n            An (M, N) array of the height values used to generate a shaded map.\n        fraction : number\n            Increases or decreases the contrast of the hillshade.  Values\n            greater than one will cause intermediate values to move closer to\n            full illumination or shadow (and clipping any values that move\n            beyond 0 or 1). Note that this is not visually or mathematically\n            the same as vertical exaggeration.\n        blend_mode : {'hsv', 'overlay', 'soft'} or callable, optional\n            The type of blending used to combine the colormapped data values\n            with the illumination intensity.  For backwards compatibility, this\n            defaults to \"hsv\". Note that for most topographic surfaces,\n            \"overlay\" or \"soft\" appear more visually realistic. If a\n            user-defined function is supplied, it is expected to combine an\n            MxNx3 RGB array of floats (ranging 0 to 1) with an MxNx1 hillshade\n            array (also 0 to 1).  (Call signature\n            ``func(rgb, illum, **kwargs)``)\n            Additional kwargs supplied to this function will be passed on to\n            the *blend_mode* function.\n        vert_exag : number, optional\n            The amount to exaggerate the elevation values by when calculating\n            illumination. This can be used either to correct for differences in\n            units between the x-y coordinate system and the elevation\n            coordinate system (e.g. decimal degrees vs. meters) or to\n            exaggerate or de-emphasize topography.\n        dx : number, optional\n            The x-spacing (columns) of the input *elevation* grid.\n        dy : number, optional\n            The y-spacing (rows) of the input *elevation* grid.\n        Additional kwargs are passed on to the *blend_mode* function.\n    \n        Returns\n        -------\n        ndarray\n            An (m, n, 3) array of floats ranging between 0-1.\n        \"\"\"\n        # Calculate the \"hillshade\" intensity.\n        intensity = self.hillshade(elevation, vert_exag, dx, dy, fraction)\n        intensity = intensity[..., np.newaxis]\n    \n        # Blend the hillshade and rgb data using the specified mode\n        lookup = {\n                'hsv': self.blend_hsv,\n                'soft': self.blend_soft_light,\n                'overlay': self.blend_overlay,\n                }\n        if blend_mode in lookup:\n            blend = lookup[blend_mode](rgb, intensity, **kwargs)\n        else:\n            try:\n                blend = blend_mode(rgb, intensity, **kwargs)\n            except TypeError as err:\n                raise ValueError('\"blend_mode\" must be callable or one of {}'\n                                 .format(lookup.keys)) from err\n    \n        # Only apply result where hillshade intensity isn't masked\n        if hasattr(intensity, 'mask'):\n>           mask = intensity.mask[..., 0]\nE           IndexError: invalid index to scalar variable.\n\nlib/matplotlib/colors.py:1940: IndexError",
                 "traceback": "lib/matplotlib/colors.py:1866: in shade\n    rgb1 = self.shade_rgb(rgb0, elevation=data, blend_mode=blend_mode,",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <matplotlib.colors.LightSource object at 0x1091e7f70>\nrgb = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n  ...,\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\nelevation = masked_array(\n  data=[[-9.65979312, -5.67854964, -1.33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854...33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854964, -9.65979312]],\n  mask=False,\n  fill_value=1e+20)\nfraction = 1, blend_mode = 'overlay', vert_exag = 1, dx = 1, dy = 1, kwargs = {}\nintensity = masked_array(\n  data=[[[0.93286093],\n         [0.90181886],\n         [0.89217264],\n         [0.84661419],\n         [0.... [0.09484714],\n         [0.02658046],\n         [0.01158178],\n         [0.02567518]]],\n  mask=False,\n  fill_value=1e+20)\nlookup = {'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x1091e7f70>>, 'overlay': <bou...1e7f70>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x1091e7f70>>}\nblend = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.44560451, 0.28180036, 0.17946195, 1.        ],\n  ...,\n        [0.00572276, 0.00361908, 0.00230477, 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\n\n    def shade_rgb(self, rgb, elevation, fraction=1., blend_mode='hsv',\n                  vert_exag=1, dx=1, dy=1, **kwargs):\n        \"\"\"\n        Use this light source to adjust the colors of the *rgb* input array to\n        give the impression of a shaded relief map with the given *elevation*.\n    \n        Parameters\n        ----------\n        rgb : array-like\n            An (M, N, 3) RGB array, assumed to be in the range of 0 to 1.\n        elevation : array-like\n            An (M, N) array of the height values used to generate a shaded map.\n        fraction : number\n            Increases or decreases the contrast of the hillshade.  Values\n            greater than one will cause intermediate values to move closer to\n            full illumination or shadow (and clipping any values that move\n            beyond 0 or 1). Note that this is not visually or mathematically\n            the same as vertical exaggeration.\n        blend_mode : {'hsv', 'overlay', 'soft'} or callable, optional\n            The type of blending used to combine the colormapped data values\n            with the illumination intensity.  For backwards compatibility, this\n            defaults to \"hsv\". Note that for most topographic surfaces,\n            \"overlay\" or \"soft\" appear more visually realistic. If a\n            user-defined function is supplied, it is expected to combine an\n            MxNx3 RGB array of floats (ranging 0 to 1) with an MxNx1 hillshade\n            array (also 0 to 1).  (Call signature\n            ``func(rgb, illum, **kwargs)``)\n            Additional kwargs supplied to this function will be passed on to\n            the *blend_mode* function.\n        vert_exag : number, optional\n            The amount to exaggerate the elevation values by when calculating\n            illumination. This can be used either to correct for differences in\n            units between the x-y coordinate system and the elevation\n            coordinate system (e.g. decimal degrees vs. meters) or to\n            exaggerate or de-emphasize topography.\n        dx : number, optional\n            The x-spacing (columns) of the input *elevation* grid.\n        dy : number, optional\n            The y-spacing (rows) of the input *elevation* grid.\n        Additional kwargs are passed on to the *blend_mode* function.\n    \n        Returns\n        -------\n        ndarray\n            An (m, n, 3) array of floats ranging between 0-1.\n        \"\"\"\n        # Calculate the \"hillshade\" intensity.\n        intensity = self.hillshade(elevation, vert_exag, dx, dy, fraction)\n        intensity = intensity[..., np.newaxis]\n    \n        # Blend the hillshade and rgb data using the specified mode\n        lookup = {\n                'hsv': self.blend_hsv,\n                'soft': self.blend_soft_light,\n                'overlay': self.blend_overlay,\n                }\n        if blend_mode in lookup:\n            blend = lookup[blend_mode](rgb, intensity, **kwargs)\n        else:\n            try:\n                blend = blend_mode(rgb, intensity, **kwargs)\n            except TypeError as err:\n                raise ValueError('\"blend_mode\" must be callable or one of {}'\n                                 .format(lookup.keys)) from err\n    \n        # Only apply result where hillshade intensity isn't masked\n        if hasattr(intensity, 'mask'):\n>           mask = intensity.mask[..., 0]\nE           IndexError: invalid index to scalar variable.\n\nlib/matplotlib/colors.py:1940: IndexError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <matplotlib.colors.LightSource object at 0x7faf67514fa0>\nrgb = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n  ...,\n        [0.24705877, 0.15624   , 0.0995    , 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\nelevation = masked_array(\n  data=[[-9.65979312, -5.67854964, -1.33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854...33295553,  1.01234852,  1.01234852,\n         -1.33295553, -5.67854964, -9.65979312]],\n  mask=False,\n  fill_value=1e+20)\nfraction = 1, blend_mode = 'overlay', vert_exag = 1, dx = 1, dy = 1, kwargs = {}\nintensity = masked_array(\n  data=[[[0.93286093],\n         [0.90181886],\n         [0.89217264],\n         [0.84661419],\n         [0.... [0.09484714],\n         [0.02658046],\n         [0.01158178],\n         [0.02567518]]],\n  mask=False,\n  fill_value=1e+20)\nlookup = {'hsv': <bound method LightSource.blend_hsv of <matplotlib.colors.LightSource object at 0x7faf67514fa0>>, 'overlay': <...fa0>>, 'soft': <bound method LightSource.blend_soft_light of <matplotlib.colors.LightSource object at 0x7faf67514fa0>>}\nblend = array([[[0.        , 0.        , 0.        , 1.        ],\n        [0.44560451, 0.28180036, 0.17946195, 1.        ],\n  ...,\n        [0.00572276, 0.00361908, 0.00230477, 1.        ],\n        [0.        , 0.        , 0.        , 1.        ]]])\n\n    def shade_rgb(self, rgb, elevation, fraction=1., blend_mode='hsv',\n                  vert_exag=1, dx=1, dy=1, **kwargs):\n        \"\"\"\n        Use this light source to adjust the colors of the *rgb* input array to\n        give the impression of a shaded relief map with the given *elevation*.\n    \n        Parameters\n        ----------\n        rgb : array-like\n            An (M, N, 3) RGB array, assumed to be in the range of 0 to 1.\n        elevation : array-like\n            An (M, N) array of the height values used to generate a shaded map.\n        fraction : number\n            Increases or decreases the contrast of the hillshade.  Values\n            greater than one will cause intermediate values to move closer to\n            full illumination or shadow (and clipping any values that move\n            beyond 0 or 1). Note that this is not visually or mathematically\n            the same as vertical exaggeration.\n        blend_mode : {'hsv', 'overlay', 'soft'} or callable, optional\n            The type of blending used to combine the colormapped data values\n            with the illumination intensity.  For backwards compatibility, this\n            defaults to \"hsv\". Note that for most topographic surfaces,\n            \"overlay\" or \"soft\" appear more visually realistic. If a\n            user-defined function is supplied, it is expected to combine an\n            MxNx3 RGB array of floats (ranging 0 to 1) with an MxNx1 hillshade\n            array (also 0 to 1).  (Call signature\n            ``func(rgb, illum, **kwargs)``)\n            Additional kwargs supplied to this function will be passed on to\n            the *blend_mode* function.\n        vert_exag : number, optional\n            The amount to exaggerate the elevation values by when calculating\n            illumination. This can be used either to correct for differences in\n            units between the x-y coordinate system and the elevation\n            coordinate system (e.g. decimal degrees vs. meters) or to\n            exaggerate or de-emphasize topography.\n        dx : number, optional\n            The x-spacing (columns) of the input *elevation* grid.\n        dy : number, optional\n            The y-spacing (rows) of the input *elevation* grid.\n        Additional kwargs are passed on to the *blend_mode* function.\n    \n        Returns\n        -------\n        ndarray\n            An (m, n, 3) array of floats ranging between 0-1.\n        \"\"\"\n        # Calculate the \"hillshade\" intensity.\n        intensity = self.hillshade(elevation, vert_exag, dx, dy, fraction)\n        intensity = intensity[..., np.newaxis]\n    \n        # Blend the hillshade and rgb data using the specified mode\n        lookup = {\n                'hsv': self.blend_hsv,\n                'soft': self.blend_soft_light,\n                'overlay': self.blend_overlay,\n                }\n        if blend_mode in lookup:\n            blend = lookup[blend_mode](rgb, intensity, **kwargs)\n        else:\n            try:\n                blend = blend_mode(rgb, intensity, **kwargs)\n            except TypeError as err:\n                raise ValueError('\"blend_mode\" must be callable or one of {}'\n                                 .format(lookup.keys)) from err\n    \n        # Only apply result where hillshade intensity isn't masked\n        if hasattr(intensity, 'mask'):\n>           mask = intensity.mask[..., 0]\nE           IndexError: invalid index to scalar variable.\n\nlib/matplotlib/colors.py:1940: IndexError",
                 "test_function_decorators": []
             }
         ]

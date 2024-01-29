@@ -4,8 +4,6 @@
     "1.2.1": "class GroupBy(_GroupBy)",
     "1.2.2": "Class for grouping and aggregating relational data.\n\nSee aggregate, transform, and apply functions on this object.\n\nIt's easiest to use obj.groupby(...) to use GroupBy, but you can also do:\n\n::\n\n    grouped = groupby(obj, ...)\n\nParameters\n----------\nobj : pandas object\naxis : int, default 0\nlevel : int, default None\n    Level of MultiIndex\ngroupings : list of Grouping objects\n    Most users should ignore this\nexclusions : array-like, optional\n    List of columns to exclude\nname : string\n    Most users should ignore this\n\nReturns\n-------\n**Attributes**\ngroups : dict\n    {group name -> group labels}\nlen(grouped) : int\n    Number of groups\n\nNotes\n-----\nAfter grouping, see aggregate, apply, and transform functions. Here are\nsome other brief notes about usage. When grouping by multiple groups, the\nresult index will be a MultiIndex (hierarchical) by default.\n\nIteration produces (key, group) tuples, i.e. chunking the data by group. So\nyou can write code like:\n\n::\n\n    grouped = obj.groupby(keys, axis=axis)\n    for key, group in grouped:\n        # do something with the data\n\nFunction calls on GroupBy, if not specially implemented, \"dispatch\" to the\ngrouped data. So if you group a DataFrame and wish to invoke the std()\nmethod on each group, you can simply do:\n\n::\n\n    df.groupby(mapper).std()\n\nrather than\n\n::\n\n    df.groupby(mapper).aggregate(np.std)\n\nYou can pass arguments to these \"wrapped\" functions, too.\n\nSee the online documentation for full exposition on these topics and much\nmore",
     "1.2.3": null,
-    "1.2.4": null,
-    "1.2.5": null,
     "1.3.1": "pandas/core/groupby/groupby.py",
     "1.3.2": [
         "ngroups(self)",
@@ -11807,5 +11805,6 @@
     ],
     "3.1.2": [
         "Code Sample, a copy-pastable example if possible\nweeks = pd.Series(pd.date_range('2018-01', '2018-02', freq='7D', tz='America/New_York'))\nweek_ago = weeks.groupby([1, 1, 1, 1, 1]).shift()\nprint(week_ago)\nOutputs:\n\n0                   NaT\n1   2018-01-01 05:00:00\n2   2018-01-08 05:00:00\n3   2018-01-15 05:00:00\n4   2018-01-22 05:00:00\ndtype: datetime64[ns]\nProblem description\nShifting a groupby'd datetime column removes the timezone. It's not mentioned in the documentation so either the timezone should be preserved or the documentation should mention that timezone is removed (by converting to UTC it seems).\n\nI had a quick look and couldn't find another issue for this. I glanced at the GroupBy shift implementation and my guess is that it's due to cython/numpy not supporting timezones.\n\nI'm happy to work on a fix if someone says what the preferred solution is.\n\nExpected Output\n0                         NaT\n1   2018-01-01 00:00:00-05:00\n2   2018-01-08 00:00:00-05:00\n3   2018-01-15 00:00:00-05:00\n4   2018-01-22 00:00:00-05:00\ndtype: datetime64[ns, America/New_York]\n"
-    ]
+    ],
+    "used_imports": "import collections\nfrom functools import partial, wraps\nimport numpy as np\nimport pandas._libs.groupby as libgroupby\nfrom pandas.core.dtypes.missing import isna, notna\nimport pandas.core.algorithms as algorithms"
 }

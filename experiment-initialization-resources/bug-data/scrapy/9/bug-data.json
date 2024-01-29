@@ -1,6 +1,6 @@
 {
     "scrapy:9": {
-        "/Volumes/SSD2T/bgp_envs/repos/scrapy_9/scrapy/mail.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_9/scrapy/mail.py": {
             "buggy_functions": [
                 {
                     "function_name": "send",
@@ -400,20 +400,20 @@
                         "functions": [
                             "def __init__(self, smtphost='localhost', mailfrom='scrapy@localhost', smtpuser=None, smtppass=None, smtpport=25, smtptls=False, smtpssl=False, debug=False):\n    self.smtphost = smtphost\n    self.smtpport = smtpport\n    self.smtpuser = smtpuser\n    self.smtppass = smtppass\n    self.smtptls = smtptls\n    self.smtpssl = smtpssl\n    self.mailfrom = mailfrom\n    self.debug = debug",
                             "@classmethod\ndef from_settings(cls, settings):\n    return cls(settings['MAIL_HOST'], settings['MAIL_FROM'], settings['MAIL_USER'], settings['MAIL_PASS'], settings.getint('MAIL_PORT'), settings.getbool('MAIL_TLS'), settings.getbool('MAIL_SSL'))",
-                            "def send(self, to, subject, body, cc=None, attachs=(), mimetype='text/plain', charset=None, _callback=None):\n    if attachs:\n        msg = MIMEMultipart()\n    else:\n        msg = MIMENonMultipart(*mimetype.split('/', 1))\n    msg['From'] = self.mailfrom\n    msg['To'] = COMMASPACE.join(to)\n    msg['Date'] = formatdate(localtime=True)\n    msg['Subject'] = subject\n    rcpts = to[:]\n    if cc:\n        rcpts.extend(cc)\n        msg['Cc'] = COMMASPACE.join(cc)\n    if charset:\n        msg.set_charset(charset)\n    if attachs:\n        msg.attach(MIMEText(body, 'plain', charset or 'us-ascii'))\n        for attach_name, mimetype, f in attachs:\n            part = MIMEBase(*mimetype.split('/'))\n            part.set_payload(f.read())\n            Encoders.encode_base64(part)\n            part.add_header('Content-Disposition', 'attachment; filename=\"%s\"' % attach_name)\n            msg.attach(part)\n    else:\n        msg.set_payload(body)\n    if _callback:\n        _callback(to=to, subject=subject, body=body, cc=cc, attach=attachs, msg=msg)\n    if self.debug:\n        logger.debug('Debug mail sent OK: To=%(mailto)s Cc=%(mailcc)s Subject=\"%(mailsubject)s\" Attachs=%(mailattachs)d', {'mailto': to, 'mailcc': cc, 'mailsubject': subject, 'mailattachs': len(attachs)})\n        return\n    dfd = self._sendmail(rcpts, msg.as_string())\n    dfd.addCallbacks(self._sent_ok, self._sent_failed, callbackArgs=[to, cc, subject, len(attachs)], errbackArgs=[to, cc, subject, len(attachs)])\n    reactor.addSystemEventTrigger('before', 'shutdown', lambda: dfd)\n    return dfd",
+                            "def send(self, to, subject, body, cc=None, attachs=(), mimetype='text/plain', charset=None, _callback=None):\n    if attachs:\n        msg = MIMEMultipart()\n    else:\n        msg = MIMENonMultipart(*mimetype.split('/', 1))\n    msg['From'] = self.mailfrom\n    msg['To'] = COMMASPACE.join(to)\n    msg['Date'] = formatdate(localtime=True)\n    msg['Subject'] = subject\n    rcpts = to[:]\n    if cc:\n        rcpts.extend(cc)\n        msg['Cc'] = COMMASPACE.join(cc)\n    if charset:\n        msg.set_charset(charset)\n    if attachs:\n        msg.attach(MIMEText(body, 'plain', charset or 'us-ascii'))\n        for (attach_name, mimetype, f) in attachs:\n            part = MIMEBase(*mimetype.split('/'))\n            part.set_payload(f.read())\n            Encoders.encode_base64(part)\n            part.add_header('Content-Disposition', 'attachment; filename=\"%s\"' % attach_name)\n            msg.attach(part)\n    else:\n        msg.set_payload(body)\n    if _callback:\n        _callback(to=to, subject=subject, body=body, cc=cc, attach=attachs, msg=msg)\n    if self.debug:\n        logger.debug('Debug mail sent OK: To=%(mailto)s Cc=%(mailcc)s Subject=\"%(mailsubject)s\" Attachs=%(mailattachs)d', {'mailto': to, 'mailcc': cc, 'mailsubject': subject, 'mailattachs': len(attachs)})\n        return\n    dfd = self._sendmail(rcpts, msg.as_string())\n    dfd.addCallbacks(self._sent_ok, self._sent_failed, callbackArgs=[to, cc, subject, len(attachs)], errbackArgs=[to, cc, subject, len(attachs)])\n    reactor.addSystemEventTrigger('before', 'shutdown', lambda : dfd)\n    return dfd",
                             "def _sent_ok(self, result, to, cc, subject, nattachs):\n    logger.info('Mail sent OK: To=%(mailto)s Cc=%(mailcc)s Subject=\"%(mailsubject)s\" Attachs=%(mailattachs)d', {'mailto': to, 'mailcc': cc, 'mailsubject': subject, 'mailattachs': nattachs})",
                             "def _sent_failed(self, failure, to, cc, subject, nattachs):\n    errstr = str(failure.value)\n    logger.error('Unable to send mail: To=%(mailto)s Cc=%(mailcc)s Subject=\"%(mailsubject)s\" Attachs=%(mailattachs)d- %(mailerr)s', {'mailto': to, 'mailcc': cc, 'mailsubject': subject, 'mailattachs': nattachs, 'mailerr': errstr})",
                             "def _sendmail(self, to_addrs, msg):\n    from twisted.mail.smtp import ESMTPSenderFactory\n    msg = StringIO(msg)\n    d = defer.Deferred()\n    factory = ESMTPSenderFactory(self.smtpuser, self.smtppass, self.mailfrom, to_addrs, msg, d, heloFallback=True, requireAuthentication=False, requireTransportSecurity=self.smtptls)\n    factory.noisy = False\n    if self.smtpssl:\n        reactor.connectSSL(self.smtphost, self.smtpport, factory, ssl.ClientContextFactory())\n    else:\n        reactor.connectTCP(self.smtphost, self.smtpport, factory)\n    return d"
                         ],
                         "constructor_variables": [
-                            "smtpuser",
-                            "debug",
-                            "smtppass",
-                            "smtptls",
-                            "smtpssl",
-                            "smtphost",
-                            "mailfrom",
-                            "smtpport"
+                            "self.smtphost = smtphost",
+                            "self.smtpport = smtpport",
+                            "self.smtpuser = smtpuser",
+                            "self.smtppass = smtppass",
+                            "self.smtptls = smtptls",
+                            "self.smtpssl = smtpssl",
+                            "self.mailfrom = mailfrom",
+                            "self.debug = debug"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -424,8 +424,28 @@
                             "_sent_ok(self, result, to, cc, subject, nattachs)",
                             "_sent_failed(self, failure, to, cc, subject, nattachs)",
                             "_sendmail(self, to_addrs, msg)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "debug",
+                            "smtpssl",
+                            "smtphost",
+                            "smtpport",
+                            "smtppass",
+                            "smtptls",
+                            "smtpuser",
+                            "mailfrom"
                         ]
                     },
+                    "used_imports": [
+                        "from email.utils import COMMASPACE, formatdate",
+                        "from six.moves.email_mime_multipart import MIMEMultipart",
+                        "from six.moves.email_mime_text import MIMEText",
+                        "from six.moves.email_mime_base import MIMEBase",
+                        "from twisted.internet import defer, reactor, ssl",
+                        "from email.mime.nonmultipart import MIMENonMultipart",
+                        "from email import encoders as Encoders"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -450,7 +470,7 @@
                                     "variable_shape": null
                                 },
                                 "mimetype.split": {
-                                    "variable_value": "<built-in method split of str object at 0x106ff9e30>",
+                                    "variable_value": "<built-in method split of str object at 0x7f0581bd1e70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -465,7 +485,7 @@
                                     "variable_shape": "16"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.mail.MailSender object at 0x107aaffa0>",
+                                    "variable_value": "<scrapy.mail.MailSender object at 0x7f05814450d0>",
                                     "variable_type": "MailSender",
                                     "variable_shape": null
                                 },
@@ -610,7 +630,7 @@
                                     "variable_shape": null
                                 },
                                 "self._sendmail": {
-                                    "variable_value": "<bound method MailSender._sendmail of <scrapy.mail.MailSender object at 0x107aaffa0>>",
+                                    "variable_value": "<bound method MailSender._sendmail of <scrapy.mail.MailSender object at 0x7f05814450d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -625,12 +645,12 @@
                                     "variable_shape": null
                                 },
                                 "self._sent_ok": {
-                                    "variable_value": "<bound method MailSender._sent_ok of <scrapy.mail.MailSender object at 0x107aaffa0>>",
+                                    "variable_value": "<bound method MailSender._sent_ok of <scrapy.mail.MailSender object at 0x7f05814450d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._sent_failed": {
-                                    "variable_value": "<bound method MailSender._sent_failed of <scrapy.mail.MailSender object at 0x107aaffa0>>",
+                                    "variable_value": "<bound method MailSender._sent_failed of <scrapy.mail.MailSender object at 0x7f05814450d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -672,7 +692,7 @@
                                     "variable_shape": null
                                 },
                                 "mimetype.split": {
-                                    "variable_value": "<built-in method split of str object at 0x10810de70>",
+                                    "variable_value": "<built-in method split of str object at 0x7f3ec27d2d70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -702,7 +722,7 @@
                                     "variable_shape": "16"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.mail.MailSender object at 0x108bd4e50>",
+                                    "variable_value": "<scrapy.mail.MailSender object at 0x7f3ec20b7580>",
                                     "variable_type": "MailSender",
                                     "variable_shape": null
                                 },
@@ -837,7 +857,7 @@
                                     "variable_shape": null
                                 },
                                 "self._sendmail": {
-                                    "variable_value": "<bound method MailSender._sendmail of <scrapy.mail.MailSender object at 0x108bd4e50>>",
+                                    "variable_value": "<bound method MailSender._sendmail of <scrapy.mail.MailSender object at 0x7f3ec20b7580>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -852,12 +872,12 @@
                                     "variable_shape": null
                                 },
                                 "self._sent_ok": {
-                                    "variable_value": "<bound method MailSender._sent_ok of <scrapy.mail.MailSender object at 0x108bd4e50>>",
+                                    "variable_value": "<bound method MailSender._sent_ok of <scrapy.mail.MailSender object at 0x7f3ec20b7580>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._sent_failed": {
-                                    "variable_value": "<bound method MailSender._sent_failed of <scrapy.mail.MailSender object at 0x108bd4e50>>",
+                                    "variable_value": "<bound method MailSender._sent_failed of <scrapy.mail.MailSender object at 0x7f3ec20b7580>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -879,7 +899,7 @@
                                     "variable_shape": "0"
                                 },
                                 "msg": {
-                                    "variable_value": "<email.mime.nonmultipart.MIMENonMultipart object at 0x108bf4550>",
+                                    "variable_value": "<email.mime.nonmultipart.MIMENonMultipart object at 0x7f3ec20b7b50>",
                                     "variable_type": "MIMENonMultipart",
                                     "variable_shape": null
                                 },
@@ -894,7 +914,7 @@
                                     "variable_shape": null
                                 },
                                 "mimetype.split": {
-                                    "variable_value": "<built-in method split of str object at 0x10810de70>",
+                                    "variable_value": "<built-in method split of str object at 0x7f3ec27d2d70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -924,7 +944,7 @@
                                     "variable_shape": "16"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.mail.MailSender object at 0x108bd4e50>",
+                                    "variable_value": "<scrapy.mail.MailSender object at 0x7f3ec20b7580>",
                                     "variable_type": "MailSender",
                                     "variable_shape": null
                                 },
@@ -954,7 +974,7 @@
                                     "variable_shape": "2"
                                 },
                                 "rcpts.extend": {
-                                    "variable_value": "<built-in method extend of list object at 0x108a4eb80>",
+                                    "variable_value": "<built-in method extend of list object at 0x7f3ec20a12c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -964,12 +984,12 @@
                                     "variable_shape": null
                                 },
                                 "msg.set_charset": {
-                                    "variable_value": "<bound method Message.set_charset of <email.mime.nonmultipart.MIMENonMultipart object at 0x108bf4550>>",
+                                    "variable_value": "<bound method Message.set_charset of <email.mime.nonmultipart.MIMENonMultipart object at 0x7f3ec20b7b50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "msg.attach": {
-                                    "variable_value": "<bound method MIMENonMultipart.attach of <email.mime.nonmultipart.MIMENonMultipart object at 0x108bf4550>>",
+                                    "variable_value": "<bound method MIMENonMultipart.attach of <email.mime.nonmultipart.MIMENonMultipart object at 0x7f3ec20b7b50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1029,7 +1049,7 @@
                                     "variable_shape": null
                                 },
                                 "msg.set_payload": {
-                                    "variable_value": "<bound method Message.set_payload of <email.mime.nonmultipart.MIMENonMultipart object at 0x108bf4550>>",
+                                    "variable_value": "<bound method Message.set_payload of <email.mime.nonmultipart.MIMENonMultipart object at 0x7f3ec20b7b50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1059,12 +1079,12 @@
                                     "variable_shape": null
                                 },
                                 "self._sendmail": {
-                                    "variable_value": "<bound method MailSender._sendmail of <scrapy.mail.MailSender object at 0x108bd4e50>>",
+                                    "variable_value": "<bound method MailSender._sendmail of <scrapy.mail.MailSender object at 0x7f3ec20b7580>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "msg.as_string": {
-                                    "variable_value": "<bound method Message.as_string of <email.mime.nonmultipart.MIMENonMultipart object at 0x108bf4550>>",
+                                    "variable_value": "<bound method Message.as_string of <email.mime.nonmultipart.MIMENonMultipart object at 0x7f3ec20b7b50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1074,12 +1094,12 @@
                                     "variable_shape": null
                                 },
                                 "self._sent_ok": {
-                                    "variable_value": "<bound method MailSender._sent_ok of <scrapy.mail.MailSender object at 0x108bd4e50>>",
+                                    "variable_value": "<bound method MailSender._sent_ok of <scrapy.mail.MailSender object at 0x7f3ec20b7580>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self._sent_failed": {
-                                    "variable_value": "<bound method MailSender._sent_failed of <scrapy.mail.MailSender object at 0x108bd4e50>>",
+                                    "variable_value": "<bound method MailSender._sent_failed of <scrapy.mail.MailSender object at 0x7f3ec20b7580>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -1851,11 +1871,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/scrapy_9/tests/test_mail.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_9/tests/test_mail.py",
                 "test_function": "test_send_single_values_to_and_cc",
                 "test_function_code": "    def test_send_single_values_to_and_cc(self):\n        mailsender = MailSender(debug=True)\n        mailsender.send(to='test@scrapy.org', subject='subject', body='body',\n                        cc='test@scrapy.org', _callback=self._catch_mail_sent)",
                 "test_error": "AttributeError: 'str' object has no attribute 'extend'",
-                "full_test_error": "self = <tests.test_mail.MailSenderTest testMethod=test_send_single_values_to_and_cc>\n\n    def test_send_single_values_to_and_cc(self):\n        mailsender = MailSender(debug=True)\n>       mailsender.send(to='test@scrapy.org', subject='subject', body='body',\n                        cc='test@scrapy.org', _callback=self._catch_mail_sent)\n\n/Volumes/SSD2T/bgp_envs/repos/scrapy_9/tests/test_mail.py:30: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <scrapy.mail.MailSender object at 0x110c89fa0>, to = 'test@scrapy.org'\nsubject = 'subject', body = 'body', cc = 'test@scrapy.org', attachs = ()\nmimetype = 'text/plain', charset = None\n_callback = <bound method MailSenderTest._catch_mail_sent of <tests.test_mail.MailSenderTest testMethod=test_send_single_values_to_and_cc>>\n\n    def send(self, to, subject, body, cc=None, attachs=(), mimetype='text/plain', charset=None, _callback=None):\n        if attachs:\n            msg = MIMEMultipart()\n        else:\n            msg = MIMENonMultipart(*mimetype.split('/', 1))\n        msg['From'] = self.mailfrom\n        msg['To'] = COMMASPACE.join(to)\n        msg['Date'] = formatdate(localtime=True)\n        msg['Subject'] = subject\n        rcpts = to[:]\n        if cc:\n>           rcpts.extend(cc)\nE           AttributeError: 'str' object has no attribute 'extend'\n\n/Volumes/SSD2T/bgp_envs/repos/scrapy_9/scrapy/mail.py:57: AttributeError",
+                "full_test_error": "self = <tests.test_mail.MailSenderTest testMethod=test_send_single_values_to_and_cc>\n\n    def test_send_single_values_to_and_cc(self):\n        mailsender = MailSender(debug=True)\n>       mailsender.send(to='test@scrapy.org', subject='subject', body='body',\n                        cc='test@scrapy.org', _callback=self._catch_mail_sent)\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_9/tests/test_mail.py:30: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <scrapy.mail.MailSender object at 0x7f810c2a7e80>, to = 'test@scrapy.org'\nsubject = 'subject', body = 'body', cc = 'test@scrapy.org', attachs = ()\nmimetype = 'text/plain', charset = None\n_callback = <bound method MailSenderTest._catch_mail_sent of <tests.test_mail.MailSenderTest testMethod=test_send_single_values_to_and_cc>>\n\n    def send(self, to, subject, body, cc=None, attachs=(), mimetype='text/plain', charset=None, _callback=None):\n        if attachs:\n            msg = MIMEMultipart()\n        else:\n            msg = MIMENonMultipart(*mimetype.split('/', 1))\n        msg['From'] = self.mailfrom\n        msg['To'] = COMMASPACE.join(to)\n        msg['Date'] = formatdate(localtime=True)\n        msg['Subject'] = subject\n        rcpts = to[:]\n        if cc:\n>           rcpts.extend(cc)\nE           AttributeError: 'str' object has no attribute 'extend'\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_9/scrapy/mail.py:57: AttributeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

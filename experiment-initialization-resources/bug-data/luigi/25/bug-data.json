@@ -1,6 +1,6 @@
 {
     "luigi:25": {
-        "/Volumes/SSD2T/bgp_envs/repos/luigi_25/luigi/contrib/redshift.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_25/luigi/contrib/redshift.py": {
             "buggy_functions": [
                 {
                     "function_name": "run",
@@ -215,7 +215,7 @@
                             "def table_attributes(self):\n    \"\"\"Add extra table attributes, for example:\n    DISTSTYLE KEY\n    DISTKEY (MY_FIELD)\n    SORTKEY (MY_FIELD_2, MY_FIELD_3)\n    \"\"\"\n    return ''",
                             "def do_truncate_table(self):\n    \"\"\"\n    Return True if table should be truncated before copying new data in.\n    \"\"\"\n    return False",
                             "def truncate_table(self, connection):\n    query = 'truncate %s' % self.table\n    cursor = connection.cursor()\n    try:\n        cursor.execute(query)\n    finally:\n        cursor.close()",
-                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for name, type in self.columns))\n        query = 'CREATE TABLE {table} ({coldefs}) {table_attributes}'.format(table=self.table, coldefs=coldefs, table_attributes=self.table_attributes())\n        connection.cursor().execute(query)",
+                            "def create_table(self, connection):\n    \"\"\"\n    Override to provide code for creating the target table.\n\n    By default it will be created using types (optionally)\n    specified in columns.\n\n    If overridden, use the provided connection object for\n    setting up the table in order to create the table and\n    insert data using the same transaction.\n    \"\"\"\n    if len(self.columns[0]) == 1:\n        raise NotImplementedError('create_table() not implemented for %r and columns types not specified' % self.table)\n    elif len(self.columns[0]) == 2:\n        coldefs = ','.join(('{name} {type}'.format(name=name, type=type) for (name, type) in self.columns))\n        query = 'CREATE TABLE {table} ({coldefs}) {table_attributes}'.format(table=self.table, coldefs=coldefs, table_attributes=self.table_attributes())\n        connection.cursor().execute(query)",
                             "def run(self):\n    \"\"\"\n    If the target table doesn't exist, self.create_table\n    will be called to attempt to create the table.\n    \"\"\"\n    if not self.table:\n        raise Exception('table need to be specified')\n    path = self.s3_load_path()\n    connection = self.output().connect()\n    if not self.does_table_exist(connection):\n        logger.info('Creating table %s', self.table)\n        connection.reset()\n        self.create_table(connection)\n    elif self.do_truncate_table():\n        logger.info('Truncating table %s', self.table)\n        self.truncate_table(connection)\n    logger.info('Inserting file: %s', path)\n    cursor = connection.cursor()\n    self.init_copy(connection)\n    self.copy(cursor, path)\n    self.output().touch(connection)\n    connection.commit()\n    connection.close()",
                             "def copy(self, cursor, f):\n    \"\"\"\n    Defines copying from s3 into redshift.\n    \"\"\"\n    cursor.execute(\"\\n         COPY %s from '%s'\\n         CREDENTIALS 'aws_access_key_id=%s;aws_secret_access_key=%s'\\n         delimiter '%s'\\n         %s\\n         ;\" % (self.table, f, self.aws_access_key_id, self.aws_secret_access_key, self.column_separator, self.copy_options))",
                             "def output(self):\n    \"\"\"\n    Returns a RedshiftTarget representing the inserted dataset.\n\n    Normally you don't override this.\n    \"\"\"\n    return RedshiftTarget(host=self.host, database=self.database, user=self.user, password=self.password, table=self.table, update_id=self.update_id())",
@@ -237,8 +237,11 @@
                             "copy(self, cursor, f)",
                             "output(self)",
                             "does_table_exist(self, connection)"
-                        ]
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": []
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -328,9 +331,9 @@
                                     "variable_shape": null
                                 },
                                 "self.copy": {
-                                    "variable_value": "<MagicMock name='copy' id='4507120448'>",
+                                    "variable_value": "<MagicMock name='copy' id='140646605601232'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='copy.shape' id='4507140352'>"
+                                    "variable_shape": "<MagicMock name='copy.shape' id='140646605621136'>"
                                 },
                                 "touch": {
                                     "variable_value": null,
@@ -440,9 +443,9 @@
                                     "variable_shape": null
                                 },
                                 "self.copy": {
-                                    "variable_value": "<MagicMock name='copy' id='4449051312'>",
+                                    "variable_value": "<MagicMock name='copy' id='140182219344192'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='copy.shape' id='4449065424'>"
+                                    "variable_shape": "<MagicMock name='copy.shape' id='140182219363712'>"
                                 },
                                 "touch": {
                                     "variable_value": null,
@@ -482,7 +485,7 @@
                                     "variable_shape": "15"
                                 },
                                 "connection": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='4449153856'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect()' id='140182218910160'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
@@ -512,9 +515,9 @@
                                     "variable_shape": null
                                 },
                                 "connection.reset": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().reset' id='4449163872'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().reset' id='140182218925584'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().reset.shape' id='4449447696'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().reset.shape' id='140182218689216'>"
                                 },
                                 "self.create_table": {
                                     "variable_value": "<bound method S3CopyToTable.create_table of DummyS3CopyToTable()>",
@@ -532,14 +535,14 @@
                                     "variable_shape": null
                                 },
                                 "cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='4449181120'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor()' id='140182218937488'>",
                                     "variable_type": "MagicMock",
                                     "variable_shape": null
                                 },
                                 "connection.cursor": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='4449165856'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().cursor' id='140182218926256'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='4449178960'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().cursor.shape' id='140182218936576'>"
                                 },
                                 "self.init_copy": {
                                     "variable_value": "<bound method CopyToTable.init_copy of DummyS3CopyToTable()>",
@@ -547,9 +550,9 @@
                                     "variable_shape": null
                                 },
                                 "self.copy": {
-                                    "variable_value": "<MagicMock name='copy' id='4449051312'>",
+                                    "variable_value": "<MagicMock name='copy' id='140182219344192'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='copy.shape' id='4449065424'>"
+                                    "variable_shape": "<MagicMock name='copy.shape' id='140182219363712'>"
                                 },
                                 "touch": {
                                     "variable_value": null,
@@ -557,14 +560,14 @@
                                     "variable_shape": null
                                 },
                                 "connection.commit": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().commit' id='4449356864'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().commit' id='140182219125520'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().commit.shape' id='4449375136'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().commit.shape' id='140182218612496'>"
                                 },
                                 "connection.close": {
-                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().close' id='4449393392'>",
+                                    "variable_value": "<MagicMock name='RedshiftTarget().connect().close' id='140182218629568'>",
                                     "variable_type": "MagicMock",
-                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().close.shape' id='4449403472'>"
+                                    "variable_shape": "<MagicMock name='RedshiftTarget().connect().close.shape' id='140182218644928'>"
                                 }
                             }
                         ]
@@ -1620,11 +1623,11 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/luigi_25/test/contrib/redshift_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/luigi_25/test/contrib/redshift_test.py",
                 "test_function": "test_s3_copy_to_table",
                 "test_function_code": "    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n        task.run()\n\n        # The mocked connection cursor passed to\n        # S3CopyToTable.copy(self, cursor, f).\n        mock_cursor = (mock_redshift_target.return_value\n                                           .connect\n                                           .return_value\n                                           .cursor\n                                           .return_value)\n\n        # `mock_redshift_target` is the mocked `RedshiftTarget` object\n        # returned by S3CopyToTable.output(self).\n        mock_redshift_target.assert_called_with(database=task.database,\n                                                host=task.host,\n                                                update_id='DummyS3CopyToTable()',\n                                                user=task.user,\n                                                table=task.table,\n                                                password=task.password)\n\n        # Check if the `S3CopyToTable.s3_load_path` class attribute was\n        # successfully referenced in the `S3CopyToTable.run` method, which is\n        # in-turn passed to `S3CopyToTable.copy` and other functions in `run`\n        # (see issue #995).\n        mock_copy.assert_called_with(mock_cursor, task.s3_load_path)\n\n        # Check the SQL query in `S3CopyToTable.does_table_exist`.\n        mock_cursor.execute.assert_called_with(\"select 1 as table_exists \"\n                                               \"from pg_table_def \"\n                                               \"where tablename = %s limit 1\",\n                                               (task.table,))\n\n        return",
                 "test_error": "TypeError: 'str' object is not callable",
-                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='4524188432'>\nmock_copy = <MagicMock name='copy' id='4524270064'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n>       task.run()\n\ntest/contrib/redshift_test.py:55: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTable()\n\n    def run(self):\n        \"\"\"\n        If the target table doesn't exist, self.create_table\n        will be called to attempt to create the table.\n        \"\"\"\n        if not (self.table):\n            raise Exception(\"table need to be specified\")\n    \n>       path = self.s3_load_path()\nE       TypeError: 'str' object is not callable\n\nluigi/contrib/redshift.py:166: TypeError",
+                "full_test_error": "self = <contrib.redshift_test.TestS3CopyToTable testMethod=test_s3_copy_to_table>\nmock_redshift_target = <MagicMock name='RedshiftTarget' id='139936144028624'>\nmock_copy = <MagicMock name='copy' id='139936143718624'>\n\n    @mock.patch(\"luigi.contrib.redshift.S3CopyToTable.copy\")\n    @mock.patch(\"luigi.contrib.redshift.RedshiftTarget\")\n    def test_s3_copy_to_table(self, mock_redshift_target, mock_copy):\n        task = DummyS3CopyToTable()\n>       task.run()\n\ntest/contrib/redshift_test.py:55: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = DummyS3CopyToTable()\n\n    def run(self):\n        \"\"\"\n        If the target table doesn't exist, self.create_table\n        will be called to attempt to create the table.\n        \"\"\"\n        if not (self.table):\n            raise Exception(\"table need to be specified\")\n    \n>       path = self.s3_load_path()\nE       TypeError: 'str' object is not callable\n\nluigi/contrib/redshift.py:166: TypeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [

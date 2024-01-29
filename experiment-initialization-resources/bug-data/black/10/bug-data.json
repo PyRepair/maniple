@@ -1,6 +1,6 @@
 {
     "black:10": {
-        "/Volumes/SSD2T/bgp_envs/repos/black_10/blib2to3/pgen2/driver.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/black_10/blib2to3/pgen2/driver.py": {
             "buggy_functions": [
                 {
                     "function_name": "_partially_consume_prefix",
@@ -137,7 +137,7 @@
                         "constructor_docstring": null,
                         "functions": [
                             "def __init__(self, grammar, convert=None, logger=None):\n    self.grammar = grammar\n    if logger is None:\n        logger = logging.getLogger()\n    self.logger = logger\n    self.convert = convert",
-                            "def parse_tokens(self, tokens, debug=False):\n    \"\"\"Parse a series of tokens and return the syntax tree.\"\"\"\n    p = parse.Parser(self.grammar, self.convert)\n    p.setup()\n    lineno = 1\n    column = 0\n    indent_columns = []\n    type = value = start = end = line_text = None\n    prefix = ''\n    for quintuple in tokens:\n        type, value, start, end, line_text = quintuple\n        if start != (lineno, column):\n            assert (lineno, column) <= start, ((lineno, column), start)\n            s_lineno, s_column = start\n            if lineno < s_lineno:\n                prefix += '\\n' * (s_lineno - lineno)\n                lineno = s_lineno\n                column = 0\n            if column < s_column:\n                prefix += line_text[column:s_column]\n                column = s_column\n        if type in (tokenize.COMMENT, tokenize.NL):\n            prefix += value\n            lineno, column = end\n            if value.endswith('\\n'):\n                lineno += 1\n                column = 0\n            continue\n        if type == token.OP:\n            type = grammar.opmap[value]\n        if debug:\n            self.logger.debug('%s %r (prefix=%r)', token.tok_name[type], value, prefix)\n        if type == token.INDENT:\n            indent_columns.append(len(value))\n            _prefix = prefix + value\n            prefix = ''\n            value = ''\n        elif type == token.DEDENT:\n            _indent_col = indent_columns.pop()\n            prefix, _prefix = self._partially_consume_prefix(prefix, _indent_col)\n        if p.addtoken(type, value, (prefix, start)):\n            if debug:\n                self.logger.debug('Stop.')\n            break\n        prefix = ''\n        if type in {token.INDENT, token.DEDENT}:\n            prefix = _prefix\n        lineno, column = end\n        if value.endswith('\\n'):\n            lineno += 1\n            column = 0\n    else:\n        raise parse.ParseError('incomplete input', type, value, (prefix, start))\n    return p.rootnode",
+                            "def parse_tokens(self, tokens, debug=False):\n    \"\"\"Parse a series of tokens and return the syntax tree.\"\"\"\n    p = parse.Parser(self.grammar, self.convert)\n    p.setup()\n    lineno = 1\n    column = 0\n    indent_columns = []\n    type = value = start = end = line_text = None\n    prefix = ''\n    for quintuple in tokens:\n        (type, value, start, end, line_text) = quintuple\n        if start != (lineno, column):\n            assert (lineno, column) <= start, ((lineno, column), start)\n            (s_lineno, s_column) = start\n            if lineno < s_lineno:\n                prefix += '\\n' * (s_lineno - lineno)\n                lineno = s_lineno\n                column = 0\n            if column < s_column:\n                prefix += line_text[column:s_column]\n                column = s_column\n        if type in (tokenize.COMMENT, tokenize.NL):\n            prefix += value\n            (lineno, column) = end\n            if value.endswith('\\n'):\n                lineno += 1\n                column = 0\n            continue\n        if type == token.OP:\n            type = grammar.opmap[value]\n        if debug:\n            self.logger.debug('%s %r (prefix=%r)', token.tok_name[type], value, prefix)\n        if type == token.INDENT:\n            indent_columns.append(len(value))\n            _prefix = prefix + value\n            prefix = ''\n            value = ''\n        elif type == token.DEDENT:\n            _indent_col = indent_columns.pop()\n            (prefix, _prefix) = self._partially_consume_prefix(prefix, _indent_col)\n        if p.addtoken(type, value, (prefix, start)):\n            if debug:\n                self.logger.debug('Stop.')\n            break\n        prefix = ''\n        if type in {token.INDENT, token.DEDENT}:\n            prefix = _prefix\n        (lineno, column) = end\n        if value.endswith('\\n'):\n            lineno += 1\n            column = 0\n    else:\n        raise parse.ParseError('incomplete input', type, value, (prefix, start))\n    return p.rootnode",
                             "def parse_stream_raw(self, stream, debug=False):\n    \"\"\"Parse a stream and return the syntax tree.\"\"\"\n    tokens = tokenize.generate_tokens(stream.readline)\n    return self.parse_tokens(tokens, debug)",
                             "def parse_stream(self, stream, debug=False):\n    \"\"\"Parse a stream and return the syntax tree.\"\"\"\n    return self.parse_stream_raw(stream, debug)",
                             "def parse_file(self, filename, encoding=None, debug=False):\n    \"\"\"Parse a file and return the syntax tree.\"\"\"\n    with io.open(filename, 'r', encoding=encoding) as stream:\n        return self.parse_stream(stream, debug)",
@@ -145,9 +145,9 @@
                             "def _partially_consume_prefix(self, prefix, column):\n    lines = []\n    current_line = ''\n    current_column = 0\n    wait_for_nl = False\n    for char in prefix:\n        current_line += char\n        if wait_for_nl:\n            if char == '\\n':\n                if current_line.strip() and current_column < column:\n                    res = ''.join(lines)\n                    return (res, prefix[len(res):])\n                lines.append(current_line)\n                current_line = ''\n                current_column = 0\n                wait_for_nl = False\n        elif char == ' ':\n            current_column += 1\n        elif char == '\\t':\n            current_column += 4\n        elif char == '\\n':\n            current_column = 0\n        else:\n            wait_for_nl = True\n    return (''.join(lines), current_line)"
                         ],
                         "constructor_variables": [
-                            "convert",
-                            "grammar",
-                            "logger"
+                            "self.grammar = grammar",
+                            "self.logger = logger",
+                            "self.convert = convert"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -159,8 +159,15 @@
                             "parse_file(self, filename, encoding=None, debug=False)",
                             "parse_string(self, text, debug=False)",
                             "_partially_consume_prefix(self, prefix, column)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "convert",
+                            "grammar",
+                            "logger"
                         ]
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -252,7 +259,7 @@
                                     "variable_shape": "18"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x1081ac2f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe2059d4930>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -272,7 +279,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a0cf00>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe206c8d480>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -368,7 +375,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x1067012f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe20814d2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -388,7 +395,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a09b80>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe2059cad00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -484,7 +491,7 @@
                                     "variable_shape": "12"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x106968d70>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe207cb68b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -504,7 +511,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a096c0>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe205c6c3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -600,7 +607,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x1067012f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe20814d2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -620,7 +627,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a09740>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe205c6c740>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -716,7 +723,7 @@
                                     "variable_shape": "22"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x108a22fb0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe205c698f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -736,7 +743,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a0c6c0>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe205c68f40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -832,7 +839,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x1067012f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe20814d2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -852,7 +859,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a09ac0>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe2059d4e00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -948,7 +955,7 @@
                                     "variable_shape": "18"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x108a4b3b0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe2059f4bb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -968,7 +975,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a07b00>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe2059ca780>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1064,7 +1071,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x1067012f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fe20814d2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1084,7 +1091,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108a0cdc0>",
+                                    "variable_value": "<built-in method append of list object at 0x7fe205c68f00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1182,7 +1189,7 @@
                                     "variable_shape": "18"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x10833ff30>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ac29f270>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1202,7 +1209,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x107b2f600>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac296600>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1298,7 +1305,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x105fb52f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ae59e2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1318,7 +1325,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x10833f340>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac290e80>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1414,7 +1421,7 @@
                                     "variable_shape": "12"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x108341d70>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ac2986b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1434,7 +1441,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108317980>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac290ac0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1530,7 +1537,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x105fb52f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ae59e2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1550,7 +1557,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108317c40>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac2eefc0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1646,7 +1653,7 @@
                                     "variable_shape": "13"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x10621ceb0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ae362770>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1666,7 +1673,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108317540>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac2e9cc0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1762,7 +1769,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x105fb52f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ae59e2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1782,7 +1789,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x108311300>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac2ee3c0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1878,7 +1885,7 @@
                                     "variable_shape": "22"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x1083117f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ac2842b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1898,7 +1905,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x1082e1bc0>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac2eeb40>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -1994,7 +2001,7 @@
                                     "variable_shape": "0"
                                 },
                                 "current_line.strip": {
-                                    "variable_value": "<built-in method strip of str object at 0x105fb52f0>",
+                                    "variable_value": "<built-in method strip of str object at 0x7fb6ae59e2f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2014,7 +2021,7 @@
                                     "variable_shape": null
                                 },
                                 "lines.append": {
-                                    "variable_value": "<built-in method append of list object at 0x1082e5440>",
+                                    "variable_value": "<built-in method append of list object at 0x7fb6ac2eebc0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 }
@@ -3191,7 +3198,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/black_10/tests/test_black.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/black_10/tests/test_black.py",
                 "test_function": "test_comment_indentation",
                 "test_function_code": "    def test_comment_indentation(self) -> None:\n        contents_tab = \"if 1:\\n\\tif 2:\\n\\t\\tpass\\n\\t# comment\\n\\tpass\\n\"\n        contents_spc = \"if 1:\\n    if 2:\\n        pass\\n    # comment\\n    pass\\n\"\n\n        self.assertFormatEqual(fs(contents_spc), contents_spc)\n        self.assertFormatEqual(fs(contents_tab), contents_spc)\n\n        contents_tab = \"if 1:\\n\\tif 2:\\n\\t\\tpass\\n\\t\\t# comment\\n\\tpass\\n\"\n        contents_spc = \"if 1:\\n    if 2:\\n        pass\\n        # comment\\n    pass\\n\"\n\n        self.assertFormatEqual(fs(contents_tab), contents_spc)\n        self.assertFormatEqual(fs(contents_spc), contents_spc)",
                 "test_error": "AssertionError: 'if 1:\\n    if 2:\\n        pass\\n        # comment\\n    pass\\n' != 'if 1:\\n    if 2:\\n        pass\\n    # comment\\n    pass\\n'\n  if 1:\n      if 2:\n          pass\n-         # comment\n? ----\n+     # comment\n      pass",

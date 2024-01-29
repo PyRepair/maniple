@@ -1,6 +1,6 @@
 {
     "tqdm:8": {
-        "/Volumes/SSD2T/bgp_envs/repos/tqdm_8/tqdm/_tqdm.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/tqdm_8/tqdm/_tqdm.py": {
             "buggy_functions": [
                 {
                     "function_name": "format_meter",
@@ -490,9 +490,9 @@
                         "constructor_docstring": "Parameters\n----------\niterable  : iterable, optional\n    Iterable to decorate with a progressbar.\n    Leave blank to manually manage the updates.\ndesc  : str, optional\n    Prefix for the progressbar.\ntotal  : int, optional\n    The number of expected iterations. If unspecified,\n    len(iterable) is used if possible. As a last resort, only basic\n    progress statistics are displayed (no ETA, no progressbar).\n    If `gui` is True and this parameter needs subsequent updating,\n    specify an initial arbitrary large positive integer,\n    e.g. int(9e9).\nleave  : bool, optional\n    If [default: True], keeps all traces of the progressbar\n    upon termination of iteration.\nfile  : `io.TextIOWrapper` or `io.StringIO`, optional\n    Specifies where to output the progress messages\n    [default: sys.stderr]. Uses `file.write(str)` and `file.flush()`\n    methods.\nncols  : int, optional\n    The width of the entire output message. If specified,\n    dynamically resizes the progressbar to stay within this bound.\n    If unspecified, attempts to use environment width. The\n    fallback is a meter width of 10 and no limit for the counter and\n    statistics. If 0, will not print any meter (only stats).\nmininterval  : float, optional\n    Minimum progress update interval, in seconds [default: 0.1].\nmaxinterval  : float, optional\n    Maximum progress update interval, in seconds [default: 10.0].\nminiters  : int, optional\n    Minimum progress update interval, in iterations.\n    If specified, will set `mininterval` to 0.\nascii  : bool, optional\n    If unspecified or False, use unicode (smooth blocks) to fill\n    the meter. The fallback is to use ASCII characters `1-9 #`.\ndisable  : bool, optional\n    Whether to disable the entire progressbar wrapper\n    [default: False].\nunit  : str, optional\n    String that will be used to define the unit of each iteration\n    [default: it].\nunit_scale  : bool, optional\n    If set, the number of iterations will be reduced/scaled\n    automatically and a metric prefix following the\n    International System of Units standard will be added\n    (kilo, mega, etc.) [default: False].\ndynamic_ncols  : bool, optional\n    If set, constantly alters `ncols` to the environment (allowing\n    for window resizes) [default: False].\nsmoothing  : float, optional\n    Exponential moving average smoothing factor for speed estimates\n    (ignored in GUI mode). Ranges from 0 (average speed) to 1\n    (current/instantaneous speed) [default: 0.3].\nbar_format  : str, optional\n    Specify a custom bar string formatting. May impact performance.\n    If unspecified, will use '{l_bar}{bar}{r_bar}', where l_bar is\n    '{desc}{percentage:3.0f}%|' and r_bar is\n    '| {n_fmt}/{total_fmt} [{elapsed_str}<{remaining_str}, {rate_fmt}]'\n    Possible vars: bar, n, n_fmt, total, total_fmt, percentage,\n    rate, rate_fmt, elapsed, remaining, l_bar, r_bar, desc.\ninitial  : int, optional\n    The initial counter value. Useful when restarting a progress\n    bar [default: 0].\nposition  : int, optional\n    Specify the line offset to print this bar (starting from 0)\n    Automatic if unspecified.\n    Useful to manage multiple bars at once (eg, from threads).\ngui  : bool, optional\n    WARNING: internal parameter - do not use.\n    Use tqdm_gui(...) instead. If set, will attempt to use\n    matplotlib animations for a graphical output [default: False].\n\nReturns\n-------\nout  : decorated iterator.",
                         "functions": [
                             "@staticmethod\ndef format_sizeof(num, suffix=''):\n    \"\"\"\n    Formats a number (greater than unity) with SI Order of Magnitude\n    prefixes.\n\n    Parameters\n    ----------\n    num  : float\n        Number ( >= 1) to format.\n    suffix  : str, optional\n        Post-postfix [default: ''].\n\n    Returns\n    -------\n    out  : str\n        Number with Order of Magnitude SI unit postfix.\n    \"\"\"\n    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:\n        if abs(num) < 999.95:\n            if abs(num) < 99.95:\n                if abs(num) < 9.995:\n                    return '{0:1.2f}'.format(num) + unit + suffix\n                return '{0:2.1f}'.format(num) + unit + suffix\n            return '{0:3.0f}'.format(num) + unit + suffix\n        num /= 1000.0\n    return '{0:3.1f}Y'.format(num) + suffix",
-                            "@staticmethod\ndef format_interval(t):\n    \"\"\"\n    Formats a number of seconds as a clock time, [H:]MM:SS\n\n    Parameters\n    ----------\n    t  : int\n        Number of seconds.\n    Returns\n    -------\n    out  : str\n        [H:]MM:SS\n    \"\"\"\n    mins, s = divmod(int(t), 60)\n    h, m = divmod(mins, 60)\n    if h:\n        return '{0:d}:{1:02d}:{2:02d}'.format(h, m, s)\n    else:\n        return '{0:02d}:{1:02d}'.format(m, s)",
-                            "@staticmethod\ndef status_printer(file):\n    \"\"\"\n    Manage the printing and in-place updating of a line of characters.\n    Note that if the string is longer than a line, then in-place\n    updating may not work (it will print a new line at each refresh).\n    \"\"\"\n    fp = file\n    if not getattr(fp, 'flush', False):\n        fp.flush = lambda: None\n\n    def fp_write(s):\n        fp.write(_unicode(s))\n    last_printed_len = [0]\n\n    def print_status(s):\n        len_s = len(s)\n        fp_write('\\r' + s + ' ' * max(last_printed_len[0] - len_s, 0))\n        fp.flush()\n        last_printed_len[0] = len_s\n    return print_status",
-                            "@staticmethod\ndef format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False, unit='it', unit_scale=False, rate=None, bar_format=None):\n    \"\"\"\n    Return a string-based progress bar given some parameters\n\n    Parameters\n    ----------\n    n  : int\n        Number of finished iterations.\n    total  : int\n        The expected total number of iterations. If meaningless (), only\n        basic progress statistics are displayed (no ETA).\n    elapsed  : float\n        Number of seconds passed since start.\n    ncols  : int, optional\n        The width of the entire output message. If specified,\n        dynamically resizes the progress meter to stay within this bound\n        [default: None]. The fallback meter width is 10 for the progress\n        bar + no limit for the iterations counter and statistics. If 0,\n        will not print any meter (only stats).\n    prefix  : str, optional\n        Prefix message (included in total width) [default: ''].\n    ascii  : bool, optional\n        If not set, use unicode (smooth blocks) to fill the meter\n        [default: False]. The fallback is to use ASCII characters\n        (1-9 #).\n    unit  : str, optional\n        The iteration unit [default: 'it'].\n    unit_scale  : bool, optional\n        If set, the number of iterations will printed with an\n        appropriate SI metric prefix (K = 10^3, M = 10^6, etc.)\n        [default: False].\n    rate  : float, optional\n        Manual override for iteration rate.\n        If [default: None], uses n/elapsed.\n    bar_format  : str, optional\n        Specify a custom bar string formatting. May impact performance.\n        [default: '{l_bar}{bar}{r_bar}'], where l_bar is\n        '{desc}{percentage:3.0f}%|' and r_bar is\n        '| {n_fmt}/{total_fmt} [{elapsed_str}<{remaining_str}, {rate_fmt}]'\n        Possible vars: bar, n, n_fmt, total, total_fmt, percentage,\n        rate, rate_fmt, elapsed, remaining, l_bar, r_bar, desc.\n\n    Returns\n    -------\n    out  : Formatted meter and stats, ready to display.\n    \"\"\"\n    if total and n > total:\n        total = None\n    format_interval = tqdm.format_interval\n    elapsed_str = format_interval(elapsed)\n    if rate is None and elapsed:\n        rate = n / elapsed\n    inv_rate = 1 / rate if rate and rate < 1 else None\n    format_sizeof = tqdm.format_sizeof\n    rate_fmt = ((format_sizeof(inv_rate if inv_rate else rate) if unit_scale else '{0:5.2f}'.format(inv_rate if inv_rate else rate)) if rate else '?') + ('s' if inv_rate else unit) + '/' + (unit if inv_rate else 's')\n    if unit_scale:\n        n_fmt = format_sizeof(n)\n        total_fmt = format_sizeof(total) if total else None\n    else:\n        n_fmt = str(n)\n        total_fmt = str(total)\n    if total:\n        frac = n / total\n        percentage = frac * 100\n        remaining_str = format_interval((total - n) / rate) if rate else '?'\n        l_bar = (prefix if prefix else '') + '{0:3.0f}%|'.format(percentage)\n        r_bar = '| {0}/{1} [{2}<{3}, {4}]'.format(n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt)\n        if ncols == 0:\n            return l_bar[:-1] + r_bar[1:]\n        if bar_format:\n            bar_args = {'n': n, 'n_fmt': n_fmt, 'total': total, 'total_fmt': total_fmt, 'percentage': percentage, 'rate': rate if inv_rate is None else inv_rate, 'rate_noinv': rate, 'rate_noinv_fmt': ((format_sizeof(rate) if unit_scale else '{0:5.2f}'.format(rate)) if rate else '?') + 'it/s', 'rate_fmt': rate_fmt, 'elapsed': elapsed_str, 'remaining': remaining_str, 'l_bar': l_bar, 'r_bar': r_bar, 'desc': prefix if prefix else ''}\n            if '{bar}' in bar_format:\n                l_bar_user, r_bar_user = bar_format.split('{bar}')\n                l_bar, r_bar = (l_bar.format(**bar_args), r_bar.format(**bar_args))\n            else:\n                return bar_format.format(**bar_args)\n        N_BARS = max(1, ncols - len(l_bar) - len(r_bar)) if ncols else 10\n        if ascii:\n            bar_length, frac_bar_length = divmod(int(frac * N_BARS * 10), 10)\n            bar = '#' * bar_length\n            frac_bar = chr(48 + frac_bar_length) if frac_bar_length else ' '\n        else:\n            bar_length, frac_bar_length = divmod(int(frac * N_BARS * 8), 8)\n            bar = _unich(9608) * bar_length\n            frac_bar = _unich(9616 - frac_bar_length) if frac_bar_length else ' '\n        if bar_length < N_BARS:\n            full_bar = bar + frac_bar + ' ' * max(N_BARS - bar_length - 1, 0)\n        else:\n            full_bar = bar + ' ' * max(N_BARS - bar_length, 0)\n        return l_bar + full_bar + r_bar\n    else:\n        return (prefix if prefix else '') + '{0}{1} [{2}, {3}]'.format(n_fmt, unit, elapsed_str, rate_fmt)",
+                            "@staticmethod\ndef format_interval(t):\n    \"\"\"\n    Formats a number of seconds as a clock time, [H:]MM:SS\n\n    Parameters\n    ----------\n    t  : int\n        Number of seconds.\n    Returns\n    -------\n    out  : str\n        [H:]MM:SS\n    \"\"\"\n    (mins, s) = divmod(int(t), 60)\n    (h, m) = divmod(mins, 60)\n    if h:\n        return '{0:d}:{1:02d}:{2:02d}'.format(h, m, s)\n    else:\n        return '{0:02d}:{1:02d}'.format(m, s)",
+                            "@staticmethod\ndef status_printer(file):\n    \"\"\"\n    Manage the printing and in-place updating of a line of characters.\n    Note that if the string is longer than a line, then in-place\n    updating may not work (it will print a new line at each refresh).\n    \"\"\"\n    fp = file\n    if not getattr(fp, 'flush', False):\n        fp.flush = lambda : None\n\n    def fp_write(s):\n        fp.write(_unicode(s))\n    last_printed_len = [0]\n\n    def print_status(s):\n        len_s = len(s)\n        fp_write('\\r' + s + ' ' * max(last_printed_len[0] - len_s, 0))\n        fp.flush()\n        last_printed_len[0] = len_s\n    return print_status",
+                            "@staticmethod\ndef format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False, unit='it', unit_scale=False, rate=None, bar_format=None):\n    \"\"\"\n    Return a string-based progress bar given some parameters\n\n    Parameters\n    ----------\n    n  : int\n        Number of finished iterations.\n    total  : int\n        The expected total number of iterations. If meaningless (), only\n        basic progress statistics are displayed (no ETA).\n    elapsed  : float\n        Number of seconds passed since start.\n    ncols  : int, optional\n        The width of the entire output message. If specified,\n        dynamically resizes the progress meter to stay within this bound\n        [default: None]. The fallback meter width is 10 for the progress\n        bar + no limit for the iterations counter and statistics. If 0,\n        will not print any meter (only stats).\n    prefix  : str, optional\n        Prefix message (included in total width) [default: ''].\n    ascii  : bool, optional\n        If not set, use unicode (smooth blocks) to fill the meter\n        [default: False]. The fallback is to use ASCII characters\n        (1-9 #).\n    unit  : str, optional\n        The iteration unit [default: 'it'].\n    unit_scale  : bool, optional\n        If set, the number of iterations will printed with an\n        appropriate SI metric prefix (K = 10^3, M = 10^6, etc.)\n        [default: False].\n    rate  : float, optional\n        Manual override for iteration rate.\n        If [default: None], uses n/elapsed.\n    bar_format  : str, optional\n        Specify a custom bar string formatting. May impact performance.\n        [default: '{l_bar}{bar}{r_bar}'], where l_bar is\n        '{desc}{percentage:3.0f}%|' and r_bar is\n        '| {n_fmt}/{total_fmt} [{elapsed_str}<{remaining_str}, {rate_fmt}]'\n        Possible vars: bar, n, n_fmt, total, total_fmt, percentage,\n        rate, rate_fmt, elapsed, remaining, l_bar, r_bar, desc.\n\n    Returns\n    -------\n    out  : Formatted meter and stats, ready to display.\n    \"\"\"\n    if total and n > total:\n        total = None\n    format_interval = tqdm.format_interval\n    elapsed_str = format_interval(elapsed)\n    if rate is None and elapsed:\n        rate = n / elapsed\n    inv_rate = 1 / rate if rate and rate < 1 else None\n    format_sizeof = tqdm.format_sizeof\n    rate_fmt = ((format_sizeof(inv_rate if inv_rate else rate) if unit_scale else '{0:5.2f}'.format(inv_rate if inv_rate else rate)) if rate else '?') + ('s' if inv_rate else unit) + '/' + (unit if inv_rate else 's')\n    if unit_scale:\n        n_fmt = format_sizeof(n)\n        total_fmt = format_sizeof(total) if total else None\n    else:\n        n_fmt = str(n)\n        total_fmt = str(total)\n    if total:\n        frac = n / total\n        percentage = frac * 100\n        remaining_str = format_interval((total - n) / rate) if rate else '?'\n        l_bar = (prefix if prefix else '') + '{0:3.0f}%|'.format(percentage)\n        r_bar = '| {0}/{1} [{2}<{3}, {4}]'.format(n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt)\n        if ncols == 0:\n            return l_bar[:-1] + r_bar[1:]\n        if bar_format:\n            bar_args = {'n': n, 'n_fmt': n_fmt, 'total': total, 'total_fmt': total_fmt, 'percentage': percentage, 'rate': rate if inv_rate is None else inv_rate, 'rate_noinv': rate, 'rate_noinv_fmt': ((format_sizeof(rate) if unit_scale else '{0:5.2f}'.format(rate)) if rate else '?') + 'it/s', 'rate_fmt': rate_fmt, 'elapsed': elapsed_str, 'remaining': remaining_str, 'l_bar': l_bar, 'r_bar': r_bar, 'desc': prefix if prefix else ''}\n            if '{bar}' in bar_format:\n                (l_bar_user, r_bar_user) = bar_format.split('{bar}')\n                (l_bar, r_bar) = (l_bar.format(**bar_args), r_bar.format(**bar_args))\n            else:\n                return bar_format.format(**bar_args)\n        N_BARS = max(1, ncols - len(l_bar) - len(r_bar)) if ncols else 10\n        if ascii:\n            (bar_length, frac_bar_length) = divmod(int(frac * N_BARS * 10), 10)\n            bar = '#' * bar_length\n            frac_bar = chr(48 + frac_bar_length) if frac_bar_length else ' '\n        else:\n            (bar_length, frac_bar_length) = divmod(int(frac * N_BARS * 8), 8)\n            bar = _unich(9608) * bar_length\n            frac_bar = _unich(9616 - frac_bar_length) if frac_bar_length else ' '\n        if bar_length < N_BARS:\n            full_bar = bar + frac_bar + ' ' * max(N_BARS - bar_length - 1, 0)\n        else:\n            full_bar = bar + ' ' * max(N_BARS - bar_length, 0)\n        return l_bar + full_bar + r_bar\n    else:\n        return (prefix if prefix else '') + '{0}{1} [{2}, {3}]'.format(n_fmt, unit, elapsed_str, rate_fmt)",
                             "def __new__(cls, *args, **kwargs):\n    instance = object.__new__(cls)\n    if '_instances' not in cls.__dict__:\n        cls._instances = WeakSet()\n    cls._instances.add(instance)\n    return instance",
                             "@classmethod\ndef _get_free_pos(cls, instance=None):\n    \"\"\" Skips specified instance \"\"\"\n    try:\n        return max((inst.pos for inst in cls._instances if inst is not instance)) + 1\n    except ValueError as e:\n        if 'arg is an empty sequence' in str(e):\n            return 0\n        raise",
                             "@classmethod\ndef _decr_instances(cls, instance):\n    \"\"\"\n    Remove from list and reposition other bars\n    so that newer bars won't overlap previous bars\n    \"\"\"\n    try:\n        cls._instances.remove(instance)\n        for inst in cls._instances:\n            if inst.pos > instance.pos:\n                inst.pos -= 1\n    except KeyError:\n        pass",
@@ -523,32 +523,37 @@
                             "def fp_write(s):\n    self.fp.write(_unicode(s))"
                         ],
                         "constructor_variables": [
-                            "maxinterval",
-                            "smoothing",
-                            "sp",
-                            "mininterval",
-                            "miniters",
-                            "pos",
-                            "total",
-                            "bar_format",
-                            "unit",
-                            "desc",
-                            "_time",
-                            "last_print_t",
-                            "start_t",
-                            "unit_scale",
-                            "n",
-                            "ncols",
-                            "iterable",
-                            "avg_time",
-                            "leave",
-                            "disable",
-                            "gui",
-                            "ascii",
-                            "dynamic_ncols",
-                            "dynamic_miniters",
-                            "fp",
-                            "last_print_n"
+                            "self.iterable = iterable",
+                            "self.disable = disable",
+                            "self.pos = self._get_free_pos(self)",
+                            "self.disable = True",
+                            "self.pos = self._get_free_pos(self)",
+                            "self.iterable = iterable",
+                            "self.desc = desc + ': ' if desc else ''",
+                            "self.total = total",
+                            "self.leave = leave",
+                            "self.fp = file",
+                            "self.ncols = ncols",
+                            "self.mininterval = mininterval",
+                            "self.maxinterval = maxinterval",
+                            "self.miniters = miniters",
+                            "self.dynamic_miniters = dynamic_miniters",
+                            "self.ascii = ascii",
+                            "self.disable = disable",
+                            "self.unit = unit",
+                            "self.unit_scale = unit_scale",
+                            "self.gui = gui",
+                            "self.dynamic_ncols = dynamic_ncols",
+                            "self.smoothing = smoothing",
+                            "self.avg_time = None",
+                            "self._time = time",
+                            "self.bar_format = bar_format",
+                            "self.last_print_n = initial",
+                            "self.n = initial",
+                            "self.pos = self._get_free_pos(self) if position is None else position",
+                            "self.sp = self.status_printer(self.fp)",
+                            "self.start_t = self.last_print_t = self._time()",
+                            "self.start_t = self.last_print_t = self._time()"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -585,8 +590,40 @@
                             "fp_write(s)",
                             "print_status(s)",
                             "fp_write(s)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "maxinterval",
+                            "smoothing",
+                            "start_t",
+                            "iterable",
+                            "unit_scale",
+                            "dynamic_ncols",
+                            "pos",
+                            "unit",
+                            "mininterval",
+                            "last_print_n",
+                            "n",
+                            "avg_time",
+                            "ascii",
+                            "fp",
+                            "sp",
+                            "_time",
+                            "last_print_t",
+                            "miniters",
+                            "dynamic_miniters",
+                            "bar_format",
+                            "disable",
+                            "ncols",
+                            "leave",
+                            "desc",
+                            "gui",
+                            "total"
                         ]
                     },
+                    "used_imports": [
+                        "from ._utils import _supports_unicode, _environ_cols_wrapper, _range, _unich, _term_move_up, _unicode, WeakSet"
+                    ],
                     "variable_values": [
                         [
                             {
@@ -793,7 +830,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -828,7 +865,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -923,12 +960,12 @@
                                     "variable_shape": null
                                 },
                                 "l_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10a81d130>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec16957930>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10a8305d0>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17280300>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1179,7 +1216,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1214,7 +1251,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1309,12 +1346,12 @@
                                     "variable_shape": null
                                 },
                                 "l_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10abc5130>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec168ec570>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10a830940>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17280670>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1565,7 +1602,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1600,7 +1637,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1695,12 +1732,12 @@
                                     "variable_shape": null
                                 },
                                 "l_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10a81f430>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec16957bb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10abd36f0>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17277b70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -1951,7 +1988,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1986,7 +2023,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2337,7 +2374,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2372,7 +2409,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2467,12 +2504,12 @@
                                     "variable_shape": null
                                 },
                                 "l_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10a81f130>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec16957030>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10abd39f0>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17277e70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -2723,7 +2760,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -2758,7 +2795,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3109,7 +3146,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3144,7 +3181,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3239,12 +3276,12 @@
                                     "variable_shape": null
                                 },
                                 "l_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10a836570>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec175b66b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10abc4510>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec16934150>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3428,7 +3465,7 @@
                                     "variable_shape": null
                                 },
                                 "bar_format.split": {
-                                    "variable_value": "<built-in method split of str object at 0x109eea750>",
+                                    "variable_value": "<built-in method split of str object at 0x7fec17622e70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3443,7 +3480,7 @@
                                     "variable_shape": null
                                 },
                                 "bar_format.format": {
-                                    "variable_value": "<built-in method format of str object at 0x109eea750>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17622e70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3495,7 +3532,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x10a256ef0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fec16930c20>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3530,7 +3567,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x10a256a70>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fec16930830>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3620,22 +3657,22 @@
                                     "variable_shape": "{n_fmt}/{total_fmt}'"
                                 },
                                 "bar_format.split": {
-                                    "variable_value": "<built-in method split of str object at 0x109eea750>",
+                                    "variable_value": "<built-in method split of str object at 0x7fec17622e70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "l_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10abc5870>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17290430>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10abc4510>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17622990>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "bar_format.format": {
-                                    "variable_value": "<built-in method format of str object at 0x109eea750>",
+                                    "variable_value": "<built-in method format of str object at 0x7fec17622e70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -3883,7 +3920,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -3918,7 +3955,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4269,7 +4306,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4304,7 +4341,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4655,7 +4692,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -4690,7 +4727,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5041,7 +5078,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5076,7 +5113,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5427,7 +5464,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5462,7 +5499,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5813,7 +5850,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -5848,7 +5885,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6199,7 +6236,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6234,7 +6271,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6518,7 +6555,7 @@
                                     "variable_shape": null
                                 },
                                 "bar_format.split": {
-                                    "variable_value": "<built-in method split of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method split of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6533,7 +6570,7 @@
                                     "variable_shape": null
                                 },
                                 "bar_format.format": {
-                                    "variable_value": "<built-in method format of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6585,7 +6622,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6620,7 +6657,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -6710,22 +6747,22 @@
                                     "variable_shape": "{n_fmt}/{total_fmt}'"
                                 },
                                 "bar_format.split": {
-                                    "variable_value": "<built-in method split of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method split of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "l_bar_user.format": {
-                                    "variable_value": "<built-in method format of str object at 0x104585af0>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cb650470>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar_user.format": {
-                                    "variable_value": "<built-in method format of str object at 0x105078080>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cb624210>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "bar_format.format": {
-                                    "variable_value": "<built-in method format of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6904,7 +6941,7 @@
                                     "variable_shape": null
                                 },
                                 "bar_format.split": {
-                                    "variable_value": "<built-in method split of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method split of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6919,7 +6956,7 @@
                                     "variable_shape": null
                                 },
                                 "bar_format.format": {
-                                    "variable_value": "<built-in method format of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -6971,7 +7008,7 @@
                                     "variable_shape": null
                                 },
                                 "format_interval": {
-                                    "variable_value": "<function tqdm.format_interval at 0x104620cb0>",
+                                    "variable_value": "<function tqdm.format_interval at 0x7fd3cc0fbf80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -7006,7 +7043,7 @@
                                     "variable_shape": null
                                 },
                                 "format_sizeof": {
-                                    "variable_value": "<function tqdm.format_sizeof at 0x104620830>",
+                                    "variable_value": "<function tqdm.format_sizeof at 0x7fd3cc11d170>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -7096,22 +7133,22 @@
                                     "variable_shape": "{n_fmt}/{total_fmt}'"
                                 },
                                 "bar_format.split": {
-                                    "variable_value": "<built-in method split of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method split of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "l_bar_user.format": {
-                                    "variable_value": "<built-in method format of str object at 0x10505e430>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cb623bb0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "r_bar_user.format": {
-                                    "variable_value": "<built-in method format of str object at 0x1050787b0>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cb62b080>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
                                 "bar_format.format": {
-                                    "variable_value": "<built-in method format of str object at 0x104382e10>",
+                                    "variable_value": "<built-in method format of str object at 0x7fd3cc353e10>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -9637,7 +9674,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/tqdm_8/tqdm/tests/tests_tqdm.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/tqdm_8/tqdm/tests/tests_tqdm.py",
                 "test_function": "test_format_meter",
                 "test_function_code": "def test_format_meter():\n    \"\"\" Test statistics and progress bar formatting \"\"\"\n    try:\n        unich = unichr\n    except NameError:\n        unich = chr\n\n    format_meter = tqdm.format_meter\n\n    assert format_meter(0, 1000, 13) == \\\n        \"  0%|          | 0/1000 [00:13<?, ?it/s]\"\n    assert format_meter(0, 1000, 13, ncols=68, prefix='desc: ') == \\\n        \"desc:   0%|                                | 0/1000 [00:13<?, ?it/s]\"\n    assert format_meter(231, 1000, 392) == \\\n        \" 23%|\" + unich(0x2588) * 2 + unich(0x258e) + \\\n        \"       | 231/1000 [06:32<21:44,  1.70s/it]\"\n    assert format_meter(10000, 1000, 13) == \\\n        \"10000it [00:13, 769.23it/s]\"\n    assert format_meter(231, 1000, 392, ncols=56, ascii=True) == \\\n        \" 23%|\" + '#' * 3 + '6' + \\\n        \"            | 231/1000 [06:32<21:44,  1.70s/it]\"\n    assert format_meter(100000, 1000, 13, unit_scale=True, unit='iB') == \\\n        \"100KiB [00:13, 7.69KiB/s]\"\n    assert format_meter(100, 1000, 12, ncols=0, rate=7.33) == \\\n        \" 10% 100/1000 [00:12<02:02,  7.33it/s]\"\n    # Check that bar_format correctly adapts {bar} size to the rest\n    assert format_meter(20, 100, 12, ncols=13, rate=8.1,\n                        bar_format=r'{l_bar}{bar}|{n_fmt}/{total_fmt}') == \\\n        \" 20%|\" + unich(0x258f) + \"|20/100\"\n    assert format_meter(20, 100, 12, ncols=14, rate=8.1,\n                        bar_format=r'{l_bar}{bar}|{n_fmt}/{total_fmt}') == \\\n        \" 20%|\" + unich(0x258d) + \" |20/100\"",
                 "test_error": "AssertionError: assert ' 20%|\u258f| 20/100 [00:12<00:09,  8.10it/s]' == ' 20%|\u258f|20/100'   -  20%|\u258f|20/100   +  20%|\u258f| 20/100 [00:12<00:09,  8.10it/s]",

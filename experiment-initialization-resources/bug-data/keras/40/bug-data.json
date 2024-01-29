@@ -1,6 +1,6 @@
 {
     "keras:40": {
-        "/Volumes/SSD2T/bgp_envs/repos/keras_40/keras/layers/recurrent.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/keras_40/keras/layers/recurrent.py": {
             "buggy_functions": [
                 {
                     "function_name": "compute_output_shape",
@@ -143,10 +143,10 @@
                             "def compute_mask(self, inputs, mask):\n    if isinstance(mask, list):\n        mask = mask[0]\n    output_mask = mask if self.return_sequences else None\n    if self.return_state:\n        state_mask = [None for _ in self.states]\n        return [output_mask] + state_mask\n    else:\n        return output_mask",
                             "def build(self, input_shape):\n    if self._num_constants is not None:\n        constants_shape = input_shape[-self._num_constants:]\n    else:\n        constants_shape = None\n    if isinstance(input_shape, list):\n        input_shape = input_shape[0]\n    batch_size = input_shape[0] if self.stateful else None\n    input_dim = input_shape[-1]\n    self.input_spec[0] = InputSpec(shape=(batch_size, None, input_dim))\n    if isinstance(self.cell, Layer):\n        step_input_shape = (input_shape[0],) + input_shape[2:]\n        if constants_shape is not None:\n            self.cell.build([step_input_shape] + constants_shape)\n        else:\n            self.cell.build(step_input_shape)\n    if hasattr(self.cell.state_size, '__len__'):\n        state_size = list(self.cell.state_size)\n    else:\n        state_size = [self.cell.state_size]\n    if self.state_spec is not None:\n        if not [spec.shape[-1] for spec in self.state_spec] == state_size:\n            raise ValueError('An initial_state was passed that is not compatible with `cell.state_size`. Received `state_spec`={}; However `cell.state_size` is {}'.format(self.state_spec, self.cell.state_size))\n    else:\n        self.state_spec = [InputSpec(shape=(None, dim)) for dim in state_size]\n    if self.stateful:\n        self.reset_states()",
                             "def get_initial_state(self, inputs):\n    initial_state = K.zeros_like(inputs)\n    initial_state = K.sum(initial_state, axis=(1, 2))\n    initial_state = K.expand_dims(initial_state)\n    if hasattr(self.cell.state_size, '__len__'):\n        return [K.tile(initial_state, [1, dim]) for dim in self.cell.state_size]\n    else:\n        return [K.tile(initial_state, [1, self.cell.state_size])]",
-                            "def __call__(self, inputs, initial_state=None, constants=None, **kwargs):\n    inputs, initial_state, constants = self._standardize_args(inputs, initial_state, constants)\n    if initial_state is None and constants is None:\n        return super(RNN, self).__call__(inputs, **kwargs)\n    additional_inputs = []\n    additional_specs = []\n    if initial_state is not None:\n        kwargs['initial_state'] = initial_state\n        additional_inputs += initial_state\n        self.state_spec = [InputSpec(shape=K.int_shape(state)) for state in initial_state]\n        additional_specs += self.state_spec\n    if constants is not None:\n        kwargs['constants'] = constants\n        additional_inputs += constants\n        self.constants_spec = [InputSpec(shape=K.int_shape(constant)) for constant in constants]\n        self._num_constants = len(constants)\n        additional_specs += self.constants_spec\n    is_keras_tensor = hasattr(additional_inputs[0], '_keras_history')\n    for tensor in additional_inputs:\n        if hasattr(tensor, '_keras_history') != is_keras_tensor:\n            raise ValueError('The initial state or constants of an RNN layer cannot be specified with a mix of Keras tensors and non-Keras tensors')\n    if is_keras_tensor:\n        full_input = [inputs] + additional_inputs\n        full_input_spec = self.input_spec + additional_specs\n        original_input_spec = self.input_spec\n        self.input_spec = full_input_spec\n        output = super(RNN, self).__call__(full_input, **kwargs)\n        self.input_spec = original_input_spec\n        return output\n    else:\n        return super(RNN, self).__call__(inputs, **kwargs)",
-                            "def call(self, inputs, mask=None, training=None, initial_state=None, constants=None):\n    if isinstance(inputs, list):\n        inputs = inputs[0]\n    if initial_state is not None:\n        pass\n    elif self.stateful:\n        initial_state = self.states\n    else:\n        initial_state = self.get_initial_state(inputs)\n    if isinstance(mask, list):\n        mask = mask[0]\n    if len(initial_state) != len(self.states):\n        raise ValueError('Layer has ' + str(len(self.states)) + ' states but was passed ' + str(len(initial_state)) + ' initial states.')\n    input_shape = K.int_shape(inputs)\n    timesteps = input_shape[1]\n    if self.unroll and timesteps in [None, 1]:\n        raise ValueError('Cannot unroll a RNN if the time dimension is undefined or equal to 1. \\n- If using a Sequential model, specify the time dimension by passing an `input_shape` or `batch_input_shape` argument to your first layer. If your first layer is an Embedding, you can also use the `input_length` argument.\\n- If using the functional API, specify the time dimension by passing a `shape` or `batch_shape` argument to your Input layer.')\n    kwargs = {}\n    if has_arg(self.cell.call, 'training'):\n        kwargs['training'] = training\n    if constants:\n        if not has_arg(self.cell.call, 'constants'):\n            raise ValueError('RNN cell does not support constants')\n\n        def step(inputs, states):\n            constants = states[-self._num_constants:]\n            states = states[:-self._num_constants]\n            return self.cell.call(inputs, states, constants=constants, **kwargs)\n    else:\n\n        def step(inputs, states):\n            return self.cell.call(inputs, states, **kwargs)\n    last_output, outputs, states = K.rnn(step, inputs, initial_state, constants=constants, go_backwards=self.go_backwards, mask=mask, unroll=self.unroll, input_length=timesteps)\n    if self.stateful:\n        updates = []\n        for i in range(len(states)):\n            updates.append((self.states[i], states[i]))\n        self.add_update(updates, inputs)\n    if self.return_sequences:\n        output = outputs\n    else:\n        output = last_output\n    if getattr(last_output, '_uses_learning_phase', False):\n        output._uses_learning_phase = True\n    if self.return_state:\n        if not isinstance(states, (list, tuple)):\n            states = [states]\n        else:\n            states = list(states)\n        return [output] + states\n    else:\n        return output",
+                            "def __call__(self, inputs, initial_state=None, constants=None, **kwargs):\n    (inputs, initial_state, constants) = self._standardize_args(inputs, initial_state, constants)\n    if initial_state is None and constants is None:\n        return super(RNN, self).__call__(inputs, **kwargs)\n    additional_inputs = []\n    additional_specs = []\n    if initial_state is not None:\n        kwargs['initial_state'] = initial_state\n        additional_inputs += initial_state\n        self.state_spec = [InputSpec(shape=K.int_shape(state)) for state in initial_state]\n        additional_specs += self.state_spec\n    if constants is not None:\n        kwargs['constants'] = constants\n        additional_inputs += constants\n        self.constants_spec = [InputSpec(shape=K.int_shape(constant)) for constant in constants]\n        self._num_constants = len(constants)\n        additional_specs += self.constants_spec\n    is_keras_tensor = hasattr(additional_inputs[0], '_keras_history')\n    for tensor in additional_inputs:\n        if hasattr(tensor, '_keras_history') != is_keras_tensor:\n            raise ValueError('The initial state or constants of an RNN layer cannot be specified with a mix of Keras tensors and non-Keras tensors')\n    if is_keras_tensor:\n        full_input = [inputs] + additional_inputs\n        full_input_spec = self.input_spec + additional_specs\n        original_input_spec = self.input_spec\n        self.input_spec = full_input_spec\n        output = super(RNN, self).__call__(full_input, **kwargs)\n        self.input_spec = original_input_spec\n        return output\n    else:\n        return super(RNN, self).__call__(inputs, **kwargs)",
+                            "def call(self, inputs, mask=None, training=None, initial_state=None, constants=None):\n    if isinstance(inputs, list):\n        inputs = inputs[0]\n    if initial_state is not None:\n        pass\n    elif self.stateful:\n        initial_state = self.states\n    else:\n        initial_state = self.get_initial_state(inputs)\n    if isinstance(mask, list):\n        mask = mask[0]\n    if len(initial_state) != len(self.states):\n        raise ValueError('Layer has ' + str(len(self.states)) + ' states but was passed ' + str(len(initial_state)) + ' initial states.')\n    input_shape = K.int_shape(inputs)\n    timesteps = input_shape[1]\n    if self.unroll and timesteps in [None, 1]:\n        raise ValueError('Cannot unroll a RNN if the time dimension is undefined or equal to 1. \\n- If using a Sequential model, specify the time dimension by passing an `input_shape` or `batch_input_shape` argument to your first layer. If your first layer is an Embedding, you can also use the `input_length` argument.\\n- If using the functional API, specify the time dimension by passing a `shape` or `batch_shape` argument to your Input layer.')\n    kwargs = {}\n    if has_arg(self.cell.call, 'training'):\n        kwargs['training'] = training\n    if constants:\n        if not has_arg(self.cell.call, 'constants'):\n            raise ValueError('RNN cell does not support constants')\n\n        def step(inputs, states):\n            constants = states[-self._num_constants:]\n            states = states[:-self._num_constants]\n            return self.cell.call(inputs, states, constants=constants, **kwargs)\n    else:\n\n        def step(inputs, states):\n            return self.cell.call(inputs, states, **kwargs)\n    (last_output, outputs, states) = K.rnn(step, inputs, initial_state, constants=constants, go_backwards=self.go_backwards, mask=mask, unroll=self.unroll, input_length=timesteps)\n    if self.stateful:\n        updates = []\n        for i in range(len(states)):\n            updates.append((self.states[i], states[i]))\n        self.add_update(updates, inputs)\n    if self.return_sequences:\n        output = outputs\n    else:\n        output = last_output\n    if getattr(last_output, '_uses_learning_phase', False):\n        output._uses_learning_phase = True\n    if self.return_state:\n        if not isinstance(states, (list, tuple)):\n            states = [states]\n        else:\n            states = list(states)\n        return [output] + states\n    else:\n        return output",
                             "def _standardize_args(self, inputs, initial_state, constants):\n    \"\"\"Brings the arguments of `__call__` that can contain input tensors to\n    standard format.\n\n    When running a model loaded from file, the input tensors\n    `initial_state` and `constants` can be passed to `RNN.__call__` as part\n    of `inputs` instead of by the dedicated keyword arguments. This method\n    makes sure the arguments are separated and that `initial_state` and\n    `constants` are lists of tensors (or None).\n\n    # Arguments\n        inputs: tensor or list/tuple of tensors\n        initial_state: tensor or list of tensors or None\n        constants: tensor or list of tensors or None\n\n    # Returns\n        inputs: tensor\n        initial_state: list of tensors or None\n        constants: list of tensors or None\n    \"\"\"\n    if isinstance(inputs, list):\n        assert initial_state is None and constants is None\n        if self._num_constants is not None:\n            constants = inputs[-self._num_constants:]\n            inputs = inputs[:-self._num_constants]\n        if len(inputs) > 1:\n            initial_state = inputs[1:]\n        inputs = inputs[0]\n\n    def to_list_or_none(x):\n        if x is None or isinstance(x, list):\n            return x\n        if isinstance(x, tuple):\n            return list(x)\n        return [x]\n    initial_state = to_list_or_none(initial_state)\n    constants = to_list_or_none(constants)\n    return (inputs, initial_state, constants)",
-                            "def reset_states(self, states=None):\n    if not self.stateful:\n        raise AttributeError('Layer must be stateful.')\n    batch_size = self.input_spec[0].shape[0]\n    if not batch_size:\n        raise ValueError('If a RNN is stateful, it needs to know its batch size. Specify the batch size of your input tensors: \\n- If using a Sequential model, specify the batch size by passing a `batch_input_shape` argument to your first layer.\\n- If using the functional API, specify the time dimension by passing a `batch_shape` argument to your Input layer.')\n    if self.states[0] is None:\n        if hasattr(self.cell.state_size, '__len__'):\n            self.states = [K.zeros((batch_size, dim)) for dim in self.cell.state_size]\n        else:\n            self.states = [K.zeros((batch_size, self.cell.state_size))]\n    elif states is None:\n        if hasattr(self.cell.state_size, '__len__'):\n            for state, dim in zip(self.states, self.cell.state_size):\n                K.set_value(state, np.zeros((batch_size, dim)))\n        else:\n            K.set_value(self.states[0], np.zeros((batch_size, self.cell.state_size)))\n    else:\n        if not isinstance(states, (list, tuple)):\n            states = [states]\n        if len(states) != len(self.states):\n            raise ValueError('Layer ' + self.name + ' expects ' + str(len(self.states)) + ' states, but it received ' + str(len(states)) + ' state values. Input received: ' + str(states))\n        for index, (value, state) in enumerate(zip(states, self.states)):\n            if hasattr(self.cell.state_size, '__len__'):\n                dim = self.cell.state_size[index]\n            else:\n                dim = self.cell.state_size\n            if value.shape != (batch_size, dim):\n                raise ValueError('State ' + str(index) + ' is incompatible with layer ' + self.name + ': expected shape=' + str((batch_size, dim)) + ', found shape=' + str(value.shape))\n            K.set_value(state, value)",
+                            "def reset_states(self, states=None):\n    if not self.stateful:\n        raise AttributeError('Layer must be stateful.')\n    batch_size = self.input_spec[0].shape[0]\n    if not batch_size:\n        raise ValueError('If a RNN is stateful, it needs to know its batch size. Specify the batch size of your input tensors: \\n- If using a Sequential model, specify the batch size by passing a `batch_input_shape` argument to your first layer.\\n- If using the functional API, specify the time dimension by passing a `batch_shape` argument to your Input layer.')\n    if self.states[0] is None:\n        if hasattr(self.cell.state_size, '__len__'):\n            self.states = [K.zeros((batch_size, dim)) for dim in self.cell.state_size]\n        else:\n            self.states = [K.zeros((batch_size, self.cell.state_size))]\n    elif states is None:\n        if hasattr(self.cell.state_size, '__len__'):\n            for (state, dim) in zip(self.states, self.cell.state_size):\n                K.set_value(state, np.zeros((batch_size, dim)))\n        else:\n            K.set_value(self.states[0], np.zeros((batch_size, self.cell.state_size)))\n    else:\n        if not isinstance(states, (list, tuple)):\n            states = [states]\n        if len(states) != len(self.states):\n            raise ValueError('Layer ' + self.name + ' expects ' + str(len(self.states)) + ' states, but it received ' + str(len(states)) + ' state values. Input received: ' + str(states))\n        for (index, (value, state)) in enumerate(zip(states, self.states)):\n            if hasattr(self.cell.state_size, '__len__'):\n                dim = self.cell.state_size[index]\n            else:\n                dim = self.cell.state_size\n            if value.shape != (batch_size, dim):\n                raise ValueError('State ' + str(index) + ' is incompatible with layer ' + self.name + ': expected shape=' + str((batch_size, dim)) + ', found shape=' + str(value.shape))\n            K.set_value(state, value)",
                             "def get_config(self):\n    config = {'return_sequences': self.return_sequences, 'return_state': self.return_state, 'go_backwards': self.go_backwards, 'stateful': self.stateful, 'unroll': self.unroll}\n    if self._num_constants is not None:\n        config['num_constants'] = self._num_constants\n    cell_config = self.cell.get_config()\n    config['cell'] = {'class_name': self.cell.__class__.__name__, 'config': cell_config}\n    base_config = super(RNN, self).get_config()\n    return dict(list(base_config.items()) + list(config.items()))",
                             "@classmethod\ndef from_config(cls, config, custom_objects=None):\n    from . import deserialize as deserialize_layer\n    cell = deserialize_layer(config.pop('cell'), custom_objects=custom_objects)\n    num_constants = config.pop('num_constants', None)\n    layer = cls(cell, **config)\n    layer._num_constants = num_constants\n    return layer",
                             "@property\ndef trainable_weights(self):\n    if not self.trainable:\n        return []\n    if isinstance(self.cell, Layer):\n        return self.cell.trainable_weights\n    return []",
@@ -158,18 +158,18 @@
                             "def step(inputs, states):\n    return self.cell.call(inputs, states, **kwargs)"
                         ],
                         "constructor_variables": [
-                            "go_backwards",
-                            "input_spec",
-                            "supports_masking",
-                            "_states",
-                            "_num_constants",
-                            "return_state",
-                            "return_sequences",
-                            "stateful",
-                            "constants_spec",
-                            "state_spec",
-                            "cell",
-                            "unroll"
+                            "self.cell = cell",
+                            "self.return_sequences = return_sequences",
+                            "self.return_state = return_state",
+                            "self.go_backwards = go_backwards",
+                            "self.stateful = stateful",
+                            "self.unroll = unroll",
+                            "self.supports_masking = True",
+                            "self.input_spec = [InputSpec(ndim=3)]",
+                            "self.state_spec = None",
+                            "self._states = None",
+                            "self.constants_spec = None",
+                            "self._num_constants = None"
                         ],
                         "class_level_variables": [],
                         "class_decorators": [],
@@ -194,8 +194,24 @@
                             "to_list_or_none(x)",
                             "step(inputs, states)",
                             "step(inputs, states)"
+                        ],
+                        "class_level_variable_names": [],
+                        "constructor_variable_names": [
+                            "_num_constants",
+                            "supports_masking",
+                            "unroll",
+                            "constants_spec",
+                            "stateful",
+                            "cell",
+                            "state_spec",
+                            "return_sequences",
+                            "return_state",
+                            "_states",
+                            "input_spec",
+                            "go_backwards"
                         ]
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
@@ -210,12 +226,12 @@
                                     "variable_shape": null
                                 },
                                 "self.cell": {
-                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x1298134d0>",
+                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x7fec230aed10>",
                                     "variable_type": "StackedRNNCells",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x1298136d0>",
+                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x7fec2384a390>",
                                     "variable_type": "RNN",
                                     "variable_shape": null
                                 },
@@ -267,12 +283,12 @@
                                     "variable_shape": null
                                 },
                                 "self.cell": {
-                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x1298134d0>",
+                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x7fec230aed10>",
                                     "variable_type": "StackedRNNCells",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x1298136d0>",
+                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x7fec2384a390>",
                                     "variable_type": "RNN",
                                     "variable_shape": null
                                 },
@@ -328,12 +344,12 @@
                                     "variable_shape": null
                                 },
                                 "self.cell": {
-                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x12afd5650>",
+                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x7fc402d3c6d0>",
                                     "variable_type": "StackedRNNCells",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x12afd5450>",
+                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x7fc402d3c4d0>",
                                     "variable_type": "RNN",
                                     "variable_shape": null
                                 },
@@ -385,12 +401,12 @@
                                     "variable_shape": null
                                 },
                                 "self.cell": {
-                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x12afd5650>",
+                                    "variable_value": "<keras.layers.recurrent.StackedRNNCells object at 0x7fc402d3c6d0>",
                                     "variable_type": "StackedRNNCells",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x12afd5450>",
+                                    "variable_value": "<keras.layers.recurrent.RNN object at 0x7fc402d3c4d0>",
                                     "variable_type": "RNN",
                                     "variable_shape": null
                                 },
@@ -6968,7 +6984,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/SSD2T/bgp_envs/repos/keras_40/tests/keras/layers/recurrent_test.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/keras_40/tests/keras/layers/recurrent_test.py",
                 "test_function": "test_stacked_rnn_compute_output_shape",
                 "test_function_code": "@keras_test\ndef test_stacked_rnn_compute_output_shape():\n    cells = [recurrent.LSTMCell(3),\n             recurrent.LSTMCell(6)]\n    layer = recurrent.RNN(cells, return_state=True, return_sequences=True)\n    output_shape = layer.compute_output_shape((None, timesteps, embedding_dim))\n    expected_output_shape = [(None, timesteps, 6),\n                             (None, 6),\n                             (None, 6),\n                             (None, 3),\n                             (None, 3)]\n    assert output_shape == expected_output_shape",
                 "test_error": "assert [(None, 5, 6), (None, 6), (None, 6), (None, 6), (None, 6)] == [(None, 5, 6), (None, 6), (None, 6), (None, 3), (None, 3)]   At index 3 diff: (None, 6) != (None, 3)   Full diff:   - [(None, 5, 6), (None, 6), (None, 6), (None, 3), (None, 3)]   ?                                             ^          ^   + [(None, 5, 6), (None, 6), (None, 6), (None, 6), (None, 6)]   ?                                             ^          ^",

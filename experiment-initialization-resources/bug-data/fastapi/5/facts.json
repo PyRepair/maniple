@@ -4,8 +4,6 @@
     "1.2.1": null,
     "1.2.2": null,
     "1.2.3": null,
-    "1.2.4": null,
-    "1.2.5": null,
     "1.3.1": "fastapi/utils.py",
     "1.3.2": [
         "create_cloned_field(field: ModelField) -> ModelField"
@@ -81,7 +79,7 @@
                     "omitted": false
                 },
                 "field.validators": {
-                    "value": "[<cyfunction BaseModel.validate at 0x110f225f0>]",
+                    "value": "[<cyfunction BaseModel.validate at 0x7fc75828f110>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -183,7 +181,7 @@
                     "omitted": false
                 },
                 "new_field.validators": {
-                    "value": "[<cyfunction BaseModel.validate at 0x110f22930>]",
+                    "value": "[<cyfunction BaseModel.validate at 0x7fc75828f380>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -290,7 +288,7 @@
                     "omitted": false
                 },
                 "field.validators": {
-                    "value": "[<cyfunction str_validator at 0x10cb1e2b0>]",
+                    "value": "[<cyfunction str_validator at 0x7fe0ac484d40>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -352,7 +350,7 @@
                     "omitted": false
                 },
                 "new_field.validators": {
-                    "value": "[<cyfunction str_validator at 0x10cb1eba0>]",
+                    "value": "[<cyfunction str_validator at 0x7fe0ac44f6c0>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -416,7 +414,7 @@
                     "omitted": false
                 },
                 "field.validators": {
-                    "value": "[<cyfunction str_validator at 0x10cb1e380>]",
+                    "value": "[<cyfunction str_validator at 0x7fe0ac484e10>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -478,7 +476,7 @@
                     "omitted": false
                 },
                 "new_field.validators": {
-                    "value": "[<cyfunction str_validator at 0x10cb1ee10>]",
+                    "value": "[<cyfunction str_validator at 0x7fe0ac44f930>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -542,7 +540,7 @@
                     "omitted": false
                 },
                 "field.validators": {
-                    "value": "[<cyfunction str_validator at 0x10cb1e040>]",
+                    "value": "[<cyfunction str_validator at 0x7fe0ac484ad0>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -604,7 +602,7 @@
                     "omitted": false
                 },
                 "new_field.validators": {
-                    "value": "[<cyfunction str_validator at 0x10cb44380>]",
+                    "value": "[<cyfunction str_validator at 0x7fe0ac44fe10>]",
                     "shape": "1",
                     "omitted": false
                 },
@@ -720,5 +718,6 @@
     "3.1.2": [
         "Describe the bug\nIn Response Model documentation, there is an example for FastAPI will take care of filtering out all the data that is not declared in the output model. However, this doesn't happen for a nested model.\n\nTo Reproduce\nCreate a file with:\nfrom fastapi import FastAPI, Depends\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass ModelB(BaseModel):\n    username: str\n\n\nclass ModelC(ModelB):\n    password: str\n\n\nclass ModelA(BaseModel):\n    name: str\n    description: str = None\n    model_b: ModelB\n\n\nasync def get_model_c() -> ModelC:\n    return ModelC(username=\"test-user\", password=\"test-password\")\n\n\n@app.get(\"/model\", response_model=ModelA)\nasync def get_model_a(model_c=Depends(get_model_c)):\n    return {\"name\": \"model-a-name\", \"description\": \"model-a-desc\", \"model_b\": model_c}\nOpen the browser and call the endpoint /model.\nIt returns a JSON with {\"name\":\"model-a-name\",\"description\":\"model-a-desc\",\"model_b\":{\"username\":\"test-user\",\"password\":\"test-password\"}}.\nBut I expected it to return {\"name\":\"model-a-name\",\"description\":\"model-a-desc\",\"model_b\":{\"username\":\"test-user\"}}.\nExpected behavior\nFiltering should be done for nested model attributes too.\n\nEnvironment\nOS: Ubuntu 18.04.3 LTS\nFastAPI 0.45.0\nPython 3.8.1\n",
         "Describe the bug\nI have a Response wrapper for my responses that only has a data field which contains the actual response data.\nThis actual data is not filtered according to the specified response_model unless I explicitly convert it into the desired response_model.\n\nTo Reproduce\nSteps to reproduce the behavior with a minimum self-contained file.\n\nReplace each part with your own scenario:\n\nCreate a file with:\nfrom typing import TypeVar, Generic, Optional, List\n\nfrom fastapi import FastAPI\nfrom pydantic import BaseModel\nfrom pydantic.generics import GenericModel\nfrom requests import Response\nfrom starlette import status\nfrom starlette.testclient import TestClient\n\nDataT = TypeVar('DataT')\n\n\nclass R(GenericModel, Generic[DataT]):\n    \"\"\"Wrapper for responses\"\"\"\n    data: Optional[DataT]\n\n\nclass ProjectOut(BaseModel):\n    id: int\n\n\nclass ProjectInDB(ProjectOut):\n    user_id: int\n\n\napp = FastAPI()\n\n\n@app.get(\n    '/simple',\n    response_model=ProjectOut\n)\ndef get_simple() -> ProjectOut:\n    project = ProjectInDB(id=1, user_id=2)\n\n    return project\n\n\n@app.get(\n    '/nested_explicit',\n    response_model=R[ProjectOut]\n)\ndef get_nested() -> R[ProjectOut]:\n    project = ProjectInDB(id=1, user_id=2)\n\n    return R[ProjectOut](data=ProjectOut(**project.dict()))\n\n\n@app.get(\n    '/nested',\n    response_model=R[ProjectOut]\n)\ndef get_nested() -> R[ProjectOut]:\n    project = ProjectInDB(id=1, user_id=2)\n\n    return R[ProjectOut](data=project)\n\n\ndef test_response_model():\n    with TestClient(app) as client:\n        response: Response = client.get('/simple')\n\n    assert response.status_code == status.HTTP_200_OK\n\n    data: dict = response.json()\n    assert 'user_id' not in data.keys()\n\n\ndef test_nested_response_model_explicit():\n    with TestClient(app) as client:\n        response: Response = client.get('/nested_explicit')\n\n    assert response.status_code == status.HTTP_200_OK\n\n    response_wrapper: dict = response.json()\n    data = response_wrapper['data']\n    assert 'user_id' not in data.keys()\n\n\ndef test_nested_response_model():\n    with TestClient(app) as client:\n        response: Response = client.get('/nested')\n\n    assert response.status_code == status.HTTP_200_OK\n\n    response_wrapper: dict = response.json()\n    data = response_wrapper['data']\n    assert 'user_id' not in data.keys()\nRun the tests with pytest: the test test_nested_response_model fails\nExpected behavior\nWhen returning data, it is filtered according to the specified response_model.\n\nScreenshots\nEnvironment\nOS: macOS\nFastAPI Version: 0.45.0\nPython version: 3.7.5\n"
-    ]
+    ],
+    "used_imports": "from dataclasses import is_dataclass\nfrom typing import Any, Dict, List, Sequence, Set, Type, cast\nfrom pydantic import BaseConfig, BaseModel, create_model\nfrom pydantic.utils import lenient_issubclass\nfrom pydantic.fields import Field as ModelField\nfrom pydantic import Schema as FieldInfo"
 }

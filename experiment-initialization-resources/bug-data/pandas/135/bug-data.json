@@ -1,6 +1,6 @@
 {
     "pandas:135": {
-        "/Volumes/JerrySSD/bgp_envs/repos/pandas_135/pandas/core/groupby/ops.py": {
+        "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_135/pandas/core/groupby/ops.py": {
             "buggy_functions": [
                 {
                     "function_name": "agg_series",
@@ -77,52 +77,52 @@
                             "@property\ndef shape(self):\n    return tuple((ping.ngroups for ping in self.groupings))",
                             "def __iter__(self):\n    return iter(self.indices)",
                             "@property\ndef nkeys(self):\n    return len(self.groupings)",
-                            "def get_iterator(self, data, axis=0):\n    \"\"\"\n    Groupby iterator\n\n    Returns\n    -------\n    Generator yielding sequence of (name, subsetted object)\n    for each group\n    \"\"\"\n    splitter = self._get_splitter(data, axis=axis)\n    keys = self._get_group_keys()\n    for key, (i, group) in zip(keys, splitter):\n        yield (key, group)",
-                            "def _get_splitter(self, data, axis=0):\n    comp_ids, _, ngroups = self.group_info\n    return get_splitter(data, comp_ids, ngroups, axis=axis)",
+                            "def get_iterator(self, data, axis=0):\n    \"\"\"\n    Groupby iterator\n\n    Returns\n    -------\n    Generator yielding sequence of (name, subsetted object)\n    for each group\n    \"\"\"\n    splitter = self._get_splitter(data, axis=axis)\n    keys = self._get_group_keys()\n    for (key, (i, group)) in zip(keys, splitter):\n        yield (key, group)",
+                            "def _get_splitter(self, data, axis=0):\n    (comp_ids, _, ngroups) = self.group_info\n    return get_splitter(data, comp_ids, ngroups, axis=axis)",
                             "def _get_grouper(self):\n    \"\"\"\n    We are a grouper as part of another's groupings.\n\n    We have a specific method of grouping, so cannot\n    convert to a Index for our grouper.\n    \"\"\"\n    return self.groupings[0].grouper",
-                            "def _get_group_keys(self):\n    if len(self.groupings) == 1:\n        return self.levels[0]\n    else:\n        comp_ids, _, ngroups = self.group_info\n        return get_flattened_iterator(comp_ids, ngroups, self.levels, self.labels)",
-                            "def apply(self, f, data, axis=0):\n    mutated = self.mutated\n    splitter = self._get_splitter(data, axis=axis)\n    group_keys = self._get_group_keys()\n    result_values = None\n    f_name = com.get_callable_name(f)\n    if f_name not in base.plotting_methods and hasattr(splitter, 'fast_apply') and (axis == 0):\n        try:\n            result_values, mutated = splitter.fast_apply(f, group_keys)\n            if len(result_values) == len(group_keys):\n                return (group_keys, result_values, mutated)\n        except libreduction.InvalidApply:\n            pass\n        except TypeError as err:\n            if 'Cannot convert' in str(err):\n                pass\n            else:\n                raise\n    for key, (i, group) in zip(group_keys, splitter):\n        object.__setattr__(group, 'name', key)\n        if result_values is None:\n            result_values = []\n        elif i == 0:\n            continue\n        group_axes = _get_axes(group)\n        res = f(group)\n        if not _is_indexed_like(res, group_axes):\n            mutated = True\n        result_values.append(res)\n    return (group_keys, result_values, mutated)",
+                            "def _get_group_keys(self):\n    if len(self.groupings) == 1:\n        return self.levels[0]\n    else:\n        (comp_ids, _, ngroups) = self.group_info\n        return get_flattened_iterator(comp_ids, ngroups, self.levels, self.labels)",
+                            "def apply(self, f, data, axis=0):\n    mutated = self.mutated\n    splitter = self._get_splitter(data, axis=axis)\n    group_keys = self._get_group_keys()\n    result_values = None\n    f_name = com.get_callable_name(f)\n    if f_name not in base.plotting_methods and hasattr(splitter, 'fast_apply') and (axis == 0):\n        try:\n            (result_values, mutated) = splitter.fast_apply(f, group_keys)\n            if len(result_values) == len(group_keys):\n                return (group_keys, result_values, mutated)\n        except libreduction.InvalidApply:\n            pass\n        except TypeError as err:\n            if 'Cannot convert' in str(err):\n                pass\n            else:\n                raise\n    for (key, (i, group)) in zip(group_keys, splitter):\n        object.__setattr__(group, 'name', key)\n        if result_values is None:\n            result_values = []\n        elif i == 0:\n            continue\n        group_axes = _get_axes(group)\n        res = f(group)\n        if not _is_indexed_like(res, group_axes):\n            mutated = True\n        result_values.append(res)\n    return (group_keys, result_values, mutated)",
                             "@cache_readonly\ndef indices(self):\n    \"\"\" dict {group name -> group indices} \"\"\"\n    if len(self.groupings) == 1:\n        return self.groupings[0].indices\n    else:\n        label_list = [ping.labels for ping in self.groupings]\n        keys = [com.values_from_object(ping.group_index) for ping in self.groupings]\n        return get_indexer_dict(label_list, keys)",
                             "@property\ndef labels(self):\n    return [ping.labels for ping in self.groupings]",
                             "@property\ndef levels(self):\n    return [ping.group_index for ping in self.groupings]",
                             "@property\ndef names(self):\n    return [ping.name for ping in self.groupings]",
-                            "def size(self):\n    \"\"\"\n    Compute group sizes\n\n    \"\"\"\n    ids, _, ngroup = self.group_info\n    ids = ensure_platform_int(ids)\n    if ngroup:\n        out = np.bincount(ids[ids != -1], minlength=ngroup)\n    else:\n        out = []\n    return Series(out, index=self.result_index, dtype='int64')",
+                            "def size(self):\n    \"\"\"\n    Compute group sizes\n\n    \"\"\"\n    (ids, _, ngroup) = self.group_info\n    ids = ensure_platform_int(ids)\n    if ngroup:\n        out = np.bincount(ids[ids != -1], minlength=ngroup)\n    else:\n        out = []\n    return Series(out, index=self.result_index, dtype='int64')",
                             "@cache_readonly\ndef groups(self):\n    \"\"\" dict {group name -> group labels} \"\"\"\n    if len(self.groupings) == 1:\n        return self.groupings[0].groups\n    else:\n        to_groupby = zip(*(ping.grouper for ping in self.groupings))\n        to_groupby = Index(to_groupby)\n        return self.axis.groupby(to_groupby)",
                             "@cache_readonly\ndef is_monotonic(self):\n    return Index(self.group_info[0]).is_monotonic",
-                            "@cache_readonly\ndef group_info(self):\n    comp_ids, obs_group_ids = self._get_compressed_labels()\n    ngroups = len(obs_group_ids)\n    comp_ids = ensure_int64(comp_ids)\n    return (comp_ids, obs_group_ids, ngroups)",
-                            "@cache_readonly\ndef label_info(self):\n    labels, _, _ = self.group_info\n    if self.indexer is not None:\n        sorter = np.lexsort((labels, self.indexer))\n        labels = labels[sorter]\n    return labels",
+                            "@cache_readonly\ndef group_info(self):\n    (comp_ids, obs_group_ids) = self._get_compressed_labels()\n    ngroups = len(obs_group_ids)\n    comp_ids = ensure_int64(comp_ids)\n    return (comp_ids, obs_group_ids, ngroups)",
+                            "@cache_readonly\ndef label_info(self):\n    (labels, _, _) = self.group_info\n    if self.indexer is not None:\n        sorter = np.lexsort((labels, self.indexer))\n        labels = labels[sorter]\n    return labels",
                             "def _get_compressed_labels(self):\n    all_labels = [ping.labels for ping in self.groupings]\n    if len(all_labels) > 1:\n        group_index = get_group_index(all_labels, self.shape, sort=True, xnull=True)\n        return compress_group_index(group_index, sort=self.sort)\n    ping = self.groupings[0]\n    return (ping.labels, np.arange(len(ping.group_index)))",
                             "@cache_readonly\ndef ngroups(self):\n    return len(self.result_index)",
-                            "@property\ndef recons_labels(self):\n    comp_ids, obs_ids, _ = self.group_info\n    labels = (ping.labels for ping in self.groupings)\n    return decons_obs_group_ids(comp_ids, obs_ids, self.shape, labels, xnull=True)",
+                            "@property\ndef recons_labels(self):\n    (comp_ids, obs_ids, _) = self.group_info\n    labels = (ping.labels for ping in self.groupings)\n    return decons_obs_group_ids(comp_ids, obs_ids, self.shape, labels, xnull=True)",
                             "@cache_readonly\ndef result_index(self):\n    if not self.compressed and len(self.groupings) == 1:\n        return self.groupings[0].result_index.rename(self.names[0])\n    codes = self.recons_labels\n    levels = [ping.result_index for ping in self.groupings]\n    result = MultiIndex(levels=levels, codes=codes, verify_integrity=False, names=self.names)\n    return result",
-                            "def get_group_levels(self):\n    if not self.compressed and len(self.groupings) == 1:\n        return [self.groupings[0].result_index]\n    name_list = []\n    for ping, labels in zip(self.groupings, self.recons_labels):\n        labels = ensure_platform_int(labels)\n        levels = ping.result_index.take(labels)\n        name_list.append(levels)\n    return name_list",
+                            "def get_group_levels(self):\n    if not self.compressed and len(self.groupings) == 1:\n        return [self.groupings[0].result_index]\n    name_list = []\n    for (ping, labels) in zip(self.groupings, self.recons_labels):\n        labels = ensure_platform_int(labels)\n        levels = ping.result_index.take(labels)\n        name_list.append(levels)\n    return name_list",
                             "def _is_builtin_func(self, arg):\n    \"\"\"\n    if we define an builtin function for this argument, return it,\n    otherwise return the arg\n    \"\"\"\n    return SelectionMixin._builtin_table.get(arg, arg)",
                             "def _get_cython_function(self, kind, how, values, is_numeric):\n    dtype_str = values.dtype.name\n\n    def get_func(fname):\n        f = getattr(libgroupby, fname, None)\n        if f is not None and is_numeric:\n            return f\n        for dt in [dtype_str, 'object']:\n            f2 = getattr(libgroupby, '{fname}_{dtype_str}'.format(fname=fname, dtype_str=dt), None)\n            if f2 is not None:\n                return f2\n        if hasattr(f, '__signatures__'):\n            if dtype_str == 'object' and 'object' not in f.__signatures__:\n                return None\n        return f\n    ftype = self._cython_functions[kind][how]\n    if isinstance(ftype, dict):\n        func = afunc = get_func(ftype['name'])\n        f = ftype.get('f')\n        if f is not None:\n\n            def wrapper(*args, **kwargs):\n                return f(afunc, *args, **kwargs)\n            func = wrapper\n    else:\n        func = get_func(ftype)\n    if func is None:\n        raise NotImplementedError('function is not implemented for this dtype: [how->{how},dtype->{dtype_str}]'.format(how=how, dtype_str=dtype_str))\n    return func",
-                            "def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):\n    assert kind in ['transform', 'aggregate']\n    orig_values = values\n    if is_categorical_dtype(values) or is_sparse(values):\n        raise NotImplementedError('{} dtype not supported'.format(values.dtype))\n    elif is_datetime64_any_dtype(values):\n        if how in ['add', 'prod', 'cumsum', 'cumprod']:\n            raise NotImplementedError('datetime64 type does not support {} operations'.format(how))\n    elif is_timedelta64_dtype(values):\n        if how in ['prod', 'cumprod']:\n            raise NotImplementedError('timedelta64 type does not support {} operations'.format(how))\n    if is_datetime64tz_dtype(values.dtype):\n        values = values.view('M8[ns]')\n    is_datetimelike = needs_i8_conversion(values.dtype)\n    is_numeric = is_numeric_dtype(values.dtype)\n    if is_datetimelike:\n        values = values.view('int64')\n        is_numeric = True\n    elif is_bool_dtype(values.dtype):\n        values = ensure_float64(values)\n    elif is_integer_dtype(values):\n        if (values == iNaT).any():\n            values = ensure_float64(values)\n        else:\n            values = ensure_int_or_float(values)\n    elif is_numeric and (not is_complex_dtype(values)):\n        values = ensure_float64(values)\n    else:\n        values = values.astype(object)\n    arity = self._cython_arity.get(how, 1)\n    vdim = values.ndim\n    swapped = False\n    if vdim == 1:\n        values = values[:, None]\n        out_shape = (self.ngroups, arity)\n    else:\n        if axis > 0:\n            swapped = True\n            assert axis == 1, axis\n            values = values.T\n        if arity > 1:\n            raise NotImplementedError(\"arity of more than 1 is not supported for the 'how' argument\")\n        out_shape = (self.ngroups,) + values.shape[1:]\n    try:\n        func = self._get_cython_function(kind, how, values, is_numeric)\n    except NotImplementedError:\n        if is_numeric:\n            try:\n                values = ensure_float64(values)\n            except TypeError:\n                if lib.infer_dtype(values, skipna=False) == 'complex':\n                    values = values.astype(complex)\n                else:\n                    raise\n            func = self._get_cython_function(kind, how, values, is_numeric)\n        else:\n            raise\n    if how == 'rank':\n        out_dtype = 'float'\n    elif is_numeric:\n        out_dtype = '{kind}{itemsize}'.format(kind=values.dtype.kind, itemsize=values.dtype.itemsize)\n    else:\n        out_dtype = 'object'\n    labels, _, _ = self.group_info\n    if kind == 'aggregate':\n        result = _maybe_fill(np.empty(out_shape, dtype=out_dtype), fill_value=np.nan)\n        counts = np.zeros(self.ngroups, dtype=np.int64)\n        result = self._aggregate(result, counts, values, labels, func, is_numeric, is_datetimelike, min_count)\n    elif kind == 'transform':\n        result = _maybe_fill(np.empty_like(values, dtype=out_dtype), fill_value=np.nan)\n        result = self._transform(result, values, labels, func, is_numeric, is_datetimelike, **kwargs)\n    if is_integer_dtype(result) and (not is_datetimelike):\n        mask = result == iNaT\n        if mask.any():\n            result = result.astype('float64')\n            result[mask] = np.nan\n    if kind == 'aggregate' and self._filter_empty_groups and (not counts.all()):\n        assert result.ndim != 2\n        result = result[counts > 0]\n    if vdim == 1 and arity == 1:\n        result = result[:, 0]\n    if how in self._name_functions:\n        names = self._name_functions[how]()\n    else:\n        names = None\n    if swapped:\n        result = result.swapaxes(0, axis)\n    if is_datetime64tz_dtype(orig_values.dtype):\n        result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)\n    elif is_datetimelike and kind == 'aggregate':\n        result = result.astype(orig_values.dtype)\n    return (result, names)",
+                            "def _cython_operation(self, kind, values, how, axis, min_count=-1, **kwargs):\n    assert kind in ['transform', 'aggregate']\n    orig_values = values\n    if is_categorical_dtype(values) or is_sparse(values):\n        raise NotImplementedError('{} dtype not supported'.format(values.dtype))\n    elif is_datetime64_any_dtype(values):\n        if how in ['add', 'prod', 'cumsum', 'cumprod']:\n            raise NotImplementedError('datetime64 type does not support {} operations'.format(how))\n    elif is_timedelta64_dtype(values):\n        if how in ['prod', 'cumprod']:\n            raise NotImplementedError('timedelta64 type does not support {} operations'.format(how))\n    if is_datetime64tz_dtype(values.dtype):\n        values = values.view('M8[ns]')\n    is_datetimelike = needs_i8_conversion(values.dtype)\n    is_numeric = is_numeric_dtype(values.dtype)\n    if is_datetimelike:\n        values = values.view('int64')\n        is_numeric = True\n    elif is_bool_dtype(values.dtype):\n        values = ensure_float64(values)\n    elif is_integer_dtype(values):\n        if (values == iNaT).any():\n            values = ensure_float64(values)\n        else:\n            values = ensure_int_or_float(values)\n    elif is_numeric and (not is_complex_dtype(values)):\n        values = ensure_float64(values)\n    else:\n        values = values.astype(object)\n    arity = self._cython_arity.get(how, 1)\n    vdim = values.ndim\n    swapped = False\n    if vdim == 1:\n        values = values[:, None]\n        out_shape = (self.ngroups, arity)\n    else:\n        if axis > 0:\n            swapped = True\n            assert axis == 1, axis\n            values = values.T\n        if arity > 1:\n            raise NotImplementedError(\"arity of more than 1 is not supported for the 'how' argument\")\n        out_shape = (self.ngroups,) + values.shape[1:]\n    try:\n        func = self._get_cython_function(kind, how, values, is_numeric)\n    except NotImplementedError:\n        if is_numeric:\n            try:\n                values = ensure_float64(values)\n            except TypeError:\n                if lib.infer_dtype(values, skipna=False) == 'complex':\n                    values = values.astype(complex)\n                else:\n                    raise\n            func = self._get_cython_function(kind, how, values, is_numeric)\n        else:\n            raise\n    if how == 'rank':\n        out_dtype = 'float'\n    elif is_numeric:\n        out_dtype = '{kind}{itemsize}'.format(kind=values.dtype.kind, itemsize=values.dtype.itemsize)\n    else:\n        out_dtype = 'object'\n    (labels, _, _) = self.group_info\n    if kind == 'aggregate':\n        result = _maybe_fill(np.empty(out_shape, dtype=out_dtype), fill_value=np.nan)\n        counts = np.zeros(self.ngroups, dtype=np.int64)\n        result = self._aggregate(result, counts, values, labels, func, is_numeric, is_datetimelike, min_count)\n    elif kind == 'transform':\n        result = _maybe_fill(np.empty_like(values, dtype=out_dtype), fill_value=np.nan)\n        result = self._transform(result, values, labels, func, is_numeric, is_datetimelike, **kwargs)\n    if is_integer_dtype(result) and (not is_datetimelike):\n        mask = result == iNaT\n        if mask.any():\n            result = result.astype('float64')\n            result[mask] = np.nan\n    if kind == 'aggregate' and self._filter_empty_groups and (not counts.all()):\n        assert result.ndim != 2\n        result = result[counts > 0]\n    if vdim == 1 and arity == 1:\n        result = result[:, 0]\n    if how in self._name_functions:\n        names = self._name_functions[how]()\n    else:\n        names = None\n    if swapped:\n        result = result.swapaxes(0, axis)\n    if is_datetime64tz_dtype(orig_values.dtype):\n        result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)\n    elif is_datetimelike and kind == 'aggregate':\n        result = result.astype(orig_values.dtype)\n    return (result, names)",
                             "def aggregate(self, values, how, axis=0, min_count=-1):\n    return self._cython_operation('aggregate', values, how, axis, min_count=min_count)",
                             "def transform(self, values, how, axis=0, **kwargs):\n    return self._cython_operation('transform', values, how, axis, **kwargs)",
                             "def _aggregate(self, result, counts, values, comp_ids, agg_func, is_numeric, is_datetimelike, min_count=-1):\n    if values.ndim > 2:\n        raise NotImplementedError('number of dimensions is currently limited to 2')\n    else:\n        agg_func(result, counts, values, comp_ids, min_count)\n    return result",
-                            "def _transform(self, result, values, comp_ids, transform_func, is_numeric, is_datetimelike, **kwargs):\n    comp_ids, _, ngroups = self.group_info\n    if values.ndim > 2:\n        raise NotImplementedError('number of dimensions is currently limited to 2')\n    else:\n        transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)\n    return result",
+                            "def _transform(self, result, values, comp_ids, transform_func, is_numeric, is_datetimelike, **kwargs):\n    (comp_ids, _, ngroups) = self.group_info\n    if values.ndim > 2:\n        raise NotImplementedError('number of dimensions is currently limited to 2')\n    else:\n        transform_func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)\n    return result",
                             "def agg_series(self, obj, func):\n    try:\n        return self._aggregate_series_fast(obj, func)\n    except AssertionError:\n        raise\n    except ValueError as err:\n        if 'No result.' in str(err):\n            pass\n        elif 'Function does not reduce' in str(err):\n            pass\n        else:\n            raise\n        return self._aggregate_series_pure_python(obj, func)",
-                            "def _aggregate_series_fast(self, obj, func):\n    func = self._is_builtin_func(func)\n    if obj.index._has_complex_internals:\n        raise TypeError('Incompatible index for Cython grouper')\n    group_index, _, ngroups = self.group_info\n    dummy = obj._get_values(slice(None, 0))\n    indexer = get_group_index_sorter(group_index, ngroups)\n    obj = obj.take(indexer)\n    group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)\n    grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)\n    result, counts = grouper.get_result()\n    return (result, counts)",
-                            "def _aggregate_series_pure_python(self, obj, func):\n    group_index, _, ngroups = self.group_info\n    counts = np.zeros(ngroups, dtype=int)\n    result = None\n    splitter = get_splitter(obj, group_index, ngroups, axis=self.axis)\n    for label, group in splitter:\n        res = func(group)\n        if result is None:\n            if isinstance(res, (Series, Index, np.ndarray)):\n                raise ValueError('Function does not reduce')\n            result = np.empty(ngroups, dtype='O')\n        counts[label] = group.shape[0]\n        result[label] = res\n    result = lib.maybe_convert_objects(result, try_float=0)\n    return (result, counts)",
+                            "def _aggregate_series_fast(self, obj, func):\n    func = self._is_builtin_func(func)\n    if obj.index._has_complex_internals:\n        raise TypeError('Incompatible index for Cython grouper')\n    (group_index, _, ngroups) = self.group_info\n    dummy = obj._get_values(slice(None, 0))\n    indexer = get_group_index_sorter(group_index, ngroups)\n    obj = obj.take(indexer)\n    group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)\n    grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)\n    (result, counts) = grouper.get_result()\n    return (result, counts)",
+                            "def _aggregate_series_pure_python(self, obj, func):\n    (group_index, _, ngroups) = self.group_info\n    counts = np.zeros(ngroups, dtype=int)\n    result = None\n    splitter = get_splitter(obj, group_index, ngroups, axis=self.axis)\n    for (label, group) in splitter:\n        res = func(group)\n        if result is None:\n            if isinstance(res, (Series, Index, np.ndarray)):\n                raise ValueError('Function does not reduce')\n            result = np.empty(ngroups, dtype='O')\n        counts[label] = group.shape[0]\n        result[label] = res\n    result = lib.maybe_convert_objects(result, try_float=0)\n    return (result, counts)",
                             "def get_func(fname):\n    f = getattr(libgroupby, fname, None)\n    if f is not None and is_numeric:\n        return f\n    for dt in [dtype_str, 'object']:\n        f2 = getattr(libgroupby, '{fname}_{dtype_str}'.format(fname=fname, dtype_str=dt), None)\n        if f2 is not None:\n            return f2\n    if hasattr(f, '__signatures__'):\n        if dtype_str == 'object' and 'object' not in f.__signatures__:\n            return None\n    return f",
                             "def wrapper(*args, **kwargs):\n    return f(afunc, *args, **kwargs)"
                         ],
                         "constructor_variables": [
-                            "_filter_empty_groups",
-                            "sort",
-                            "groupings",
-                            "axis",
-                            "mutated",
-                            "group_keys",
-                            "compressed",
-                            "indexer"
+                            "self._filter_empty_groups = self.compressed = len(groupings) != 1",
+                            "self._filter_empty_groups = self.compressed = len(groupings) != 1",
+                            "self.axis = axis",
+                            "self.groupings = groupings",
+                            "self.sort = sort",
+                            "self.group_keys = group_keys",
+                            "self.mutated = mutated",
+                            "self.indexer = indexer"
                         ],
                         "class_level_variables": [
-                            "_cython_functions",
-                            "_cython_arity",
-                            "_name_functions"
+                            "_cython_functions = {'aggregate': {'add': 'group_add', 'prod': 'group_prod', 'min': 'group_min', 'max': 'group_max', 'mean': 'group_mean', 'median': {'name': 'group_median'}, 'var': 'group_var', 'first': {'name': 'group_nth', 'f': lambda func, a, b, c, d, e: func(a, b, c, d, 1, -1)}, 'last': 'group_last', 'ohlc': 'group_ohlc'}, 'transform': {'cumprod': 'group_cumprod', 'cumsum': 'group_cumsum', 'cummin': 'group_cummin', 'cummax': 'group_cummax', 'rank': {'name': 'group_rank', 'f': lambda func, a, b, c, d, e, **kwargs: func(a, b, c, e, kwargs.get('ties_method', 'average'), kwargs.get('ascending', True), kwargs.get('pct', False), kwargs.get('na_option', 'keep'))}}}",
+                            "_cython_arity = {'ohlc': 4}",
+                            "_name_functions = {'ohlc': lambda *args: ['open', 'high', 'low', 'close']}"
                         ],
                         "class_decorators": [],
                         "function_signatures": [
@@ -161,28 +161,44 @@
                             "_aggregate_series_pure_python(self, obj, func)",
                             "get_func(fname)",
                             "wrapper(*args, **kwargs)"
+                        ],
+                        "class_level_variable_names": [
+                            "_cython_functions",
+                            "_cython_arity",
+                            "_name_functions"
+                        ],
+                        "constructor_variable_names": [
+                            "sort",
+                            "indexer",
+                            "mutated",
+                            "compressed",
+                            "groupings",
+                            "axis",
+                            "group_keys",
+                            "_filter_empty_groups"
                         ]
                     },
+                    "used_imports": [],
                     "variable_values": [
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x117769c10>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe6687a89d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x117769c10>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7fe6687a89d0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.82903166640186642943888273293850943...\n1    Decimal: 0.18731590914797480174058819102356210...\n2    Decimal: 0.07883037912521462242665393205243162...\n3    Decimal: 0.26011143992278040748544754023896530...\n4    Decimal: 0.45105004671184212305945493426406756...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.53908210757864905016134571269503794...\n1    Decimal: 0.06982490993021817082819779898272827...\n2    Decimal: 0.11997942158682128876989736454561352...\n3    Decimal: 0.80921426616133451670265230859513394...\n4    Decimal: 0.79143307267106455249461305356817319...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x117646c10>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7fe668d8eb80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -192,29 +208,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x117769c10>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe6687a89d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x117769c10>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe6687a89d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x117769c10>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7fe6687a89d0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.82903166640186642943888273293850943...\n1    Decimal: 0.18731590914797480174058819102356210...\n2    Decimal: 0.07883037912521462242665393205243162...\n3    Decimal: 0.26011143992278040748544754023896530...\n4    Decimal: 0.45105004671184212305945493426406756...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.53908210757864905016134571269503794...\n1    Decimal: 0.06982490993021817082819779898272827...\n2    Decimal: 0.11997942158682128876989736454561352...\n3    Decimal: 0.80921426616133451670265230859513394...\n4    Decimal: 0.79143307267106455249461305356817319...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x117646c10>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7fe668d8eb80>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -224,7 +240,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x117769c10>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe6687a89d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -233,22 +249,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x117772040>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe66879ce50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x117772040>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7fe66879ce50>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.94811067599538656480717691010795533...\n1    Decimal: 0.47238628250068692704388695347006432...\n2    Decimal: 0.50023610689164277331997254805173724...\n3    Decimal: 0.23703624587937455192587776764412410...\n4    Decimal: 0.25596558285246717723282472434220835...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.60225909304134417343590257587493397...\n1    Decimal: 0.36587924982897390702163420428405515...\n2    Decimal: 0.99181271978081941842475544035551138...\n3    Decimal: 0.42216535106601327242970000952482223...\n4    Decimal: 0.86453941755225804932649680267786607...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1177ef820>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7fe668794ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -258,29 +274,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x117772040>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe66879ce50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x117772040>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe66879ce50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x117772040>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7fe66879ce50>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.94811067599538656480717691010795533...\n1    Decimal: 0.47238628250068692704388695347006432...\n2    Decimal: 0.50023610689164277331997254805173724...\n3    Decimal: 0.23703624587937455192587776764412410...\n4    Decimal: 0.25596558285246717723282472434220835...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.60225909304134417343590257587493397...\n1    Decimal: 0.36587924982897390702163420428405515...\n2    Decimal: 0.99181271978081941842475544035551138...\n3    Decimal: 0.42216535106601327242970000952482223...\n4    Decimal: 0.86453941755225804932649680267786607...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1177ef820>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7fe668794ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -290,7 +306,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x117772040>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7fe66879ce50>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -301,22 +317,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -326,29 +342,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -358,7 +374,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -367,22 +383,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -392,29 +408,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -424,7 +440,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1161c7ee0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f02b0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -433,22 +449,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -458,29 +474,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -490,7 +506,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -499,22 +515,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -524,29 +540,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -556,7 +572,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635d6d0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76fb880>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -565,22 +581,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -590,29 +606,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -622,7 +638,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -631,22 +647,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -656,29 +672,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -688,7 +704,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x11635da60>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76f0490>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -697,22 +713,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -722,29 +738,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -754,7 +770,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -763,22 +779,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -788,29 +804,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2, 2)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11626fca0>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a76cb700>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -820,7 +836,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368c70>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a7686940>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -829,12 +845,12 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116351700>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
@@ -844,7 +860,7 @@
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -854,19 +870,19 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116351700>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
@@ -876,7 +892,7 @@
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -886,7 +902,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -895,22 +911,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116351700>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -920,29 +936,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116351700>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -952,7 +968,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -961,22 +977,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116351700>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -986,29 +1002,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116351700>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.26965020068332135050326314740232191...\n1    Decimal: 0.56709207260944338724328872558544389...\n2    Decimal: 0.71892885794209959726686065550893545...\n3    Decimal: 0.41403247914053620259977606110624037...\n4    Decimal: 0.19351907469848461662564886864856816...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.64526452787153143475507022230885922...\n1    Decimal: 0.01875532090085241243571090308250859...\n2    Decimal: 0.70925985071735564435613241585087962...\n3    Decimal: 0.07545733440433222138921109944931231...\n4    Decimal: 0.61014576125673636308732739053084515...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x1161abb80>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7712af0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1018,7 +1034,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116351700>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a139dc40>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -1027,22 +1043,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368250>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11629e670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a13a7550>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1052,29 +1068,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368250>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11629e670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a13a7550>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1084,7 +1100,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -1093,22 +1109,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368250>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11629e670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a13a7550>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1118,29 +1134,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x116368250>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\nName: decimals, dtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\nName: decimals, dtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11629e670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a13a7550>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1150,7 +1166,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x116368250>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76868e0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -1159,22 +1175,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\ndtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\ndtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11632b670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7665790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1184,29 +1200,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\ndtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\ndtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11632b670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7665790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1216,7 +1232,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -1225,22 +1241,22 @@
                         [
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\ndtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\ndtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11632b670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7665790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1250,29 +1266,29 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
                             },
                             {
                                 "self._aggregate_series_fast": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_fast of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>",
+                                    "variable_value": "<pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>",
                                     "variable_type": "BaseGrouper",
                                     "variable_shape": "(2,)"
                                 },
                                 "obj": {
-                                    "variable_value": "0    Decimal: 0.97748449524317793102312634800910018...\n1    Decimal: 0.77546593421316900585082976249395869...\n2    Decimal: 0.21237155116885375605306762736290693...\n3    Decimal: 0.18239661482972779893430015363264828...\n4    Decimal: 0.72557727359715651349603149355971254...\ndtype: decimal",
+                                    "variable_value": "0    Decimal: 0.74685639050520780113373575659352354...\n1    Decimal: 0.87843662677750167233625688822939991...\n2    Decimal: 0.15827745191210462749609177990350872...\n3    Decimal: 0.51389822670830265227692734697484411...\n4    Decimal: 0.65151991596411629181773150776280090...\ndtype: decimal",
                                     "variable_type": "Series",
                                     "variable_shape": "(5,)"
                                 },
                                 "func": {
-                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x11632b670>",
+                                    "variable_value": "<function _GroupBy._python_agg_general.<locals>.<lambda> at 0x7f12a7665790>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1282,7 +1298,7 @@
                                     "variable_shape": null
                                 },
                                 "self._aggregate_series_pure_python": {
-                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x1163345e0>>",
+                                    "variable_value": "<bound method BaseGrouper._aggregate_series_pure_python of <pandas.core.groupby.ops.BaseGrouper object at 0x7f12a76ae3d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -4754,7 +4770,7 @@
         },
         "test_data": [
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_135/pandas/tests/extension/decimal/test_decimal.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_135/pandas/tests/extension/decimal/test_decimal.py",
                 "test_function": "test_groupby_agg",
                 "test_function_code": "def test_groupby_agg():\n    # Ensure that the result of agg is inferred to be decimal dtype\n    # https://github.com/pandas-dev/pandas/issues/29141\n\n    data = make_data()[:5]\n    df = pd.DataFrame(\n        {\"id1\": [0, 0, 0, 1, 1], \"id2\": [0, 1, 0, 1, 1], \"decimals\": DecimalArray(data)}\n    )\n\n    # single key, selected column\n    expected = pd.Series(to_decimal([data[0], data[3]]))\n    result = df.groupby(\"id1\")[\"decimals\"].agg(lambda x: x.iloc[0])\n    tm.assert_series_equal(result, expected, check_names=False)\n    result = df[\"decimals\"].groupby(df[\"id1\"]).agg(lambda x: x.iloc[0])\n    tm.assert_series_equal(result, expected, check_names=False)\n\n    # multiple keys, selected column\n    expected = pd.Series(\n        to_decimal([data[0], data[1], data[3]]),\n        index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 1)]),\n    )\n    result = df.groupby([\"id1\", \"id2\"])[\"decimals\"].agg(lambda x: x.iloc[0])\n    tm.assert_series_equal(result, expected, check_names=False)\n    result = df[\"decimals\"].groupby([df[\"id1\"], df[\"id2\"]]).agg(lambda x: x.iloc[0])\n    tm.assert_series_equal(result, expected, check_names=False)\n\n    # multiple columns\n    expected = pd.DataFrame({\"id2\": [0, 1], \"decimals\": to_decimal([data[0], data[3]])})\n    result = df.groupby(\"id1\").agg(lambda x: x.iloc[0])\n    tm.assert_frame_equal(result, expected, check_names=False)",
                 "test_error": "AssertionError: Attributes of Series are different  Attribute \"dtype\" are different [left]:  object [right]: decimal",
@@ -4764,11 +4780,11 @@
                 "test_function_decorators": []
             },
             {
-                "test_path": "/Volumes/JerrySSD/bgp_envs/repos/pandas_135/pandas/tests/extension/decimal/test_decimal.py",
+                "test_path": "/home/ubuntu/Desktop/bgp_envs_local/repos/pandas_135/pandas/tests/extension/decimal/test_decimal.py",
                 "test_function": "test_groupby_agg_ea_method",
                 "test_function_code": "def test_groupby_agg_ea_method(monkeypatch):\n    # Ensure that the result of agg is inferred to be decimal dtype\n    # https://github.com/pandas-dev/pandas/issues/29141\n\n    def DecimalArray__my_sum(self):\n        return np.sum(np.array(self))\n\n    monkeypatch.setattr(DecimalArray, \"my_sum\", DecimalArray__my_sum, raising=False)\n\n    data = make_data()[:5]\n    df = pd.DataFrame({\"id\": [0, 0, 0, 1, 1], \"decimals\": DecimalArray(data)})\n    expected = pd.Series(to_decimal([data[0] + data[1] + data[2], data[3] + data[4]]))\n\n    result = df.groupby(\"id\")[\"decimals\"].agg(lambda x: x.values.my_sum())\n    tm.assert_series_equal(result, expected, check_names=False)\n    s = pd.Series(DecimalArray(data))\n    result = s.groupby(np.array([0, 0, 0, 1, 1])).agg(lambda x: x.values.my_sum())\n    tm.assert_series_equal(result, expected, check_names=False)",
                 "test_error": "AssertionError: Attributes of Series are different  Attribute \"dtype\" are different [left]:  object [right]: decimal",
-                "full_test_error": "monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119a02130>\n\n    def test_groupby_agg_ea_method(monkeypatch):\n        # Ensure that the result of agg is inferred to be decimal dtype\n        # https://github.com/pandas-dev/pandas/issues/29141\n    \n        def DecimalArray__my_sum(self):\n            return np.sum(np.array(self))\n    \n        monkeypatch.setattr(DecimalArray, \"my_sum\", DecimalArray__my_sum, raising=False)\n    \n        data = make_data()[:5]\n        df = pd.DataFrame({\"id\": [0, 0, 0, 1, 1], \"decimals\": DecimalArray(data)})\n        expected = pd.Series(to_decimal([data[0] + data[1] + data[2], data[3] + data[4]]))\n    \n        result = df.groupby(\"id\")[\"decimals\"].agg(lambda x: x.values.my_sum())\n>       tm.assert_series_equal(result, expected, check_names=False)\nE       AssertionError: Attributes of Series are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  object\nE       [right]: decimal\n\npandas/tests/extension/decimal/test_decimal.py:477: AssertionError",
+                "full_test_error": "monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9e365f03d0>\n\n    def test_groupby_agg_ea_method(monkeypatch):\n        # Ensure that the result of agg is inferred to be decimal dtype\n        # https://github.com/pandas-dev/pandas/issues/29141\n    \n        def DecimalArray__my_sum(self):\n            return np.sum(np.array(self))\n    \n        monkeypatch.setattr(DecimalArray, \"my_sum\", DecimalArray__my_sum, raising=False)\n    \n        data = make_data()[:5]\n        df = pd.DataFrame({\"id\": [0, 0, 0, 1, 1], \"decimals\": DecimalArray(data)})\n        expected = pd.Series(to_decimal([data[0] + data[1] + data[2], data[3] + data[4]]))\n    \n        result = df.groupby(\"id\")[\"decimals\"].agg(lambda x: x.values.my_sum())\n>       tm.assert_series_equal(result, expected, check_names=False)\nE       AssertionError: Attributes of Series are different\nE       \nE       Attribute \"dtype\" are different\nE       [left]:  object\nE       [right]: decimal\n\npandas/tests/extension/decimal/test_decimal.py:477: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []
