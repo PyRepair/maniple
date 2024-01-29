@@ -1,0 +1,94 @@
+# Prompt File scope based facts
+
+Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
+
+Assume you know the buggy function source code, 
+Does following used function signatures with the same file help to fix the bug?
+
+The buggy function's source code is:
+```python
+def _get_time_bins(self, ax):
+    if not isinstance(ax, DatetimeIndex):
+        raise TypeError(
+            "axis must be a DatetimeIndex, but got "
+            f"an instance of {type(ax).__name__}"
+        )
+
+    if len(ax) == 0:
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+        return binner, [], labels
+
+    first, last = _get_timestamp_range_edges(
+        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+    )
+    # GH #12037
+    # use first/last directly instead of call replace() on them
+    # because replace() will swallow the nanosecond part
+    # thus last bin maybe slightly before the end if the end contains
+    # nanosecond part and lead to `Values falls after last bin` error
+    binner = labels = date_range(
+        freq=self.freq,
+        start=first,
+        end=last,
+        tz=ax.tz,
+        name=ax.name,
+        ambiguous="infer",
+        nonexistent="shift_forward",
+    )
+
+    ax_values = ax.asi8
+    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+
+    # general version, knowing nothing about relative frequencies
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
+
+    if self.closed == "right":
+        labels = binner
+        if self.label == "right":
+            labels = labels[1:]
+    elif self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    # if we end up with more labels than bins
+    # adjust the labels
+    # GH4076
+    if len(bins) < len(labels):
+        labels = labels[: len(bins)]
+
+    return binner, bins, labels
+
+```
+
+The used function signatures and file name are:
+```
+# file name: /Volumes/SSD2T/bgp_envs/repos/pandas_34/pandas/core/resample.py
+
+# relative function's signature in this file
+def _get_timestamp_range_edges(first, last, offset, closed='left', base=0):
+    # ... omitted code ...
+    pass
+
+# relative function's signature in this file
+def ax(self):
+    # ... omitted code ...
+    pass
+
+# relative function's signature in this file
+def _adjust_bin_edges(self, binner, ax_values):
+    # ... omitted code ...
+    pass
+
+
+```
+
+Your response should follow this format:
+Justification: <your justification>
+Conclusion: either "Yes." or "No."
+
+

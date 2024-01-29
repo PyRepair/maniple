@@ -3,7 +3,10 @@ import ast
 import json
 import os
 import re
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 
 class NotSupportedError(Exception):
@@ -50,6 +53,35 @@ def print_in_green(text):
     green_start = "\033[92m"
     reset = "\033[0m"
     print(f"{green_start}{text}{reset}")
+
+
+def pass_at_k(n, c, k):
+    """
+    :param n: total number of samples
+    :param c: number of correct samples
+    :param k: k in pass@$k$
+    """
+    if n - c < k:
+        return 1.0
+
+    return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
+
+
+def iter_bugid_folders(path: Path):
+    """
+    Iterate over all bugid folders in the given path
+    :param path: path to the folder containing the bugid folders
+    :return: a list of tuples containing the bugid, project folder path and bugid folder path
+    """
+    result = []
+    for project_folder in path.iterdir():
+        if not project_folder.is_dir():
+            continue
+        for bugid_folder in project_folder.iterdir():
+            if not bugid_folder.is_dir():
+                continue
+            result.append((f"{project_folder.name}:{bugid_folder.name}", project_folder, bugid_folder))
+    return result
 
 
 def remove_comments_and_docstrings(source):
