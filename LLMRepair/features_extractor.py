@@ -168,6 +168,13 @@ class Facts:
         # angelic variables
         self._resolve_angelic_variables(buggy_function_info)
 
+        # resolve imports
+        buggy_imports = buggy_function_info["used_imports"]
+        if len(buggy_imports) > 0:
+            self.facts["used_imports"] = "\n".join(buggy_imports)
+        else:
+            self.facts["used_imports"] = None
+
     def _smart_cutoff(self, variable_value):
         if variable_value is None:
             return "", False
