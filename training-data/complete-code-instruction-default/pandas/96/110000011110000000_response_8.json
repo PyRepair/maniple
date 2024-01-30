@@ -1,0 +1,73 @@
+{
+    "pandas": [
+        {
+            "bugID": 96,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, pd.Timestamp):\n        n = self.n\n        df = other.to_pydatetime()\n        start = self.start\n        end = self.end\n\n        proposed = other.time()\n        # adjust other to reduce number of cases to handle\n        if n >= 0:\n            if proposed in end or not is_on_offset(df, start, end):\n                other = next_opening_time(df, start, end)\n        else:\n            if proposed in start:\n                other = other - pd.Timedelta(seconds=1)\n            if not is_on_offset(df, start, end):\n                # Starting from next possible time\n                other = next_opening_time(df, start, end)\n                other = get_closing_time(other, start, end)  # ????\n\n        # get total business hours\n        businesshours = get_business_hours_by_sec(start, end)\n\n        # biz days, remainder\n        bd, r = divmod(abs(n * 60), businesshours // 60)\n        if n < 0:\n            bd, r = -bd, -r\n        if bd != 0:\n            skip_bd = BusinessDay(n=bd)\n            # midnight business hour may not on BusinessDay\n            if not is_on_offset(df, start, end):\n                prev_open = prev_opening_time(df, start, end)\n                remain = other - prev_open\n                other = prev_open + skip_bd + remain\n            else:\n                other = other + skip_bd\n\n        # remaining business hours to adjust\n        bhour_remain = pd.Timedelta(minutes=r)\n\n        if n >= 0:\n            while bhour_remain != pd.Timedelta(0):\n                # business hour left in business time interval\n                bhour = (get_closing_time(prev_opening_time(other, start, end), start, end) - other)\n                if bhour_remain < bhour:\n                    # Overlap\n                    other += bhour_remain\n                    bhour_remain = pd.Timedelta(0)\n                else:\n                    # next business time\n                    bhour_remain -= bhour\n                    other = next_opening_time(other + bhour, start, end)\n        else:\n            while bhour_remain != pd.Timedelta(0):\n                # business hour left in this business time interval\n                bhour = next_opening_time(other, start, end) - other\n                if bhour_remain > bhour:\n                    # overlap\n                    other += bhour_remain\n                    bhour_remain = pd.Timedelta(0)\n                else:\n                    # go to next business time interval\n                    bhour_remain -= bhour\n                    other = get_closing_time(next_opening_time(other + bhour - pd.Timedelta(seconds=1), start, end), start, end)\n\n        return other\n    else:\n        raise ValueError(f\"Only know how to combine business hour with Timestamp\")",
+            "import_list": [
+                "import pandas as pd",
+                "from pandas.tseries.offsets import CustomBusinessHour",
+                "import numpy as np"
+            ]
+        }
+    ]
+}

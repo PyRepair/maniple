@@ -1,0 +1,74 @@
+{
+    "pandas": [
+        {
+            "bugID": 48,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> Tuple[List[Block], Index]:\n\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    new_items: List[np.ndarray] = []\n    deleted_items: List[np.ndarray] = []\n    split_items: List[np.ndarray] = []\n    split_frames: List[DataFrame] = []\n\n    no_result = object()\n    for block in data.blocks:\n\n        obj: DataFrame = self.obj[data.items[block.mgr_locs.as_array]]\n\n        s: GroupBy = get_groupby(obj, self.grouper)\n\n        if self.grouper.sort:\n            stride, _ = s.grouper.get_stride()\n            offense = len(stride) - 1\n            order = stride.offender\n        else:\n            offense = order = None\n\n        try:\n            result = s.aggregate(how, axis=self.axis, min_count=min_count, fill_value=None)\n\n        except NotImplementedError:\n            if alt is None:\n                assert how == \"ohlc\"\n                deleted_items.append(block.mgr_locs.as_array)\n                continue\n\n            s = s._concat_objects(obj)\n\n            if s.ndim == 2:\n                unwrapped = s._internal.get_values()\n            else:\n                unwrapped = np.atleast_2d(s._internal.get_values())\n\n            result = alt(observed=unwrapped, axis=self.axis)\n\n        new_items.append(block.mgr_locs.as_array)\n        agg_blocks.append(block.make_block(result, placement=block.mgr_locs))\n\n    if not agg_blocks and not split_frames:\n        raise DataError(\"No numeric types to aggregate\")\n\n    # reset the locs in the blocks to correspond to our\n    # current ordering\n    indexer = np.concatenate(new_items)\n    agg_items = data.items.take(np.sort(indexer))\n\n    for block, locs in zip(agg_blocks, split_items):\n        agg_blocks.extend(split_frames)\n        agg_items[locs] = split_frames\n        agg_items._verify_integrity()\n\n    blk.max_appended = max(offense, getattr(blk, \"max_appended\", offense))\n    blk.mgr_locs = BlockPlacement(indexer)\n    blk._can_fast_equals = self._can_fast_equals\n\n    return agg_blocks, agg_items",
+            "import_list": [
+                "from typing import List, Tuple",
+                "import numpy as np",
+                "from pandas import DataFrame, Index, Block, BlockManager, DataError",
+                "from pandas.core.groupby.generic import GroupBy"
+            ]
+        }
+    ]
+}

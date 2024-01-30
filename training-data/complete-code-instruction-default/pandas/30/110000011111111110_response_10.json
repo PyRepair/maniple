@@ -1,0 +1,77 @@
+{
+    "pandas": [
+        {
+            "bugID": 30,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 953,
+            "file_name": "pandas/io/json/_json.py",
+            "replace_code": "def _try_convert_to_date(self, data):\n    \"\"\"\n    Try to parse a ndarray like into a date column.\n\n    Try to coerce object in epoch/iso formats and integer/float in epoch\n    formats. Return a boolean if parsing was successful.\n    \"\"\"\n    # no conversion on empty\n    if not len(data):\n        return data, False\n    \n    new_data = data\n    if new_data.dtype == \"bool\":\n        return new_data, False\n    \n    if new_data.dtype == \"object\":\n        inferred_type = infer_dtype_from_object(new_data)\n        if inferred_type in ['string', 'datetime64']:\n            new_data = DatetimeArray(new_data)\n        elif inferred_type == 'integer':\n            try:\n                new_data = data.astype(\"int64\")\n            except (TypeError, ValueError, OverflowError):\n                pass\n\n    # ignore numbers that are out of range\n    if ops.is_number(new_data):\n        in_range = (\n            isna(np.asarray(new_data._values, dtype=bool))\n            | (new_data > self.min_stamp)\n            | (new_data._values == iNaT)\n        )\n        if not in_range.all():\n            return data, False\n\n    date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS\n    for date_unit in date_units:\n        new_data = DatetimeArray(new_data, tz='UTC').to_numpy(dtype='datetime64', errors='ignore', unit=date_unit)\n        if new_data is not None:\n            return new_data, True\n    return data, False",
+            "import_list": [
+                "import numpy as np",
+                "import pandas as pd",
+                "from pandas.core.dtypes.missing import isna",
+                "from pandas.core import ops",
+                "from pandas._libs.tslibs import iNaT",
+                "from pandas.core.arrays.datetimes import DatetimeArray",
+                "from pandas.core.dtypes.common import infer_dtype_from_object"
+            ]
+        }
+    ]
+}

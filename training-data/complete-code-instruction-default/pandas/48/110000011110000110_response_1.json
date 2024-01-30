@@ -1,0 +1,69 @@
+{
+    "pandas": [
+        {
+            "bugID": 48,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> tuple:\n    # TODO: the actual managing of mgr_locs is a PITA\n    # here, it should happen via BlockManager.combine\n    data = self._get_data_to_aggregate()\n    if numeric_only:\n        data = data._get_numeric_data(copy=False)\n    agg_blocks = []\n    new_items = []\n    deleted_items = []\n    split_items = []\n    split_frames = []\n    no_result = object()\n    for block in data.blocks:\n        result = no_result\n        locs = block.mgr_locs.as_array\n        try:\n            result, _ = self.grouper.aggregate(\n                lambda x: x.dropna(), how, axis=1, min_count=min_count\n            )\n        except NotImplementedError:\n            if alt is None:\n                if how == \"ohlc\":\n                    deleted_items.append(locs)\n                continue\n            obj = self.obj[data.items[locs]]\n            if obj.shape[1] == 1:\n                obj = obj.iloc[:, 0]\n            s = lambda x: alt(x, axis=1)\n            try:\n                result = s(obj)\n            except TypeError:\n                deleted_items.append(locs)\n                continue\n            else:\n                result = result if isinstance(result, np.ndarray) and result.ndim != 1 else result.values\n                if len(result.shape) > 2:\n                    split_items.append(locs)\n                    split_frames.append(result)\n                    continue\n                result = result.reshape(1, -1)\n        if not isinstance(result, DataFrame):\n            if result is not no_result:\n                result = maybe_downcast_numeric(result, block.dtype)\n                if block.is_extension and isinstance(result, np.ndarray):\n                    assert result.ndim in (1, 2) and result.shape[0] == 1\n                    result = type(block.values)._from_sequence(\n                        result.ravel(), dtype=block.values.dtype\n                    )\n                    if result.ndim == 1:\n                        result = result.reshape(1, -1)\n                agg_block = block.make_block(result)\n                new_items.append(locs)\n                agg_blocks.append(agg_block)\n    if not agg_blocks and not split_frames:\n        raise DataError(\"No numeric types to aggregate\")\n\n    agg_items = data.items.take(np.sort(np.concatenate(new_items)))\n    deleted_array = np.concatenate(deleted_items)\n    adjusted_indexer = (\n        np.arange(len(data)) - np.cumsum(deleted_array, axis=0)\n    )[np.concatenate(new_items)]\n    offset = 0\n    for blk, l in zip(agg_blocks, adjusted_indexer):\n        n = blk.shape[0]\n        blk.mgr_locs = l, np.arange(n)\n        offset += n\n    if split_items:\n        for locs, result in zip(split_items, split_frames):\n            n = len(locs)\n            for i, loc in zip(result, locs):\n                blk = DataFrame({i: DataFrame([result[i]], index=data.items[locs], dtype=object)})\n                blk = blk._data.blocks[0]\n                new_items.append(np.array([loc], dtype=i.dtype))\n                agg_blocks.append(blk)\n    return agg_blocks, agg_items",
+            "import_list": []
+        }
+    ]
+}

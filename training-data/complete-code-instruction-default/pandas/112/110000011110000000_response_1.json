@@ -1,0 +1,80 @@
+{
+    "pandas": [
+        {
+            "bugID": 112,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0
+            },
+            "start_line": 907,
+            "file_name": "pandas/core/indexes/interval.py",
+            "replace_code": "def get_indexer(\n    self,\n    target: pd.core.arrays.Categorical,\n    method: str = \"pad\",\n) -> np.ndarray:\n    \"\"\"\n    A docstring for get_indexer function.\n\n    Parameters\n    ----------\n    self : Index\n        Index instance.\n    target : Categorical\n        The target categorical array.\n    method : str, default 'pad'\n        The method for interpolation.\n\n    Returns\n    -------\n    np.ndarray\n        Returns the indexer array.\n\n    Raises\n    ------\n    NotImplementedError\n        If any method argument other than the default of\n        None is specified as these are not yet implemented.\n\n    \"\"\"\n    self._check_method(method)\n\n    if self.is_overlapping:\n        msg = (\n            \"cannot handle overlapping indices; use \"\n            \"IntervalIndex.get_indexer_non_unique\"\n        )\n        raise NotImplementedError(msg)\n\n    target_as_index = ensure_index(target)\n\n    if isinstance(target_as_index, IntervalIndex):\n        # equal indexes -> 1:1 positional match\n        if self.equals(target_as_index):\n            return np.arange(len(self), dtype=\"intp\")\n\n        # different closed or incompatible subtype -> no matches\n        common_subtype = target_as_index._get_attributes_dict()['subtype']\n        if self._get_attributes_dict()['closed'] != target_as_index._get_attributes_dict()['closed'] or is_object_dtype(common_subtype):\n            return np.repeat(np.intp(-1), len(target_as_index))\n\n        # non-overlapping -> at most one match per interval in target_as_index\n        # want exact matches -> need both left/right to match, so defer to\n        # left/right get_indexer, compare elementwise, equality -> match\n        left_indexer = self.left.get_indexer(target_as_index.left)\n        right_indexer = self.right.get_indexer(target_as_index.right)\n        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)\n    elif not is_object_dtype(target_as_index):\n        # homogeneous scalar index: use IntervalTree\n        target_as_index = target_as_index._unaryop('_get_dt_array')\n        indexer = self._engine.get_indexer(target_as_index.values)\n    else:\n        # heterogeneous scalar index: defer elementwise to get_loc\n        # (non-overlapping so get_loc guarantees scalar of KeyError)\n        indexer = []\n        for key in target_as_index:\n            try:\n                loc = self.get_loc(key)\n            except KeyError:\n                loc = -1\n            indexer.append(loc)\n\n    return indexer",
+            "import_list": [
+                "import numpy as np",
+                "import pandas as pd",
+                "from pandas import DataFrame, CategoricalIndex, interval_range",
+                "from pandas.util._decorators import Appender, Substitution",
+                "from pandas.core.indexes.interval import IntervalIndex",
+                "from pandas.core.indexes.category import ensure_index",
+                "from pandas.util._decorators import Appender",
+                "from pandas.core.indexes.base import Index",
+                "import textwrap",
+                "from pandas.core.dtypes.common import is_object_dtype, _get_dtype_type, is_hashable"
+            ]
+        }
+    ]
+}

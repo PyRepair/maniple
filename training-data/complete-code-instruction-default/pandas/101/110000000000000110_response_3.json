@@ -1,0 +1,69 @@
+{
+    "pandas": [
+        {
+            "bugID": 101,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 792,
+            "file_name": "pandas/core/dtypes/cast.py",
+            "replace_code": "def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):\n    \"\"\"\n    Cast the elements of an array to a given dtype in a nan-safe manner.\n\n    Parameters\n    ----------\n    arr : ndarray\n    dtype : np.dtype\n    copy : bool, default True\n        If False, a view will be attempted but may fail, if\n        e.g. the item sizes don't align.\n    skipna: bool, default False\n        Whether or not we should skip NaN when casting as a string-type.\n\n    Raises\n    ------\n    ValueError\n        The dtype was a datetime64/timedelta64 dtype, but it had no unit.\n    \"\"\"\n\n    if isinstance(dtype, pd.CategoricalDtype):\n        raise ValueError(\"Cannot cast a CategoricalDtype to a non-object type\")\n\n    if is_period_dtype(dtype):\n        return arr.view(dtype)\n\n    if is_interval_dtype(dtype):\n        raise ValueError(\"Cannot cast to an interval dtype.\")\n\n    if is_extension_array_dtype(dtype) or dtype == \"category\":\n        if is_categorical(arr):\n            return arr.astype(dtype, copy=copy)\n\n    if not isinstance(dtype, np.dtype):\n        dtype = pandas_dtype(dtype)\n\n    if is_scalar(dtype):\n        return arr.astype(dtype)\n\n    if is_datetime64_dtype(arr) or is_timedelta64_dtype(arr):\n        if not skipna and not is_dtype_equal(arr.dtype, obj_dtype):\n            values = arr.ravel()\n            mask = isna(values)\n            astyped = arr.astype(dtype)\n            result = astyped.view('i8' if is_datetime64_dtype(dtype) else 'm8')\n            result[mask] = NaT\n            return result.reshape(arr.shape)\n\n    return arr.astype(dtype, copy=copy)",
+            "import_list": []
+        }
+    ]
+}

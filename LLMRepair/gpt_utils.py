@@ -22,46 +22,46 @@ class GPTConnection:
         self.max_generation_count = 3
         self.buggy_function_name = buggy_function_name
 
-        buggy_function_length = estimate_function_code_length(source_buggy_function)
+        # buggy_function_length = estimate_function_code_length(source_buggy_function)
         messages = [{"role": "user", "content": prompt}]
 
         responses = self.get_response_with_valid_patch(messages, gpt_model, trial)
 
-        for index in range(len(responses["responses"])):
-            response: dict = responses["responses"][index]
-
-            conversation_response = response
-            messages = [
-                {"role": "user", "content": prompt},
-                {"role": "assistant", "content": response["response"]},
-                {"role": "user", "content": "Print the full code of the fixed function"},
-            ]
-
-            self.max_conversation_count = 3
-            self.max_generation_count = 6
-
-            start_time = time.time()
-
-            while True:
-                if estimate_function_code_length(conversation_response["fix_patch"]) > 0.6 * buggy_function_length:
-                    responses["responses"][index] = conversation_response
-                    break
-
-                conversation_responses = self.get_response_with_valid_patch(messages, gpt_model, trial=1)
-                responses["total_token_usage"] = combine_token_usage(responses["total_token_usage"], conversation_responses["total_token_usage"])
-
-                if len(conversation_responses["responses"]) > 0:
-                    conversation_response = conversation_responses["responses"][0]
-
-                self.max_conversation_count -= 1
-                if self.max_conversation_count == 0:
-                    print_in_yellow("Exceed max conversation count")
-                    break
-
-            end_time = time.time()
-            if end_time - start_time > 120:
-                print_in_red(f"long time for conversation")
-                print(end_time - start_time)
+        # for index in range(len(responses["responses"])):
+        #     response: dict = responses["responses"][index]
+        #
+        #     conversation_response = response
+        #     messages = [
+        #         {"role": "user", "content": prompt},
+        #         {"role": "assistant", "content": response["response"]},
+        #         {"role": "user", "content": "Print the full code of the fixed function"},
+        #     ]
+        #
+        #     self.max_conversation_count = 3
+        #     self.max_generation_count = 6
+        #
+        #     start_time = time.time()
+        #
+        #     while True:
+        #         if estimate_function_code_length(conversation_response["fix_patch"]) > 0.6 * buggy_function_length:
+        #             responses["responses"][index] = conversation_response
+        #             break
+        #
+        #         conversation_responses = self.get_response_with_valid_patch(messages, gpt_model, trial=1)
+        #         responses["total_token_usage"] = combine_token_usage(responses["total_token_usage"], conversation_responses["total_token_usage"])
+        #
+        #         if len(conversation_responses["responses"]) > 0:
+        #             conversation_response = conversation_responses["responses"][0]
+        #
+        #         self.max_conversation_count -= 1
+        #         if self.max_conversation_count == 0:
+        #             print_in_yellow("Exceed max conversation count")
+        #             break
+        #
+        #     end_time = time.time()
+        #     if end_time - start_time > 120:
+        #         print_in_red(f"long time for conversation")
+        #         print(end_time - start_time)
 
         if len(responses["responses"]) < trial:
             for _ in range(trial - len(responses["responses"])):

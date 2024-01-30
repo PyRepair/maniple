@@ -1,0 +1,69 @@
+{
+    "pandas": [
+        {
+            "bugID": 88,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 0
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0
+            },
+            "start_line": 25,
+            "file_name": "pandas/core/reshape/pivot.py",
+            "replace_code": "def pivot_table(\n    data,\n    values=None,\n    index=None,\n    columns=None,\n    aggfunc=\"mean\",\n    fill_value=None,\n    margins=False,\n    dropna=True,\n    margins_name=\"All\",\n    observed=False,\n) -> \"DataFrame\":\n    values_passed = values is not None\n\n    # If index or columns are not None, convert them to list\n    if index is not None:\n        index = [index] if not isinstance(index, list) else index\n    if columns is not None:\n        columns = [columns] if not isinstance(columns, list) else columns\n\n    # Grouping data by keys\n    grouped = data.groupby(keys, observed=observed)\n    agged = grouped.agg(aggfunc)\n\n    # Generate table based on agged data\n    if len(index) == 1 and len(columns) > 1:\n        table = agged.unstack(columns)\n    elif len(index) > 1 and len(columns) == 1:\n        table = agged.unstack(index)\n    else:\n        table = agged\n\n    # Remove NaN values and downcast integers to floats\n    if dropna:\n        table = table.dropna(how=\"all\")\n\n        for v in values:\n            if (\n                isinstance(data[v], pd.Int64Dtype)\n                and isinstance(table[v], pd.Float64Dtype)\n            ):\n                agged[v] = table[v].astype(int)\n\n    # Adjust table and return\n    if isinstance(table, pd.DataFrame):\n        table = (\n            table.sort_index(axis=1)\n            .reindex(fill_value, axis=1)\n            .reindex(fill_value, axis=0)\n        )\n    return table",
+            "import_list": []
+        }
+    ]
+}

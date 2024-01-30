@@ -1,0 +1,73 @@
+{
+    "pandas": [
+        {
+            "bugID": 96,
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1
+            },
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        if isinstance(other, datetime):\n            # Reset timezone and nanosecond\n            other = other.replace(tzinfo=None, nanosecond=0)\n\n            if self.start <= other.time() < self.end:\n                return other  # Return input datetime if it's within business hours\n\n            if self.n == 0:  # If no business hour offset, return the input datetime\n                return other\n\n            direction = 1 if self.n > 0 else -1\n            abs_n = abs(self.n)\n            remaining_abs_n = abs_n\n\n            new_dt = other\n            holidays = self.get_holidays()\n\n            while remaining_abs_n > 0:\n                next_opening = self._next_opening_time(new_dt, sign=direction)\n                next_closing = self._get_closing_time(next_opening)\n\n                if direction == 1:\n                    business_hours_left = (next_closing - new_dt).total_seconds() / 3600\n                else:\n                    business_hours_left = (new_dt - next_opening).total_seconds() / 3600\n\n                if business_hours_left >= remaining_abs_n:  # Enough business hours left for the offset\n                    return next_closing if direction == 1 else next_opening\n\n                remaining_abs_n -= business_hours_left\n\n                if direction == 1:  # Move to the next business day\n                    days_to_add = (remaining_abs_n // self.business_hours_per_day) + 1\n                    new_dt += timedelta(days=days_to_add)\n                    while new_dt.weekday() in holidays:\n                        new_dt += timedelta(days=1)\n                else:  # Move to the previous business day\n                    days_to_subtract = (remaining_abs_n // self.business_hours_per_day) + 1\n                    new_dt -= timedelta(days=days_to_subtract)\n                    while new_dt.weekday() in holidays:\n                        new_dt -= timedelta(days=1)\n\n        else:\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": [
+                "from datetime import datetime, timedelta",
+                "import pandas as pd",
+                "import numpy as np"
+            ]
+        }
+    ]
+}
