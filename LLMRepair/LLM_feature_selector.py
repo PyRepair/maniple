@@ -10,12 +10,15 @@ from gpt_utils import get_responses_from_prompt, QueryException
 from utils import print_in_red, iter_bugid_folders, print_in_yellow
 
 question_template = """
-Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function.
+Your task is to determine whether the provided fact would be useful and relevant to fixing the buggy function. 
+Please be selective in your evaluation. Longer prompts with numerous insignificant facts could diminish the effectiveness of a large language model (LLM) in generating a successful patch for the bug. 
+Only facts that are deemed significantly contributory (Conclusion: "Yes.") will be utilized as input for the LLM to facilitate the repair of the buggy function.
+
 {0}
 
 Your response should follow this format:
-Justification: <your justification>
-Conclusion: either "Yes." or "No."
+Justification: <your detailed justification>
+Conclusion: either "Yes." or "No." 
 """
 
 class_info_prompt_template = question_template.format(
@@ -124,7 +127,7 @@ def get_bitvector_from_existing_responses(bugid_folder: Path, bugid: str, trials
     return bitvector
 
 
-def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str, trials: int) -> str:
+def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str, trials: int, overwrite: False) -> str:
     prompt_title = [
         "Class scope based facts",
         "File scope based facts",
@@ -145,7 +148,7 @@ def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str, tri
         response_file = _bug_folder / f"response_{prompt_file_title[idx]}.md"
 
         # handle existing responses
-        if prompt_file.exists() and response_file.exists():
+        if prompt_file.exists() and response_file.exists() and not overwrite:
             print(f"result for {prompt_file_title[idx]} already exists")
             return get_bitvector_from_existing_responses(_bug_folder, bugid, trials)
 
@@ -198,9 +201,10 @@ def get_result_bitvector(_prompts: List[str], _bug_folder: Path, bugid: str, tri
 
 def main():
     path = (
-            Path.cwd().parent / "training-data/choose-k-experiment/5-dataset-trial2"
+            Path.cwd().parent / "training-data/choose-k-experiment/5-dataset-trial3"
     )
-    trials = 2
+    trials = 3
+    overwrite = True
 
     for bugid, project_folder, bugid_folder in iter_bugid_folders(path):
         facts_in_prompt_file = bugid_folder / "facts-in-prompt.json"
@@ -226,7 +230,7 @@ def main():
 
         try:
             print_in_yellow(f"Generating bitvector for {bugid}")
-            bitvector = get_result_bitvector(prompts, bugid_folder, bugid, trials)
+            bitvector = get_result_bitvector(prompts, bugid_folder, bugid, trials, overwrite)
 
         except QueryException as error:
             print_in_red(f"{error}")
