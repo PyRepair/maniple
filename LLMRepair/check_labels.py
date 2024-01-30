@@ -2,7 +2,7 @@ import json
 import os.path
 import numpy as np
 
-dataset = ["16-100-dataset-default", "16-215-dataset-default"]
+dataset = ["without-import-instruction-default"]
 dataset_path = []
 for dataset in dataset:
     dataset_path.append(os.path.join("..", "training-data", dataset))
@@ -95,19 +95,19 @@ for trial in range(1, 11):
         fix_patch_count += fix_patch_count_next
         total_correct_fix_patch_count += correct_fix_patch_count_next
 
-        print(f"trial {trial} positive label number: {calculate_result_table_size(next_trial_result)}")
+        # print(f"trial {trial} positive label number: {calculate_result_table_size(next_trial_result)}")
 
         aggregate_result = merge_result_table(aggregate_result, next_trial_result)
 
         original_correct_fix_patch_count = correct_fix_patch_count
         correct_fix_patch_count = calculate_result_table_size(aggregate_result)
 
-        # print(f"Positive label number after combine trial {trial}: {correct_fix_patch_count}")
-        # print(f"Improve: {((correct_fix_patch_count / original_correct_fix_patch_count) * 100) - 100}%")
+        print(f"Positive label number after combine trial {trial}: {correct_fix_patch_count}")
+        print(f"Improve: {((correct_fix_patch_count / original_correct_fix_patch_count) * 100) - 100}%")
 
 
-# print(f"total fix patch count in 10 trials: {fix_patch_count}")
-# print(f"total correct fix patch count in 10 trials: {total_correct_fix_patch_count}")
-#
-# for k in range(1, 11):
-#     print(f"pass_at_{k}: {pass_at_k(fix_patch_count, total_correct_fix_patch_count, k)}")
+print(f"total fix patch count in 10 trials: {fix_patch_count}")
+print(f"total correct fix patch count in 10 trials: {total_correct_fix_patch_count}")
+
+for k in range(1, 11):
+    print(f"pass_at_{k}: {pass_at_k(fix_patch_count, total_correct_fix_patch_count, k)}")

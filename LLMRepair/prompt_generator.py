@@ -443,11 +443,12 @@ class PromptGenerator:
     def generate_buggy_code_section(self):
         self.prompt = self.prompt + self.template["1.1.1"]
 
-        # if not (self.facts["used_imports"] is None or self.facts["used_imports"] == [] or self.facts["used_imports"] == ""):
-        #     self.prompt = self.prompt + "You can assume that the following imports are available in current environment and you don't need to import them again when generating fix patch.\n"
-        #     self.prompt = self.prompt + "```python\n"
-        #     self.prompt = self.prompt + self.facts["used_imports"]
-        #     self.prompt = self.prompt + "\n```\n\n"
+        if not (self.facts["used_imports"] is None or self.facts["used_imports"] == [] or self.facts["used_imports"] == ""):
+            self.prompt = self.prompt + "You can assume that the following imports are available in current environment and you don't need to import them again when generating fix patch.\n"
+            self.prompt = self.prompt + "```python\n"
+            self.prompt = self.prompt + self.facts["used_imports"]
+            self.prompt = self.prompt + "\n```\n\n"
+            self.prompt = self.prompt + "# The sourcecode provided below contains buggy function\n"
 
         self.prompt = self.prompt + "```python\n"
 
@@ -650,11 +651,11 @@ def run_single_bitvector_partition(partition_bitvectors, start_index, trial_numb
                 prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
-                    print(f"\ngenerate response for {project}:{bid}")
-                    token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
-
-                    with lock:
-                        total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                    # print(f"\ngenerate response for {project}:{bid}")
+                    # token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
+                    #
+                    # with lock:
+                    #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
                 # try:
                 #     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
