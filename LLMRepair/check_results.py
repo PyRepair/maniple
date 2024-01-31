@@ -209,7 +209,8 @@ def main(path: str, top=None):
     print(
         f"Number of bugs fixed: {len(fixed_bugids)} out of {total_bugs}, percentage: {int((len(fixed_bugids) / total_bugs) * 100)}%"
     )
-    print(f"Numer of positive labels: {len(postive_labels)} (deduplicated)")
+    print(f"Number of positive labels: {len(postive_labels)} (deduplicated)")
+    print(f"Number of positive labels: {aggregated_stats.count_0}")
 
     # print_top10_bitvectors_for_each_bug(allPassStats)
 
