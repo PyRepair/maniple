@@ -444,7 +444,7 @@ class PromptGenerator:
         self.prompt = self.prompt + self.template["1.1.1"]
 
         if not (self.facts["used_imports"] is None or self.facts["used_imports"] == [] or self.facts["used_imports"] == ""):
-            self.prompt = self.prompt + "You can assume that the following imports are available in current environment and you don't need to import them again when generating fix patch.\n"
+            self.prompt = self.prompt + "Please assume the the following list of imports are available in the current environment so you don't need to import them when generating a fix.\n"
             self.prompt = self.prompt + "```python\n"
             self.prompt = self.prompt + self.facts["used_imports"]
             self.prompt = self.prompt + "\n```\n\n"
