@@ -442,7 +442,7 @@ class PromptGenerator:
 
     def generate_buggy_code_section(self):
         if not (self.facts["used_imports"] is None or self.facts["used_imports"] == [] or self.facts["used_imports"] == ""):
-            self.prompt = self.prompt + "Please assume that the following list of imports are available in the current environment so you don't need to import them when generating a fix.\n"
+            self.prompt = self.prompt + "Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.\n"
             self.prompt = self.prompt + "```python\n"
             self.prompt = self.prompt + self.facts["used_imports"]
             self.prompt = self.prompt + "\n```\n\n"
