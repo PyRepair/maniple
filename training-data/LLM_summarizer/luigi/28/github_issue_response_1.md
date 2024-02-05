@@ -1,0 +1,5 @@
+Summary:
+The issue details a bug in the table_exists function in the luigi library's hive module. The problem arises when working with tables that have capitalized names, as the function is case sensitive and returns table names in lowercase. This results in failed tests when the function is used to check for the existence of a table. The bug is noted to have emerged in newer versions, as older versions checked for specific strings in the stdout. The proposed solution is to make the table_exists function case insensitive by checking the stdout against the lowercase version of the table name.
+
+Insight:
+The bug affects the functionality of the table_exists function and could lead to incorrect results in cases where tables with capitalized names are used. The proposed solution to make the function case insensitive by comparing the lowercase table name with the stdout is a straightforward and feasible approach. By implementing this change, the bug can be addressed effectively, improving the accuracy and reliability of the table existence checking process.

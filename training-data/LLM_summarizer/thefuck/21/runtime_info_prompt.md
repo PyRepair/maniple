@@ -13,8 +13,9 @@ def match(command):
 
 ```
 
-## Expected case 1
-### Input parameter value and type
+# Variable runtime value and type inside buggy function
+## Buggy case 1
+### input parameter runtime value and type for buggy function
 command.script, value: `'git'`, type: `str`
 
 command, value: `Command(script=git, stdout=, stderr=
@@ -23,3 +24,6 @@ usage: git stash list [<options>]
    or: git stash drop [-q`, type: `Command`
 
 command.stderr, value: `'\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q`, type: `str`
+
+### variable runtime value and type before buggy function return
+splited_script, value: `['git']`, type: `list`

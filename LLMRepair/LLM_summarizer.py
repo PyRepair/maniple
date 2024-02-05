@@ -1,14 +1,15 @@
 import json
+import pickle
 import textwrap
 from collections import defaultdict
+from pathlib import Path
+from typing import List
 
 import tiktoken
-import pickle
-from pathlib import Path
-from gpt_utils import get_responses_from_prompt, QueryException, GPTConnection
-from utils import print_in_red, print_in_yellow, iter_bugid_folders, get_function_code, get_facts_in_prompt, get_import_statements
+
 from features_extractor import Facts
-from typing import List, Tuple, Dict, Any
+from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_response_with_fix_path
+from utils import print_in_red, print_in_yellow, iter_bugid_folders, get_facts_in_prompt
 
 
 # noinspection PyAttributeOutsideInit
@@ -61,7 +62,7 @@ class CustomFactProcessor(Facts):
     def get_dynamic_values_prompt(self):
         runtime_variables_section = self.facts_in_prompt["5"].split("# Expected variable value and type in tests")
         if len(runtime_variables_section) >= 1:
-            runtime_variables_section = runtime_variables_section[1].strip()
+            runtime_variables_section = runtime_variables_section[0].strip()
         else:
             return ""
         instruction = Path("prompt_instructions/dynamic_value_summarize.txt").read_text()
@@ -86,6 +87,8 @@ class CustomFactProcessor(Facts):
     def get_github_issue_prompt(self):
         instruction = Path("prompt_instructions/github_issue_summarize.txt").read_text()
         github_issue_section = self.facts_in_prompt["6"]
+        if github_issue_section == "":
+            return ""
         prompt = f"{instruction}\n\n{github_issue_section}"
         return prompt
 
@@ -128,11 +131,15 @@ The following is the buggy function that you need to fix:
 ```python
 {processor.buggy_function_code}
 ```
+""".strip()
 
-The following are used functions or methods in the buggy function:
-```python
-{processor.facts_in_prompt["2"]}
-```""".strip()
+    used_functions = processor.facts_in_prompt["2"]
+    if used_functions != "":
+        print("Generate use function. Tokens:", count_tokens(used_functions))
+        prompt += "\n\n\n\n"
+        prompt += f"## Functions Used in the Buggy Function\n```python{used_functions}```"
+    else:
+        print_in_red("No used functions")
 
     test_info_prompt = processor.get_test_function_prompt()
     print("Generating test info. Tokens:", count_tokens(test_info_prompt), end=" ")
@@ -152,7 +159,7 @@ Here is a summary of the test cases and error messages:
 
     runtime_value_prompt = processor.get_dynamic_values_prompt()
     num_tokens = count_tokens(runtime_value_prompt)
-    if num_tokens < 10_000:
+    if num_tokens < 10_000 and runtime_value_prompt != "":
         print("Generating runtime value summary. Tokens:", num_tokens, end=" ")
         runtime_value_summary = get_response_and_store_results(prompt=runtime_value_prompt,
                                                                prompt_file=processor.get_bugid_folder() / "runtime_info_prompt.md",
@@ -163,11 +170,11 @@ Here is a summary of the test cases and error messages:
         prompt += "## Summary of Runtime Variables and Types in the Buggy Function\n\n"
         prompt += runtime_value_summary
     else:
-        print_in_red(f"Runtime value summary is too long. Tokens: {num_tokens}")
+        print_in_red(f"Runtime value summary is too long or absence. Tokens: {num_tokens}")
 
     angelic_value_prompt = processor.get_angelic_values_prompt()
     num_tokens = count_tokens(angelic_value_prompt)
-    if num_tokens < 10_000:
+    if num_tokens < 10_000 and angelic_value_prompt != "":
         print("Generating angelic value summary. Tokens:", num_tokens, end=" ")
         angelic_value_summary = get_response_and_store_results(prompt=angelic_value_prompt,
                                                                prompt_file=processor.get_bugid_folder() / "angelic_info_prompt.md",
@@ -178,11 +185,11 @@ Here is a summary of the test cases and error messages:
         prompt += "## Summary of Expected Parameters and Return Values in the Buggy Function\n\n"
         prompt += angelic_value_summary
     else:
-        print_in_red(f"Angelic value summary is too long. Tokens: {num_tokens}")
+        print_in_red(f"Angelic value summary is too long or absence. Tokens: {num_tokens}")
 
     github_issue_prompt = processor.get_github_issue_prompt()
     num_tokens = count_tokens(github_issue_prompt)
-    if num_tokens < 10_000:
+    if num_tokens < 10_000 and github_issue_prompt != "":
         print("Generating GitHub issue summary. Tokens:", num_tokens, end=" ")
         github_issue_summary = get_response_and_store_results(prompt=github_issue_prompt,
                                                               prompt_file=processor.get_bugid_folder() / "github_issue_prompt.md",
@@ -193,7 +200,11 @@ Here is a summary of the test cases and error messages:
         prompt += "## Summary of the GitHub Issue Related to the Bug\n\n"
         prompt += github_issue_summary
     else:
-        print_in_red(f"GitHub issue summary is too long. Tokens: {num_tokens}")
+        print_in_red(f"GitHub issue summary is too long or absence. Tokens: {num_tokens}")
+
+    cot_technique_instruction = processor.facts_in_prompt["7"]
+    prompt += "\n\n\n\n"
+    prompt += cot_technique_instruction
 
     return prompt
 
@@ -231,76 +242,28 @@ def get_response_and_store_results(prompt: str, prompt_file: Path, response_file
     return responses
 
 
-def get_response_and_store_fixed_results(processor: CustomFactProcessor, prompt_file: Path, response_file: Path, pkl_file: Path, trials=1) -> List[str]:
-    # construct prompt from processor
-    prompt = construct_prompt(processor)
-
-    # if this prompt is too long just set bit to 0
-    # we need to estimate tokens first
-    encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-    num_tokens = len(encoding.encode(prompt))
-    if num_tokens > 16000:
-        raise QueryException(f"Prompt is exceeding 16000 tokens")
-
-    gpt_connection = GPTConnection()
-    gpt_response = gpt_connection.get_response_with_fix_path(
-        prompt=prompt,
-        gpt_model="gpt-3.5-turbo-1106",
-        trial=trials,
-        source_buggy_function=processor.buggy_function_code,
-        buggy_function_name=processor.buggy_function_name
-    )
-    responses: List[str] = gpt_response["responses"]
-
-    # prompt file
-    prompt_file.write_text(prompt)
-
-    # response file
-    response_dir = response_file.parent
-    response_filename = response_file.stem
-    for i, response in enumerate(responses):
-        file_with_suffix = response_dir / f"{response_filename}_{i + 1}.md"
-        file_with_suffix.write_text(response)
-
-        # now convert the response to json
-
-    # pkl file
-    with open(pkl_file, "wb") as dump_pickle_file:
-        pickle.dump(responses, dump_pickle_file)
-
-    return responses
-
-
-def convert_response_md_to_json(response_file: Path, project_name: str, lineno: int, filename: str, replace_code: str, import_list: List[str]):
-    with open(response_file, "w", encoding='utf-8') as json_file:
-        test_input_data = {
-            project_name: [
-                {
-                    "start_line": lineno,
-                    "file_name": filename,
-                    "replace_code": replace_code,
-                    "import_list": import_list
-                }
-            ]
-        }
-        json.dump(test_input_data, json_file, indent=4)
-
-
 def main():
     database_folder_path = Path.cwd().parent / "training-data" / "LLM_summarizer"
 
     for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
         print_in_yellow(f"Processing {bugid}...")
 
-        # facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
-        # prompt = construct_prompt(facts_proc)
-        # get_response_and_store_results(prompt=prompt,
-        #                                prompt_file=bugid_folder / "prompt.md",
-        #                                response_file=bugid_folder / "prompt_response.md",
-        #                                pkl_file=bugid_folder / "prompt_response.pkl",
-        #                                trials=10)
+        facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
 
-        convert_response_md_to_json(bugid_folder, file_pattern="prompt_response*.md")
+        facts_proc.get_angelic_values_prompt()
+
+        prompt = construct_prompt(facts_proc)
+        with open(bugid_folder / "prompt.md", "w") as f:
+            f.write(prompt)
+
+        print("Generating patch response. Prompt tokens:", count_tokens(prompt))
+        get_and_save_response_with_fix_path(prompt=prompt,
+                                            gpt_model="gpt-3.5-turbo-1106",
+                                            response_file_name_prefix="prompt_response",
+                                            database_dir=database_folder_path,
+                                            project_name=project_folder.name,
+                                            bug_id=bugid_folder.name,
+                                            trial=10)
 
 
 if __name__ == "__main__":
