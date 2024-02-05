@@ -1,6 +1,7 @@
 ```python
 @git_support
 def match(command):
-    splited_script = command.script.split()
-    return (len(splited_script) > 1 and splited_script[1] == 'stash' and 'usage:' in command.stderr)
+    split_script = command.script.split()
+    return (len(split_script) > 1 and split_script[1] == 'stash'
+            and 'usage:' in command.stderr)
 ```

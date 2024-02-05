@@ -49,7 +49,7 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
         response_json_file_path = os.path.join(output_dir, response_json_file_name)
 
         if responses is not None:
-            response = responses["responses"][file_index]
+            response = responses["responses"][index]
 
             with open(response_md_file_path, "w", encoding='utf-8') as md_file:
                 md_file.write(response["response"])

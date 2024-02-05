@@ -1,34 +1,28 @@
-Based on the analysis of the buggy function and its relationship with the test cases, it is evident that the main issue lies in how the function handles the output from the `run_hive_cmd` function and determines the existence of a table, especially when dealing with case sensitivity and partitioned tables. The buggy function relies on the truthiness of the `stdout` string, which is not a reliable indicator of table existence, leading to the failure of the test cases.
+Based on the analysis of the test cases and the observed errors, the bug in the `table_exists` function is primarily related to its case sensitivity when checking for the existence of tables. The function needs to be made case insensitive to accurately determine the existence of tables with different case representations.
 
-The function should be modified to explicitly check for table existence and handle partitioned tables appropriately by checking for specific partitions. Moreover, addressing the case sensitivity issue is crucial to accurately identify the existence of tables with different casing.
+To fix the bug:
+1. The `table_exists` function should be modified to handle case insensitivity when comparing the table name with the output.
+2. The `stdout` should be converted to lowercase for comparison to ensure that case sensitivity does not affect the result.
 
-Given the identified issues, the proposed approach for fixing the bug involves:
-1. Modifying the function to handle case insensitivity when checking for table existence.
-2. Explicitly checking for the presence of specific partitions in partitioned tables.
-3. Refining the logic to correctly determine table existence based on the output of the `run_hive_cmd` function.
-
-Here's the corrected code for the `table_exists` function that addresses the identified issues:
+Here's the corrected version of the `table_exists` function:
 
 ```python
 class HiveCommandClient(HiveClient):
     """
     Uses `hive` invocations to find information.
     """
-
-    # ... omitted code ...
-
+    
     def table_exists(self, table, database='default', partition=None):
         if partition is None:
-            stdout = run_hive_cmd('use {0}; show tables in {1};'.format(database, table))
-            return any(t.lower() == table.lower() for t in stdout.splitlines())
+            stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+            return stdout and table.lower() in stdout.lower()
         else:
-            partition_conditions = " and ".join(f"{k}='{v}'" for k, v in partition.items())
-            stdout = run_hive_cmd("use {0}; show partitions {1} partition ({2});".format(database, table, partition_conditions))
+            stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
             return bool(stdout)
 ```
 
-In this corrected version:
-- For non-partitioned tables, the function uses the `show tables in <database>` Hive command to obtain a list of tables in the specified database. It then checks if the lowercase version of the table name exists in the list of tables, thereby addressing the case insensitivity issue.
-- For partitioned tables, the function constructs the partition conditions based on the given partition dictionary and runs the `show partitions` Hive command. It then returns True if the command's output is not empty, indicating the existence of the specified table with the given partitions.
+In the revised version, the output `stdout` is converted to lowercase using the `lower()` method, and the table name is also converted to lowercase for comparison. This ensures that the function is now case insensitive when checking for the existence of the table.
 
-By implementing these changes, the `table_exists` function should accurately determine the existence of tables, including handling case insensitivity and partitioned tables, thus resolving the identified bug.
+This corrected code addresses the bug by making the `table_exists` function case insensitive, resolving the issue identified in the GitHub report and aligning the function's behavior with the expected results in the test cases. This revised function can serve as a drop-in replacement for the buggy version.

@@ -1,8 +1,6 @@
-The bug in the provided `nonsingular` function seems to be related to the calculation of the maximum absolute value between `vmin` and `vmax`, particularly when dealing with large negative integer values. The use of the `abs` function to calculate `maxabsvalue` is triggering overflow issues, resulting in a RuntimeWarning.
+Based on the given information, the bug in the `nonsingular` function appears to be related to the potential overflow encountered in the calculation of the absolute values of `vmin` and `vmax` when large integer values are used as input. 
 
-To fix this bug, the implementation of the calculation for `maxabsvalue` needs to be adjusted to handle the potential overflow when dealing with large negative values.
-
-One possible approach for fixing the bug is to use conditional statements to compare the absolute values of `vmin` and `vmax` without directly using the `abs` function. This can help in avoiding the overflow issues that arise when dealing with large negative values.
+To address this bug, it is necessary to ensure that the input parameters `vmin` and `vmax` are suitably converted to floating point numbers before applying the absolute function, thereby mitigating the risk of encountering an overflow in operations involving potentially large integer values. 
 
 Here's the corrected version of the `nonsingular` function that addresses the bug:
 
@@ -35,6 +33,9 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         close to zero, it returns -*expander*, *expander*.
     """
 
+    vmin = float(vmin)  # Convert to float to avoid overflow
+    vmax = float(vmax)  # Convert to float to avoid overflow
+
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
@@ -43,11 +44,7 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
         swapped = True
 
-    abs_vmin = vmin if vmin >= 0 else -vmin
-    abs_vmax = vmax if vmax >= 0 else -vmax
-
-    maxabsvalue = max(abs_vmin, abs_vmax)
-
+    maxabsvalue = max(abs(vmin), abs(vmax))
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
@@ -57,14 +54,14 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
             vmin = -expander
             vmax = expander
         else:
-            vmin -= expander*abs_vmin
-            vmax += expander*abs_vmax
+            vmin -= expander*abs(vmin)
+            vmax += expander*abs(vmax)
 
     if swapped and not increasing:
         vmin, vmax = vmax, vmin
     return vmin, vmax
 ```
 
-In the corrected version of the `nonsingular` function, the absolute values of `vmin` and `vmax` are calculated using conditional statements to handle potential overflow issues with large negative values. This helps to resolve the bug related to the occurrence of the RuntimeWarning.
+The corrected version includes explicit conversion of the input parameters `vmin` and `vmax` to floating point numbers for avoiding overflow. This should help address the potential overflow issue in the `nonsingular` function.
 
-By incorporating the suggested adjustments, the corrected function can be used as a drop-in replacement for the original buggy version to ensure that the function performs as intended without triggering overflow issues.
+Please replace the existing `nonsingular` function with the corrected version provided above to resolve the bug.

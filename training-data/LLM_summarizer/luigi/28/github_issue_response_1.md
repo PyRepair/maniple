@@ -1,5 +1,13 @@
 Summary:
-The issue details a bug in the table_exists function in the luigi library's hive module. The problem arises when working with tables that have capitalized names, as the function is case sensitive and returns table names in lowercase. This results in failed tests when the function is used to check for the existence of a table. The bug is noted to have emerged in newer versions, as older versions checked for specific strings in the stdout. The proposed solution is to make the table_exists function case insensitive by checking the stdout against the lowercase version of the table name.
+The issue is related to the case sensitivity of the table_exists function in the luigi package's hive module. When checking for the existence of tables, the function is case sensitive, causing tests to fail when tables are defined with capitalized names but returned as lower case by Hive. This issue did not exist in older versions of the package, which checked for specific strings in the stdout. The proposed solution is to make the table_exists function case insensitive by comparing the stdout against the lowercase version of the table name. The contributor is willing to supply a pull request to fix the issue.
 
-Insight:
-The bug affects the functionality of the table_exists function and could lead to incorrect results in cases where tables with capitalized names are used. The proposed solution to make the function case insensitive by comparing the lowercase table name with the stdout is a straightforward and feasible approach. By implementing this change, the bug can be addressed effectively, improving the accuracy and reliability of the table existence checking process.
+Insights:
+1. The issue is specific to the case sensitivity of table names when using the table_exists function.
+2. The proposed solution involves checking the lowercase version of the table name against the stdout to avoid case sensitivity issues.
+3. The contributor is willing to provide a pull request to address the bug.
+
+Impact:
+The bug impacts the reliability of table existence checks when dealing with tables with capitalized names. It affects the efficiency of testing and can lead to failed tests due to case sensitivity issues.
+
+Action:
+Review the proposed solution and consider the pull request to make the table_exists function case insensitive. Test the fix thoroughly to ensure it addresses the issue without introducing new bugs.

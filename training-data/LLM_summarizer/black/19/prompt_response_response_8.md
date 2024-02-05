@@ -1,23 +1,17 @@
-I have analyzed the problematic function and the associated test cases and have found that the issue lies within the logic related to decorators. The function, `_maybe_empty_lines`, is intended to determine the number of newlines to be inserted before and after the currently processed line. However, the handling of decorators and the calculation of newlines seem to be flawed.
+Upon reviewing the test function `test_comment_in_decorator` in `tests/test_black.py`, the error message associated with the `assertFormatEqual` method failure indicates that the expected and actual outputs do not match. Specifically, the differences are attributed to the formatting of comments and newlines in the outputs.
 
-The potential error locations within the function include:
-1. Incorrect calculation of `max_allowed` and `before` based on `current_line.depth` and `current_line.leaves`.
-2. Flawed handling of `self.previous_defs` and its interaction with the `before` variable.
-3. Resetting `first_leaf.prefix` to an empty string may not be affecting `before` as expected.
+The potential error location within the `_maybe_empty_lines` function involves the conditional logic for updating the `max_allowed` variable based on the `current_line.depth` and the value of `is_decorator`.
 
-These issues have likely led to the function returning incorrect values for the number of newlines, resulting in formatting discrepancies and failures in the test cases.
+The occurrence of the bug is likely due to incorrect conditional logic in the function that assigns values to `max_allowed` and handles the manipulation of the `self.previous_defs` list.
 
-To address the bug, the following approaches can be considered:
-1. Ensure that the calculation of `max_allowed` and `before` is correctly aligned with the requirements for decorators and other line types.
-2. Review and modify the logic related to the management of `self.previous_defs` and its impact on the `before` variable.
-3. Verify that the manipulation of `first_leaf.prefix` is appropriately affecting the value of `before`.
+To fix the bug, the conditional logic for updating `max_allowed` needs to be revised to accurately reflect the conditions associated with the `current_line.depth` and `is_decorator`. Additionally, the code for updating the `self.previous_defs` list should be corrected to append the appropriate values based on the provided conditions.
 
-Here is the corrected code for the `_maybe_empty_lines` function, taking into account the identified issues and the suggested approaches.
+Here is the corrected version of the `_maybe_empty_lines` function that resolves the identified issues:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     max_allowed = 1
-    if current_line.depth == 0:
+    if current_line.depth == 0 or (current_line.is_decorator and not current_line.is_def and not current_line.is_class):
         max_allowed = 2
     if current_line.leaves:
         # Consume the first leaf's extra newlines.
@@ -27,30 +21,48 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         first_leaf.prefix = ""
     else:
         before = 0
-
     depth = current_line.depth
-    if depth:
-        newlines = 1
-    else:
-        newlines = 2
-
-    if current_line.is_decorator:
-        if self.previous_line is None or self.previous_line.is_decorator:
+    while self.previous_defs and self.previous_defs[-1] >= depth:
+        self.previous_defs.pop()
+        before = 1 if depth else 2
+    is_decorator = current_line.is_decorator
+    if is_decorator or current_line.is_def or current_line.is_class:
+        if not is_decorator:
+            self.previous_defs.append(depth)
+        if self.previous_line is None:
+            # Don't insert empty lines before the first line in the file.
             return 0, 0
-        if depth:
-            return newlines - 1, 0
+
+        if self.previous_line and self.previous_line.is_decorator:
+            # Don't insert empty lines between decorators.
+            return 0, 0
+
+        newlines = 2
+        if current_line.depth:
+            newlines -= 1
         return newlines, 0
 
     if current_line.is_flow_control:
         return before, 1
 
-    if self.previous_line and self.previous_line.is_import and not current_line.is_import and depth == self.previous_line.depth:
-        return before or 1, 0
+    if (
+        self.previous_line
+        and self.previous_line.is_import
+        and not current_line.is_import
+        and depth == self.previous_line.depth
+    ):
+        return (before or 1), 0
 
-    if self.previous_line and self.previous_line.is_yield and (not current_line.is_yield or depth != self.previous_line.depth):
-        return before or 1, 0
+    if (
+        self.previous_line
+        and self.previous_line.is_yield
+        and (not current_line.is_yield or depth != self.previous_line.depth)
+    ):
+        return (before or 1), 0
 
     return before, 0
 ```
 
-The corrected code addresses the identified issues by revising the logic related to calculating `max_allowed` and `before`, as well as adjusting the conditions for handling decorators. Additionally, the manipulation of `first_leaf.prefix` and its impact on `before` has been verified to ensure correctness.
+The corrected version of the function addresses the conditional logic for updating `max_allowed` and correctly handles the manipulation of the `self.previous_defs` list, thereby resolving the identified issues.
+
+This corrected version can be used as a drop-in replacement for the buggy version of the function, ensuring that the identified bugs are fixed in the codebase.

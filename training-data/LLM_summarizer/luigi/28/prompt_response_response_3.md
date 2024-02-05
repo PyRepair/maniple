@@ -1,11 +1,12 @@
-Based on the analysis of the provided information, the main issue with the `table_exists` method is its reliance on the truthiness of the output from the `run_hive_cmd` function to determine the existence of a table. Additionally, the function does not handle case sensitivity issues properly, leading to incorrect results when checking for the existence of tables with capitalized names.
+Based on the analysis, the bug is located in the `table_exists` method of the `HiveCommandClient` class. The method incorrectly returns `True` for case insensitive table name checks, leading to failed test cases.
 
-To address this bug, the `table_exists` function should be modified to handle case insensitivity and explicitly check for the presence of the table name in the output from the `run_hive_cmd` function.
+The bug occurs because the method does not handle case insensitivity when comparing the table name in the `stdout` output. As a result, when the table name does not match the case of the `stdout` output, the method incorrectly returns `True`.
 
-Here's the revised version of the `table_exists` function:
+To fix the bug, the `table_exists` method needs to be modified to perform a case-insensitive comparison between the table name and the `stdout` output. This can be achieved by converting both the table name and the `stdout` output to lowercase or uppercase and then comparing them.
+
+Below is the corrected code for the `table_exists` method that addresses the bug:
 
 ```python
-# class declaration containing the revised table_exists function
 class HiveCommandClient(HiveClient):
     """
     Uses `hive` invocations to find information.
@@ -14,14 +15,15 @@ class HiveCommandClient(HiveClient):
     def table_exists(self, table, database='default', partition=None):
         if partition is None:
             stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
-            return table.lower() in map(str.lower, stdout.split())
 
+            return stdout and table.lower() in stdout.lower()
         else:
-            stdout = run_hive_cmd(
-                """use {0}; show partitions {1} partition ({2})""".format(database, table, self.partition_spec(partition)))
+            stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
             return bool(stdout)
 ```
 
-This revised version addresses the bug by performing a case-insensitive comparison between the table name and the `stdout` output. In the case where `partition` is provided, the function checks for the presence of partitions in the output.
+In the corrected version, the comparison of table names in the `stdout` output is performed in a case-insensitive manner using `lower()` to convert both strings to lowercase for comparison.
 
-By making these adjustments, the `table_exists` function should now accurately determine the existence of a table, including cases where the table name's letter case may vary. This revised function can be used as a drop-in replacement for the buggy version.
+This corrected code ensures that the `table_exists` method handles case insensitivity for table name checks, resolving the bug identified in the test cases. It can be used as a drop-in replacement for the buggy version of the function.

@@ -3,13 +3,16 @@ import pickle
 import textwrap
 from collections import defaultdict
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 import tiktoken
 
 from features_extractor import Facts
 from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_response_with_fix_path
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, get_facts_in_prompt
+
+
+total_usage = 0
 
 
 # noinspection PyAttributeOutsideInit
@@ -210,6 +213,8 @@ Here is a summary of the test cases and error messages:
 
 
 def get_response_and_store_results(prompt: str, prompt_file: Path, response_file: Path, pkl_file: Path, trials=1) -> List[str]:
+    global total_usage
+
     # if this prompt is too long just set bit to 0
     # we need to estimate tokens first
     encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -224,6 +229,7 @@ def get_response_and_store_results(prompt: str, prompt_file: Path, response_file
         temperature=1
     )
     responses: List[str] = gpt_response["responses"]
+    total_usage += gpt_response["total_token_usage"].total_tokens
 
     # prompt file
     prompt_file.write_text(prompt)
@@ -243,6 +249,8 @@ def get_response_and_store_results(prompt: str, prompt_file: Path, response_file
 
 
 def main():
+    global total_usage
+
     database_folder_path = Path.cwd().parent / "training-data" / "LLM_summarizer"
 
     for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
@@ -257,13 +265,16 @@ def main():
             f.write(prompt)
 
         print("Generating patch response. Prompt tokens:", count_tokens(prompt))
-        get_and_save_response_with_fix_path(prompt=prompt,
+        token_usage: Any = get_and_save_response_with_fix_path(prompt=prompt,
                                             gpt_model="gpt-3.5-turbo-1106",
                                             response_file_name_prefix="prompt_response",
                                             database_dir=database_folder_path,
                                             project_name=project_folder.name,
                                             bug_id=bugid_folder.name,
                                             trial=10)
+        total_usage += token_usage.total_tokens
+
+    print_in_yellow(f"Total token usage: {total_usage}, estimate {total_usage / 1000_000} dollars")
 
 
 if __name__ == "__main__":

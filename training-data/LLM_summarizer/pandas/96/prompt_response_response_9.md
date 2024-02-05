@@ -1,28 +1,26 @@
-Based on the provided information, it appears that the bug is occurring within the `apply` function of the `BusinessHourMixin` class. The function is intended to handle adjustments to business hours and days based on specified input parameters, but the calculations and conditional logic are not producing the expected results, leading to the failure of test cases and the occurrence of a `ValueError`.
-
-The potential error locations within the `apply` function include the calculations for business days (`bd`), remaining business hours (`bhour_remain`), and the adjustment of business time intervals. The conditional logic for adjusting the input `datetime` object based on the business day and remaining business hours also seems to be problematic.
-
-The reasons behind the occurrence of the bug include:
-- Incorrect calculations for business days and remaining business hours based on the specified input parameters.
-- Inaccurate conditional logic for adjusting the input `datetime` object within business time intervals.
-
-Possible approaches for fixing the bug involve:
-- Reviewing and revising the calculations for business days and remaining business hours to ensure accurate adjustments.
-- Refactoring the conditional logic to handle the adjustment of the input `datetime` object within business time intervals correctly.
-- Conducting thorough testing to validate the corrected behavior of the `apply` function.
-
-Here is the corrected code for the `apply` function:
-
 ```python
-# class declaration containing the corrected apply function
-class BusinessHourMixin(BusinessMixin):
-    # ... omitted code ...
+# Corrected Function
+from pandas.tseries.offsets import CustomBusinessHour, BDay
+from pandas.tseries.offsets import apply_wraps
 
-    @apply_wraps
-    def apply(self, other):
-        if isinstance(other, datetime):
-            # rest of the function logic goes here...
-      
+@apply_wraps
+def apply(self, other):
+    if isinstance(other, datetime):
+        n = self.n
+        business_hours = [self._next_opening_time(other, sign=1), self._get_closing_time(other)]
+
+        if n >= 0:
+            other = max(other, business_hours[0])
+            other = self._next_opening_time(other, sign=1)
+            other = business_hours[0] + BDay(n=n) + (other - business_hours[0])
         else:
-            raise ApplyTypeError("Only know how to combine business hour with datetime")
+            if other - business_hours[1] < timedelta(0):
+                other = self._get_closing_time(other)
+            other = min(other, business_hours[1])
+            other = self._prev_opening_time(other)
+            other = business_hours[1] - BDay(n=-n) - (business_hours[1] - other)
+
+        return other
+    else:
+        raise ApplyTypeError("Only know how to combine business hour with datetime")
 ```

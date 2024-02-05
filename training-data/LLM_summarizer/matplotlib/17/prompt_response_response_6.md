@@ -1,8 +1,8 @@
-The bug in the `nonsingular` function seems to be related to the handling of the input values when the range becomes small and creates conditions leading to singularities. The `abs` function encounters overflow issues for large negative integer values, resulting in a "RuntimeWarning: overflow encountered in scalar absolute." This occurs during the calculation of the maximum absolute value between `vmin` and `vmax`.
+Based on the provided buggy function and the failed test case, the issue appears to be related to the calculation of the absolute value of `vmin` and `vmax`, which leads to an overflow when dealing with large integer values. The function `nonsingular` aims to modify the endpoints of a range to avoid singularities, but the incorrect handling of the absolute value calculation causes the function to produce unexpected results.
 
-To fix this bug, the calculation of the maximum absolute value needs to be updated to accommodate large negative values and avoid overflow problems. One possible approach for fixing the bug is to use the `np.maximum` function to calculate the maximum absolute value, which should handle the overflow issue for large negative values.
+To fix the bug, we need to ensure that the values of `vmin` and `vmax` are suitably converted to floating point numbers before applying the absolute function. This will prevent the overflow issue when dealing with large integer values and ensure that the function behaves as expected.
 
-Here's the corrected version of the `nonsingular` function:
+With this in mind, the corrected version of the `nonsingular` function is provided below:
 
 ```python
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
@@ -14,7 +14,7 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
         swapped = True
 
-    maxabsvalue = np.maximum(np.abs(vmin), np.abs(vmax))
+    maxabsvalue = max(abs(float(vmin)), abs(float(vmax)))  # Convert to float before calculating absolute value
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
@@ -24,13 +24,12 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
             vmin = -expander
             vmax = expander
         else:
-            vmin -= expander * np.abs(vmin)
-            vmax += expander * np.abs(vmax)
+            vmin -= expander*abs(float(vmin))  # Convert to float before applying expander
+            vmax += expander*abs(float(vmax))  # Convert to float before applying expander
 
     if swapped and not increasing:
         vmin, vmax = vmax, vmin
-        
     return vmin, vmax
-``` 
+```
 
-This revised version addresses the issue by using `np.maximum` to calculate the maximum absolute value, avoiding overflow problems for large negative values. It also correctly handles the conditions for adjusting the range when it becomes too small, as specified in the original function's documentation. This corrected version should now resolve the bug and ensure proper handling of the endpoint values to avoid singularities.
+In this corrected version, the input parameters `vmin` and `vmax` are explicitly converted to float before calculating their absolute values or applying the expander, thus addressing the potential overflow issue with large integer values. This fix ensures that the `nonsingular` function behaves as intended and resolves the bug reported in the failed test case.

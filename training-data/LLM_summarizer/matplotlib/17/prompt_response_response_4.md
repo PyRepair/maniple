@@ -1,18 +1,6 @@
-Based on the analysis of the test case and its relationship with the error message, it is evident that the bug in the `nonsingular` function is related to the calculation of the maximum absolute value. The bug occurs specifically when the input values are large negative integers, causing overflow issues when calculating the absolute value.
-
-The potential error location within the function is identified as the line:
 ```python
-maxabsvalue = max(abs(vmin), abs(vmax))
-```
-This line of code is responsible for calculating the maximum absolute value between `vmin` and `vmax`, leading to overflow issues when dealing with large negative numbers.
+import numpy as np
 
-The bug occurs because the current approach to calculating the maximum absolute value using the `abs` function is not suitable for handling large negative integers, resulting in the overflow error.
-
-To fix the bug, a possible approach is to implement an alternative method to calculate the maximum absolute value without encountering overflow problems. One potential solution is to use conditional checks to compare the absolute values of `vmin` and `vmax` without directly calculating the maximum. This approach can help avoid overflow issues and ensure the correct determination of the maximum absolute value.
-
-Here is the corrected code for the `nonsingular` function:
-
-```python
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
     Modify the endpoints of a range as needed to avoid singularities.
@@ -40,7 +28,8 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         If either input is inf or NaN, or if both inputs are 0 or very
         close to zero, it returns -*expander*, *expander*.
     """
-    if not np.isfinite(vmin) or not np.isfinite(vmax):
+
+    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or (np.isnan(vmin)) or (np.isnan(vmax)):
         return -expander, expander
 
     swapped = False
@@ -48,25 +37,21 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
         swapped = True
 
-    if np.abs(vmin) < np.abs(vmax):
-        maxabsvalue = np.abs(vmax)
-    else:
-        maxabsvalue = np.abs(vmin)
+    maxabsvalue = max(abs(float(vmin)), abs(float(vmax)))  # Convert to float before taking absolute value
 
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
+
     elif vmax - vmin <= maxabsvalue * tiny:
-        if vmax == 0 and vmin == 0:
+        if np.isclose(vmax, 0) and np.isclose(vmin, 0):  # Check if vmin and vmax are very close to 0
             vmin = -expander
             vmax = expander
         else:
-            vmin -= expander * np.abs(vmin)
-            vmax += expander * np.abs(vmax)
+            vmin -= expander*abs(vmin)
+            vmax += expander*abs(vmax)
 
     if swapped and not increasing:
         vmin, vmax = vmax, vmin
-
     return vmin, vmax
 ```
-The revised function addresses the bug by using conditional checks to compare the absolute values of `vmin` and `vmax` to determine the maximum absolute value, avoiding overflow issues. This ensures that the function correctly calculates and returns the modified endpoints without encountering the previous bug.
