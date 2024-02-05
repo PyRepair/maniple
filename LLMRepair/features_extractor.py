@@ -78,7 +78,11 @@ class Facts:
                 for test_data in file_info:
                     self._resolve_test_data(test_data)
             else:
+                self._resolve_buggy_function_filename(filename)
                 self._resolve_file_info(filename, file_info)
+
+    def _resolve_buggy_function_filename(self, filename):
+        pass
 
     def _remove_project_root(self, path: str):
         bugid_label = self._bugid.replace(":", "_")
@@ -158,6 +162,8 @@ class Facts:
         buggy_function_docstring = buggy_function_info["docstring"]
 
         self._resolve_buggy_function_code(buggy_function)
+        self._resolve_buggy_function_start_line(buggy_function_info["start_line"])
+        self._resolve_buggy_function_name(buggy_function_info["function_name"])
 
         if buggy_function_docstring is not None:
             self.facts["1.1.2"] = buggy_function_docstring
@@ -173,6 +179,12 @@ class Facts:
         # resolve imports
         buggy_imports = buggy_function_info["used_imports"]
         self._resolve_import_statements(buggy_imports)
+
+    def _resolve_buggy_function_name(self, name: str):
+        pass
+
+    def _resolve_buggy_function_start_line(self, lineno: int):
+        pass
 
     def _resolve_import_statements(self, buggy_imports):
         if len(buggy_imports) > 0:

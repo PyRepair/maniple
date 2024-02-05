@@ -1,5 +1,22 @@
-# Prompt
-Given the source code of a function that exhibits bugs, along with the source code of its corresponding test function and the error messages resulting from the execution of a failed test case, your task is to meticulously extract and articulate relevant and critical information from both the test code and the error messages in well-structured paragraphs. This detailed narrative is essential for accurately diagnosing and resolving the errors within the buggy function. To enhance the precision of your analysis, you are encouraged to directly reference specific segments of both the buggy function's code and the test code. It is also advisable, for the sake of clarity, to sometimes focus on only the most pertinent portions of the test function code, omitting sections that do not directly contribute to understanding the problem at hand. Your output should be thorough and elaborative, presenting your findings in a series of clear, well-developed paragraphs. This approach aims to encourage a comprehensive and profound exploration of the provided code and error messages, ultimately leading to a deeper comprehension of the underlying issues and facilitating a more effective and informed debugging strategy.
+Given the source code of a function that exhibits bugs, along with the source code of its corresponding test function and the error messages resulting from the execution of a failed test case, your task is to meticulously extract and articulate relevant and critical information from both the test code and the error messages. This detailed narrative is essential for accurately diagnosing and resolving the errors within the buggy function. To enhance the precision of your analysis, you are encouraged to directly reference specific segments of both the buggy function's code and the test code. It is also advisable, for the sake of clarity, to sometimes focus on only the most pertinent portions of the test function code, omitting sections that do not directly contribute to understanding the problem at hand. Your output should be thorough and elaborative. This approach aims to encourage a comprehensive and profound exploration of the provided code and error messages, ultimately leading to a deeper comprehension of the underlying issues and facilitating a more effective and informed debugging strategy.
+
+The following is the buggy function code:
+```python
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+
+        return stdout and table in stdout
+    else:
+        stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+
+        if stdout:
+            return True
+        else:
+            return False
+
+```
 
 The followings are test functions under directory `test/contrib/hive_test.py` in the project.
 ```python
@@ -81,4 +98,3 @@ E       AssertionError: False is not true
 
 test/contrib/hive_test.py:175: AssertionError
 ```
-

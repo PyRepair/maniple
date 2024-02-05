@@ -1,0 +1,9 @@
+```python
+@git_support
+def match(command):
+    if len(command.script.split()) > 1:
+        return (command.script.split()[1] == 'stash'
+                and 'usage:' in command.stderr)
+    else:
+        return False
+```
