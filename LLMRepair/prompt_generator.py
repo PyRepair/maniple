@@ -9,6 +9,7 @@ from openai import OpenAI
 from typing import List
 from utils import print_in_red, print_in_yellow, divide_list
 from gpt_utils import GPTConnection, QueryException, combine_token_usage
+from prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
 
 client = OpenAI(api_key="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")
 
@@ -150,11 +151,11 @@ class PromptGenerator:
         self.add_newline_between_sections()
 
         if self.actual_bitvector["2.1.5"] != 0 and self.actual_bitvector["2.1.6"] != 0:
-            self.generate_variable_runtime_info()
+            self.strata_5_content = self.strata_5_content + generate_variable_runtime_info(self.facts, self.actual_bitvector)
             self.strata_5_content = self.strata_5_content + "\n\n"
 
         if self.actual_bitvector["2.1.3"] != 0 and self.actual_bitvector["2.1.4"] != 0:
-            self.generate_variable_angelic_info()
+            self.strata_5_content = self.strata_5_content + generate_variable_angelic_info(self.facts, self.actual_bitvector)
             self.strata_5_content = self.strata_5_content + "\n\n"
 
         self.prompt = self.prompt + self.strata_5_content
@@ -169,143 +170,6 @@ class PromptGenerator:
         self.generate_cot()
 
         self.collect_fact_content_in_prompt()
-
-    def generate_variable_runtime_info(self):
-        variable_runtime_value_test_cases: list = self.facts["2.1.5"]
-        variable_runtime_type_test_cases: list = self.facts["2.1.6"]
-
-        place_holder = ""
-        if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
-            place_holder = "value and type"
-        elif self.actual_bitvector["2.1.5"] == 1:
-            place_holder = "value"
-        elif self.actual_bitvector["2.1.6"] == 1:
-            place_holder = "type"
-
-        self.strata_5_content = self.strata_5_content + f"# Runtime {place_holder} of variables inside the buggy function\n"
-
-        self.strata_5_content = self.strata_5_content + f"Each case below includes input parameter {place_holder}, and the {place_holder} of relevant variables at the function's return, derived from executing failing tests. If an input parameter is not reflected in the output, it is assumed to remain unchanged. Note that some of these values at the function's return might be incorrect. Analyze these cases to identify why the tests are failing to effectively fix the bug.\n\n"
-
-        for test_case_index in range(len(variable_runtime_value_test_cases)):
-            self.strata_5_content = self.strata_5_content + f"## Case {test_case_index + 1}\n"
-
-            runtime_values: list = variable_runtime_value_test_cases[test_case_index]
-            runtime_types: list = variable_runtime_type_test_cases[test_case_index]
-
-            self.strata_5_content = self.strata_5_content + f"### Runtime {place_holder} of the input parameters of the buggy function\n"
-
-            input_parameter_values: dict = runtime_values[0]
-            input_parameter_types: dict = runtime_types[0]
-            for variable in input_parameter_values.keys():
-                variable_value = input_parameter_values[variable]["value"]
-                variable_type = input_parameter_types[variable]
-                if input_parameter_values[variable]["omitted"]:
-                    variable_shape = f", shape: `{input_parameter_values[variable]['shape']}`"
-                else:
-                    variable_shape = ""
-
-                self.strata_5_content = self.strata_5_content + f"{variable}, "
-
-                if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
-                elif self.actual_bitvector["2.1.5"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}"
-                elif self.actual_bitvector["2.1.6"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
-
-                self.strata_5_content = self.strata_5_content + "\n\n"
-
-            variable_values_before_return: dict = runtime_values[1]
-            variable_types_before_return: dict = runtime_types[1]
-            if len(variable_values_before_return) > 0:
-                self.strata_5_content = self.strata_5_content + f"### Runtime {place_holder} of variables right before the buggy function's return\n"
-
-                for variable in variable_values_before_return.keys():
-                    variable_value = variable_values_before_return[variable]["value"]
-                    variable_type = variable_types_before_return[variable]
-                    if variable_values_before_return[variable]["omitted"]:
-                        variable_shape = f", shape: `{variable_values_before_return[variable]['shape']}`"
-                    else:
-                        variable_shape = ""
-
-                    self.strata_5_content = self.strata_5_content + f"{variable}, "
-
-                    if self.actual_bitvector["2.1.5"] == 1 and self.actual_bitvector["2.1.6"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
-                    elif self.actual_bitvector["2.1.5"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}"
-                    elif self.actual_bitvector["2.1.6"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
-
-                    self.strata_5_content = self.strata_5_content + "\n\n"
-
-    def generate_variable_angelic_info(self):
-        variable_angelic_value_test_cases: list = self.facts["2.1.3"]
-        variable_angelic_type_test_cases: list = self.facts["2.1.4"]
-
-        place_holder = ""
-        if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
-            place_holder = "value and type"
-        elif self.actual_bitvector["2.1.3"] == 1:
-            place_holder = "value"
-        elif self.actual_bitvector["2.1.4"] == 1:
-            place_holder = "type"
-
-        self.strata_5_content = self.strata_5_content + f"# Expected {place_holder} of variables during the failing test execution\n"
-        self.strata_5_content = self.strata_5_content + f"Each case below includes input parameter {place_holder}, and the expected {place_holder} of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. A corrected function must satisfy all these cases.\n\n"
-
-        for test_case_index in range(len(variable_angelic_value_test_cases)):
-            self.strata_5_content = self.strata_5_content + f"## Expected case {test_case_index + 1}\n"
-
-            angelic_values: list = variable_angelic_value_test_cases[test_case_index]
-            angelic_types: list = variable_angelic_type_test_cases[test_case_index]
-
-            self.strata_5_content = self.strata_5_content + f"### Input parameter {place_holder}\n"
-
-            input_parameter_values: dict = angelic_values[0]
-            input_parameter_types: dict = angelic_types[0]
-            for variable in input_parameter_values.keys():
-                variable_value = input_parameter_values[variable]["value"]
-                variable_type = input_parameter_types[variable]
-                if input_parameter_values[variable]["omitted"]:
-                    variable_shape = f", shape: `{input_parameter_values[variable]['shape']}`"
-                else:
-                    variable_shape = ""
-
-                self.strata_5_content = self.strata_5_content + f"{variable}, "
-
-                if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
-                elif self.actual_bitvector["2.1.3"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"value: `{variable_value}`{variable_shape}"
-                elif self.actual_bitvector["2.1.4"] == 1:
-                    self.strata_5_content = self.strata_5_content + f"type: `{variable_type}`"
-
-                self.strata_5_content = self.strata_5_content + "\n\n"
-
-            variable_values_before_return: dict = angelic_values[1]
-            variable_types_before_return: dict = angelic_types[1]
-            if len(variable_values_before_return) > 0:
-                self.strata_5_content = self.strata_5_content + f"### Expected {place_holder} of variables right before the buggy function's return\n"
-
-                for variable in variable_values_before_return.keys():
-                    variable_value = variable_values_before_return[variable]["value"]
-                    variable_type = variable_types_before_return[variable]
-                    if variable_values_before_return[variable]["omitted"]:
-                        variable_shape = f", shape: `{variable_values_before_return[variable]['shape']}`"
-                    else:
-                        variable_shape = ""
-
-                    self.strata_5_content = self.strata_5_content + f"{variable}, "
-
-                    if self.actual_bitvector["2.1.3"] == 1 and self.actual_bitvector["2.1.4"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
-                    elif self.actual_bitvector["2.1.3"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"expected value: `{variable_value}`{variable_shape}"
-                    elif self.actual_bitvector["2.1.4"] == 1:
-                        self.strata_5_content = self.strata_5_content + f"expected type: `{variable_type}`"
-
-                    self.strata_5_content = self.strata_5_content + "\n\n"
 
     def generate_cot(self):
         if self.actual_bitvector["cot"] == 1:
