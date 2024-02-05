@@ -3,6 +3,7 @@ import math
 import os
 import pickle
 import time
+from pathlib import Path
 
 import openai
 import tiktoken
@@ -14,9 +15,9 @@ from utils import estimate_function_code_length, print_in_red, print_in_yellow, 
 client = OpenAI(api_key="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")
 
 
-def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_file_name_prefix: str, database_dir: str,
+def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_file_name_prefix: str, database_dir: Path,
                                         project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
-    output_dir: str = os.path.join(database_dir, project_name, bug_id)
+    output_dir: str = str(database_dir / project_name / bug_id)
 
     with open(os.path.join(output_dir, "bug-data.json"), "r") as bug_data_file:
         bug_data: dict = next(iter(json.load(bug_data_file).values()))
