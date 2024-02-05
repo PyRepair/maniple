@@ -40,14 +40,15 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
         print_in_red(error_str)
 
     for index in range(trial):
-        response_md_file_name = response_file_name_prefix + "_response_" + str(index) + ".md"
-        response_json_file_name = response_file_name_prefix + "_response_" + str(index) + ".json"
+        file_index = index + 1
+        response_md_file_name = response_file_name_prefix + "_response_" + str(file_index) + ".md"
+        response_json_file_name = response_file_name_prefix + "_response_" + str(file_index) + ".json"
 
         response_md_file_path = os.path.join(output_dir, response_md_file_name)
         response_json_file_path = os.path.join(output_dir, response_json_file_name)
 
         if responses is not None:
-            response = responses["responses"][index]
+            response = responses["responses"][file_index]
 
             with open(response_md_file_path, "w", encoding='utf-8') as md_file:
                 md_file.write(response["response"])
