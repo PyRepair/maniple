@@ -1,4 +1,7 @@
+import json
 import math
+import os
+import pickle
 import time
 
 import openai
@@ -11,14 +14,112 @@ from utils import estimate_function_code_length, print_in_red, print_in_yellow, 
 client = OpenAI(api_key="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")
 
 
+def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_file_name_prefix: str, database_dir: str,
+                                        project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
+    output_dir: str = os.path.join(database_dir, project_name, bug_id)
+
+    with open(os.path.join(output_dir, "bug-data.json"), "r") as bug_data_file:
+        bug_data: dict = next(iter(json.load(bug_data_file).values()))
+        user_dir: str = list(bug_data)[0]
+        buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]
+        buggy_function_start_line: str = bug_data[user_dir]["buggy_functions"][0]["start_line"]
+        # buggy_function_source_code: str = bug_data[user_dir]["buggy_functions"][0]["function_code"]
+
+        prefix = f"{project_name}_{bug_id}"
+        start_idx = user_dir.find(prefix) + len(prefix) + 1
+        buggy_location_file_name = user_dir[start_idx:]
+
+    responses = None
+    try:
+        responses = GPTConnection().get_response_with_fix_path(prompt, gpt_model, trial, buggy_function_name)
+    except QueryException as error:
+        error_str = str(error)
+        print_in_yellow(error_str)
+    except Exception as error:
+        error_str = str(error)
+        print_in_red(error_str)
+
+    for index in range(trial):
+        response_md_file_name = response_file_name_prefix + "_response_" + str(index) + ".md"
+        response_json_file_name = response_file_name_prefix + "_response_" + str(index) + ".json"
+
+        response_md_file_path = os.path.join(output_dir, response_md_file_name)
+        response_json_file_path = os.path.join(output_dir, response_json_file_name)
+
+        if responses is not None:
+            response = responses["responses"][index]
+
+            with open(response_md_file_path, "w", encoding='utf-8') as md_file:
+                md_file.write(response["response"])
+
+            with open(response_json_file_path, "w", encoding='utf-8') as json_file:
+                test_data = {
+                    "bugID": int(bug_id),
+                    "start_line": buggy_function_start_line,
+                    "file_name": buggy_location_file_name,
+                    "replace_code": response["replace_code"],
+                    "import_list": response["import_list"]
+                }
+
+                if data_to_store is not None:
+                    test_data = {**data_to_store, **test_data}
+
+                test_input_data = {
+                    project_name: [test_data]
+                }
+                json.dump(test_input_data, json_file, indent=4)
+
+            print(f"write response to {response_md_file_path}")
+
+        else:
+            with open(response_md_file_path, "w", encoding='utf-8') as md_file:
+                md_file.write(error_str)
+
+            with open(response_json_file_path, "w", encoding='utf-8') as json_file:
+                test_data = {
+                    "bugID": int(bug_id),
+                    "start_line": buggy_function_start_line,
+                    "file_name": buggy_location_file_name,
+                    "replace_code": None,
+                    "import_list": []
+                }
+
+                if data_to_store is not None:
+                    test_data = {**data_to_store, **test_data}
+
+                test_input_data = {
+                    project_name: [test_data]
+                }
+                json.dump(test_input_data, json_file, indent=4)
+
+            print_in_yellow(f"write response error to {response_md_file_path}")
+
+    if responses is not None:
+        completion_file_name = response_file_name_prefix + "_completion" + ".pkl"
+        completion_file_path = os.path.join(output_dir, completion_file_name)
+
+        with open(completion_file_path, 'wb') as completion_file:
+            pickle.dump((responses["prompt_messages"], responses["response_completions"]), completion_file)
+
+        return responses["total_token_usage"]
+
+    else:
+        return {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
+
+
+
+
 class GPTConnection:
     def __init__(self):
         self.max_generation_count = 3
         self.max_conversation_count = 3
         self.buggy_function_name = ""
 
-    def get_response_with_fix_path(self, prompt: str, gpt_model: str, trial: int, source_buggy_function: str,
-                                   buggy_function_name: str) -> dict:
+    def get_response_with_fix_path(self, prompt: str, gpt_model: str, trial: int, buggy_function_name: str) -> dict:
         self.max_generation_count = 3
         self.buggy_function_name = buggy_function_name
 

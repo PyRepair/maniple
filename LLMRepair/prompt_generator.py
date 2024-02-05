@@ -3,12 +3,11 @@ import glob
 import json
 import os.path
 import threading
-import pickle
 
 from openai import OpenAI
 from typing import List
 from utils import print_in_red, print_in_yellow, divide_list
-from gpt_utils import GPTConnection, QueryException, combine_token_usage
+from gpt_utils import combine_token_usage, get_and_save_response_with_fix_path
 from prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
 
 client = OpenAI(api_key="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")
@@ -66,6 +65,9 @@ def get_strata_bitvector(strata_bitvector: dict) -> dict:
 
 class PromptGenerator:
     def __init__(self, database_dir: str, project_name: str, bug_id: str, strata_bitvector: dict) -> None:
+        self.database_dir = database_dir
+        self.project_name = project_name
+        self.bug_id = bug_id
         self.output_dir: str = os.path.join(database_dir, project_name, bug_id)
 
         facts_path = os.path.join(self.output_dir, "facts.json")
@@ -412,89 +414,15 @@ class PromptGenerator:
         for value in self.bitvector.values():
             bitvector_flatten = bitvector_flatten + str(value)
 
-        responses = None
-        try:
-            responses = GPTConnection().get_response_with_fix_path(self.prompt, gpt_model, trial_number, self.facts["1.1.1"], self.buggy_function_name)
-        except QueryException as error:
-            error_str = str(error)
-            print_in_yellow(error_str)
-        except Exception as error:
-            error_str = str(error)
-            print_in_red(error_str)
+        data_to_store = {
+            "bitvector": self.bitvector,
+            "strata": self.strata_bitvector,
+            "available_bitvector": self.actual_bitvector,
+            "available_strata": self.actual_strata_bitvector
+        }
 
-        for index in range(trial_number):
-            file_index = index + start_index
-            response_md_file_name = bitvector_flatten + "_response_" + str(file_index) + ".md"
-            response_json_file_name = bitvector_flatten + "_response_" + str(file_index) + ".json"
-
-            response_md_file_path = os.path.join(self.output_dir, response_md_file_name)
-            response_json_file_path = os.path.join(self.output_dir, response_json_file_name)
-
-            if responses is not None:
-                response = responses["responses"][index]
-
-                with open(response_md_file_path, "w", encoding='utf-8') as md_file:
-                    md_file.write(response["response"])
-
-                with open(response_json_file_path, "w", encoding='utf-8') as json_file:
-                    test_input_data = {
-                        self.project_name: [
-                            {
-                                "bugID": int(self.bug_id),
-                                "bitvector": self.bitvector,
-                                "strata": self.strata_bitvector,
-                                "available_bitvector": self.actual_bitvector,
-                                "available_strata": self.actual_strata_bitvector,
-                                "start_line": self.buggy_function_start_line,
-                                "file_name": self.buggy_location_file_name,
-                                "replace_code": response["replace_code"],
-                                "import_list": response["import_list"]
-                            }
-                        ]
-                    }
-                    json.dump(test_input_data, json_file, indent=4)
-
-                print(f"write response to {response_md_file_path}")
-
-            else:
-                with open(response_md_file_path, "w", encoding='utf-8') as md_file:
-                    md_file.write(error_str)
-
-                with open(response_json_file_path, "w", encoding='utf-8') as json_file:
-                    test_input_data = {
-                        self.project_name: [
-                            {
-                                "bugID": int(self.bug_id),
-                                "bitvector": self.bitvector,
-                                "strata": self.strata_bitvector,
-                                "available_bitvector": self.actual_bitvector,
-                                "available_strata": self.actual_strata_bitvector,
-                                "start_line": self.buggy_function_start_line,
-                                "file_name": self.buggy_location_file_name,
-                                "replace_code": None,
-                                "import_list": []
-                            }
-                        ]
-                    }
-                    json.dump(test_input_data, json_file, indent=4)
-
-                print_in_yellow(f"write response error to {response_md_file_path}")
-
-        if responses is not None:
-            completion_file_name = bitvector_flatten + "_completion" + ".pkl"
-            completion_file_path = os.path.join(self.output_dir, completion_file_name)
-
-            with open(completion_file_path, 'wb') as completion_file:
-                pickle.dump((responses["prompt_messages"], responses["response_completions"]), completion_file)
-
-            return responses["total_token_usage"]
-
-        else:
-            return {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0
-            }
+        return get_and_save_response_with_fix_path(self.prompt, gpt_model, bitvector_flatten, self.database_dir,
+                                                   self.project_name, self.bug_id, trial_number, data_to_store)
 
 
 def run_single_bitvector_partition(partition_bitvectors, start_index, trial_number):
@@ -514,11 +442,11 @@ def run_single_bitvector_partition(partition_bitvectors, start_index, trial_numb
                 prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
-                    print(f"\ngenerate response for {project}:{bid}")
-                    token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
-
-                    with lock:
-                        total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                    # print(f"\ngenerate response for {project}:{bid}")
+                    # token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
+                    #
+                    # with lock:
+                    #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
                 # try:
                 #     prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)

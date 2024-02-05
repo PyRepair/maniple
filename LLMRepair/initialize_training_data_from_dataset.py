@@ -4,7 +4,7 @@ import shutil
 
 from utils import print_in_red
 
-dataset = "test-import-instruction"
+dataset = "16-16-dataset"
 
 dataset_path = os.path.join("..", "experiment-initialization-resources", "datasets-list", dataset + ".json")
 if not os.path.exists(dataset_path):
