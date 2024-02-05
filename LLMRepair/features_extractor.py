@@ -26,6 +26,9 @@ class Facts:
 
     MAX_CUTOFF_SIZE = 500
 
+    def _post_init(self):
+        pass
+
     def __init__(self, bugid: str, bug_working_directory: str) -> None:
         self.facts = dict[str, Any]()
         self.stats = dict[str, List[Any]]()
@@ -37,6 +40,8 @@ class Facts:
 
         for key in self.FACT_MAP.keys():
             self.facts[key] = None
+
+        self._post_init()
 
     def _log_stat(self, state_category, state_record):
         if self.stats.get(state_category) is None:
@@ -152,10 +157,7 @@ class Facts:
         buggy_function = buggy_function_info["function_code"]
         buggy_function_docstring = buggy_function_info["docstring"]
 
-        if buggy_function is not None:
-            self.facts["1.1.1"] = Facts.remove_docstring_from_source(buggy_function)
-        else:
-            print_in_red("FATAL: the buggy function does not exist")
+        self._resolve_buggy_function_code(buggy_function)
 
         if buggy_function_docstring is not None:
             self.facts["1.1.2"] = buggy_function_docstring
@@ -170,10 +172,19 @@ class Facts:
 
         # resolve imports
         buggy_imports = buggy_function_info["used_imports"]
+        self._resolve_import_statements(buggy_imports)
+
+    def _resolve_import_statements(self, buggy_imports):
         if len(buggy_imports) > 0:
             self.facts["used_imports"] = "\n".join(buggy_imports)
         else:
             self.facts["used_imports"] = None
+
+    def _resolve_buggy_function_code(self, buggy_function):
+        if buggy_function is not None:
+            self.facts["1.1.1"] = Facts.remove_docstring_from_source(buggy_function)
+        else:
+            print_in_red("FATAL: the buggy function does not exist")
 
     def _smart_cutoff(self, variable_value):
         if variable_value is None:
@@ -315,6 +326,8 @@ class Facts:
             avv = self._remove_duplicate_keys(avv)
             ioavals, ioatypes = self._resolve_dynamics(avv)
 
+            self._resolve_angelic_variable_value(ioavals, ioatypes)
+
             # fix issue where angelic and runtime list is empty
             # where they should be empty
             if len(ioavals) > 0:
@@ -336,6 +349,8 @@ class Facts:
             vv = self._remove_duplicate_keys(vv)
             iobvals, iobtypes = self._resolve_dynamics(vv)
 
+            self._resolve_runtime_variable_value(iobvals, iobtypes)
+
             # fix issue same as above
             if len(iobvals) > 0:
                 self.facts["2.1.3"] = iobvals
@@ -345,6 +360,12 @@ class Facts:
                 self.facts["2.1.4"] = iobtypes
             else:
                 self._log_stat("runtime_variable_types", (0))
+
+    def _resolve_runtime_variable_value(self, variable_runtime_value_test_cases, variable_runtime_type_test_cases):
+        pass
+
+    def _resolve_angelic_variable_value(self, variable_angelic_value_test_cases, variable_angelic_type_test_cases):
+        pass
 
     @staticmethod
     def _does_this_2_variable_records_actually_have_changes(
@@ -437,24 +458,15 @@ class Facts:
         return chunks
 
     def _resolve_test_data(self, test_data):
-        test_function_code = test_data["test_function_code"]
-        if self.facts["1.4.1"] is None:
-            self.facts["1.4.1"] = [test_function_code]
-        else:
-            self.facts["1.4.1"].append(test_function_code)
+        self._resolve_test_function_and_test_file_path(test_data)
 
-        test_file_name = self._remove_project_root(test_data["test_path"])
-        if self.facts["1.4.2"] is None:
-            self.facts["1.4.2"] = [test_file_name]
-        else:
-            self.facts["1.4.2"].append(test_file_name)
+        self._resolve_error_message_and_stacktrace(test_data)
 
+    def _resolve_error_message_and_stacktrace(self, test_data):
         full_test_error = test_data["full_test_error"]
         error_stacktrace_chunks = Facts._split_error_message(full_test_error)
-
         full_stacktrace = []
         full_error_message = []
-
         is_error_message = None
         for chunk in error_stacktrace_chunks:
             if chunk["label"] == "stacktrace":
@@ -467,18 +479,28 @@ class Facts:
                     raise NotSupportedError("2 stack traces follow together")
                 is_error_message = True
                 full_error_message.append(chunk["content"])
-
         if len(full_error_message) > 0:
             if self.facts["2.1.1"] is None:
                 self.facts["2.1.1"] = [full_error_message]
             else:
                 self.facts["2.1.1"].append(full_error_message)
-
         if len(full_stacktrace) > 0:
             if self.facts["2.1.2"] is None:
                 self.facts["2.1.2"] = [full_stacktrace]
             else:
                 self.facts["2.1.2"].append(full_stacktrace)
+
+    def _resolve_test_function_and_test_file_path(self, test_data):
+        test_function_code = test_data["test_function_code"]
+        if self.facts["1.4.1"] is None:
+            self.facts["1.4.1"] = [test_function_code]
+        else:
+            self.facts["1.4.1"].append(test_function_code)
+        test_file_name = self._remove_project_root(test_data["test_path"])
+        if self.facts["1.4.2"] is None:
+            self.facts["1.4.2"] = [test_file_name]
+        else:
+            self.facts["1.4.2"].append(test_file_name)
 
     @staticmethod
     def _extract_code_blocks_from_markdown(md_content):

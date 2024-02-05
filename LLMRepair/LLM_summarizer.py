@@ -1,9 +1,86 @@
+import json
+import textwrap
+from collections import defaultdict
+
 import tiktoken
 import pickle
 from pathlib import Path
 from gpt_utils import get_responses_from_prompt, QueryException
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, get_function_code, get_facts_in_prompt, get_import_statements
-from typing import List
+from features_extractor import Facts
+from typing import List, Tuple, Dict, Any
+
+
+class CustomFactProcessor(Facts):
+
+    def _post_init(self):
+        self.buggy_function_code = ""
+        self.test_function_code = defaultdict[str, List[str]](list)
+        self.error_message = ""
+
+        # begin processing
+        with open(Path(self._bwd) / "bug-data.json") as f:
+            json_data = json.load(f)
+            self.load_from_json_object(json_data[self._bugid])
+
+        self.facts_in_prompt = get_facts_in_prompt(Path(self._bwd))
+
+    def get_test_function_prompt(self):
+        # assign prompts
+        prompts_sections = []
+        for test_file_path, test_function_codes in self.test_function_code.items():
+            section = ""
+            section += f"The followings are test functions under directory `{test_file_path}` in the project.\n```python\n"
+            section += "\n\n".join(test_function_codes)
+            section += "\n```"
+            prompts_sections.append(section)
+
+        result = "\n\n".join(prompts_sections)
+        result += f"\n\nThe error message that corresponds the the above test functions is:\n```\n{self.error_message}\n```"
+
+        instruction = Path("prompt_instructions/test_info_summarize.txt").read_text()
+        prompt = f"{instruction}\n\n"
+        prompt += "The following is the buggy function code:\n"
+        prompt += f"```python\n{self.buggy_function_code}\n```\n\n"
+        prompt += result
+
+        return prompt
+
+    def get_dynamic_values_prompt(self):
+        runtime_variables_section = self.facts_in_prompt["5"].split("# Expected variable value and type in tests")
+        if len(runtime_variables_section) >= 1:
+            runtime_variables_section = runtime_variables_section[1].strip()
+        else:
+            return ""
+        instruction = Path("prompt_instructions/dynamic_value_summarize.txt").read_text()
+        prompt = f"{instruction}\n\nThe following is the buggy function code:\n"
+        prompt += f"```python\n{self.buggy_function_code}\n```\n\n"
+        prompt += f"{runtime_variables_section}"
+        return prompt
+
+    def get_angelic_values_prompt(self):
+        angelic_values_section = self.facts_in_prompt["5"].split("# Expected variable value and type in tests\n")
+        if len(angelic_values_section) == 2:
+            angelic_values_section = angelic_values_section[1].strip()
+        else:
+            return ""
+        angelic_values_section = "# Expected return value in tests\n" + angelic_values_section
+        instruction = Path("prompt_instructions/angelic_value_summarize.txt").read_text()
+        prompt = f"{instruction}\n\nThe following is the buggy function code:\n"
+        prompt += f"```python\n{self.buggy_function_code}\n```\n\n"
+        prompt += f"{angelic_values_section}"
+        return prompt
+
+    def _resolve_buggy_function_code(self, buggy_function):
+        self.buggy_function_code = buggy_function
+
+    def _resolve_test_function_and_test_file_path(self, test_data):
+        test_function_code = test_data["test_function_code"]
+        test_file_path = self._remove_project_root(test_data["test_path"])
+        self.test_function_code[test_file_path].append(textwrap.dedent(test_function_code))
+
+    def _resolve_error_message_and_stacktrace(self, test_data):
+        self.error_message = test_data["full_test_error"]
 
 
 def get_response_and_store_results(prompt: str, prompt_file: Path, response_file: Path, pkl_file: Path, trials=1) -> List[str]:
@@ -56,51 +133,30 @@ The following is the buggy function that you need to fix:
 {2}
 """.strip()
 
-summarize_test_info_prompt_template = """
-You task is to identify and output useful information from the a case code and an error message from a failed test case. 
-
-{0}
-""".strip()
-
-
-# 7. Compile the Extracted Information: Output the findings in a structured format, including:
-#     Overview: Test case name, objective, inputs, and expected outcomes.
-#     Implementation: Examination of key operations, inputs, and desired results.
-#     Error Breakdown: Detailed error message interpretation, with relevance to test case logic.
-
-# Please output the following information in detail:
-# 1. Identify the Test Case Code: Begin by identifying the test function or method within the specific block of code that represents the test case.
-# 2. Analyze the Test Case Objective: Understand what the test case is intended to achieve. Look for comments or documentation within the code that explain its purpose, inputs, expected behavior, and output.
-# 3. Examine the Test Case Implementation: Review the implementation details of the test case. Identify the key operations, the input values being tested, and how the expected result is defined within the code.
-# 4. Locate the Error Message: Find the error message or output generated when the test case failed. This information is crucial for diagnosing the issue.
-# 5. Analyze the Error Message: Break down the error message to understand its components. Look for specific error codes, descriptions of what went wrong, and any references to lines of code or specific conditions that were not met.
-# 6. Map the Error to the Test Case: Relate the information in the error message back to the corresponding lines or logic in the test case code. This helps identify where the test did not behave as expected.
 
 def main():
     database_folder_path = Path.cwd().parent / "training-data" / "LLM_summarizer"
 
     for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
-        function_code = get_function_code(bugid_folder, bugid)
-        import_statements = get_import_statements(bugid_folder)
-        facts_in_prompt = get_facts_in_prompt(bugid_folder)
-        class_info = facts_in_prompt["2"]
-        file_info = facts_in_prompt["3"]
-        test_info = facts_in_prompt["4"]
-        dynamic_info = facts_in_prompt["5"]
-        github_info = facts_in_prompt["6"]
-        cot_instruction = facts_in_prompt["7"]
+        if bugid != "black:19":
+            continue
+        print(f"Processing {bugid}...")
 
-        print(bugid)
-        print(test_info)
+        facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
 
-        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-        num_tokens = len(encoding.encode(test_info))
-        print(num_tokens)
 
-        # get_response_and_store_results(prompt=summarize_test_info_prompt_template.format(test_info),
+        get_response_and_store_results(prompt=facts_proc.get_angelic_values_prompt(),
+                                       prompt_file=bugid_folder / "angelic_info_prompt.md",
+                                       response_file=bugid_folder / "angelic_info_response.md",
+                                       pkl_file=bugid_folder / "angelic_info_response.pkl")
+
+
+        # get_response_and_store_results(prompt=facts_proc.get_test_function_prompt(),
         #                                prompt_file=bugid_folder / "test_info_prompt.md",
         #                                response_file=bugid_folder / "test_info_response.md",
         #                                pkl_file=bugid_folder / "test_info_response.pkl")
+
+        break
 
 
 if __name__ == "__main__":
