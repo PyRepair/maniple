@@ -21,7 +21,6 @@ class CustomFactProcessor(Facts):
         self.buggy_function_name = ""
         self.buggy_function_code = ""
         self.test_function_code = defaultdict[str, List[str]](list)
-        self.test_function_code_text = ""
         self.error_message = ""
 
         # for validation
@@ -39,7 +38,7 @@ class CustomFactProcessor(Facts):
     def get_bugid_folder(self):
         return Path(self._bwd)
 
-    def get_test_case_section(self):
+    def get_test_code_text(self):
         prompts_sections = []
         for test_file_path, test_function_codes in self.test_function_code.items():
             section = ""
@@ -48,7 +47,10 @@ class CustomFactProcessor(Facts):
             section += "\n```"
             prompts_sections.append(section)
 
-        result = "\n\n".join(prompts_sections)
+        return "\n\n".join(prompts_sections)
+
+    def get_test_case_section(self):
+        result = self.get_test_code_text()
         result += f"\n\nThe error message that corresponds the the above test functions is:\n```\n{self.error_message}\n```"
         return result
 
@@ -191,7 +193,13 @@ def resolve_test_case(processor, prompt):
                                                            pkl_file=processor.get_bugid_folder() / "test_info_response.pkl")[0]
     print("->", count_tokens(error_message_summary))
     prompt += "\n\n\n\n"
-    prompt += f"## Test Case Summary\n{error_message_summary}"
+    prompt += f"""
+## Test Functions and Error Messages Summary
+{processor.get_test_code_text()}
+
+Here is a summary of the test cases and error messages:
+{error_message_summary}""".strip()
+
     return prompt
 
 
@@ -326,11 +334,12 @@ def main():
     database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment"
 
     for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
+        if bugid != "luigi:28":
+            continue
+
         print_in_yellow(f"Processing {bugid}...")
 
         facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
-
-        facts_proc.get_angelic_values_prompt()
 
         prompt = construct_prompt(facts_proc)
         with open(bugid_folder / "prompt.md", "w") as f:
