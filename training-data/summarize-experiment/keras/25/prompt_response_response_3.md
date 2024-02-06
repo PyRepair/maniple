@@ -1,6 +1,4 @@
 ```python
-import numpy as np
-
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -27,12 +25,9 @@ def _preprocess_numpy_input(x, data_format, mode):
         return x
 
     if mode == 'torch':
-        x = x.astype('float32')  # Cast input to float32 type
-        x /= 255.
-        mean = np.array([0.485, 0.456, 0.406], dtype='float32')  # Explicitly define data type
-        std = np.array([0.229, 0.224, 0.225], dtype='float32')  # Explicitly define data type
-        x -= mean
-        x /= std
+        x = (x / 255.).astype(float)
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
     else:
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
@@ -43,10 +38,34 @@ def _preprocess_numpy_input(x, data_format, mode):
         else:
             # 'RGB'->'BGR'
             x = x[..., ::-1]
-        mean = np.array([103.939, 116.779, 123.68], dtype='float32')  # Explicitly define data type
-        x = x.astype('float32')  # Cast input to float32 type
-        x -= mean
-        std = None
+            mean = [103.939, 116.779, 123.68]
+            std = None
 
+    # Zero-center by mean pixel
+    if data_format == 'channels_first':
+        if x.ndim == 3:
+            x[0, :, :] -= mean[0]
+            x[1, :, :] -= mean[1]
+            x[2, :, :] -= mean[2]
+            if std is not None:
+                x[0, :, :] /= std[0]
+                x[1, :, :] /= std[1]
+                x[2, :, :] /= std[2]
+        else:
+            x[:, 0, :, :] -= mean[0]
+            x[:, 1, :, :] -= mean[1]
+            x[:, 2, :, :] -= mean[2]
+            if std is not None:
+                x[:, 0, :, :] /= std[0]
+                x[:, 1, :, :] /= std[1]
+                x[:, 2, :, :] /= std[2]
+    else:
+        x[..., 0] -= mean[0]
+        x[..., 1] -= mean[1]
+        x[..., 2] -= mean[2]
+        if std is not None:
+            x[..., 0] /= std[0]
+            x[..., 1] /= std[1]
+            x[..., 2] /= std[2]
     return x
 ```

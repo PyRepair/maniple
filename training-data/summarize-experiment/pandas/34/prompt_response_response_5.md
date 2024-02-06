@@ -1,13 +1,3 @@
-Based on the given test case `test_downsample_dst_at_midnight`, the error message "pytz.exceptions.AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times" indicates that the error arises due to the presence of ambiguous times during the resampling process with the `pd.Grouper` function.
-
-The potential error location within the `_get_time_bins` function could be the resampling step, specifically the generation of `binner` and `labels` using the `date_range` function. If the code does not handle ambiguous times or daylight saving time changes properly, it can lead to the `AmbiguousTimeError` during the resampling process.
-
-The bug occurs because the resampling process does not handle ambiguous times caused by daylight saving time changes, especially when dealing with a long clock change day (e.g., November 4, 2018). The resampling process does not account for the transition effectively, leading to the ambiguous time error.
-
-To fix the bug, the resampling process needs to be modified to handle ambiguous times caused by daylight saving time changes explicitly. This may involve adjusting the frequency used for resampling or explicitly handling ambiguous times during the resampling process in a way that accounts for the transition on clock change days.
-
-Here's the corrected code for the `_get_time_bins` function that addresses the issue:
-
 ```python
 def _get_time_bins(self, ax):
     if not isinstance(ax, DatetimeIndex):
@@ -23,16 +13,13 @@ def _get_time_bins(self, ax):
     first, last = _get_timestamp_range_edges(
         ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
     )
-
-    # Adjusting the frequency to handle ambiguous times caused by daylight saving time changes
-    adjusted_freq = self.freq
-    if ax.tz.zone.startswith("America/") and self.freq == "1D":
-        adjusted_freq = "1D"
-        if ax.tz.normalize(ax[0]).hour == 0:  # Check for midnight
-            adjusted_freq = "1B"  # Business day frequency to handle ambiguous midnight on clock change days
-
-    binner = labels = date_range(
-        freq=adjusted_freq,
+    # GH #12037
+    # use first/last directly instead of call replace() on them
+    # because replace() will swallow the nanosecond part
+    # thus last bin maybe slightly before the end if the end contains
+    # nanosecond part and lead to `Values falls after last bin` error
+    binner = date_range(
+        freq=self.freq,
         start=first,
         end=last,
         tz=ax.tz,
@@ -44,10 +31,27 @@ def _get_time_bins(self, ax):
     ax_values = ax.asi8
     binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
-    # Rest of the function remains unchanged
-    # ...
+    # general version, knowing nothing about relative frequencies
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
+
+    if self.closed == "right":
+        labels = binner
+        if self.label == "right":
+            labels = labels[1:]
+    elif self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    # if we end up with more labels than bins
+    # adjust the labels
+    # GH4076
+    if len(bins) < len(labels):
+        labels = labels[: len(bins)]
 
     return binner, bins, labels
 ```
-
-In the corrected code, the frequency used for resampling is adjusted to "1B" (business day frequency) specifically on clock change days in the "America/" time zones, where the timestamp at midnight becomes ambiguous. This adjustment allows the resampling process to handle ambiguous times effectively and avoids the `AmbiguousTimeError` when using `pd.Grouper` on long clock change days.

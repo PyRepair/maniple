@@ -1,14 +1,6 @@
-Based on the given test case and error message, the failing test `test_pivot_table_multiindex_only` is calling the `pivot_table` function with a multi-index column structure. The error occurs in the `pivot_table` function when trying to access the `columns` attribute on the returned `Series` object, resulting in an AttributeError.
-
-The potential error location within the `pivot_table` function is when constructing the pivot table based on the aggregated data and the dimensions of the keys and values. It's likely that the structure or type of the returned table is not aligning with the expected output, leading to the AttributeError when accessing the `columns` attribute.
-
-The bug occurs because the function does not handle the case of multi-index columns when constructing the pivot table, resulting in a return type that is not compatible with the subsequent operations.
-
-To fix the bug, it's important to ensure that the pivot_table function handles the case of multi-index columns correctly and returns a well-structured DataFrame that aligns with the expected output.
-
-Here's the corrected code for the pivot_table function that addresses the bug:
-
 ```python
+@Substitution("\ndata : DataFrame")
+@Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
     data,
     values=None,
@@ -24,27 +16,114 @@ def pivot_table(
     index = _convert_by(index)
     columns = _convert_by(columns)
 
-    # Rest of the function remains the same
-    # ...
+    if isinstance(aggfunc, list):
+        pieces: List[DataFrame] = []
+        keys = []
+        for func in aggfunc:
+            table = pivot_table(
+                data,
+                values=values,
+                index=index,
+                columns=columns,
+                fill_value=fill_value,
+                aggfunc=func,
+                margins=margins,
+                dropna=dropna,
+                margins_name=margins_name,
+                observed=observed,
+            )
+            pieces.append(table)
+            keys.append(getattr(func, "__name__", func))
 
-    # Construct the pivot table using pivot_table method to handle multi-index columns
-    table = data.pivot_table(
-        values=values,
-        index=index,
-        columns=columns,
-        aggfunc=aggfunc,
-        fill_value=fill_value,
-        margins=margins,
-        dropna=dropna,
-        margins_name=margins_name,
-        observed=observed,
-    )
+        return concat(pieces, keys=keys, axis=1)
 
-    # Other processing remains the same
+    keys = index + columns
+
+    values_passed = values is not None
+    if values_passed:
+        if is_list_like(values):
+            values_multi = True
+            values = list(values)
+        else:
+            values_multi = False
+            values = [values]
+
+        # GH14938 Make sure value labels are in data
+        for i in values:
+            if i not in data:
+                raise KeyError(i)
+
+        to_filter = []
+        for x in keys + values:
+            if isinstance(x, Grouper):
+                x = x.key
+            try:
+                if x in data:
+                    to_filter.append(x)
+            except TypeError:
+                pass
+        if len(to_filter) < len(data.columns):
+            data = data[to_filter]
+
+    else:
+        values = data.columns
+        for key in keys:
+            try:
+                values = values.drop(key)
+            except (TypeError, ValueError, KeyError):
+                pass
+        values = list(values)
+
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how="all")
+
+        for v in values:
+            if (
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
+            ):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+
+    table = agged
+    if isinstance(table, ABCDataFrame):
+        table = table.sort_index(axis=1)
+
+    if fill_value is not None:
+        table = table.fillna(fill_value, downcast="infer")
+
+    if margins:
+        if dropna:
+            data = data[data.notna().all(axis=1)]
+        table = _add_margins(
+            table,
+            data,
+            values,
+            rows=index,
+            cols=columns,
+            aggfunc=aggfunc,
+            observed=dropna,
+            margins_name=margins_name,
+            fill_value=fill_value,
+        )
+
+    # discard the top level
+    if (
+        values_passed
+        and not values_multi
+        and not table.empty
+        and (table.columns.nlevels > 1)
+    ):
+        table = table[values[0]]
+
+    if len(index) == 0 and len(columns) > 0:
+        table = table.T
+
+    if isinstance(table, ABCDataFrame) and dropna:
+        table = table.dropna(how="all", axis=1)
 
     return table
 ```
-
-In the revised version of the pivot_table function, the bug has been fixed by using the pivot_table method of the input DataFrame `data`, which inherently handles the case of multi-index columns. This ensures that the returned table is well-structured and compatible with subsequent operations, preventing the AttributeError.
-
-This corrected code can be used as a drop-in replacement for the buggy version of the function.

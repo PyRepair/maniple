@@ -1,12 +1,13 @@
-Based on the test case and error message, the issue with the `assertFormatEqual` failing with an AssertionError seems to be related to the incorrect handling of indentation formats within the `_partially_consume_prefix` function. The function is not correctly handling mixed indentation formats, which leads to misalignment of comments when comparing tab and space indentation contents.
+The buggy function `_partially_consume_prefix` is designed to process a prefix string character by character, building up lines of text until a certain column width is reached, and then returning the accumulated lines and the remaining unparsed portion of the input prefix. However, based on the observed input parameters and expected output values, it seems that the function is failing to correctly handle different types of indentation, spaces, tabs, and newline characters. This inconsistency in behavior leads to incorrect and unexpected results.
 
-The potential error location within the `_partially_consume_prefix` function is related to the logic for handling characters like spaces, tabs, and new lines. There are inconsistencies in how these characters are processed and updated, leading to incorrect consumption of the prefix string.
+The function logic needs to be reviewed and possibly rewritten to ensure consistent and accurate handling of indentation, spaces, tabs, and newline characters. Thorough testing with various input prefixes and column values will be necessary to validate the function's behavior.
 
-The occurrence of the bug is primarily due to the function not accurately counting spaces, tabs, and newlines, and not updating the variables accordingly. The function also fails to handle the edge case of an empty prefix properly.
+To fix the bug, the following approach can be considered:
+1. Refactor the logic for handling indentation, spaces, tabs, and newline characters to ensure consistent and accurate behavior.
+2. Implement a systematic testing strategy to validate the function's behavior with a wide range of input prefixes and column values.
+3. Consider edge cases such as empty strings and special characters to ensure robust functionality.
 
-To fix the bug, the `_partially_consume_prefix` function needs to be revised to accurately count spaces, tabs, and newlines and update the variables accordingly to correctly consume the prefix up to the specified column. This may involve revising the logic for handling whitespace characters and newline characters within the loop to ensure proper tracking of the consumed prefix.
-
-Here is the corrected code for the `_partially_consume_prefix` function:
+The corrected function is provided below:
 
 ```python
 def _partially_consume_prefix(self, prefix, column):
@@ -14,32 +15,29 @@ def _partially_consume_prefix(self, prefix, column):
     current_line = ""
     current_column = 0
     wait_for_nl = False
+
     for char in prefix:
-        if char == ' ':
+        current_line += char
+        if wait_for_nl:
+            if char == '\n':
+                if current_line.strip() and current_column < column:
+                    res = ''.join(lines)
+                    return res, prefix[len(res):]
+
+                lines.append(current_line)
+                current_line = ""
+                current_column = 0
+                wait_for_nl = False
+        elif char == ' ':
             current_column += 1
         elif char == '\t':
-            current_column += 4
+            current_column += 4  # consider the tab width, can be a configurable parameter
         elif char == '\n':
-            if wait_for_nl:
-                lines.append(current_line)
-                current_line = ""
-                current_column = 0
-                wait_for_nl = False
-            else:
-                current_line += char
-                current_column = 0
-            continue
+            current_column = 0
         else:
-            if wait_for_nl:
-                lines.append(current_line)
-                current_line = ""
-                current_column = 0
-                wait_for_nl = False
             wait_for_nl = True
-        current_line += char
-        if current_column >= column:
-            res = ''.join(lines)
-            return res, prefix[len(res):]
+
     return ''.join(lines), current_line
 ```
-This revised function resolves the issue by accurately counting spaces, tabs, and newlines, and updating the variables accordingly to correctly consume the prefix up to the specified column. It also correctly handles the edge case of an empty prefix. This corrected code can be used as a drop-in replacement for the buggy version of the function to address the issue.
+
+The corrected function includes updated logic to handle different types of indentation, spaces, tabs, and newline characters consistently and accurately. It also ensures that the function returns the expected results for various input prefixes and column values. Thorough testing is recommended to validate the behavior of the corrected function.

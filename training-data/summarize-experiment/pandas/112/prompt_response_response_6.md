@@ -1,13 +1,14 @@
-After analyzing the test function and error message, it appears that the issue is related to the `get_indexer` method within the `IntervalIndex` class. The error message "No matching signature found" suggests that the method is not receiving the correct arguments or types when used internally.
-
-The potential error location within the problematic function is the `get_indexer` method, specifically in its usage and the types of parameters being passed to it.
-
-The bug occurs because the `get_indexer` method is not receiving the expected method arguments or parameter types when used internally.
-
-To fix the bug, we need to ensure that the `get_indexer` method receives the correct method arguments and parameter types when used internally. This could involve checking the usage of `get_indexer` and ensuring that the correct arguments are provided, along with reviewing the parameter types and how they are used throughout the code related to the `get_indexer` method.
-
-Here's the corrected code for the problematic function with the issue addressed:
 ```python
+import textwrap
+from typing import Any, Optional, Tuple, Union
+import numpy as np
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar, maybe_downcast_to_dtype
+from pandas.core.dtypes.common import ensure_platform_int, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_dtype_equal, is_float, is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype, is_list_like, is_number, is_object_dtype, is_scalar
+from pandas._typing import AnyArrayLike
+from pandas.core.indexes.base import Index, InvalidIndexError, _index_shared_docs, default_pprint, ensure_index
+from pandas.core.indexes.interval import IntervalIndex
+
 @Substitution(
     **dict(
         _index_doc_kwargs,
@@ -32,6 +33,7 @@ def get_indexer(
     limit: Optional[int] = None,
     tolerance: Optional[Any] = None,
 ) -> np.ndarray:
+
     self._check_method(method)
 
     if self.is_overlapping:
@@ -47,8 +49,34 @@ def get_indexer(
         # equal indexes -> 1:1 positional match
         if self.equals(target_as_index):
             return np.arange(len(self), dtype="intp")
-        # ... remaining code remains unchanged ...
+
+        # different closed or incompatible subtype -> no matches
+        common_subtype = find_common_type(
+            [self.dtype.subtype, target_as_index.dtype.subtype]
+        )
+        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+            return np.repeat(np.intp(-1), len(target_as_index))
+
+        # non-overlapping -> at most one match per interval in target_as_index
+        # want exact matches -> need both left/right to match, so defer to
+        # left/right get_indexer, compare elementwise, equality -> match
+        left_indexer = self.left.get_indexer(target_as_index.left)
+        right_indexer = self.right.get_indexer(target_as_index.right)
+        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+    elif not is_object_dtype(target_as_index):
+        # homogeneous scalar index: use IntervalTree
+        target_as_index = self._maybe_convert_i8(target_as_index)
+        indexer = self._engine(target_as_index.values)
+    else:
+        # heterogeneous scalar index: defer elementwise to get_loc
+        # (non-overlapping so get_loc guarantees scalar of KeyError)
+        indexer = []
+        for key in target_as_index:
+            try:
+                loc = self.get_loc(key)
+            except KeyError:
+                loc = -1
+            indexer.append(loc)
+
     return ensure_platform_int(indexer)
 ```
-
-In the corrected code, we ensure that the `get_indexer` method receives the correct method arguments and parameter types when used internally, addressing the potential issues identified and providing a more reliable implementation.

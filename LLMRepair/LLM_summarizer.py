@@ -11,7 +11,6 @@ from features_extractor import Facts
 from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_response_with_fix_path
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, get_facts_in_prompt
 
-
 total_usage = 0
 
 
@@ -40,8 +39,7 @@ class CustomFactProcessor(Facts):
     def get_bugid_folder(self):
         return Path(self._bwd)
 
-    def get_test_function_prompt(self):
-        # assign prompts
+    def get_test_case_section(self):
         prompts_sections = []
         for test_file_path, test_function_codes in self.test_function_code.items():
             section = ""
@@ -50,9 +48,13 @@ class CustomFactProcessor(Facts):
             section += "\n```"
             prompts_sections.append(section)
 
-        self.test_function_code_text = "\n\n".join(prompts_sections)
-        result = self.test_function_code_text
+        result = "\n\n".join(prompts_sections)
         result += f"\n\nThe error message that corresponds the the above test functions is:\n```\n{self.error_message}\n```"
+        return result
+
+    def get_test_function_prompt(self):
+        # assign prompts
+        result = self.get_test_case_section()
 
         instruction = Path("prompt_instructions/test_info_summarize.txt").read_text()
         prompt = f"{instruction}\n\n"
@@ -62,11 +64,16 @@ class CustomFactProcessor(Facts):
 
         return prompt
 
-    def get_dynamic_values_prompt(self):
+    def get_dynamic_values_section(self):
         runtime_variables_section = self.facts_in_prompt["5"].split("# Expected variable value and type in tests")
         if len(runtime_variables_section) >= 1:
-            runtime_variables_section = runtime_variables_section[0].strip()
+            return runtime_variables_section[0].strip()
         else:
+            return ""
+
+    def get_dynamic_values_prompt(self):
+        runtime_variables_section = self.get_dynamic_values_section()
+        if runtime_variables_section == "":
             return ""
         instruction = Path("prompt_instructions/dynamic_value_summarize.txt").read_text()
         prompt = f"{instruction}\n\nThe following is the buggy function code:\n"
@@ -74,13 +81,18 @@ class CustomFactProcessor(Facts):
         prompt += f"{runtime_variables_section}"
         return prompt
 
-    def get_angelic_values_prompt(self):
+    def get_angelic_values_section(self):
         angelic_values_section = self.facts_in_prompt["5"].split("# Expected variable value and type in tests\n")
         if len(angelic_values_section) == 2:
-            angelic_values_section = angelic_values_section[1].strip()
+            return "# Expected return value in tests\n" + angelic_values_section[1].strip()
         else:
             return ""
-        angelic_values_section = "# Expected return value in tests\n" + angelic_values_section
+
+    def get_angelic_values_prompt(self):
+        angelic_values_section = self.get_angelic_values_section()
+        if angelic_values_section == "":
+            return ""
+
         instruction = Path("prompt_instructions/angelic_value_summarize.txt").read_text()
         prompt = f"{instruction}\n\nThe following is the buggy function code:\n"
         prompt += f"```python\n{self.buggy_function_code}\n```\n\n"
@@ -122,92 +134,152 @@ def count_tokens(prompt: str) -> int:
 
 
 def construct_prompt(processor: CustomFactProcessor):
-    prompt = f"""
-Please correct the malfunctioning function provided below by using the relevant information listed to address this bug. Then, produce a revised version of the function that resolves the issue. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+    prompt = "Please correct the malfunctioning function provided below by using the relevant information listed to address this bug. Then, produce a revised version of the function that resolves the issue. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function."
+    prompt += "\n\n"
 
-Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.
-```python
-{processor.facts["used_imports"]}
-```
+    used_imports = processor.facts["used_imports"]
+    if bool(used_imports):
+        prompt += f"Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.\n```python\n{used_imports}\n```"
 
-The following is the buggy function that you need to fix:
-```python
-{processor.buggy_function_code}
-```
-""".strip()
+    prompt += "\n\n"
+    prompt += f"The following is the buggy function that you need to fix:\n```python\n{processor.buggy_function_code}```"
 
     used_functions = processor.facts_in_prompt["2"]
     if used_functions != "":
-        print("Generate use function. Tokens:", count_tokens(used_functions))
+        print("Preserving used functions. Tokens:", count_tokens(used_functions))
         prompt += "\n\n\n\n"
         prompt += f"## Functions Used in the Buggy Function\n```python{used_functions}```"
     else:
         print_in_red("No used functions")
 
+    prompt = resolve_test_case(processor, prompt)
+
+    prompt = resolve_runtime_value(processor, prompt)
+
+    prompt = resolve_angelic_value(processor, prompt)
+
+    prompt = resolve_github_issue(processor, prompt)
+
+    cot_technique_instruction = processor.facts_in_prompt["7"]
+    prompt += "\n\n\n\n"
+    prompt += cot_technique_instruction
+
+    return prompt
+
+
+def resolve_test_case(processor, prompt):
     test_info_prompt = processor.get_test_function_prompt()
+    if test_info_prompt == "":
+        print_in_red("No test info")
+        return prompt
+
+    num_tokens = count_tokens(test_info_prompt)
+    if num_tokens > 16_000:
+        print_in_red(f"Test info summary is too long. Tokens: {num_tokens}")
+        return prompt
+
+    if num_tokens < 1000:
+        print("Preserving test info. Tokens:", num_tokens)
+        prompt += "\n\n\n\n"
+        prompt += processor.get_test_case_section()
+        return prompt
+
     print("Generating test info. Tokens:", count_tokens(test_info_prompt), end=" ")
     error_message_summary = get_response_and_store_results(prompt=test_info_prompt,
                                                            prompt_file=processor.get_bugid_folder() / "test_info_prompt.md",
                                                            response_file=processor.get_bugid_folder() / "test_info_response.md",
                                                            pkl_file=processor.get_bugid_folder() / "test_info_response.pkl")[0]
     print("->", count_tokens(error_message_summary))
-
     prompt += "\n\n\n\n"
-    prompt += f"""
-## Test Functions and Error Messages Summary
-{processor.test_function_code_text}
+    prompt += f"## Test Case Summary\n{error_message_summary}"
+    return prompt
 
-Here is a summary of the test cases and error messages:
-{error_message_summary}""".strip()
 
+def resolve_runtime_value(processor, prompt):
     runtime_value_prompt = processor.get_dynamic_values_prompt()
+    if runtime_value_prompt == "":
+        print_in_red("No runtime value")
+        return prompt
+
     num_tokens = count_tokens(runtime_value_prompt)
-    if num_tokens < 10_000 and runtime_value_prompt != "":
-        print("Generating runtime value summary. Tokens:", num_tokens, end=" ")
-        runtime_value_summary = get_response_and_store_results(prompt=runtime_value_prompt,
-                                                               prompt_file=processor.get_bugid_folder() / "runtime_info_prompt.md",
-                                                               response_file=processor.get_bugid_folder() / "runtime_info_response.md",
-                                                               pkl_file=processor.get_bugid_folder() / "runtime_info_response.pkl")[0]
-        print("->", count_tokens(runtime_value_summary))
-        prompt += "\n\n\n\n"
-        prompt += "## Summary of Runtime Variables and Types in the Buggy Function\n\n"
-        prompt += runtime_value_summary
-    else:
-        print_in_red(f"Runtime value summary is too long or absence. Tokens: {num_tokens}")
+    if num_tokens > 16_000:
+        print_in_red(f"Runtime value summary is too long. Tokens: {num_tokens}")
+        return prompt
 
-    angelic_value_prompt = processor.get_angelic_values_prompt()
-    num_tokens = count_tokens(angelic_value_prompt)
-    if num_tokens < 10_000 and angelic_value_prompt != "":
-        print("Generating angelic value summary. Tokens:", num_tokens, end=" ")
-        angelic_value_summary = get_response_and_store_results(prompt=angelic_value_prompt,
-                                                               prompt_file=processor.get_bugid_folder() / "angelic_info_prompt.md",
-                                                               response_file=processor.get_bugid_folder() / "angelic_info_response.md",
-                                                               pkl_file=processor.get_bugid_folder() / "angelic_info_response.pkl")[0]
-        print("->", count_tokens(angelic_value_summary))
+    if num_tokens < 1000:
+        print("Preserving runtime value. Tokens:", num_tokens)
         prompt += "\n\n\n\n"
-        prompt += "## Summary of Expected Parameters and Return Values in the Buggy Function\n\n"
-        prompt += angelic_value_summary
-    else:
-        print_in_red(f"Angelic value summary is too long or absence. Tokens: {num_tokens}")
+        prompt += processor.get_dynamic_values_section()
+        return prompt
 
-    github_issue_prompt = processor.get_github_issue_prompt()
-    num_tokens = count_tokens(github_issue_prompt)
-    if num_tokens < 10_000 and github_issue_prompt != "":
-        print("Generating GitHub issue summary. Tokens:", num_tokens, end=" ")
-        github_issue_summary = get_response_and_store_results(prompt=github_issue_prompt,
-                                                              prompt_file=processor.get_bugid_folder() / "github_issue_prompt.md",
-                                                              response_file=processor.get_bugid_folder() / "github_issue_response.md",
-                                                              pkl_file=processor.get_bugid_folder() / "github_issue_response.pkl")[0]
-        print("->", count_tokens(github_issue_summary))
-        prompt += "\n\n\n\n"
-        prompt += "## Summary of the GitHub Issue Related to the Bug\n\n"
-        prompt += github_issue_summary
-    else:
-        print_in_red(f"GitHub issue summary is too long or absence. Tokens: {num_tokens}")
-
-    cot_technique_instruction = processor.facts_in_prompt["7"]
+    print("Generating runtime value summary. Tokens:", num_tokens, end=" ")
+    runtime_value_summary = get_response_and_store_results(prompt=runtime_value_prompt,
+                                                           prompt_file=processor.get_bugid_folder() / "runtime_info_prompt.md",
+                                                           response_file=processor.get_bugid_folder() / "runtime_info_response.md",
+                                                           pkl_file=processor.get_bugid_folder() / "runtime_info_response.pkl")[0]
+    print("->", count_tokens(runtime_value_summary))
     prompt += "\n\n\n\n"
-    prompt += cot_technique_instruction
+    prompt += "## Summary of Runtime Variables and Types in the Buggy Function\n\n"
+    prompt += runtime_value_summary
+
+    return prompt
+
+
+def resolve_angelic_value(processor, prompt):
+    angelic_value_prompt = processor.get_angelic_values_prompt()
+    if angelic_value_prompt == "":
+        print_in_red("No angelic value")
+        return prompt
+
+    num_tokens = count_tokens(angelic_value_prompt)
+    if num_tokens > 16_000:
+        print_in_red(f"Angelic value summary is too long. Tokens: {num_tokens}")
+        return prompt
+
+    if num_tokens < 1000:
+        print("Preserving angelic value. Tokens:", num_tokens)
+        prompt += "\n\n\n\n"
+        prompt += processor.get_angelic_values_section()
+        return prompt
+
+    print("Generating angelic value summary. Tokens:", num_tokens, end=" ")
+    angelic_value_summary = get_response_and_store_results(prompt=angelic_value_prompt,
+                                                           prompt_file=processor.get_bugid_folder() / "angelic_info_prompt.md",
+                                                           response_file=processor.get_bugid_folder() / "angelic_info_response.md",
+                                                           pkl_file=processor.get_bugid_folder() / "angelic_info_response.pkl")[0]
+    print("->", count_tokens(angelic_value_summary))
+    prompt += "\n\n\n\n"
+    prompt += "## Summary of Expected Parameters and Return Values in the Buggy Function\n\n"
+    prompt += angelic_value_summary
+
+    return prompt
+
+
+def resolve_github_issue(processor, prompt):
+    github_issue_prompt = processor.get_github_issue_prompt()
+    if github_issue_prompt == "":
+        print_in_red("No GitHub issue")
+        return prompt
+
+    num_tokens = count_tokens(github_issue_prompt)
+    if num_tokens > 16_000:
+        print_in_red(f"GitHub issue summary is too long. Tokens: {num_tokens}")
+
+    if num_tokens < 1000:
+        print("Preserving GitHub issue. Tokens:", num_tokens)
+        prompt += "\n\n\n\n"
+        prompt += processor.facts_in_prompt["6"]
+        return prompt
+
+    print("Generating GitHub issue summary. Tokens:", num_tokens, end=" ")
+    github_issue_summary = get_response_and_store_results(prompt=github_issue_prompt,
+                                                          prompt_file=processor.get_bugid_folder() / "github_issue_prompt.md",
+                                                          response_file=processor.get_bugid_folder() / "github_issue_response.md",
+                                                          pkl_file=processor.get_bugid_folder() / "github_issue_response.pkl")[0]
+    print("->", count_tokens(github_issue_summary))
+    prompt += "\n\n\n\n"
+    prompt += "## Summary of the GitHub Issue Related to the Bug\n\n"
+    prompt += github_issue_summary
 
     return prompt
 
@@ -256,10 +328,6 @@ def main():
     for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
         print_in_yellow(f"Processing {bugid}...")
 
-        if (bugid_folder / "prompt.md").exists():
-            print_in_yellow(f"Prompt already exists for {bugid}. Skipping")
-            continue
-
         facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
 
         facts_proc.get_angelic_values_prompt()
@@ -270,12 +338,12 @@ def main():
 
         print("Generating patch response. Prompt tokens:", count_tokens(prompt))
         token_usage: Any = get_and_save_response_with_fix_path(prompt=prompt,
-                                            gpt_model="gpt-3.5-turbo-1106",
-                                            response_file_name_prefix="prompt_response",
-                                            database_dir=database_folder_path,
-                                            project_name=project_folder.name,
-                                            bug_id=bugid_folder.name,
-                                            trial=10)
+                                                               gpt_model="gpt-3.5-turbo-1106",
+                                                               response_file_name_prefix="prompt_response",
+                                                               database_dir=database_folder_path,
+                                                               project_name=project_folder.name,
+                                                               bug_id=bugid_folder.name,
+                                                               trial=10)
         total_usage += token_usage.total_tokens
 
     print_in_yellow(f"Total token usage: {total_usage}, estimate {total_usage / 1000_000} dollars")

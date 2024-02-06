@@ -1,20 +1,13 @@
-Based on the explanations and analysis provided, it seems that the issue with the `_try_convert_to_date` function lies in its handling of boolean values and the conversion to datetime. The function should be updated to handle boolean values gracefully and ensure that they are not mistakenly passed to the `to_datetime` function.
-
-To resolve the bug in the `_try_convert_to_date` function, the following approaches can be taken:
-1. Add a type check for boolean values and handle them appropriately before any conversion attempts.
-2. Ensure that boolean values are not inadvertently passed to the `to_datetime` function, as they cannot be converted to datetime.
-
-Here's the corrected version of the `_try_convert_to_date` function with the bug fixed:
-
 ```python
 def _try_convert_to_date(self, data):
     """
-    Try to parse a ndarray-like into a date column.
+    Try to parse a ndarray like into a date column.
 
     Try to coerce object in epoch/iso formats and integer/float in epoch
     formats. Return a boolean if parsing was successful.
     """
-    if not len(data):  # no conversion on empty
+    # no conversion on empty
+    if not len(data):
         return data, False
 
     new_data = data
@@ -23,8 +16,8 @@ def _try_convert_to_date(self, data):
             new_data = data.astype("int64")
         except (TypeError, ValueError, OverflowError):
             pass
-    elif new_data.dtype == "bool":  # handle boolean values
-        new_data = new_data.astype("int64")
+    elif new_data.dtype == "bool":  # Check if the data type is bool and skip conversion
+        return data, False
 
     # ignore numbers that are out of range
     if issubclass(new_data.dtype.type, np.number):
@@ -45,5 +38,3 @@ def _try_convert_to_date(self, data):
         return new_data, True
     return data, False
 ```
-
-In this corrected version, the function now handles boolean values by converting them to "int64" before any operation that could involve datetime. This prevents boolean values from being passed to the `to_datetime` function, resolving the issue that caused the TypeError. This corrected version can be used as a drop-in replacement for the buggy function to ensure that the issue is resolved.

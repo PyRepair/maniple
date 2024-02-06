@@ -1,13 +1,3 @@
-Based on the error message and the test case, the issue is occurring in the calculation of the maximum absolute value (`maxabsvalue`) within the `nonsingular` function. The function is encountering an overflow when calculating `maxabsvalue` due to large input values for `vmin` and `vmax`.
-
-The overflow issue arises from cases where the input values for `vmin` and `vmax` exceed the computational limits, leading to an erroneous computation of `maxabsvalue`. This can cause unexpected behavior and trigger runtime warnings.
-
-To address this bug, the `nonsingular` function should be modified to handle cases with large input values more robustly. Specifically, the calculation of `maxabsvalue` needs to be revised to ensure that it can handle large input values without encountering numerical overflows.
-
-One approach to fix the bug is to implement a more robust method for calculating `maxabsvalue` that can handle extreme input values without causing overflows. This may involve using alternative mathematical formulations or specialized numerical techniques to compute the maximum absolute value in a stable manner.
-
-Here's the revised version of the `nonsingular` function that resolves the overflow issue by implementing a more robust calculation for `maxabsvalue`:
-
 ```python
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
@@ -36,34 +26,27 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         If either input is inf or NaN, or if both inputs are 0 or very
         close to zero, it returns -*expander*, *expander*.
     """
-
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
-    swapped = False
     if vmax < vmin:
         vmin, vmax = vmax, vmin
-        swapped = True
 
-    abs_vmin = abs(vmin)
-    abs_vmax = abs(vmax)
-    maxabsvalue = max(abs_vmin, abs_vmax)
-
+    maxofvminvmax = max(vmin, vmax)
+    maxabsvalue = abs(maxofvminvmax)
+    
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
-        vmin = -expander
-        vmax = expander
+        return -expander, expander
 
-    elif vmax - vmin <= maxabsvalue * tiny:
+    if vmax - vmin <= maxabsvalue * tiny:
         if vmax == 0 and vmin == 0:
-            vmin = -expander
-            vmax = expander
+            return -expander, expander
         else:
-            vmin -= expander * abs_vmin
-            vmax += expander * abs_vmax
+            vmin -= expander*abs(vmin)
+            vmax += expander*abs(vmax)
 
-    if swapped and not increasing:
+    if vmax < vmin and not increasing:
         vmin, vmax = vmax, vmin
+    
     return vmin, vmax
 ```
-
-In the revised version of the function, we explicitly calculate the absolute values of `vmin` and `vmax` before determining `maxabsvalue`. This ensures that the calculation is stable and can handle large input values without encountering numerical overflows. Additionally, the logic for adjusting `vmin` and `vmax` based on extreme input values is maintained to account for a wide range of input scenarios.

@@ -1,8 +1,8 @@
-Based on the information provided, the bug in the `copy` function occurs because it does not handle the case when the `self.columns` attribute is set to `None`. This causes a `TypeError` when checking the length of `self.columns`.
+The bug in the provided function is due to the conditional statement `if len(self.columns) > 0:` which causes a `TypeError` when `self.columns` is `None`. The `TypeError` occurs because the length of `None` cannot be determined.
 
-To address this bug, we need to modify the logic of the `colnames` variable assignment to handle the scenario when `self.columns` is `None`. We should also ensure that the code properly handles the case when `self.columns` is an empty list.
+To fix this bug, we can modify the conditional statement to handle the case when `self.columns` is `None`. We can use an `if` statement to check if `self.columns` is not `None` before checking its length.
 
-Here's the corrected version of the `copy` function:
+Here's the corrected function with the fix:
 
 ```python
 def copy(self, cursor, f):
@@ -12,12 +12,11 @@ def copy(self, cursor, f):
     If both key-based and role-based credentials are provided, role-based will be used.
     """
     logger.info("Inserting file: %s", f)
-
-    if self.columns:
+    colnames = ''
+    
+    if self.columns and len(self.columns) > 0:  # Check if self.columns is not None before checking its length
         colnames = ",".join([x[0] for x in self.columns])
         colnames = '({})'.format(colnames)
-    else:
-        colnames = ''
 
     cursor.execute("""
      COPY {table} {colnames} from '{source}'
@@ -32,6 +31,6 @@ def copy(self, cursor, f):
     )
 ```
 
-In the revised version, the logic for constructing the `colnames` variable has been updated to handle the scenario when `self.columns` is None or an empty list. If `self.columns` is not None, it will construct the `colnames` string by joining the column names. Otherwise, it will set `colnames` to an empty string.
+With this fix, the conditional statement now checks if `self.columns` is not `None` before checking its length to prevent the `TypeError` from occurring.
 
-This approach ensures that the `copy` function handles the case when `self.columns` is either None or an empty list, resolving the bug identified in the provided information.
+This corrected function eliminates the bug and can be used as a drop-in replacement for the original buggy version.

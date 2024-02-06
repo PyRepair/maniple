@@ -1,14 +1,17 @@
-The issue in the provided _engine function is related to the weak reference being used with self when calling self._engine_type. As the bug suggests, the weak reference is not being preserved and is being dropped before the expected time, causing the Period Engine to receive a None instead of the PeriodIndex.
+The error is occurring in the function `_engine` of the `PeriodIndex` class. The function is supposed to create a weak reference of the `self` object and pass it to `_engine_type` to prevent a reference cycle. However, the weak reference is not being handled correctly, causing the `PeriodEngine` to receive a `None` instead of the expected `PeriodIndex`.
 
-To fix this issue, we need to ensure that the weak reference 'period' is preserved until the call to self._engine_type is completed. One approach to address this could be to store the weak reference 'period' in a variable before calling self._engine_type. This ensures that the weak reference is not lost during the execution of the function.
+To fix this issue, we need to properly handle the weak reference and ensure that the `PeriodEngine` receives the correct reference to the `self` object.
 
-Here is the corrected code for the problematic function:
+Here is the corrected code for the `_engine` function:
 
 ```python
 @cache_readonly
 def _engine(self):
     # To avoid a reference cycle, pass a weakref of self to _engine_type.
     period = weakref.ref(self)
-    period_ref = period  # Store the weak reference in a variable
-    return self._engine_type(period_ref, len(self))  # Use the stored weak reference in the _engine_type instantiation
+    return self._engine_type(period(), len(self))
 ```
+
+By calling `period()` we convert the weak reference to an actual reference of the `self` object, which can then be passed to `_engine_type` as intended.
+
+This corrected function should address the issue of weakrefs being lost and resolve the AttributeError in the test case.

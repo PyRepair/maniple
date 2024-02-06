@@ -4,8 +4,11 @@
             "bugID": 9,
             "start_line": 11,
             "file_name": "thefuck/rules/git_push.py",
-            "replace_code": "def get_new_command(command):\n    command_parts = command.script_parts.copy()  # Create a copy of the script_parts list\n\n    # Remove --set-upstream or -u options and their arguments\n    try:\n        upstream_option_index = command_parts.index('--set-upstream')\n        command_parts.pop(upstream_option_index)\n        command_parts.pop(upstream_option_index)  # Remove the argument as well\n    except ValueError:\n        pass\n    try:\n        upstream_option_index = command_parts.index('-u')\n        command_parts.pop(upstream_option_index)\n        command_parts.pop(upstream_option_index)  # Remove the argument as well\n    except ValueError:\n        pass\n\n    # Extract the upstream branch from the stderr output\n    push_upstream = command.stderr.split('\\n')[-3].strip().partition('git ')[2]\n\n    # Replace 'push' with the extracted upstream branch\n    return replace_argument(\" \".join(command_parts), 'push', push_upstream)",
-            "import_list": []
+            "replace_code": "def get_new_command(command):\n    try:\n        upstream_option_index = command.script_parts.index('--set-upstream')\n    except ValueError:\n        upstream_option_index = -1\n\n    try:\n        if upstream_option_index == -1:\n            upstream_option_index = command.script_parts.index('-u')\n    except ValueError:\n        pass\n    \n    if upstream_option_index != -1:\n        command.script_parts.pop(upstream_option_index)\n        command.script_parts.pop(upstream_option_index)\n\n    push_upstream = command.stderr.split('\\n')[-3].strip().partition('git ')[2]\n    return replace_argument(\" \".join(command.script_parts), 'push', push_upstream)",
+            "import_list": [
+                "from thefuck.utils import replace_argument",
+                "from thefuck.specific.git import git_support"
+            ]
         }
     ]
 }

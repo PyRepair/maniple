@@ -93,185 +93,148 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 
-## Test Functions and Error Messages Summary
-The followings are test functions under directory `pandas/tests/frame/test_reshape.py` in the project.
-```python
-def test_unstack_tuplename_in_multiindex(self):
-    # GH 19966
-    idx = pd.MultiIndex.from_product(
-        [["a", "b", "c"], [1, 2, 3]], names=[("A", "a"), ("B", "b")]
-    )
-    df = pd.DataFrame({"d": [1] * 9, "e": [2] * 9}, index=idx)
-    result = df.unstack(("A", "a"))
+## Test Case Summary
+After reviewing the function `_unstack_multiple` it seems that the issue arises from the usage of a `MultiIndex`, particularly in the function `level = self.names.index(level)` that leads to the error `ValueError: 'A' is not in list` in the class `MultiIndex` in the file pandas/core/indexes/multi.py. This error is caused by the failure in indexing the upward level `A` within the `names` attribute of the MultiIndex.
 
-    expected = pd.DataFrame(
-        [[1, 1, 1, 2, 2, 2], [1, 1, 1, 2, 2, 2], [1, 1, 1, 2, 2, 2]],
-        columns=pd.MultiIndex.from_tuples(
-            [
-                ("d", "a"),
-                ("d", "b"),
-                ("d", "c"),
-                ("e", "a"),
-                ("e", "b"),
-                ("e", "c"),
-            ],
-            names=[None, ("A", "a")],
-        ),
-        index=pd.Index([1, 2, 3], name=("B", "b")),
-    )
-    tm.assert_frame_equal(result, expected)
+Taking a look at the test function `test_unstack_tuplename_in_multiindex(self)`, where a `MultiIndex` named `idx` is created with the following signature: `pd.MultiIndex.from_product( [["a", "b", "c"], [1, 2, 3]], names=[("A", "a"), ("B", "b")] )`. This test function then tries to unstack the MultiIndex using the first level's MultiIndex name `("A", "a")` as `unstack_idx`, which is a valid input for unstack.
 
-@pytest.mark.parametrize(
-    "unstack_idx, expected_values, expected_index, expected_columns",
-    [
-        (
-            ("A", "a"),
-            [[1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2]],
-            pd.MultiIndex.from_tuples(
-                [(1, 3), (1, 4), (2, 3), (2, 4)], names=["B", "C"]
-            ),
-            pd.MultiIndex.from_tuples(
-                [("d", "a"), ("d", "b"), ("e", "a"), ("e", "b")],
-                names=[None, ("A", "a")],
-            ),
-        ),
-        (
-            (("A", "a"), "B"),
-            [[1, 1, 1, 1, 2, 2, 2, 2], [1, 1, 1, 1, 2, 2, 2, 2]],
-            pd.Index([3, 4], name="C"),
-            pd.MultiIndex.from_tuples(
-                [
-                    ("d", "a", 1),
-                    ("d", "a", 2),
-                    ("d", "b", 1),
-                    ("d", "b", 2),
-                    ("e", "a", 1),
-                    ("e", "a", 2),
-                    ("e", "b", 1),
-                    ("e", "b", 2),
-                ],
-                names=[None, ("A", "a"), "B"],
-            ),
-        ),
-    ],
-)
-def test_unstack_mixed_type_name_in_multiindex(
-    self, unstack_idx, expected_values, expected_index, expected_columns
-):
-    # GH 19966
-    idx = pd.MultiIndex.from_product(
-        [["a", "b"], [1, 2], [3, 4]], names=[("A", "a"), "B", "C"]
-    )
-    df = pd.DataFrame({"d": [1] * 8, "e": [2] * 8}, index=idx)
-    result = df.unstack(unstack_idx)
-
-    expected = pd.DataFrame(
-        expected_values, columns=expected_columns, index=expected_index,
-    )
-    tm.assert_frame_equal(result, expected)
+The test code includes the error message:
 ```
-
-Here is a summary of the test cases and error messages:
-From the error message we can observe that the error is thrown from within the `_get_level_number` method when attempting to proceess a level from the `MultiIndex`. Specifically, it tries to retrieve the index of a level from a Tuple, but encounters a `ValueError` because the level name is not found. Below is the code snippet that showcases the error:
-
-```python
-def _get_level_number(self, level) -> int:
-    count = self.names.count(level)
-    if (count > 1) and not is_integer(level):
-        raise ValueError(
-            f"The name {level} occurs multiple times, use a level number"
-        )
-    try:
-        level = self.names.index(level)
-    except ValueError:
-        if not is_integer(level):
-            raise KeyError(f"Level {level} not found")
+E ValueError: 'A' is not in list
+    pyscript/pandas/core/indexes/multi.py:1286
+E KeyError: 'Level A not found'
+    pyscript/pandas/core/indexes/multi.py:1289
 ```
+These error messages indicate that an incorrect level (`("A", "a")`) is passed into the _get_level_number method within the pandas/core/reshape/reshape.py file. Consequently, the method cannot locate the name 'A' in the `names` attribute of the MultiIndex instance and must raise a ValueError or KeyError exception appropriately.
 
-The `test_unstack_tuplename_in_multiindex` is one of the test functions that triggers this error. This test case feeds a hierarchical column index (a MultiIndex) into the `.unstack()` function. The index is set using the `from_product` method, but with mistaken use of a Tuple within the `names` parameter which leads to a situation where the method for extracting the level number, `_get_level_number`, is forced to operate on a Tuple rather than a string. As a result, it encounters the `KeyError`.
+As a result, the test case `test_unstack_tuplename_in_multiindex` ends in a failure as it tries to index on a level that is not available in the `names` attribute of the `MultiIndex`. The subsequent test function `test_unstack_mixed_type_name_in_multiindex` also might go wrong, although further analysis is needed to provide more concrete insights.
 
-By sifting through the error message, we can gain a deeper understanding of how exactly the input data led to this error point in the code and ultimately to the raised exception. Understanding and extracting relevant details from the error message helps in diagnosing and resolving the error.
+To solve the issue, the `MultiIndex` class could be modified to handle the situation when the input names are tuples and make certain that the levels are accessed correctly. Additionally, inserting some print statements in the `_unstack_multiple` method could help in understanding the issue further.
 
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Based on the provided variable runtime values and types for the buggy function, let's discuss the issues observed for each of the given cases.
+From the provided details, we can see that the `_unstack_multiple` function is intended to unstack MultiIndex data. However, there are issues causing it to fail. We'll start by analyzing the different bug cases to understand the specific problems in each.
 
-## Buggy Case 1
-1. The input parameter `clocs` is a tuple with the value `('A', 'a')`, which is used to get the levels number for the specified columns in the dataframe.
-2. The `data` variable is a DataFrame with multi-level indexing. The index consists of tuples representing the levels ('A', 'a') and ('B', 'b').
-3. The function retrieves metadata from the DataFrame `data` such as the index, columns, names, and codes for the levels using various operations like `_get_level_number`, `levels`, `codes`, and `names`.
-4. The issue observed is with the generation of the `unstacked` DataFrame. The output of the function creates new levels and columns, resulting in changes to the original structure of the DataFrame.
+#### Bug Case 1
+The input `clocs` seems to be a tuple with the value `('A', 'a')`, indicating that the function is attempting to unstack the level with names 'A' and 'a'. The `data` input is a DataFrame with a MultiIndex having levels 'A' and 'a'. The relevant variables (`index`, `clevels`, `ccodes`, etc.) have been populated accordingly.
 
-## Buggy Case 2
-1. Similar to the previous case, the input parameter `clocs` is a tuple with the value `('A', 'a')`.
-2. The `data` variable is a DataFrame with multi-level indexing, and the index consists of tuples representing the levels ('A', 'a'), 'B', and 'C'.
-3. The function retrieves metadata from the DataFrame `data` such as the index, columns, names, and codes for the levels using various operations.
-4. The issue observed is with the generation of the `unstacked` DataFrame. The output of the function creates new levels and columns, resulting in changes to the original structure of the DataFrame.
+Upon closer inspection, we notice that the bug might be related to wrongly constructing the `dummy_index`, variables `new_levels`, `new_names`, and `new_codes`. Specifically, the creation of `new_levels` and `new_codes` seems to reflect incorrect restructuring of the column levels and codes. Further, the construction of `new_columns` and subsequent assignment to `unstacked.index` or `unstacked.columns` may be impacted as well.
 
-## Buggy Case 3
-1. In this case, the input parameter `clocs` is a tuple of a tuple and a string, with the value `(('A', 'a'), 'B')`.
-2. The `data` variable is a DataFrame with multi-level indexing, and the index consists of tuples representing the levels ('A', 'a'), 'B', and 'C'.
-3. Similar to the previous cases, the function retrieves metadata from the DataFrame `data` such as the index, columns, names, and codes for the levels using various operations.
-4. The issue observed is also related to the generation of the `unstacked` DataFrame, resulting in changes to the original structure of the DataFrame.
+#### Bug Case 2
+Similar to Bug Case 1, this scenario also shows the usage of a tuple value for `clocs` as `('A', 'a')`. The `data` input is a DataFrame with a MultiIndex having levels 'A', 'a', 'B', and 'C'. The relevant variables are populated to reflect this input appropriately.
 
-Based on the observed issues, it seems that the problem lies in the way the `unstacked` DataFrame is being generated, which leads to inconsistencies in the output structure. The code needs to be reviewed and possibly revised, especially the parts related to the generation of the `unstacked` DataFrame based on the provided variable logs.
+Upon inspection, it appears that similar issues arise in the construction of `new_levels`, `new_columns`, and the subsequent assignment to `unstacked.index` or `unstacked.columns`.
+
+#### Bug Case 3
+In this situation, the `clocs` input has the value `(('A', 'a'), 'B')`, indicating an attempt to unstack levels 'A', 'a', and 'B'. The `data` input is a DataFrame with a MultiIndex having levels 'A', 'a', 'B', and 'C', and the relevant variables are initialized accordingly.
+
+Upon analyzing the variables, we once again encounter similar issues with the construction of `new_levels`, `new_columns`, and their respective assignments.
+
+In all these bug cases, it seems that the reorganization of column levels, names, and codes may not be happening correctly. Additionally, the assignment of `unstacked.index` or `unstacked.columns` might not be carried out appropriately. These issues contribute to the failure of the function in correctly unstacking the data.
+
+_In the next step of the debugging process, it would be essential to assess the relevant parts of the function's code, specifically the construction of `new_levels`, `new_columns`, and their assignments, to understand the root cause of the issues observed across these bug cases._
 
 
 
 ## Summary of Expected Parameters and Return Values in the Buggy Function
 
-Based on the detailed information provided on various expected input and output values, and with the accompanied source code and expected variable value and type before function return, the following is a summary of the core logic of the function, `_unstack_multiple`:
+The function `_unstack_multiple` has been provided with the expected inputs and outputs for a specific case to aid the analysis. Based on this information, we will break down and summarize the core logic of the function.
 
-1. If the length of the `clocs` is 0, return the `data` as is.
+1. The function performs various index manipulations, including the extraction of levels and codes from a multi-index structure.
+2. It partitions the input data and index based on the specified column levels (`clocs`).
+3. The function handles different cases based on the type of the `data` input. If `data` is a `Series`, certain operations are performed, such as creating a dummy index, copying the data, and unstacking based on the dummy index.
+4. In the case that `data` is not a `Series`, the function further processes the data to create new levels, names, and codes based on the result of unstacking.
+5. At the end, the function sets the index or columns of the unstacked data based on the newly created levels and codes.
 
-2. Get the `index` from `data`.
+The function performs multiple index-related operations, including unstacking and creating new multi-index structures. The conditional logic based on the type of the input data influences the specific operations and transformations performed.
 
-3. Convert the `clocs` values to their corresponding level numbers in the `index`.
-
-4. Get the `rlocs`, which are the levels that are not present in `clocs`.
-
-5. Create separate lists for `clevels`, `ccodes`, `cnames`, `rlevels`, `rcodes` and `rnames` from the `index` using the level numbers obtained from `clocs` and `rlocs`.
-
-6. Determine the shape from the lengths of the `clevels`.
-
-7. Perform operations to obtain `comp_ids`, `obs_ids`, and `recons_codes` by invoking specific helper functions such as `get_group_index`, `compress_group_index`, and `decons_obs_group_ids` with relevant parameters.
-
-8. Create a `dummy_index` based on conditions and whether the `data` is a Series or DataFrame.
-
-9. Modify and set the index for the `dummy` data based on the `dummy_index`.
-
-10. If the `data` is a Series, perform an unstack operation and set the new levels, names, and codes. Otherwise, if `data` is a DataFrame, a series of operations involving unstacking, obtaining new levels, names, and codes are performed.
-
-11. Finally, create new columns based on the updated level, names, and codes and set the final index or columns of the unstacked data based on whether it is a Series or DataFrame.
-
-This summary intends to provide a detailed analysis of the core logic of the function by examining its source code and correlating specific variable values noted during the function's execution. It also aims to offer a comprehensive and insightful investigation into the function's behavior and logic.
+Overall, the function appears to be tailored for operations involving multi-level indexing and reshaping of the input data based on specified column levels.
 
 
 
-## Summary of the GitHub Issue Related to the Bug
+# A GitHub issue title for this bug
+```text
+MultiIndexed unstack with tuple names fails with KeyError
+```
 
-## Bug Summary
-The bug is related to the unstack method of a pandas Series with a MultiIndex. When trying to unstack the Series using the names of the individual levels of the MultiIndex (specified as a tuple), it results in a KeyError. This occurs when attempting to unstack the Series using the levels specified as ("A", "a"), causing the unstacking operation to fail and raise a KeyError due to the level 'A' not being found.
+## The associated detailed issue description
+```text
+In [8]: idx = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2, 3]], names=[('A', 'a'), ('B', 'b')])
 
-## Steps to Reproduce
-1. Create a MultiIndex from the product of two lists, with specific names for the levels ('A', 'a') and ('B', 'b').
-2. Create a Series with the previously created MultiIndex.
-3. Attempt to unstack the Series using the names of the levels as a tuple, such as s.unstack(("A", "a")).
+In [9]: s = pd.Series(1, index=idx)
 
-## Expected Behavior
-The unstack operation should successfully reorganize the Series into a DataFrame with 'A' as the columns and 'a' as the index, in accordance with the specified level names.
+In [10]: s
+Out[10]:
+(A, a)  (B, b)
+a       1         1
+        2         1
+        3         1
+b       1         1
+        2         1
+        3         1
+c       1         1
+        2         1
+        3         1
+dtype: int64
 
-## Observed Behavior
-The unstack operation fails and raises a KeyError, specifically indicating that 'Level A not found'.
+In [11]: s.unstack(("A", "a"))
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/indexes/multi.py in _get_level_number(self, level)
+    749                                  'level number' % level)
+--> 750             level = self.names.index(level)
+    751         except ValueError:
 
-## Environment
-- Python version: Not specified
-- pandas version: Not specified
+ValueError: 'A' is not in list
 
-## Additional Comments
-The bug has been reported to a couple of individuals for further investigation.
+During handling of the above exception, another exception occurred:
+
+KeyError                                  Traceback (most recent call last)
+<ipython-input-11-1ce241b42d82> in <module>()
+----> 1 s.unstack(("A", "a"))
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/series.py in unstack(self, level, fill_value)
+   2231         """
+   2232         from pandas.core.reshape.reshape import unstack
+-> 2233         return unstack(self, level, fill_value)
+   2234
+   2235     # ----------------------------------------------------------------------
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/reshape/reshape.py in unstack(obj, level, fill_value)
+    481             # _unstack_multiple only handles MultiIndexes,
+    482             # and isn't needed for a single level
+--> 483             return _unstack_multiple(obj, level, fill_value=fill_value)
+    484         else:
+    485             level = level[0]
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/reshape/reshape.py in _unstack_multiple(data, clocs, fill_value)
+    315     index = data.index
+    316
+--> 317     clocs = [index._get_level_number(i) for i in clocs]
+    318
+    319     rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/reshape/reshape.py in <listcomp>(.0)
+    315     index = data.index
+    316
+--> 317     clocs = [index._get_level_number(i) for i in clocs]
+    318
+    319     rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/indexes/multi.py in _get_level_number(self, level)
+    751         except ValueError:
+    752             if not isinstance(level, int):
+--> 753                 raise KeyError('Level %s not found' % str(level))
+    754             elif level < 0:
+    755                 level += self.nlevels
+
+KeyError: 'Level A not found'
+cc @ibrahimsharaf, @toobaz does this look difficult?
+```
+
+
 
 
 

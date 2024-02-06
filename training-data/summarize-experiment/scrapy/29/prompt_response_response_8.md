@@ -1,16 +1,9 @@
-The error in the `request_httprepr` function occurs when it attempts to concatenate the 'Host' string with the parsed hostname. The error message indicates that the `to_bytes` function is receiving a `NoneType` object when it expects a unicode, string, or bytes object.
+The error occurs at the line `s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"` due to the `parsed.hostname` being `None` when the URL scheme is not HTTP. This causes the `to_bytes` function to raise a `TypeError` because it expects a valid value to convert to bytes.
 
-The potential error location within the function is in the line that adds the 'Host' header:
-```python
-s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"
-```
-The `parsed.hostname` value may be `None`, leading to the error when it is passed to the `to_bytes` function.
+To fix this bug, we need to check if `parsed.hostname` is not `None` before adding it to the `s` variable.
 
-The reason behind the bug is that the `parsed.hostname` value is not adequately handled, leading to a potential `None` value being passed to the `to_bytes` function.
+Here's the corrected code for the `request_httprepr` function:
 
-One possible approach for fixing the bug is to check if the `parsed.hostname` is `None` before converting it to bytes. If it is `None`, a default value or an empty string can be used to ensure that the `to_bytes` function does not encounter a `NoneType` object.
-
-The corrected code for the `request_httprepr` function is as follows:
 ```python
 def request_httprepr(request):
     """Return the raw HTTP representation (as bytes) of the given request.
@@ -20,14 +13,17 @@ def request_httprepr(request):
     """
     parsed = urlparse_cached(request)
     path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
-    host = parsed.hostname if parsed.hostname else b""
-
     s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
-    s += b"Host: " + to_bytes(host) + b"\r\n"
+    
+    # Check if parsed.scheme is 'http' or 'https' before adding the hostname
+    if parsed.scheme in ['http', 'https'] and parsed.hostname:
+        s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"
+    
     if request.headers:
         s += request.headers.to_string() + b"\r\n"
     s += b"\r\n"
     s += request.body
     return s
 ```
-In the corrected code, the `parsed.hostname` value is checked before converting it to bytes. If it is `None`, an empty string is used as the `host` value, ensuring that the `to_bytes` function does not encounter a `NoneType` object. This resolves the bug and allows the function to handle non-HTTP requests without encountering errors.
+
+This change ensures that `parsed.hostname` is not `None` before adding it to the `s` variable, thus resolving the bug.

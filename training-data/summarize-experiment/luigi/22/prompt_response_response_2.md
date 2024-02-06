@@ -1,26 +1,23 @@
-The bug in the provided function is due to the default initialization of the `last_active` attribute as `None`. This causes issues when performing an addition operation involving `None` and an integer, leading to a TypeError.
+The error occurs in the `prune` method of the `Worker` class, where the addition operation is being performed between `NoneType` and `int` types.
 
-To fix this bug, `__init__` method of the `Worker` class should be updated to handle the case where `last_active` is `None` by providing a default value. This can be achieved by modifying the `__init__` method:
+The bug occurs because the `last_active` parameter has a default value of `None` in the `__init__` method, and it is not handled correctly in the `prune` method.
+
+To fix the bug, we need to check if the `last_active` parameter is `None` before performing the addition operation in the `prune` method. If it is `None`, we should handle it appropriately.
+
+Here's the corrected code for the `__init__` method:
 
 ```python
-class Worker(object):
-    """
-    Structure for tracking worker activity and keeping their references.
-    """
-    
-    def __init__(self, worker_id, last_active=None):
-        self.id = worker_id
-        self.reference = None
-        # Set self.last_active to zero if last_active is None
-        if last_active is None:
-            self.last_active = 0
-        else:
-            self.last_active = last_active
-        self.started = time.time()
-        self.tasks = set()
-        self.info = {}
+def __init__(self, worker_id, last_active=None):
+    self.id = worker_id
+    self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
+    self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch
+    self.started = time.time()  # seconds since epoch
+    self.tasks = set()  # task objects
+    self.info = {}
 ```
 
-By setting `self.last_active` to a default value of 0 when `last_active` is `None`, the addition operation in the `prune` method will not result in a TypeError.
+Now, with the fixed `__init__` method, the `last_active` parameter will default to the current time if it is not provided.
 
-This corrected code can be used as a drop-in replacement for the buggy version of the function.
+This will prevent `last_active` from being `None`, therefore fixing the bug in the `prune` method.
+
+With this correction, the `prune` method should work correctly and the addition operation will not raise a `TypeError`.

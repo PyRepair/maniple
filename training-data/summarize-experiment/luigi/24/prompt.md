@@ -37,75 +37,80 @@ class SparkSubmitTask(luigi.Task):
 
 
 
-## Test Functions and Error Messages Summary
-The followings are test functions under directory `test/contrib/spark_test.py` in the project.
-```python
-@with_config({'spark': {'spark-submit': ss, 'master': "yarn-client", 'hadoop-conf-dir': 'path'}})
-@patch('luigi.contrib.spark.subprocess.Popen')
-def test_run(self, proc):
-    setup_run_process(proc)
-    job = TestSparkSubmitTask()
-    job.run()
+## Test Case Summary
+The error message for the `test_defaults` test is indicating that the actual list returned from `proc` differs from the expected list when `proc.call_args[0][0]` is being asserted. Additionally, the message contains a specific assertion error that highlights the differences in the lists: it indicates that the first differing element between the two lists is at index 12, where the expected list contains the value "'prop1=val1'" while the actual list contains "prop1=val1".
 
-    self.assertEqual(proc.call_args[0][0],
-                     ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',
-                      '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',
-                      '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',
-                      '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',
-                      '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',
-                      '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',
-                      '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])
+The error message points to `test/contrib/spark_test.py` line number 165, suggesting that the assertion error occurred during this line when comparing the actual and expected values.
 
-@with_config({'spark': {'spark-submit': ss, 'master': 'spark://host:7077', 'conf': 'prop1=val1', 'jars': 'jar1.jar,jar2.jar',
-                        'files': 'file1,file2', 'py-files': 'file1.py,file2.py', 'archives': 'archive1'}})
-@patch('luigi.contrib.spark.subprocess.Popen')
-def test_defaults(self, proc):
-    proc.return_value.returncode = 0
-    job = TestDefaultSparkSubmitTask()
-    job.run()
-    self.assertEqual(proc.call_args[0][0],
-                     ['ss-stub', '--master', 'spark://host:7077', '--jars', 'jar1.jar,jar2.jar',
-                      '--py-files', 'file1.py,file2.py', '--files', 'file1,file2', '--archives', 'archive1',
-                      '--conf', 'prop1=val1', 'test.py'])
-```
+The associated test function `test_defaults` is defined as part of the `SparkSubmitTaskTest` class, which uses the `@with_config` and `@patch` decorators. The `@with_config` decorator sets a configuration object with different properties related to Spark, including the `spark-submit` command, `master`, and various files and archives to be used. The `@patch` decorator creates a mock object to replace `Popen` module (subprocess.Popen) so that it can be used for checking the command arguments it receives during a run.
 
-Here is a summary of the test cases and error messages:
-Upon carefully examining the code for the `test_defaults` function, which constitutes a unit test for the `TestDefaultSparkSubmitTask` class, it involves patching the `subprocess.Popen` object and setting the return value for `proc` to 0. From the test code, it's evident that the underlying data for the test involves comparisons of lists using the `self.assertEqual` method. The expected list is compared against a list assembled from `proc.call_args[0][0]`. 
+This test calls the `TestDefaultSparkSubmitTask` and runs it, then asserts that the `proc.call_args[0][0]` matches the expected list of arguments for the spark-submit command. The expected list contains all necessary options for the spark-submit command, such as --master, --jars, --py-files, --files, --archives, --conf, and the script file "test.py".
 
-The error message indicates that there is an AssertionError. Specifically, the issue occurs when comparing two lists, and the error message provides details about which elements of the lists differ. The comparison of the lists, which are outputs of the `proc.call_args[0][0]` extraction, reveals that the string being compared is for '--conf'. The original list includes an item "--conf", followed by the value of prop1=val1 within double quotes: '"prop1=val1"'. In comparison, the corresponding position in the tested list includes "--conf", followed by the value "prop1=val1" without the double quotes. This is visible from the error message where the output lists are given and the exact position in the lists where the difference is encountered.
+Due to the error, it's apparent that the `proc.call_args[0][0]` does not match the expected list of arguments. The key differences are found in the `--conf` option. The expected list contains the value "'prop1=val1'" within quotes while the actual list contains "prop1=val1" without quotes.
 
-For the input that caused this error, it's evident that the `prop1=val1` for the `conf` part of the command that is being executed by the `subprocess.Popen` object is not formatted as expected, resulting in the test failure.
+Upon examining the erroneous code section of the test code, we can see that the error message corresponds to the assertions made in the `test_default` function, especially the `self.assertEqual` statement where the actual and expected arguments do not match up. 
 
-To address this issue, the `_dict_arg` method in the source code should be amended to handle formatting of the 'conf' value in a consistent manner, or the tests should reflect that change by providing the expected format in the test case.
+This discrepancy in the `--conf` option is probably because of how the `conf` parameters are passed into `spark-submit` within the `spark` dictionaries in the `@with_config` decorator. The value inside the `dict` is converted from "'prop1=val1'" (with  quotes) to "prop1=val1" (without quotes). This is directly related to the `_dict_arg` method. The actual `dict` is being passed as the value into `_dict_arg` function's `value` parameter, and during the processing of this dict, incorrect quoting is occurring.
+
+Further debugging and modification of the `_dict_arg` method to ensure proper processing of the input dict with the correct quoting should be done to rectify the discrepancies and ultimately solve the assertion error in the test case.
 
 
 
-## Summary of Runtime Variables and Types in the Buggy Function
+# Variable runtime value and type inside buggy function
+## Buggy case 1
+### input parameter runtime value and type for buggy function
+value, value: `{'Prop': 'Value'}`, type: `dict`
 
-Looking at the provided function code and the variable logs from the two buggy cases, we can identify a potential issue that might be causing the buggy behavior.
+name, value: `'--conf'`, type: `str`
 
-In the `_dict_arg` function, the input parameters consist of `name` and `value`. The function then checks if the `value` is truthy and is an instance of a dictionary. If both conditions are true, it iterates through the key-value pairs of the dictionary and appends a modified string to the `command` list.
+### variable runtime value and type before buggy function return
+command, value: `['--conf', 'Prop=Value']`, type: `list`
 
-In the first buggy case, the input parameter `value` is `{'Prop': 'Value'}` and the `name` is `--conf`. The variable `command` at the moment before the function returns has the value `['--conf', 'Prop=Value']`. The individual values of `prop`, `value`, and the modified string in the `command` list all correspond correctly to the input dictionary and its key-value pairs.
+value, value: `'Value'`, type: `str`
 
-Similarly, in the second buggy case, the input parameter `value` is `{'prop1': 'val1'}` and the `name` is `--conf`. The variable `command` at the moment before the function returns has the value `['--conf', 'prop1=val1']`. Again, the individual values of `prop`, `value`, and the modified string in the `command` list correspond correctly to the input dictionary and its key-value pairs.
+prop, value: `'Prop'`, type: `str`
 
-From the analysis of these specific cases and the function code, it seems that the function is correctly processing the input dictionary and formatting the key-value pairs into the `command` list.
+## Buggy case 2
+### input parameter runtime value and type for buggy function
+value, value: `{'prop1': 'val1'}`, type: `dict`
 
-Therefore, the potential issue might lie outside the `_dict_arg` function, possibly in the way the `command` list is being used or compared in the broader context of the application. It could also be a problem in the test cases themselves, such as incorrect expected output values.
+name, value: `'--conf'`, type: `str`
 
-Further exploration beyond the provided function code and variable logs is necessary to uncover the root cause of the buggy behavior. This could involve examining how the `command` list is used or checking other parts of the application that interact with the `_dict_arg` function.
+### variable runtime value and type before buggy function return
+command, value: `['--conf', 'prop1=val1']`, type: `list`
+
+value, value: `'val1'`, type: `str`
+
+prop, value: `'prop1'`, type: `str`
 
 
 
-## Summary of Expected Parameters and Return Values in the Buggy Function
+# Expected return value in tests
+## Expected case 1
+### Input parameter value and type
+value, value: `{'Prop': 'Value'}`, type: `dict`
 
-Summary:
-The _dict_arg function takes three parameters: self, name, and value. It checks if the value is not empty and is of type dict. If both conditions are met, it iterates over the key-value pairs in the dictionary and appends them to the command list in the format {name, "prop=value"}. 
+name, value: `'--conf'`, type: `str`
 
-In expected case 1, the input parameters value and name are {'Prop': 'Value'} and '--conf' respectively. The expected return command value should be ['--conf', '"Prop=Value"'], and the variables value and prop should have the values 'Value' and 'Prop' respectively.
+### Expected variable value and type before function return
+command, expected value: `['--conf', '"Prop=Value"']`, type: `list`
 
-In expected case 2, the input parameters value and name are {'prop1': 'val1'} and '--conf' respectively. The expected return command value should be ['--conf', '"prop1=val1"'], and the variables value and prop should have the values 'val1' and 'prop1' respectively.
+value, expected value: `'Value'`, type: `str`
+
+prop, expected value: `'Prop'`, type: `str`
+
+## Expected case 2
+### Input parameter value and type
+value, value: `{'prop1': 'val1'}`, type: `dict`
+
+name, value: `'--conf'`, type: `str`
+
+### Expected variable value and type before function return
+command, expected value: `['--conf', '"prop1=val1"']`, type: `list`
+
+value, expected value: `'val1'`, type: `str`
+
+prop, expected value: `'prop1'`, type: `str`
 
 
 

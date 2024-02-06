@@ -1,12 +1,3 @@
-Based on the provided information and analysis, it seems that the potential error location within the problematic function `_unstack_multiple` is primarily related to the generation of the `unstacked` DataFrame. The issues observed are connected to the way new levels and columns are being created, resulting in changes to the original structure of the DataFrame. Furthermore, the handling of MultiIndex in the function seems to trigger the KeyError and the ValueError, which leads to the functionality not being executed as expected.
-
-To fix the bug, the following approaches can be considered:
-1. Update the handling of MultiIndex to ensure correct extraction of level names and numbers.
-2. Refactor the logic for creating new levels, names, and codes after unstacking to maintain the original structure of the DataFrame.
-3. Ensure that the function works correctly for both Series and DataFrames, especially when dealing with MultiIndex.
-
-The corrected code for the problematic function `_unstack_multiple` is provided below:
-
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
@@ -14,25 +5,75 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
-    clevels = [index.levels[index._get_level_number(i)] for i in clocs]
-    rlevels = [level for i, level in enumerate(index.levels) if i not in [index._get_level_number(i) for i in clocs]]
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else i for i in clocs]
+
+    rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+    clevels = [index.levels[i] for i in clocs]
+    ccodes = [index.codes[i] for i in clocs]
+    cnames = [index.names[i] for i in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
+
+    shape = [len(x) for x in clevels]
+    group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
+
+    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
+    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
+
+    if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
+        dummy_index = Index(obs_ids, name="__placeholder__")
+    else:
+        dummy_index = MultiIndex(
+            levels=rlevels + [obs_ids],
+            codes=rcodes + [comp_ids],
+            names=rnames + ["__placeholder__"],
+            verify_integrity=False,
+        )
 
     if isinstance(data, Series):
-        unstacked = data.unstack(clocs, fill_value=fill_value)
+        dummy = data.copy()
+        dummy.index = dummy_index
+
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        new_levels = clevels
+        new_names = cnames
+        new_codes = recons_codes
     else:
-        unstacked = data.copy()
-        levels = [rlevels]
-        codes = [list(range(len(rlevels[0])))]
-        for cloc in reversed(clocs):
-            levels.insert(0, clevels[clocs.index(cloc)])
-            grouper_key = np.zeros(len(rlevels[0]))
-            for j, code in enumerate(codes[0]):
-                grouper_key += codes[1][codes[2] == code] << (j * 8)
-            
-            unstacked = unstacked.unstack(i)
-    
-    unstacked.index = pd.MultiIndex.from_product(levels, names=[index.names[i] for i in range(len(levels))])
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
+        dummy = data.copy()
+        dummy.index = dummy_index
+
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        if isinstance(unstacked, Series):
+            unstcols = unstacked.index
+        else:
+            unstcols = unstacked.columns
+        new_levels = [unstcols.levels[0]] + clevels
+        new_names = [data.columns.name] + cnames
+
+        new_codes = [unstcols.codes[0]]
+        for rec in recons_codes:
+            new_codes.append(rec.take(unstcols.codes[-1]))
+
+    new_columns = MultiIndex(
+        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+    )
+
+    if isinstance(unstacked, Series):
+        unstacked.index = new_columns
+    else:
+        unstacked.columns = new_columns
+
     return unstacked
 ```
-
-The corrected function now properly handles the MultiIndex and generates the unstacked DataFrame in accordance with the expected behavior. It takes into account the different scenarios for unstacking both Series and DataFrames with MultiIndex. This revised function can be used as a drop-in replacement for the buggy version to resolve the issues related to the unstacking operation.

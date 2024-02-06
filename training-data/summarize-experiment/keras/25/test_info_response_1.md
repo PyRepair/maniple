@@ -1,12 +1,27 @@
-From the provided test function `test_preprocess_input` and the corresponding error message, it is evident that the error occurs in the context of passing an input array, `xint`, which is of type `int32` to the `utils.preprocess_input` function. This error arises from an attempt to modify the `int32` type array using floating-point values in the `_preprocess_numpy_input` function. The error is specifically related to the line: 
+Upon analyzing the error message, it appears that the problem occurs within the `_preprocess_numpy_input` function, specifically when the mode equals 'torch', and `data_format` is 'channels_last'. In this case, the code attempts to subtract an array from a scalar value. This results in a `UFuncTypeError` indicating that it is not possible to cast the output from the ufunc 'subtract' from type float64 to type int32 with the casting rule 'same_kind'.
 
+The `UFuncTypeError` error occurs at line 82 in the `keras/applications/imagenet_utils.py` file. The relevant code section in the `_preprocess_numpy_input` function is as follows:
 ```python
->           x[..., 0] -= mean[0]
-E           numpy.core._exceptions.UFuncTypeError: Cannot cast ufunc 'subtract' output from dtype('float64') to dtype('int32') with casting rule 'same_kind'
+if mode == 'torch':
+    x /= 255.
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
+else:
+    if data_format == 'channels_first':
+        # 'RGB'->'BGR'
+        if x.ndim == 3:
+            x = x[::-1, ...]
+        else:
+            x = x[:, ::-1, ...]
+    else:
+        # 'RGB'->'BGR'
+        x = x[..., ::-1]
+        mean = [103.939, 116.779, 123.68]
+        std = None
 ```
 
-The error message reveals that a UFuncTypeError is being raised due to the inability to cast the result of the subtraction operation (dtype of 'float64') to the dtype of the input array (dtype of 'int32').
+Therefore, the issue lies in the computation related to the `mean` variable when `mode == 'torch'`. The code attempts to subtract a list from an array which results in a type mismatch error.
 
-To address this issue, it is necessary to handle the input array `xint` with `dtype('int32')` separately within the `_preprocess_numpy_input` function to ensure that the data type consistency is maintained. One approach to resolve this issue could be to explicitly cast the computed values to the same data type as the input array `xint` before performing the subtraction operation, ensuring that the data types are compatible and consistent throughout the computation. Additionally, proper checks and conversions should be implemented to handle the data type differences for different modes and data formats to avoid similar errors in the future.
+To fix this issue, it is required to ensure that the `mean` values are compatible with the data type of the input array `x`. Specifically, the `mean` values should be of the same data type as the input array `x` in order to avoid type casting issues, especially when performing arithmetic operations.
 
-By carefully analyzing the test function and the error message, it is evident that the root cause of the problem lies in the mismatch of data types and the need for explicit type handling to ensure consistent and compatible data types during the preprocessing operations on the input array.
+A potential fix for this problem could involve explicitly converting the `mean` list to the same data type as `x`. This can be done using NumPy's `astype` function to convert the `mean` list to the same data type as `x` before performing the subtraction operation. Applying the same data type to both the `mean` list and the input array `x` would ensure compatibility and prevent the `UFuncTypeError` from occurring.

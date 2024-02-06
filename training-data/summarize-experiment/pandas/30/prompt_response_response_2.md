@@ -13,28 +13,28 @@ def _try_convert_to_date(self, data):
     new_data = data
     if new_data.dtype == "object":
         try:
-            new_data = new_data.astype("int64")  # Corrected from data.astype to new_data.astype
+            new_data = data.astype("int64")
         except (TypeError, ValueError, OverflowError):
             pass
+    elif new_data.dtype == "bool":  # Check if the data type is boolean
+        return data, False  # Skip the conversion for boolean values
 
     # ignore numbers that are out of range
     if issubclass(new_data.dtype.type, np.number):
         in_range = (
-            isna(new_data) | (new_data > self.min_stamp)  # Changed new_data._values to new_data
-            | (new_data == iNaT)
+            isna(new_data._values)
+            | (new_data > self.min_stamp)
+            | (new_data._values == iNaT)
         )
         if not in_range.all():
             return data, False
-
-    if new_data.dtype == bool:  # New condition added to handle boolean values
-        return new_data, True
 
     date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
     for date_unit in date_units:
         try:
             new_data = to_datetime(new_data, errors="raise", unit=date_unit)
-            return new_data, True
         except (ValueError, OverflowError):
             continue
+        return new_data, True
     return data, False
 ```

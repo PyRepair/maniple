@@ -1,15 +1,6 @@
-Based on the provided information, it appears that the error is occurring due to the handling of layers with multiple outputs, specifically the `SwapLayer` in the test function. The error message "AssertionError: Could not compute output Tensor" indicates that the output of the `SwapLayer` is not being computed correctly during the model cloning process.
-
-The potential error location within the `_clone_functional_model` function could be in the section where it iterates over the nodes of the reference model and computes the model outputs using the `tensor_map`. It seems that the handling of layers with multiple outputs, especially when using masks, might be causing the issue.
-
-To resolve the bug, one possible approach is to update the model cloning process to properly handle layers with multiple outputs, ensuring that the output tensors and masks are computed and added to the `tensor_map` correctly.
-
-Here's the corrected version of the `_clone_functional_model` function that addresses the potential bug:
-
 ```python
 def _clone_functional_model(model, input_tensors=None):
-    """
-    Clone a functional `Model` instance.
+    """Clone a functional `Model` instance.
 
     Model cloning is similar to calling a model on new inputs,
     except that it creates new layers (and thus new weights) instead
@@ -48,10 +39,10 @@ def _clone_functional_model(model, input_tensors=None):
                                  dtype=layer.dtype,
                                  sparse=layer.sparse,
                                  name=layer.name)
+            input_layers.append(input_tensor)
             input_tensors.append(input_tensor)
             # Cache newly created input layer.
-            newly_created_input_layer = input_tensor._keras_history[0]
-            layer_map[layer] = newly_created_input_layer
+            layer_map[layer] = input_tensor._keras_history[0]
         for _original, _cloned in zip(model._input_layers, input_layers):
             layer_map[_original] = _cloned
     else:
@@ -76,10 +67,9 @@ def _clone_functional_model(model, input_tensors=None):
     for x, y in zip(model.inputs, input_tensors):
         tensor_map[x] = (y, None)  # tensor, mask
 
+    # Iterated over every node in the reference model, in depth order.
     depth_keys = list(model._nodes_by_depth.keys())
     depth_keys.sort(reverse=True)
-
-    # Iterate over every node in the reference model, in depth order.
     for depth in depth_keys:
         nodes = model._nodes_by_depth[depth]
         for node in nodes:
@@ -91,7 +81,6 @@ def _clone_functional_model(model, input_tensors=None):
                 # Clone layer.
                 new_layer = layer.__class__.from_config(layer.get_config())
                 layer_map[layer] = new_layer
-                layer = new_layer
             else:
                 # Reuse previously cloned layer.
                 layer = layer_map[layer]
@@ -116,19 +105,17 @@ def _clone_functional_model(model, input_tensors=None):
                     kwargs = node.arguments
                 else:
                     kwargs = {}
-                # Call the layer on the computed tensors.
                 computed_tensors = [x[0] for x in computed_data]
-                output_tensors = to_list(layer(computed_tensors, **kwargs))
-                # Update tensor_map with the computed output tensors.
+                output_tensors = to_list(
+                    layer(computed_tensors, **kwargs))
+                # Update tensor_map.
                 for x, y in zip(reference_output_tensors, output_tensors):
                     tensor_map[x] = (y, None)
 
-    # Check that we did compute the model outputs,
-    # then instantiate a new model from inputs and outputs.
+    # Instantiating a new model from inputs and outputs.
     output_tensors = []
     for x in model.outputs:
-        assert x in tensor_map, 'Could not compute output ' + str(x)
-        tensor, _ = tensor_map[x]
+        tensor = tensor_map[x][0]
         output_tensors.append(tensor)
     return Model(input_tensors, output_tensors, name=model.name)
 ```

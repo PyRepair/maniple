@@ -1,10 +1,12 @@
-Based on the provided analysis and information, it appears that the issue causing the test case failures is related to the handling of repeated key=value pairs in form data. This results in only the last key=value winning, which restricts the ability to validate against all values.
+The test case that is failing is `test_python_tuple_param_as_form`, which expects the response status code to be 200 but instead receives a status code of 422. This indicates that the function `request_body_to_args` is not processing the input parameters and received body correctly, leading to incorrect validation and response.
 
-The suggested approach to fix this bug involves enhancing the data aggregation and validation process within the `request_body_to_args` function. Specifically, the function should gather repeated keys in a 2-tuple list and assign those values as a list to the same key before the validation process occurs. This would enable more comprehensive and accurate validation against all the provided values.
+The potential error location within the `request_body_to_args` function seems to be related to handling the received_body for sequence-shaped fields. It appears that the logic for processing and validating the received_body for sequence-shaped fields, such as list and tuple, is not functioning as expected, leading to validation errors and incorrect output.
 
-To address this bug, the proposed approach is to modify the logic for retrieving values from the form data and handling repeated keys. Additionally, the validation process needs to be updated to support the new data aggregation approach. By implementing these changes, the function will be able to accurately process repeated key=value pairs and perform comprehensive validation against all values.
+The bug is likely occurring due to improper handling of repeated key=value pairs in the received form data. The issue is exacerbated by the fact that the function is not correctly processing repeated keys to validate against all values, leading to validation errors and incorrect responses.
 
-Here is the corrected and enhanced version of the `request_body_to_args` function that addresses the bug and incorporates the suggested approach:
+To fix the bug, the `request_body_to_args` function needs to be updated to properly handle repeated key=value pairs in form data. The function should collect repeated keys and assign those values as a list to the same key before validation happens. This will ensure that all values associated with repeated keys are properly processed and validated.
+
+Here's the corrected code for the `request_body_to_args` function:
 
 ```python
 async def request_body_to_args(
@@ -13,45 +15,54 @@ async def request_body_to_args(
 ) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:
     values = {}
     errors = []
+
     if required_params:
         for field in required_params:
-            values[field.name] = []
+            value: Any = None
             if received_body is not None:
-                # Retrieve all values for the field regardless of repeated keys
-                if isinstance(received_body, FormData):
-                    values[field.name] = received_body.getlist(field.alias)
+                if field.shape in sequence_shapes and isinstance(received_body, FormData):
+                    value = received_body.getlist(field.alias)
                 else:
-                    values[field.name].append(received_body.get(field.alias))
+                    value = received_body.get(field.alias)
 
-            # Perform validation on all retrieved values
-            for value in values[field.name]:
-                if value is None or value == "":
-                    if field.required:
-                        if PYDANTIC_1:
-                            errors.append(
-                                ErrorWrapper(MissingError(), loc=("body", field.alias))
+            if value is None or (isinstance(field_info, params.Form) and value == "") or (isinstance(field_info, params.Form) and field.shape in sequence_shapes and len(value) == 0):
+                if field.required:
+                    if PYDANTIC_1:
+                        errors.append(
+                            ErrorWrapper(MissingError(), loc=("body", field.alias))
+                        )
+                    else:  # pragma: nocover
+                        errors.append(
+                            ErrorWrapper(  # type: ignore
+                                MissingError(),
+                                loc=("body", field.alias),
+                                config=BaseConfig,
                             )
-                        else:
-                            errors.append(
-                                ErrorWrapper(
-                                    MissingError(),
-                                    loc=("body", field.alias),
-                                    config=BaseConfig,
-                                )
-                            )
-                    else:
-                        values[field.name] = deepcopy(field.default)
+                        )
                 else:
-                    v_, errors_ = field.validate(value, values, loc=("body", field.alias))
-                    if isinstance(errors_, ErrorWrapper):
-                        errors.append(errors_)
-                    elif isinstance(errors_, list):
-                        errors.extend(errors_)
-                    else:
-                        values[field.name] = v_
+                    values[field.name] = deepcopy(field.default)
+                continue
+            
+            # For sequence-shaped fields, ensure values are processed as a list
+            if field.shape in sequence_shapes:
+                if not isinstance(value, list):
+                    value = [value]
+
+            if isinstance(field_info, params.File) and lenient_issubclass(field.type_, bytes):
+                if isinstance(value, list):
+                    value = [await v.read() for v in value]
+                else:
+                    value = await value.read()
+
+            v_, errors_ = field.validate(value, values, loc=("body", field.alias))
+            if isinstance(errors_, ErrorWrapper):
+                errors.append(errors_)
+            elif isinstance(errors_, list):
+                errors.extend(errors_)
+            else:
+                values[field.name] = v_
+
     return values, errors
 ```
 
-In this corrected version, the function loops through each `required_param` to gather all values for the field, regardless of repeated keys in the form data. The gathered values are stored in a list within the `values` dictionary for the corresponding field. Subsequently, the function performs validation on all retrieved values for each field, ensuring comprehensive validation against all provided values.
-
-By implementing these changes, the function now effectively handles repeated key=value pairs in form data and supports more comprehensive validation, aligning with the proposed solution to address the bug. This corrected version can be used as a drop-in replacement for the buggy version of the function.
+This revised function includes logic to handle sequence-shaped fields and repeated key=value pairs in form data. It ensures that all values associated with repeated keys are processed as a list before validation happens. This will address the bug and ensure that the function properly processes the input parameters and received body to generate the correct output.

@@ -162,79 +162,106 @@ def _clone_functional_model(model, input_tensors=None):
 
 
 
-## Test Functions and Error Messages Summary
-The followings are test functions under directory `tests/keras/test_sequential_model.py` in the project.
-```python
-def test_clone_functional_model_with_multi_outputs():
-    input_layer = keras.Input(shape=(4,))
+## Test Case Summary
+From the error message, we can tell that the problem happens during the execution of the test case `test_clone_functional_model_with_multi_outputs` in the file `tests/keras/test_sequential_model.py`, specifically at line 360, which is the line where `keras.models.clone_model(model)` is called.
 
-    # Layer with single input and multiple outputs
-    layer1 = keras.layers.Lambda(lambda x: [x + 1, x],
-                                 lambda shapes: [shapes, shapes])
-    x_a, x_b = layer1(input_layer)
+The specific assertion error is raised from the `_clone_functional_model` function in `keras.models.py` file at line 166. The assertion error is triggered by the line `assert x in tensor_map, 'Could not compute output ' + str(x)`.
 
-    class SwapLayer(keras.layers.Layer):
-        def call(self, inputs, **kwargs):
-            return [inputs[1], inputs[0]]
+By looking at the test function `test_clone_functional_model_with_multi_outputs`, we see that it is testing the cloning of a functional model with multiple outputs. The test involves creating some layers, defining the model, then cloning the model using `keras.models.clone_model(model)`.
 
-        def compute_output_shape(self, input_shape):
-            return [input_shape[1], input_shape[0]]
+The `keras.models.clone_model` function internally calls `_clone_functional_model` function, which is the source of the error. The error message indicates that there is an issue with computing the output tensor from the `clone_model` operation, as the specific tensor `Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)` could not be found in the `tensor_map`.
 
-    # Layer with multiple inputs and outputs
-    x_a, x_b = SwapLayer()([x_a, x_b])
-    model = keras.Model(inputs=[input_layer], outputs=[x_a, x_b])
-    new_model = keras.models.clone_model(model)
+The problem could be rooted in the construction of the `new_model` and particularly in how the tensors are mapped during the cloning process. 
 
-    x_test = np.random.random((10, 4))
-    pred_a, pred_b = model.predict(x_test)
-    pred_new_a, pred_new_b = new_model.predict(x_test)
-    assert(pred_a.all() == pred_new_a.all())
-    assert(pred_b.all() == pred_new_b.all())
-```
-
-Here is a summary of the test cases and error messages:
-The error message is pointing to a failure in the `test_clone_functional_model_with_multi_outputs` test function, specifically in the call to `keras.models.clone_model(model)`.
-
-Upon inspecting the implementation of the `_clone_functional_model` function, there are two key points of interest that relate to the error message:
-
-1. Checking Input Model Type:
-The `_clone_functional_model` function starts by checking whether the `model` argument is an instance of the `Model` class. If it is not, a `ValueError` is raised. This check is performed using the `isinstance(model, Model)` statement, which indicates that it expects the `model` argument to be an instance of the `Model` class.
-
-2. Iterating through Model Nodes:
-Within the `_clone_functional_model` function, there is a section that iterates through the nodes of the reference model in order to clone the layers and build a new model based on the input tensors. At the end of the iteration, the function checks that the model outputs have been computed properly. If an output tensor is not found in the `tensor_map`, an assertion error is raised with the message "Could not compute output" followed by the tensor value that could not be computed.
-
-From the test function, the `model` that is being passed to `keras.models.clone_model` is created using `keras.Model`. This model involves the use of a Lambda layer and a custom `SwapLayer`.
-
-Now, examining the specific error message, it states:
-```
-E           AssertionError: Could not compute output Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)
-```
-This means that the function was unable to compute the output for the given tensor, which represents the swap operation performed by the `SwapLayer` defined in the test function.
-
-In conclusion, the error is related to the `SwapLayer` and how its output is being handled during the model cloning process. The specific conditions under which the output of the `SwapLayer` is being processed within the `_clone_functional_model` function might be causing the failure. Investigating the handling of the `SwapLayer` within the model cloning process would be an appropriate next step for debugging and resolving the issue.
+We would need to inspect the `clone_model` operation in more detail and possibly trace back to the core of the `_clone_functional_model` function to identify why the output tensor is unable to be computed. It's possible that there's an issue with how the `tensor_map` is being populated or used during the cloning process. Further diagnosis would require a deep dive into the internals of the `clone_model` function and the `_clone_functional_model` function, possibly involving debugging and stepping through the code to understand how the tensors are being handled and why the specific output tensor cannot be computed.
 
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-The given function is meant to clone a `Model` instance, creating new layers and weights instead of sharing the ones from the original model. It goes through the input model, creates placeholders if needed, and then iterates over every node in the model, creating and linking new layers. Finally, it checks that it computed the model outputs correctly and returns a new model.
+From the provided logs, it looks like the buggy function `_clone_functional_model` is encountering issues with the creation and mapping of layers and tensors. Let's break down the key observations from the variables and try to understand how they relate to the function's code.
 
-Upon reviewing the logs, one issue stands out. The `layer_map` dictionary contains the mapping between original layers and their cloned counterparts. However, in the variable runtime values, we observe that the `layer.name` value is `'swap_layer_1'`, while the `newly_created_input_layer` value is `<keras.engine.input_layer.InputLayer object at 0x128e68d90>`. This suggests that the mapping in `layer_map` is incomplete or incorrect, which could lead to issues in the subsequent steps of the function.
+1. `model` is an instance of `Model` with specific input layers (`model._input_layers`), nodes by depth (`model._nodes_by_depth`), inputs (`model.inputs`), and outputs (`model.outputs`).
 
-Additionally, we can see that there is an assertion checking the existence of computed outputs for the model. If any of the model's output tensors are not present in the `tensor_map`, the function raises an assertion error. This means that if any output tensor is not correctly computed and added to the `tensor_map`, it would cause the function to fail.
+2. In the function, a dictionary `layer_map` and a dictionary `tensor_map` are instantiated to cache layers and map reference tensors to corresponding tensors and masks, respectively. These mappings are used to create the new model.
 
-From the specific case's input type and value logs, it's evident that the function didn't work as expected when attempting to clone the model. The critical point to debug would be the mapping of layers in the `layer_map` and how the `tensor_map` is updated in each iteration. By thoroughly examining the part of the function that handles layer creation and the `tensor_map` updates, the exact issue causing the failure can be identified and resolved.
+3. At a certain point in the function, the `input_tensors` are either specified as an optional parameter or created as new input placeholders.
+
+4. The code then iterates over the nodes of the model, gets or creates new layers, gathers input and output tensors, calls the new layers, and updates the `tensor_map` accordingly.
+
+5. The function asserts that it has computed the model outputs correctly before instantiating a new model.
+
+Now, let's match these observations with the actual code and see where the issues might arise.
+
+- The function initially checks if the input `model` is of the correct type and raises a `ValueError` if it's a `Sequential` model instead of a `Model` instance. This guards against incorrect input types.
+
+- It then proceeds to create or ensure the input tensors are of the correct type and map them to the corresponding tensors in the reference model, as observed in the code. This is where the `input_tensors`, `input_layers`, and `tensor_map` values come into play, and it seems that the input shape and type transformations are causing issues with the layer and tensor mappings.
+
+- The code iterates over the model's nodes and existing layers, however, a potential issue might arise here if the layers are not correctly instantiated or if the input and output tensors are not correctly mapped or computed.
+
+- Finally, the function checks and asserts the correctness of the output tensors before creating the new model.
+
+Based on the observed variables and types at runtime, it seems like there might be issues with the proper creation and mapping of input tensors and layers. The discrepancies in the input and output tensors, as well as the creation of new layers, might be causing the function to return incorrect results.
+
+To further diagnose and fix the issues, a closer examination of how the input layers, nodes, and tensors are being processed in the function would be necessary. Additionally, careful attention to any potential mismatches in shapes and types of input/output tensors and layers will be crucial for identifying and resolving the bugs.
 
 
 
-## Summary of the GitHub Issue Related to the Bug
+# A GitHub issue title for this bug
+```text
+'Could not compute output Tensor' error when I‘m using clone_model()
+```
 
-Summary:
-The bug reported on GitHub revolves around the usage of `clone_model()` in conjunction with `multi_gpu_model` and `cpu_relocation=True` in Keras. The issue is observed when trying to use the script provided, resulting in an `AssertionError: Could not compute output Tensor` being raised. The bug appears to be related to the handling of output masks in the `clone_model()` method, impacting layers with multiple outputs and lacking support for masks. The bug has been replicated in the Keras version 2.2.4 and TensorFlow version 1.12.0 on multiple GPU configurations (GTX1080tis and GTX1060MQ).
+## The associated detailed issue description
+```text
+Hi guys, I think I just met a bug.
+There was something wrong when I was using multi_gpu_model with cpu_relocation=True. After analyzing the traceback I think it is a bug inside keras.models.clone_model
+The script below can reproduce it
 
-The issue is further explained by highlighting the specific lines of code within the Keras library that are impacted, indicating that the `Lambda` layer's lack of support for using masks appears to contribute to the error. The user expresses gratitude and admiration for the Keras framework while providing valuable insights into the potential source of the bug.
+from keras.models import Model, clone_model
+from keras.layers import Input, Add, Lambda
+from keras.utils import multi_gpu_model
 
-This comprehensive summary of the GitHub issue provides a clear understanding of the bug, its reproduction, associated environment, and key insights into the potential causes, thereby facilitating a more efficient debugging process.
+
+def build_model():
+    input_layer = Input(shape=(1,))
+    test1, test2 = Lambda(lambda x: [x, x])(input_layer)
+    add = Add()([test1, test2])
+    model = Model(inputs=[input_layer], outputs=[add])
+    return model
+
+
+if __name__ == '__main__':
+    model = build_model()
+    model = clone_model(model)
+    # model = multi_gpu_model(model, cpu_relocation=True)  # it uses clone_model when set cpu_relocation=True
+If I didn't make any mistake, the script will raise AssertionError: Could not compute output Tensor("add_1/add:0", shape=(?, 1), dtype=float32)
+
+My environment:
+
+Keras 2.2.4
+tensorflow 1.12.0
+I met the error on both 4 GTX1080tis and my own laptop with a GTX1060MQ
+
+I noticed that output_masks here will always be [None](but [None, None] is expected)
+keras/keras/models.py
+
+Line 157 in a139716
+
+ for x, y, mask in zip(reference_output_tensors, 
+and that's because layer.compute_mask(...) will always return None since Lambda doesn't support using masks
+keras/keras/models.py
+
+Line 153 in a139716
+
+ output_masks = to_list( 
+So if I'm using a functional model with a layer which has more outputs without a mask support, I think the error can appear.
+
+P.S. thanks a lot for your brilliant works :)
+From my perspective, Keras is an amazing gift to everyone. Thank you all!
+```
+
+
 
 
 

@@ -1,13 +1,3 @@
-The buggy function 'quantile' attempts to compute the quantile over the requested axis for the given DataFrame with various conditions and manipulations. The bug has been reported to occur when the function is used with an empty DataFrame, resulting in a ValueError: "need at least one array to concatenate".
-
-Upon analyzing the provided function and the test case 'test_quantile_empty_no_columns', it is evident that the error occurs due to an attempt to calculate the quantile when the DataFrame `data` is empty, leading to an error when `data._data.quantile()` is executed.
-
-The root cause of the bug is the lack of validation for empty DataFrame in the 'quantile' function. When the DataFrame is empty, the attempt to calculate the quantile using `data._data.quantile()` with empty 'data' leads to a ValueError due to the attempt to concatenate empty arrays.
-
-The bug can be fixed by adding a validation check for empty data in the 'quantile' function. If the data is empty, appropriate steps should be taken to handle the scenario, such as returning an empty Series or DataFrame based on the input.
-
-Here's the corrected version of the 'quantile' function with the fix implemented:
-
 ```python
 def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     """
@@ -50,17 +40,35 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
 
     Examples
     --------
-    ... (examples remain unchanged)
+    >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+    ...                   columns=['a', 'b'])
+    >>> df.quantile(.1)
+    a    1.3
+    b    3.7
+    Name: 0.1, dtype: float64
+    >>> df.quantile([.1, .5])
+           a     b
+    0.1  1.3   3.7
+    0.5  2.5  55.0
 
+    Specifying `numeric_only=False` will also compute the quantile of
+    datetime and timedelta data.
+
+    >>> df = pd.DataFrame({'A': [1, 2],
+    ...                    'B': [pd.Timestamp('2010'),
+    ...                          pd.Timestamp('2011')],
+    ...                    'C': [pd.Timedelta('1 days'),
+    ...                          pd.Timedelta('2 days')]})
+    >>> df.quantile(0.5, numeric_only=False)
+    A                    1.5
+    B    2010-07-02 12:00:00
+    C        1 days 12:00:00
+    Name: 0.5, dtype: object
     """
-
-    if len(self) == 0:
-        if isinstance(q, list):
-            return pd.DataFrame(index=q, columns=self.columns)
-        else:
-            return pd.Series(index=self.columns)
-
     self._check_percentile(q)
+
+    if self.empty:
+        return self._constructor()
 
     data = self._get_numeric_data() if numeric_only else self
     axis = self._get_axis_number(axis)
@@ -83,5 +91,3 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
 
     return result
 ```
-
-In the corrected version, a validation check is added at the beginning of the function to handle the scenario when the DataFrame `self` is empty. If the DataFrame is empty, it returns an empty DataFrame if `q` is a list, or an empty Series if `q` is a float. Otherwise, the original logic of the function is retained to compute the quantile based on the input parameters. This fix addresses the bug by handling the edge case of an empty DataFrame appropriately.

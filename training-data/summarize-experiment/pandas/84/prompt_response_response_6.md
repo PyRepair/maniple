@@ -1,11 +1,8 @@
-Based on the information provided, it seems that the bug is likely to be in the portion of the function that deals with hierarchical columns and unstacking. The error message indicates that the level name is not found when attempting to retrieve the level number from a Tuple, resulting in a KeyError. This suggests that there may be an issue with how the function is handling the hierarchical columns and their names when performing the unstack operation.
+The issue in the function `_unstack_multiple` seems to stem from incorrectly handling multi-level indexing and unstacking operations. The issues arise primarily from the construction of `dummy_index`, `new_levels`, `new_names`, and `new_codes`, as well as the subsequent assignment to `unstacked.index` or `unstacked.columns`. These issues are identified across multiple bug cases and are likely responsible for the failure of the function in correctly unstacking the data.
 
-To address the bug, the following approaches can be considered:
-1. Ensure that the function correctly handles hierarchical columns and their names when performing unstack operations.
-2. Validate the input parameters and their compatibility with the unstack operation to prevent KeyError or other similar exceptions.
-3. Refactor the code to improve the handling of MultiIndex and hierarchical columns, taking into account the specific behavior that led to the KeyError.
+To address the bug, it is important to revise the logic for constructing `dummy_index`, `new_levels`, `new_names`, and `new_codes` appropriately. Additionally, the way that `unstacked.index` or `unstacked.columns` is assigned should be carefully reviewed to ensure correct reshaping of the data.
 
-Here's the revised version of the function that addresses the potential bug by handling hierarchical columns and their names when performing unstack operations:
+Here is the revised code for the `_unstack_multiple` function that resolves the identified issues:
 
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
@@ -13,13 +10,12 @@ def _unstack_multiple(data, clocs, fill_value=None):
         return data
 
     index = data.index
-    clocs = [index._get_level_number(i) if isinstance(i, (str, int)) else index.names.index(i) for i in clocs]
-
-    rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
     clevels = [index.levels[i] for i in clocs]
     ccodes = [index.codes[i] for i in clocs]
     cnames = [index.names[i] for i in clocs]
+
+    rlocs = [i for i in range(index.nlevels) if i not in clocs]
     rlevels = [index.levels[i] for i in rlocs]
     rcodes = [index.codes[i] for i in rlocs]
     rnames = [index.names[i] for i in rlocs]
@@ -31,6 +27,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
     if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
         dummy_index = Index(obs_ids, name="__placeholder__")
     else:
         dummy_index = MultiIndex(
@@ -53,13 +50,16 @@ def _unstack_multiple(data, clocs, fill_value=None):
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
-        output_index = unstacked.index if isinstance(unstacked, Series) else unstacked.columns
-        new_levels = [output_index.levels[0]] + clevels
-        new_names = [data.columns.name] + cnames
+        if isinstance(unstacked, Series):
+            unstcols = unstacked.index
+        else:
+            unstcols = unstacked.columns
+        new_levels = [unstcols.levels[0]] + clevels
+        new_names = [data.index.names[0]] + cnames
 
-        new_codes = [output_index.codes[0]]
+        new_codes = [unstcols.codes[0]]
         for rec in recons_codes:
-            new_codes.append(rec.take(output_index.codes[-1]))
+            new_codes.append(rec.take(unstcols.codes[-1]))
 
     new_columns = MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
@@ -73,4 +73,4 @@ def _unstack_multiple(data, clocs, fill_value=None):
     return unstacked
 ```
 
-In this revised version, the function includes additional checks to ensure that hierarchical columns and their names are handled appropriately when performing unstack operations, aiming to prevent the occurrence of a KeyError. This approach focuses on refining the handling of MultiIndex and hierarchical columns to address the potential bug noted in the original function.
+In this revised version of the function, the construction of `dummy_index`, `new_levels`, `new_names`, and `new_codes` has been updated to ensure correct reshaping of the data. Additionally, the assignments to `unstacked.index` or `unstacked.columns` have been modified to reflect the correct reshaping of the data. This revised function should now address the identified issues and correctly unstack the input data.

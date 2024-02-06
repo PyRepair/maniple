@@ -1,13 +1,3 @@
-Based on the provided information and the analysis of the bug, it appears that the issue lies in the `_get_level_number` method when attempting to process the level from the MultiIndex. The method is forced to operate on a Tuple rather than a string, leading to a KeyError.
-
-It seems that the algorithm for unstacking the DataFrame with a MultiIndex is not handling the hierarchy of the MultiIndex correctly, leading to unexpected behavior and errors.
-
-To address the bug, the algorithm for unstacking a DataFrame with a MultiIndex should be revised to properly handle the hierarchy of the MultiIndex and avoid errors related to level names not being found.
-
-Additionally, the algorithm should be updated to handle unstacking of both Series and DataFrames with MultiIndex, ensuring the correct creation of new levels, names, and codes for unstacked data.
-
-Here's the revised version of the function `_unstack_multiple` that resolves the issue:
-
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
@@ -15,12 +5,16 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else i for i in clocs]  # Fix for tuple names
+
+    rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
     clevels = [index.levels[i] for i in clocs]
     ccodes = [index.codes[i] for i in clocs]
     cnames = [index.names[i] for i in clocs]
-    rlevels = [index.levels[i] for i in range(index.nlevels) if i not in clocs]
-    rcodes = [index.codes[i] for i in range(index.nlevels) if i not in clocs]
-    rnames = [index.names[i] for i in range(index.nlevels) if i not in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
 
     shape = [len(x) for x in clevels]
     group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
@@ -28,8 +22,8 @@ def _unstack_multiple(data, clocs, fill_value=None):
     comp_ids, obs_ids = compress_group_index(group_index, sort=False)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
-    if not rlevels:
-        # If all levels are in clocs, create a dummy index
+    if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
         dummy_index = Index(obs_ids, name="__placeholder__")
     else:
         dummy_index = MultiIndex(
@@ -39,14 +33,38 @@ def _unstack_multiple(data, clocs, fill_value=None):
             verify_integrity=False,
         )
 
-    unstacked = data.copy()
-    unstacked.index = dummy_index
-    unstacked = unstacked.unstack("__placeholder__", fill_value=fill_value)
+    if isinstance(data, Series):
+        dummy = data.copy()
+        dummy.index = dummy_index
 
-    # Update the levels and codes to reflect the unstacking
-    new_levels = rlevels + clevels
-    new_names = rnames + cnames
-    new_codes = rcodes + recons_codes
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        new_levels = clevels
+        new_names = cnames
+        new_codes = recons_codes
+    else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
+        dummy = data.copy()
+        dummy.index = dummy_index
+
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        if isinstance(unstacked, Series):
+            unstcols = unstacked.index
+        else:
+            unstcols = unstacked.columns
+        new_levels = [list(unstcols.levels[0])] + clevels  # Fix for handling tuple names
+        new_names = [data.columns.names[0]] + cnames  # Fix for handling tuple names
+
+        new_codes = [list(unstcols.codes[0])]
+        for rec in recons_codes:
+            new_codes.append(rec.take(unstcols.codes[-1]))
 
     new_columns = MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
@@ -59,5 +77,3 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
-
-The revised function addresses the issues by properly handling the hierarchy of the MultiIndex, performing unstacking operations, and creating new levels, names, and codes for the unstacked data. It also ensures that the unstacking is correctly applied to both Series and DataFrames with MultiIndex.

@@ -29,7 +29,6 @@ class Fish(Generic):
 
 
 
-## Test Functions and Error Messages Summary
 The followings are test functions under directory `tests/shells/test_fish.py` in the project.
 ```python
 def test_info(self, shell, Popen):
@@ -38,71 +37,67 @@ def test_info(self, shell, Popen):
     assert Popen.call_args[0][0] == ['fish', '--version']
 ```
 
-Here is a summary of the test cases and error messages:
-The test function `test_info` is testing the `info` method of the `Fish` class. The `Popen` object is being mocked and returned value is created using the `side_effect` attribute.
-
-The Popen object is created in the `info` method of the `Fish` class. It executes the command  `fish -c 'echo $FISH_VERSION'` and reads the output that should be the version of the fish shell.
-
-The test case is failing with the following error:
+The error message that corresponds the the above test functions is:
 ```
-AssertionError: assert 'Fish Shell f...version 3.5.9' == 'Fish Shell 3.5.9'
+self = <tests.shells.test_fish.TestFish object at 0x7fb8d3a45250>
+shell = <thefuck.shells.fish.Fish object at 0x7fb8d3bd0290>
+Popen = <MagicMock name='Popen' id='140431801350288'>
+
+    def test_info(self, shell, Popen):
+        Popen.return_value.stdout.read.side_effect = [b'fish, version 3.5.9\n']
+>       assert shell.info() == 'Fish Shell 3.5.9'
+E       AssertionError: assert 'Fish Shell f...version 3.5.9' == 'Fish Shell 3.5.9'
+E         - Fish Shell fish, version 3.5.9
+E         + Fish Shell 3.5.9
+
+tests/shells/test_fish.py:118: AssertionError
 ```
-This error message shows that the actual output from the `info` method is `'Fish Shell fish, version 3.5.9'` whereas the expected output is `'Fish Shell 3.5.9'`
-
-Analyzing the `info` method, it is observed that the Popen call contains the wrong command argument. It should be `['fish', '--version']` instead of `['fish', '-c', 'echo $FISH_VERSION']`.
-
-Hence, the fix to this bug would be to change the `Popen` command inside the `info` method from `'fish', '-c', 'echo $FISH_VERSION'` to `'fish', '--version'`. This change would ensure that the correct version information is obtained and the test case should pass successfully.
 
 
 
-## Summary of Runtime Variables and Types in the Buggy Function
+# Variable runtime value and type inside buggy function
+## Buggy case 1
+### input parameter runtime value and type for buggy function
+### variable runtime value and type before buggy function return
+proc, value: `<MagicMock name='Popen()' id='4586576976'>`, type: `MagicMock`
 
-Based on the provided code snippet and the variable logs, it seems that the issue lies in the `Popen` object and how the stdout is being read.
+version, value: `'3.5.9'`, type: `str`
 
-The `info` function is intended to return the name and version of the current shell by running a command using the `Popen` function and capturing the output. The command being run is `fish -c 'echo $FISH_VERSION'`, which should return the version of the Fish Shell.
+proc.stdout.read, value: `<MagicMock name='Popen().stdout.read' id='4586357072'>`, type: `MagicMock`
 
-From the variable runtime value and type inside the buggy function for the first test case:
-- The `proc` variable is a MagicMock object that simulates the `Popen` function call.
-- The `version` variable is a string with the value `'3.5.9'`.
-- The `proc.stdout.read` is a MagicMock object.
-- The `proc.stdout` is also a MagicMock object.
-
-Given that the value of `version` is accurate, it seems like the issue might be with how the output from the `Popen` command is being read.
-
-Looking at the code, the issue seems to be with how `proc.stdout.read().decode('utf-8').strip()` is being used to capture the output. It's possible that the `Popen` call is not being executed properly, leading to MagicMock objects being returned instead of the actual output from the command.
-
-To address this issue, the code for capturing the output should be revised to ensure that the `Popen` command is executed correctly and the output is read and decoded properly. Additionally, error handling should be implemented to handle cases where the `Popen` call fails or the output cannot be properly captured.
+proc.stdout, value: `<MagicMock name='Popen().stdout' id='4586432336'>`, type: `MagicMock`
 
 
 
-## Summary of Expected Parameters and Return Values in the Buggy Function
+# Expected return value in tests
+## Expected case 1
+### Input parameter value and type
+### Expected variable value and type before function return
+proc, expected value: `<MagicMock name='Popen()' id='4336294416'>`, type: `MagicMock`
 
-The function takes no input parameters and returns a string in the format of "Fish Shell {version}". 
+version, expected value: `'fish, version 3.5.9'`, type: `str`
 
-Within the function, it uses the Popen function from the subprocess module to execute a command in a subshell and retrieves the output. The command being executed is `fish -c 'echo $FISH_VERSION'`, which retrieves the version of the current shell. 
+proc.stdout.read, expected value: `<MagicMock name='Popen().stdout.read' id='4336317840'>`, type: `MagicMock`
 
-The output of this command is read and decoded from bytes to a string, which is then stripped of any whitespace.
-
-The function then returns a string in the format of "Fish Shell {version}".
-
-The expected return value for the test case provided is "Fish Shell fish, version 3.5.9".
+proc.stdout, expected value: `<MagicMock name='Popen().stdout' id='4336319888'>`, type: `MagicMock`
 
 
 
-## Summary of the GitHub Issue Related to the Bug
+# A GitHub issue title for this bug
+```text
+thefuck -v hangs Fish Shell initialisation with Oh-My-Fish plugin
+```
 
-Summary:
-The issue details a bug in the Oh-My-Fish plugin "TheFuck" which causes the Fish Shell initialization to hang due to the usage of the command "thefuck -v". This command triggers a recursive loop in shells/fish.py:Fish.info(), leading to the issue. The bug has been identified and a fix is currently being worked on. The reference for this bug can be found at oh-my-fish/plugin-thefuck#11. 
+## The associated detailed issue description
+```text
+Oh-My-Fish's TheFuck plugin uses thefuck -v to decide when to regenerate functions. That triggers a recursive loop because of shells/fish.py:Fish.info().
 
-Insights:
-- The bug occurs due to the usage of the command "thefuck -v" by the Oh-My-Fish plugin "TheFuck".
-- The recursive loop is triggered by the function shells/fish.py:Fish.info().
-- A fix for the issue is in progress, indicating that the developers are actively working on resolving it.
+Fix is on it's way.
 
-Recommendations for debugging:
-1. It is crucial to test the proposed fix thoroughly to ensure that it effectively resolves the recursive loop triggered by the "thefuck -v" command.
-2. Collaborative discussions with other developers and contributors can provide valuable insights and potential alternative solutions for addressing the bug.
-3. Detailed documentation of the bug and the proposed fix should be maintained to aid in future debugging processes and for the reference of other developers.
+Reference: oh-my-fish/plugin-thefuck#11
+```
+
+
 
 
 

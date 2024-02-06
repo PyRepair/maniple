@@ -1,19 +1,11 @@
-The error message is pointing to a failure in the `test_clone_functional_model_with_multi_outputs` test function, specifically in the call to `keras.models.clone_model(model)`.
+From the error message, we can tell that the problem happens during the execution of the test case `test_clone_functional_model_with_multi_outputs` in the file `tests/keras/test_sequential_model.py`, specifically at line 360, which is the line where `keras.models.clone_model(model)` is called.
 
-Upon inspecting the implementation of the `_clone_functional_model` function, there are two key points of interest that relate to the error message:
+The specific assertion error is raised from the `_clone_functional_model` function in `keras.models.py` file at line 166. The assertion error is triggered by the line `assert x in tensor_map, 'Could not compute output ' + str(x)`.
 
-1. Checking Input Model Type:
-The `_clone_functional_model` function starts by checking whether the `model` argument is an instance of the `Model` class. If it is not, a `ValueError` is raised. This check is performed using the `isinstance(model, Model)` statement, which indicates that it expects the `model` argument to be an instance of the `Model` class.
+By looking at the test function `test_clone_functional_model_with_multi_outputs`, we see that it is testing the cloning of a functional model with multiple outputs. The test involves creating some layers, defining the model, then cloning the model using `keras.models.clone_model(model)`.
 
-2. Iterating through Model Nodes:
-Within the `_clone_functional_model` function, there is a section that iterates through the nodes of the reference model in order to clone the layers and build a new model based on the input tensors. At the end of the iteration, the function checks that the model outputs have been computed properly. If an output tensor is not found in the `tensor_map`, an assertion error is raised with the message "Could not compute output" followed by the tensor value that could not be computed.
+The `keras.models.clone_model` function internally calls `_clone_functional_model` function, which is the source of the error. The error message indicates that there is an issue with computing the output tensor from the `clone_model` operation, as the specific tensor `Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)` could not be found in the `tensor_map`.
 
-From the test function, the `model` that is being passed to `keras.models.clone_model` is created using `keras.Model`. This model involves the use of a Lambda layer and a custom `SwapLayer`.
+The problem could be rooted in the construction of the `new_model` and particularly in how the tensors are mapped during the cloning process. 
 
-Now, examining the specific error message, it states:
-```
-E           AssertionError: Could not compute output Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)
-```
-This means that the function was unable to compute the output for the given tensor, which represents the swap operation performed by the `SwapLayer` defined in the test function.
-
-In conclusion, the error is related to the `SwapLayer` and how its output is being handled during the model cloning process. The specific conditions under which the output of the `SwapLayer` is being processed within the `_clone_functional_model` function might be causing the failure. Investigating the handling of the `SwapLayer` within the model cloning process would be an appropriate next step for debugging and resolving the issue.
+We would need to inspect the `clone_model` operation in more detail and possibly trace back to the core of the `_clone_functional_model` function to identify why the output tensor is unable to be computed. It's possible that there's an issue with how the `tensor_map` is being populated or used during the cloning process. Further diagnosis would require a deep dive into the internals of the `clone_model` function and the `_clone_functional_model` function, possibly involving debugging and stepping through the code to understand how the tensors are being handled and why the specific output tensor cannot be computed.

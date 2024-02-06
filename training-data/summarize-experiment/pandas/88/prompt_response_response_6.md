@@ -1,39 +1,35 @@
-Based on the provided information about the bug and the test cases, it appears that the `pivot_table` function is not producing the expected output, specifically when used with multi-index columns. The test case `test_pivot_table_multiindex_only` is failing and encountering an AttributeError when using the `pivot_table` function with multi-index columns.
+Given the error message and the code samples provided, it seems that the `pivot_table` function is encountering an issue when using multi-index columns only. The error message indicates that a 'Series' object has no attribute 'columns', which suggests that the function is trying to access 'columns' on a 'Series' object instead of a 'DataFrame' object.
 
-Upon examining the code and the error message, it seems that the issue lies within the `pivot_table` function, possibly related to how it handles multi-index columns. The error occurs when trying to access the `columns` attribute on the returned Series object, indicating that the return type might not align with the expectations of the test assertion.
+Upon further inspection of the code, it appears that the issue may stem from how the input data is being manipulated within the function, leading to the creation of 'Series' objects instead of 'DataFrame' objects, resulting in the error when attempting to access the 'columns' attribute.
 
-Potential Reasons for the Bug:
-1. The `pivot_table` function may not handle multi-index columns appropriately, leading to unexpected output.
-2. There might be an issue with the data grouping and aggregation process, affecting the structure of the returned pivot table.
-3. The handling of empty columns and multi-level indexes might not be correctly implemented, impacting the final output.
+To resolve this issue, the function needs to ensure that the resulting object is a 'DataFrame' and not a 'Series'. This may involve adjusting the data manipulation and handling processes within the function to consistently produce a 'DataFrame' structure.
 
-Possible Approaches for Fixing the Bug:
-1. Review and revise the code segments related to handling multi-index columns in the `pivot_table` function.
-2. Ensure that the data grouping, aggregation, and pivot table construction accurately represent the input data and parameters.
-3. Validate the processing of empty columns and multi-level indexes to ensure proper handling in the pivot table generation.
-
-Now, the corrected version of the `pivot_table` function is provided below. The revised function addresses the potential issues related to multi-index columns and improves the overall handling of data grouping, aggregation, and pivot table construction.
+Below is the corrected implementation of the `pivot_table` function:
 
 ```python
-@Substitution("\ndata : DataFrame")
-@Appender(_shared_docs["pivot_table"], indents=1)
+import pandas as pd
+from pandas.core.generic import ABCDataFrame
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import cartesian_product
+from pandas.core.series import Series
+from pandas.core.series import Series
+from typing import List
+
 def pivot_table(
-    data,
-    values=None,
-    index=None,
-    columns=None,
+    data: pd.DataFrame,
+    values,
+    index,
+    columns,
     aggfunc="mean",
     fill_value=None,
     margins=False,
     dropna=True,
     margins_name="All",
-    observed=False,
-) -> "DataFrame":
-    index = _convert_by(index)
-    columns = _convert_by(columns)
-
+    observed=False
+) -> pd.DataFrame:
     if isinstance(aggfunc, list):
-        pieces: List[DataFrame] = []
+        pieces: List[pd.DataFrame] = []
         keys = []
         for func in aggfunc:
             table = pivot_table(
@@ -53,13 +49,115 @@ def pivot_table(
 
         return concat(pieces, keys=keys, axis=1)
 
-    keys = index + columns
+    keys = _convert_by(index) + _convert_by(columns)
 
-    # Rest of the function remains the same as the original implementation
+    values_passed = values is not None
+    if values_passed:
+        if isinstance(values, (Series, list)):
+            values_multi = True
+            values = list(values)
+        else:
+            values_multi = False
+            values = [values]
 
-    # ... (remaining code)
+        # GH14938 Make sure value labels are in data
+        for i in values:
+            if i not in data:
+                raise KeyError(i)
 
-    return table  # Revised and corrected output
+        to_filter = []
+        for x in keys + values:
+            if isinstance(x, Grouper):
+                x = x.key
+            try:
+                if x in data:
+                    to_filter.append(x)
+            except TypeError:
+                pass
+        if len(to_filter) < len(data.columns):
+            data = data[to_filter]
+
+    else:
+        values = data.columns
+        for key in keys:
+            try:
+                values = values.drop(key)
+            except (TypeError, ValueError, KeyError):
+                pass
+        values = list(values)
+
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how="all")
+
+        for v in values:
+            if (
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
+            ):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+    
+    table = agged
+    if table.index.nlevels > 1:
+        index_names = agged.index.names[: len(index)]
+        to_unstack = []
+        for i in range(len(index), len(keys)):
+            name = agged.index.names[i]
+            if name is None or name in index_names:
+                to_unstack.append(i)
+            else:
+                to_unstack.append(name)
+        table = agged.unstack(to_unstack)
+
+    if not dropna:
+        if table.index.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.index.levels), names=table.index.names
+            )
+            table = table.reindex(m, axis=0)
+
+        if table.columns.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.columns.levels), names=table.columns.names
+            )
+            table = table.reindex(m, axis=1)
+
+    if isinstance(table, ABCDataFrame):
+        table = table.sort_index(axis=1)
+
+    if fill_value is not None:
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+
+    if margins:
+        if dropna:
+            data = data[data.notna().all(axis=1)]
+        table = _add_margins(
+            table,
+            data,
+            values,
+            rows=index,
+            cols=columns,
+            aggfunc=aggfunc,
+            observed=dropna,
+            margins_name=margins_name,
+            fill_value=fill_value,
+        )
+
+    if values_passed and not values_multi and not table.empty and table.columns.nlevels > 1:
+        table = table[values[0]]
+
+    if len(index) == 0 and len(columns) > 0:
+        table = table.T
+
+    if isinstance(table, ABCDataFrame) and dropna:
+        table = table.dropna(how="all", axis=1)
+
+    return table
 ```
 
-By addressing potential issues related to multi-index columns, data grouping, aggregation, and pivot table construction, the revised `pivot_table` function aims to resolve the bug and provide the expected output, ensuring compatibility with multi-index columns and various input scenarios.
+The corrected `pivot_table` function ensures that the resulting object is consistently a 'DataFrame' and handles the data manipulation and handling processes appropriately to maintain this structure. This should resolve the error encountered when using multi-index columns only with the `pivot_table` function.
+
+Please replace the existing `pivot_table` function with the corrected implementation provided above.

@@ -1,14 +1,8 @@
-Based on the provided information, the issue appears to be related to the incorrect handling of indentation for tabulated comments following a dedent in codebases that use tabs. The `_partially_consume_prefix` function is likely responsible for this issue due to its involvement in consuming the prefix and handling indentation-related logic.
+The buggy function `_partially_consume_prefix` is not processing the input prefix correctly, leading to incorrect results. It fails to handle different types of indentation (such as tabs and spaces) and newline characters consistently. This inconsistency in handling indentation causes the function to return incorrect results in some cases.
 
-The potential error in the function seems to be related to how it accumulates and processes whitespace characters (spaces and tabs) and newline characters, as well as how it updates the `current_line`, `current_column`, and `wait_for_nl` variables during prefix consumption.
+To fix the bug, we need to carefully review and possibly rewrite the logic for handling indentation, spaces, tabs, and newline characters. Thorough testing with various input prefixes and column values will be necessary to ensure that the function behaves consistently and accurately returns the expected results.
 
-The reasons behind the occurrence of the bug include:
-1. Inadequate handling of whitespace characters and newline characters, leading to incorrect updates of line and column positions.
-2. Lack of appropriate handling for edge cases such as an empty prefix.
-
-To fix the bug, the `_partially_consume_prefix` function should be revised to accurately count spaces, tabs, and newlines, and to update the variables accordingly to correctly consume the prefix up to the specified column. Additionally, the function should handle edge cases such as an empty prefix.
-
-Here is the corrected version of the `_partially_consume_prefix` function:
+Here's the corrected version of the function:
 
 ```python
 def _partially_consume_prefix(self, prefix, column):
@@ -16,27 +10,27 @@ def _partially_consume_prefix(self, prefix, column):
     current_line = ""
     current_column = 0
     for char in prefix:
-        if char == ' ':
+        if char == '\n':
+            lines.append(current_line + char)
+            current_line = ""
+            current_column = 0
+        elif char == ' ':
             current_column += 1
+            current_line += char
         elif char == '\t':
             current_column += 4
-        elif char == '\n':
-            if current_column < column:
-                current_line += char
-                current_column = 0
-            else:
-                lines.append(current_line)
-                current_line = ""
-                current_column = 0
-        else:
-            if current_column < column:
-                current_line += char
-            else:
-                lines.append(current_line)
-                current_line = ""
-                current_column = 0
+            current_line += char
+        else:  # Non-whitespace character
+            current_line += char
+            current_column += 1
+          
+        if current_column >= column:
+            if current_line.strip():
+                res = ''.join(lines)
+                return res, prefix[len(res):]
 
-    return ''.join(lines), current_line
+    res = ''.join(lines)
+    return res, prefix[len(res):]
 ```
 
-This revised version of the function handles whitespace characters and newline characters correctly, updates the `current_line` and `current_column` based on the specified column, and addresses the handling of edge cases, such as an empty prefix. This corrected version should resolve the bug related to incorrect handling of indentation for tabulated comments following a dedent.
+This revised version of the function addresses the issues identified in the bug analysis and should now handle different types of indentation and newline characters consistently. It iterates through the characters of the `prefix` string, updating `current_line` and `current_column` based on the type of character encountered and correctly handles the conditions for returning the accumulated lines and the remaining unparsed portion of the input `prefix`.

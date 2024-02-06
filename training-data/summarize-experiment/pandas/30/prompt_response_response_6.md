@@ -1,3 +1,9 @@
+The bug in the provided function `_try_convert_to_date` occurs when attempting to parse boolean values into datetime objects, leading to a `TypeError` when the function is called from the `read_json` method.
+
+To address this issue, we need to modify the function to account for non-date values and skip the conversion entirely if the data is not a compatible type. Additionally, we need to handle the case where the input data is of boolean type.
+
+The corrected code for the function is as follows:
+
 ```python
 def _try_convert_to_date(self, data):
     """
@@ -12,13 +18,14 @@ def _try_convert_to_date(self, data):
 
     new_data = data
     if new_data.dtype == "object":
-        if new_data.dtype.type == bool:
-            return new_data, False  # Return original data as boolean values cannot be converted to datetime
-
         try:
-            new_data = new_data.astype("int64")
+            new_data = data.astype("int64")
         except (TypeError, ValueError, OverflowError):
             pass
+
+    # ignore boolean values
+    if new_data.dtype == "bool":
+        return data, False
 
     # ignore numbers that are out of range
     if issubclass(new_data.dtype.type, np.number):
@@ -39,3 +46,5 @@ def _try_convert_to_date(self, data):
         return new_data, True
     return data, False
 ```
+
+With this modification, the function will properly handle boolean values, avoiding any attempts to convert them to datetime objects and resolving the `TypeError` issue. This revised function is a drop-in replacement for the original buggy version.

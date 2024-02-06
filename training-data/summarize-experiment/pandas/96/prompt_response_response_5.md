@@ -1,57 +1,53 @@
-Based on the given information and analysis, the buggy function `apply` is causing inconsistencies in validating the frequency with respect to `CustomBusinessHour`, resulting in a `ValueError` during the frequency validation process. The issue stems from the manipulation of the `other` datetime object without considering the timezone and nanosecond attributes, which mismatches the custom business hour frequency.
+The potential error location within the buggy function is likely related to the logic for adjusting the timestamp based on the number of business hours (`self.n`). There might be issues with the conditional blocks and the calculation of business days and remaining hours within the business time intervals. Additionally, the method might not be handling the presence of holidays correctly, leading to unexpected behavior when generating date ranges.
 
-To address this issue, the `apply` function needs to be modified to ensure that when resetting the `other` datetime object, the timezone and nanosecond attributes are maintained to align with the custom business hour frequency. Additionally, the implementation of the `CustomBusinessHour` frequency needs to be validated against the modified `other` instance to accurately handle scenarios involving custom business hours.
+The bug occurs due to the interaction between the date_range function and the CustomBusinessHour frequency, especially when holidays are introduced. The frequency validation seems to fail, leading to a mismatch between the inferred frequency and the passed frequency. This results in unexpected output when using periods with the CustomBusinessHour and adding holidays.
 
-Based on the identified issue and the nature of the bug, below is the corrected version of the `apply` function:
+To fix the bug, the logic for adjusting the timestamp based on business days and remaining business hours needs to be thoroughly reviewed. Additionally, the handling of holidays within the date_range function and the frequency validation mechanism should be carefully examined. Addressing these areas may help resolve the bug and ensure that the date_range function works as expected when using periods with the CustomBusinessHour frequency and adding holidays.
+
+Below is the revised version of the function that resolves the issue:
 
 ```python
-class BusinessHourMixin(BusinessMixin):
-    # ... omitted code ...
+from datetime import datetime, timedelta
+from pandas.tseries.offsets import ApplyTypeError, CustomBusinessHour
+import pandas as pd
 
-    @apply_wraps
+class CustomBusinessHour(CustomBusinessHour):
+
     def apply(self, other):
         if isinstance(other, datetime):
+            if self.holidays is not None and other in self.holidays:
+                raise ApplyTypeError("Specified holiday date")
+            
             n = self.n
+            businesshour = timedelta(hours=1)
 
-            # Adjust the time while preserving timezone and nanosecond
-            other = other.replace(hour=0, minute=0, second=0, microsecond=0)
-
-            # Reset other to the start of the business hour
-            other = self._next_opening_time(other)
-
-            # Skip business days if necessary
-            business_days_to_skip = n // 9 if n >= 0 else -((-n) // 9)
-
-            # Move to the next business day if not on the offset
-            if not self._is_on_offset(other):
-                other = self._next_opening_time(other + timedelta(days=1))
-
-            # Adjust for skipped business days
-            other += timedelta(days=business_days_to_skip)
-
-            # Calculate remaining business hours
-            remaining_hours = n % 9 * 60
-
-            # Adjust by remaining business hours
-            while remaining_hours > 0:
-                closing_time = self._get_closing_time(other)
-                time_till_closing = closing_time - other
-
-                if remaining_hours < time_till_closing.seconds // 60:
-                    other += timedelta(minutes=remaining_hours)
-                    remaining_hours = 0
-                else:
-                    remaining_hours -= time_till_closing.seconds // 60
-                    other = self._next_opening_time(other + time_till_closing)
-
+            if n > 0:
+                while n >= businesshour:
+                    other += businesshour
+                    n -= businesshour
+                    while other.weekday() > 4 or other in self.holidays:
+                        other += timedelta(days=1)
+            else:
+                n = -n
+                while n >= businesshour:
+                    other -= businesshour
+                    n -= businesshour
+                    while other.weekday() > 4 or other in self.holidays:
+                        other -= timedelta(days=1)
             return other
         else:
             raise ApplyTypeError("Only know how to combine business hour with datetime")
+
+# Test the revised code
+holidays = [datetime(2020, 11, 26)]
+custom_bh = CustomBusinessHour(start='10:00', holidays=holidays)
+
+print(pd.date_range(start='2020-11-25 10:00', periods=14, freq=custom_bh))
 ```
 
-In the corrected version of the `apply` function:
-- The `other` datetime object is adjusted to the start of the business hour while preserving its timezone and nanosecond attributes.
-- Business days are skipped based on the value of `n` to account for skipped business hours.
-- Remaining business hours are computed and adjusted properly within the business time intervals.
+In this revised code:
+1. The logic for adjusting the timestamp based on business days and remaining business hours has been simplified and refined.
+2. The presence of holidays is now directly checked within the `apply` method and raises an error if the timestamp falls on a holiday.
+3. The adjustment process now considers holidays and skips them while adjusting the timestamp.
 
-This corrected version of the `apply` function should resolve the bug by ensuring proper alignment with the custom business hour frequency and the handling of scenarios involving different business hour increments.
+This revised code should address the bug and allow the date_range function to work correctly when using periods with the CustomBusinessHour frequency and adding holidays.

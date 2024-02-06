@@ -1,26 +1,16 @@
-The error in the provided function stems from the fact that the `last_active` parameter, if not provided, defaults to `None`. This causes a TypeError when attempting to add `config.worker_disconnect_delay` to `self.last_active` in the `prune` method of the `Worker` class. 
+The error occurs in the `prune()` function of the `Worker` class. The error message indicates that there is a `TypeError` because the addition operation is being performed on a `NoneType` and an `int` in the line `if self.last_active + config.worker_disconnect_delay < time.time():`.
 
-To fix this bug, we can modify the `__init__` method of the `Worker` class to handle the case where `last_active` is `None` by providing a default value of 0.
+The reason for this error is that the `last_active` parameter is set to `None`, causing the addition operation with `config.worker_disconnect_delay` to fail.
 
-Here's the corrected code for the `__init__` method of the `Worker` class:
+To fix this bug, we need to handle the case when `last_active` is `None` and set it to the current time when `last_active` is not provided.
 
+Here's the corrected code for the `prune()` function:
 ```python
-class Worker(object):
-    """
-    Structure for tracking worker activity and keeping their references.
-    """
-
-    def __init__(self, worker_id, last_active=None):
-        self.id = worker_id
-        self.reference = None
-        # Set self.last_active to zero if last_active is None
-        if last_active is None:
-            self.last_active = 0
-        else:
-            self.last_active = last_active
-        self.started = time.time()
-        self.tasks = set()
-        self.info = {}
+def __init__(self, worker_id, last_active=None):
+    self.id = worker_id
+    self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
+    self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch
+    self.started = time.time()  # seconds since epoch
+    self.tasks = set()  # task objects
+    self.info = {}
 ```
-
-By setting `self.last_active` to a default value of 0 when `last_active` is `None`, the addition operation in the `prune` method will not result in a TypeError. This updated code resolves the bug and ensures that the `last_active` attribute is always initialized to a meaningful value, preventing any potential issues in the `prune` method or other parts of the code that rely on it.

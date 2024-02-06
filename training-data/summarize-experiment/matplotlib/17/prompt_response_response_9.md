@@ -1,10 +1,20 @@
-The error location within the `nonsingular` function is likely related to the calculation of the maximum absolute value (`maxabsvalue`) of `vmin` and `vmax`. The function may not handle extreme input values for `vmin` and `vmax` properly, leading to potential overflow issues and the generation of the `RuntimeWarning` encountered in the test cases.
+The function `nonsingular` is encountering an overflow warning when computing the maximum absolute value of `vmin` and `vmax` due to the combined use of `max` and `abs` functions on potentially large numbers. The current code for calculating `maxabsvalue` is:
 
-The bug occurs because the function does not explicitly account for cases where the magnitude of the inputs exceeds the computational limits, resulting in potential overflow warnings during the calculation of `maxabsvalue`.
+```python
+maxabsvalue = max(abs(vmin), abs(vmax))
+```
 
-To resolve the bug, the function should be updated to handle extreme input values for `vmin` and `vmax` by checking for potential overflow conditions and applying corrective actions when necessary.
+To address this issue, we can swap the positions of `max` and `abs` to first find the maximum of `vmin` and `vmax` and then apply the absolute function. This will prevent the overflow warning.
 
-Here's the corrected code for the `nonsingular` function:
+The revised code for calculating `maxabsvalue` is:
+
+```python
+maxabsvalue = abs(max(vmin, vmax))
+```
+
+After making this change, the function should compute `maxabsvalue` without encountering an overflow warning.
+
+Here is the corrected version of the `nonsingular` function:
 
 ```python
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
@@ -16,11 +26,7 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
         swapped = True
 
-    maxabsvalue = max(abs(vmin), abs(vmax))
-
-    if np.isinf(vmin) or np.isinf(vmax) or maxabsvalue > 1e300:
-        return -expander, expander
-
+    maxabsvalue = abs(max(vmin, vmax))
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
@@ -37,4 +43,4 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     return vmin, vmax
 ```
 
-In the corrected code, an additional check is included to handle cases where `vmin` and `vmax` are infinite or where the `maxabsvalue` exceeds a certain threshold (e.g., 1e300) to prevent overflow issues. This check ensures that the function gracefully handles extreme input values and avoids generating the `RuntimeWarning` encountered in the test cases.
+With this revised code, overflow warnings should no longer occur when computing `maxabsvalue`. This corrected function can be used as a drop-in replacement for the buggy version of the function.

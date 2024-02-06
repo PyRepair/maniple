@@ -1,26 +1,24 @@
-The buggy function `_recache` in the `MarkerStyle` class has an issue where the `_filled` attribute is not correctly reset to `True` despite the intention to do so. Additionally, it appears that the `_fillstyle` attribute is not being handled within the function, leading to unexpected behavior in the `is_filled` method.
+The bug occurs because the `_filled` attribute is always set to `True` in the `_recache` function, regardless of the `fillstyle` parameter value. This causes the markers to be filled even when the `fillstyle` is set to 'none'.
 
-To address the bug, the `_recache` function should reset the `_filled` attribute to `True` and handle the `_fillstyle` attribute to ensure that the `is_filled` method returns the expected value based on the fillstyle specified during the creation of the `MarkerStyle` object.
+To fix the bug, we need to check the value of the `fillstyle` parameter and set the `_filled` attribute accordingly. If the `fillstyle` is 'none', `_filled` should be set to `False`, otherwise it should be set to `True`.
 
-Here is the corrected version of the `_recache` function in the `MarkerStyle` class:
+Here's the corrected code for the `_recache` function:
 
 ```python
-class MarkerStyle():
-    # ... omitted code ...
-
-    def _recache(self):
-        if self._marker_function is not None:
-            self._path = _empty_path
-            self._transform = IdentityTransform()
-            self._alt_path = None
-            self._alt_transform = None
-            self._snap_threshold = None
-            self._joinstyle = 'round'
-            self._capstyle = 'butt'
-            self._filled = True  # Reset _filled attribute to True
-            self._marker_function()
-
-# Rest of the class and code...
+def _recache(self):
+    if self._marker_function is None:
+        return
+    self._path = _empty_path
+    self._transform = IdentityTransform()
+    self._alt_path = None
+    self._alt_transform = None
+    self._snap_threshold = None
+    self._joinstyle = 'round'
+    self._capstyle = 'butt'
+    self._filled = self._fillstyle != 'none'  # Set _filled based on fillstyle
+    self._marker_function()
 ```
 
-By resetting the `_filled` attribute to `True` within the `_recache` function, and properly handling the `_fillstyle` attribute as needed, the corrected function should resolve the bug and ensure that the `is_filled` method returns the expected value based on the fillstyle specified during object creation. This corrected code can be used as a drop-in replacement for the buggy version of the function.
+This change ensures that the `_filled` attribute reflects the value of `fillstyle`, allowing the markers to be hollow when the `fillstyle` is set to 'none'.
+
+This fix addresses the issue reported and should resolve the problem of markers not appearing hollow when using `ax.scatter()` and setting `fillstyle` to 'none'.

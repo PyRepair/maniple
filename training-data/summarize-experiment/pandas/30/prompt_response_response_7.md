@@ -1,7 +1,13 @@
+The error in the provided code is due to the attempt to coerce boolean values into datetime objects, which is invalid. To fix this, the `try_convert_to_date` function needs to be adjusted to account for non-date values to avoid such conversion attempts.
+
+The main issue comes from the section of the code that attempts to convert the data to datetime objects without checking the type of the data. To resolve this issue, we should add a check to skip the conversion entirely if the data is not a compatible type (e.g., boolean).
+
+Here's the corrected version of the function:
+
 ```python
 def _try_convert_to_date(self, data):
     """
-    Try to parse a ndarray-like into a date column.
+    Try to parse a ndarray like into a date column.
 
     Try to coerce object in epoch/iso formats and integer/float in epoch
     formats. Return a boolean if parsing was successful.
@@ -13,9 +19,11 @@ def _try_convert_to_date(self, data):
     new_data = data
     if new_data.dtype == "object":
         try:
-            new_data = new_data.astype("int64")  # Corrected from data.astype to new_data.astype
+            new_data = data.astype("int64")
         except (TypeError, ValueError, OverflowError):
             pass
+    elif new_data.dtype == "bool":
+        return data, False  # Skip the conversion for boolean data
 
     # ignore numbers that are out of range
     if issubclass(new_data.dtype.type, np.number):
@@ -30,11 +38,13 @@ def _try_convert_to_date(self, data):
     date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
     for date_unit in date_units:
         try:
-            if new_data.dtype == bool:  # Check if the dtype is boolean
-                return new_data, False  # Return new_data as is if it's a boolean type
             new_data = to_datetime(new_data, errors="raise", unit=date_unit)
         except (ValueError, OverflowError):
             continue
         return new_data, True
     return data, False
 ```
+
+With this correction, the function now checks for boolean values and skips the conversion to datetime if the data type is boolean. This should address the issue of attempting to convert boolean values into datetime objects, resolving the bug.
+
+This revised code can be used as a drop-in replacement for the buggy version of the function.

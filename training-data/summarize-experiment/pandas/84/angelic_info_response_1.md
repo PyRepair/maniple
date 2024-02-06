@@ -1,25 +1,11 @@
-Based on the detailed information provided on various expected input and output values, and with the accompanied source code and expected variable value and type before function return, the following is a summary of the core logic of the function, `_unstack_multiple`:
+The function `_unstack_multiple` has been provided with the expected inputs and outputs for a specific case to aid the analysis. Based on this information, we will break down and summarize the core logic of the function.
 
-1. If the length of the `clocs` is 0, return the `data` as is.
+1. The function performs various index manipulations, including the extraction of levels and codes from a multi-index structure.
+2. It partitions the input data and index based on the specified column levels (`clocs`).
+3. The function handles different cases based on the type of the `data` input. If `data` is a `Series`, certain operations are performed, such as creating a dummy index, copying the data, and unstacking based on the dummy index.
+4. In the case that `data` is not a `Series`, the function further processes the data to create new levels, names, and codes based on the result of unstacking.
+5. At the end, the function sets the index or columns of the unstacked data based on the newly created levels and codes.
 
-2. Get the `index` from `data`.
+The function performs multiple index-related operations, including unstacking and creating new multi-index structures. The conditional logic based on the type of the input data influences the specific operations and transformations performed.
 
-3. Convert the `clocs` values to their corresponding level numbers in the `index`.
-
-4. Get the `rlocs`, which are the levels that are not present in `clocs`.
-
-5. Create separate lists for `clevels`, `ccodes`, `cnames`, `rlevels`, `rcodes` and `rnames` from the `index` using the level numbers obtained from `clocs` and `rlocs`.
-
-6. Determine the shape from the lengths of the `clevels`.
-
-7. Perform operations to obtain `comp_ids`, `obs_ids`, and `recons_codes` by invoking specific helper functions such as `get_group_index`, `compress_group_index`, and `decons_obs_group_ids` with relevant parameters.
-
-8. Create a `dummy_index` based on conditions and whether the `data` is a Series or DataFrame.
-
-9. Modify and set the index for the `dummy` data based on the `dummy_index`.
-
-10. If the `data` is a Series, perform an unstack operation and set the new levels, names, and codes. Otherwise, if `data` is a DataFrame, a series of operations involving unstacking, obtaining new levels, names, and codes are performed.
-
-11. Finally, create new columns based on the updated level, names, and codes and set the final index or columns of the unstacked data based on whether it is a Series or DataFrame.
-
-This summary intends to provide a detailed analysis of the core logic of the function by examining its source code and correlating specific variable values noted during the function's execution. It also aims to offer a comprehensive and insightful investigation into the function's behavior and logic.
+Overall, the function appears to be tailored for operations involving multi-level indexing and reshaping of the input data based on specified column levels.

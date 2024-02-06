@@ -1,13 +1,9 @@
-The function `request_body_to_args` takes in two parameters, `required_params` and `received_body`, and returns a tuple containing `values` and `errors`. The main logic of the function involves processing the `received_body` based on the `required_params` and populating the `values` dictionary and `errors` list accordingly.
+In the given function, the core logic involves checking for missing or incorrect inputs based on the received body and required parameters, and then validating and building the return values accordingly.
 
-The function iterates through the `required_params`. For each parameter, it retrieves the value from the `received_body` based on its `alias`. If the value is not found or does not meet the validation criteria, an error is appended to the `errors` list. Otherwise, the value is added to the `values` dictionary.
+The function begins by initializing `values` as an empty dictionary and `errors` as an empty list. It then proceeds to handle missing or incorrect inputs by iterating over the `required_params`. It checks if the `received_body` is None and extracts values using the `field.alias`. If no value is found and the field is required, an error is appended to the `errors` list, and the default value for the field is added to the `values` dictionary. If a value is found, it is validated using the `field.validate` method, and the results are appended to the `errors` list or added to the `values` dictionary accordingly.
 
-In the expected test cases, the function is expected to handle `FormData` input and populate `errors` and `values` based on the validation logic specified for each `required_param`. The function makes use of PYDANTIC_1 to determine the error type and form validation.
+The function uses different cases for sequence and file-shaped fields while also accounting for specific types such as set, list, and tuple. If a file-shaped field type is found, it checks for the correct type and processes the value accordingly.
 
-The key steps include:
-1. Retrieving the value from `received_body` using the alias of each `required_param`.
-2. Validating the retrieved value based on the type and required constraints.
-3. Populating the `values` dictionary with the validated value or the default value if no error is encountered.
-4. Appending errors to the `errors` list according to the validation results.
+Overall, the function's core logic centers around iterating through required parameters, checking for missing or incorrect inputs, and building the `values` and `errors` based on the input parameters and received body.
 
-The function uses various condition checks and type validations to process the `received_body` and populate `values` and `errors` as expected.
+It appears that the function is handling different cases based on the type and shape of the input parameters, checking for required, missing, or incorrect inputs, and validating the values before constructing the final `values` and `errors` outputs. The errors are also being handled based on field shape and required status, appending the appropriate error message to the `errors` list.

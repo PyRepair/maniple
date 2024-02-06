@@ -1,11 +1,3 @@
-Based on the given information and analysis, it appears that the bug is related to the handling of ambiguous times during the resampling process, specifically on clock change days in Cuba. The problematic function `_get_time_bins` is not directly causing the issue, but it may be contributing to the error by not handling ambiguous times appropriately during time binning and labeling.
-
-To address the bug, the resampling process needs to be adjusted to handle ambiguous times caused by daylight saving time changes explicitly. This can be achieved by modifying the frequency or by implementing a mechanism to handle ambiguous times during the resampling process, thereby avoiding the `AmbiguousTimeError`.
-
-Additionally, the use of `pd.Grouper` with a frequency of one day (`1D`) should be reviewed to ensure that the ambiguous timestamp for midnight on clock change days is handled correctly.
-
-Below is the corrected version of the `_get_time_bins` function that addresses the bug and handles ambiguous times during the resampling process:
-
 ```python
 def _get_time_bins(self, ax):
     if not isinstance(ax, DatetimeIndex):
@@ -21,33 +13,45 @@ def _get_time_bins(self, ax):
     first, last = _get_timestamp_range_edges(
         ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
     )
-
-    # Adjust for ambiguous times on clock change days
-    ambiguous = "infer"  # or based on specific handling of ambiguous times
-    if self.freq == '1D':
-        ambiguous = "NaT"  # Handle ambiguous times explicitly
-
-    # Generate binner and labels with handling of ambiguous times
-    binner = labels = date_range(
+    # GH #12037
+    # use first/last directly instead of call replace() on them
+    # because replace() will swallow the nanosecond part
+    # thus last bin maybe slightly before the end if the end contains
+    # nanosecond part and lead to `Values falls after last bin` error
+    binner = date_range(
         freq=self.freq,
         start=first,
         end=last,
         tz=ax.tz,
         name=ax.name,
-        ambiguous=ambiguous,
+        ambiguous="infer",
         nonexistent="shift_forward",
     )
 
     ax_values = ax.asi8
     binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
-    # Remaining code remains unchanged
+    # general version, knowing nothing about relative frequencies
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
 
-    # ...
+    if self.closed == "right":
+        labels = binner
+        if self.label == "right":
+            labels = labels[1:]
+    elif self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    # if we end up with more labels than bins
+    # adjust the labels
+    # GH4076
+    if len(bins) < len(labels):
+        labels = labels[: len(bins)]
 
     return binner, bins, labels
 ```
-
-In the revised function, additional handling for ambiguous times has been incorporated into the `date_range` generation of `binner` and `labels` by setting the `ambiguous` parameter appropriately. This modification aims to handle the ambiguous times explicitly during the resampling process, thereby resolving the `AmbiguousTimeError` related to the bug.
-
-When applied as a drop-in replacement for the buggy version, the corrected function should address the bug by appropriately handling ambiguous times during the resampling process.

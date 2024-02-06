@@ -91,7 +91,6 @@ async def request_body_to_args(
 
 
 
-## Test Functions and Error Messages Summary
 The followings are test functions under directory `tests/test_forms_from_non_typing_sequences.py` in the project.
 ```python
 def test_python_list_param_as_form():
@@ -116,107 +115,75 @@ def test_python_tuple_param_as_form():
     assert response.json() == ["first", "second", "third"]
 ```
 
-Here is a summary of the test cases and error messages:
-The error message points to the failed assertion in the test function `test_python_tuple_param_as_form()`. Specifically, the assertion `assert response.status_code == 200` is what failed. The error message indicates that the expected status code was 200, but the actual status code received was 422.
-
-In order to understand why the test failed, let's examine the context in which this test is being executed: `client.post("/form/python-tuple", data={"items": ["first", "second", "third"]})`. This suggests that the test is sending a POST request to a specific route with form data, and then expecting the response status code to be 200.
-
-The code snippet, which is part of the function `request_body_to_args`, is responsible for processing form data:
-```python
-if field.shape in sequence_shapes and isinstance(received_body, FormData):
-    value = received_body.getlist(field.alias)
-else:
-    value = received_body.get(field.alias)
+The error message that corresponds the the above test functions is:
 ```
-The code shows that if the `field.shape` is in `sequence_shapes` and the `received_body` is an instance of `FormData`, then `value` is assigned the result of `received_body.getlist(field.alias)`. Otherwise, `value` is assigned the result of `received_body.get(field.alias)`.
+def test_python_tuple_param_as_form():
+        response = client.post(
+            "/form/python-tuple", data={"items": ["first", "second", "third"]}
+        )
+>       assert response.status_code == 200
+E       assert 422 == 200
+E         +422
+E         -200
 
-From the test function, we know that the route `/form/python-tuple` is being invoked with form data `{"items": ["first", "second", "third"]}`. Therefore, the relevant portion of the code in `request_body_to_args` is likely attempting to retrieve the value associated with the key `"items"` from the form data.
-
-To diagnose this specific failure, we need to understand why the response status code is 422 instead of the expected 200. However, the error message provided does not explicitly provide the reason for the 422 status code. Further examination of the response body or additional logging in the tested route could provide more insight into the cause of the unexpected status code.
-
-In summary, the failed test case indicates that the response status code received was 422 instead of the expected 200. The relevant function being tested involves processing form data and extracting values based on specific conditions. The exact reason for the unexpected status code requires further investigation.
+tests/test_forms_from_non_typing_sequences.py:45: AssertionError
+```
 
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-After analyzing the provided information, it appears that the `request_body_to_args` function is intended to map fields from a received body to arguments. The function processes the received data based on the required parameters and returns a dictionary of values along with any potential errors.
+In this buggy function, `request_body_to_args`, variables `required_params` and `received_body` are used as input parameters. Additionally, variables `values` and `errors` are initialized as an empty dictionary and an empty list, respectively.
 
-Let's start by examining each of the buggy cases in detail to understand the behavior and potential issues in the `request_body_to_args` function.
+In the first test case, `required_params` is a list containing one element of type `ModelField` with the name 'items', type 'list', and it's required. `received_body` is of type `FormData` with the values ('items', 'first'), ('items', 'second'), and ('items', 'third'). When the buggy function returns, the `values` dictionary is populated with the `'items'` key containing a list `['first', 'second', 'third']`, and `errors` remains an empty list.
 
-### Buggy Case 1
+In the second test case, we observe the same `required_params` and `received_body` values as in case 1. When the buggy function returns, the `values` dictionary is populated with the `'items'` key containing a set `{'third', 'second', 'first'}`, and `errors` remains an empty list.
 
-In this test case, the required parameter is a list containing a single ModelField with the name 'items' and type 'list'. The received body is of type FormData and contains multiple values for the 'items' field. The `received_body.getlist` and `received_body.get` methods are present.
+In the third test case, `required_params` is a list containing one element of type `ModelField` with the name 'items', type 'tuple', and it's required. `received_body` is of type `FormData` with the values ('items', 'first'), ('items', 'second'), and ('items', 'third'). When the buggy function returns, the `values` dictionary is populated with the `'items'` key containing a tuple `('first', 'second', 'third')`, and `errors` remains an empty list.
 
-The variables at the time of return are as follows:
-- `values` is a dictionary with the 'items' key mapped to a list `['first', 'second', 'third']`.
-- `errors` is an empty list.
-- The `field` variable is a ModelField instance with the name 'items', type 'list', and is required.
-- The `field_info` is a Form instance with the attribute `embed` set to `True`.
-- The `embed` variable is a boolean set to `True`.
-- The `value` variable contains the list `['first', 'second', 'third']`.
-- The `field.validate` method is present.
-
-Based on this case, the function seems to handle the 'list' type correctly by mapping the received body values to a list of items under the 'items' key in the `values` dictionary.
-
-### Buggy Case 2
-
-In this test case, the required parameter is a list containing a single ModelField with the name 'items' and type 'set'. The received body is similar to the previous case and is of type FormData.
-
-The variables at the time of return are as follows:
-- `values` is a dictionary with the 'items' key mapped to a set containing `{'first', 'second', 'third'}`.
-- `errors` is an empty list.
-- The variables for `field`, `field_info`, `embed`, `value`, and `field.validate` are the same as in the previous case.
-
-This case suggests that the function is correctly mapping the received body values to a set of items under the 'items' key in the `values` dictionary, indicating no issues with processing the 'set' type.
-
-### Buggy Case 3
-
-In this test case, the required parameter is a list containing a single ModelField with the name 'items' and type 'tuple'. The received body is of type FormData, similar to the previous cases.
-
-The variables at the time of return are as follows:
-- `values` is a dictionary with the 'items' key mapped to a tuple `('first', 'second', 'third')`.
-- `errors` is an empty list.
-- The variables for `field`, `field_info`, `embed`, `value`, and `field.validate` are the same as in the previous cases.
-
-This case depicts the function correctly mapping the received body values to a tuple of items under the 'items' key in the `values` dictionary, indicating no issues with processing the 'tuple' type.
-
-### Insights from Analysis
-
-Based on the analysis of the buggy cases, the function appears to handle and set the values correctly for different types (list, set, tuple) based on the received body. It constructs the `values` dictionary and populates it efficiently based on the field types and required parameters. The `errors` list remains empty, indicating successful processing without any errors.
-
-Given the provided runtime values and types inside the function, no evident programming error or discrepancy is observed. Therefore, it can be inferred that the issues causing the failed test cases might not be directly attributed to the `request_body_to_args` function.
-
-To identify the root cause of the test case failures, further investigation on the failed test cases, input data, and expected behavior might be required. Additionally, reviewing any error logs or discrepancies in the test cases could provide additional insights into potential issues related to the function's usage or test case setup.
+Upon analyzing the buggy function and the variables associated with it, it seems that the issue arises from the logic used to process the `received_body` and populate the `values` and `errors`. Further debugging and code exploration are necessary to identify and fix the bug.
 
 
 
 ## Summary of Expected Parameters and Return Values in the Buggy Function
 
-The function `request_body_to_args` takes in two parameters, `required_params` and `received_body`, and returns a tuple containing `values` and `errors`. The main logic of the function involves processing the `received_body` based on the `required_params` and populating the `values` dictionary and `errors` list accordingly.
+In the given function, the core logic involves checking for missing or incorrect inputs based on the received body and required parameters, and then validating and building the return values accordingly.
 
-The function iterates through the `required_params`. For each parameter, it retrieves the value from the `received_body` based on its `alias`. If the value is not found or does not meet the validation criteria, an error is appended to the `errors` list. Otherwise, the value is added to the `values` dictionary.
+The function begins by initializing `values` as an empty dictionary and `errors` as an empty list. It then proceeds to handle missing or incorrect inputs by iterating over the `required_params`. It checks if the `received_body` is None and extracts values using the `field.alias`. If no value is found and the field is required, an error is appended to the `errors` list, and the default value for the field is added to the `values` dictionary. If a value is found, it is validated using the `field.validate` method, and the results are appended to the `errors` list or added to the `values` dictionary accordingly.
 
-In the expected test cases, the function is expected to handle `FormData` input and populate `errors` and `values` based on the validation logic specified for each `required_param`. The function makes use of PYDANTIC_1 to determine the error type and form validation.
+The function uses different cases for sequence and file-shaped fields while also accounting for specific types such as set, list, and tuple. If a file-shaped field type is found, it checks for the correct type and processes the value accordingly.
 
-The key steps include:
-1. Retrieving the value from `received_body` using the alias of each `required_param`.
-2. Validating the retrieved value based on the type and required constraints.
-3. Populating the `values` dictionary with the validated value or the default value if no error is encountered.
-4. Appending errors to the `errors` list according to the validation results.
+Overall, the function's core logic centers around iterating through required parameters, checking for missing or incorrect inputs, and building the `values` and `errors` based on the input parameters and received body.
 
-The function uses various condition checks and type validations to process the `received_body` and populate `values` and `errors` as expected.
+It appears that the function is handling different cases based on the type and shape of the input parameters, checking for required, missing, or incorrect inputs, and validating the values before constructing the final `values` and `errors` outputs. The errors are also being handled based on field shape and required status, appending the appropriate error message to the `errors` list.
 
 
 
-## Summary of the GitHub Issue Related to the Bug
+# A GitHub issue title for this bug
+```text
+Support repeated key=value in form data
+```
 
-# Summary:
-The issue at hand pertains to the handling of repeated key=value pairs in form data. The problem arises when a URL encoded data contains multiple occurrences of the same key, resulting in only the last key=value winning. This behavior does not align with the expected functionality, as it restricts the ability to validate against all values.
+## The associated detailed issue description
+```text
+Is your feature request related to a problem
+Yes.
 
-The suggested solution proposes that FastAPI should gather repeated keys in a 2-tuple list and assign those values as a list to the same key before the validation process occurs. This approach would enable more comprehensive and accurate validation against all the provided values.
+Given some URL encoded data like this...
 
-In essence, the bug revolves around the inadequate handling of repeated key=value pairs, leading to limited validation capabilities. The proposed solution aims to address this issue by enhancing the data aggregation and validation process within FastAPI.
+choices=parrot&choices=spider
+...only the last key=value wins.
+
+This does not work like I expected:
+
+choices: list = Form(...)
+You can only validate against the last value.
+
+The solution you would like
+Perhaps FastAPI should collect repeated keys in the 2-tuple list that request.form() gives and assign those values as a list to the same key before validation happens.
+```
+
+
 
 
 

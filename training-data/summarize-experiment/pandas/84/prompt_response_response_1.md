@@ -1,22 +1,13 @@
-The potential error location within the `_unstack_multiple` function is likely in the section where the function deals with hierarchical columns and attempts to unstack the data. The error may stem from how the function handles the multi-index columns during the unstacking process, possibly resulting in the specification of level names or numbers that do not exist in the actual DataFrame.
-
-Reasons behind the occurrence of the bug:
-- The error message indicates that the issue arises when attempting to unstack the Series using the names of the individual levels of the MultiIndex specified as a tuple. This suggests that the function logic for handling hierarchical columns and unstacking operations may be causing the KeyError.
-
-Possible approaches for fixing the bug:
-1. Review and refactor the logic related to handling hierarchical columns and unstacking operations to ensure that the correct level names or numbers are utilized in the unstacking process.
-2. Validate the level names or numbers before performing unstack operations to avoid encountering a KeyError.
-3. Handle the unstacking of hierarchical columns in a more robust and error-tolerant manner, considering the specific characteristics of MultiIndex columns.
-
-Here's the corrected code for the `_unstack_multiple` function that resolves the issues mentioned:
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
+    # NOTE: This doesn't deal with hierarchical columns yet
+
     index = data.index
 
-    clocs = [index._get_level_number(i) if isinstance(i, str) else i for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else index.names.index(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -34,6 +25,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
     if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
         dummy_index = Index(obs_ids, name="__placeholder__")
     else:
         dummy_index = MultiIndex(
@@ -53,11 +45,12 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_codes = recons_codes
     else:
         if isinstance(data.columns, MultiIndex):
-            result = data.copy()
+            result = data
             for i in range(len(clocs)):
                 val = clocs[i]
                 result = result.unstack(val, fill_value=fill_value)
                 clocs = [v if i > v else v - 1 for v in clocs]
+
             return result
 
         dummy = data.copy()
@@ -69,7 +62,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
         else:
             unstcols = unstacked.columns
         new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.columns.names[0]] + cnames
+        new_names = [data.columns.name] + cnames
 
         new_codes = [unstcols.codes[0]]
         for rec in recons_codes:
@@ -86,4 +79,3 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
-The corrected function includes modifications to ensure that the level names or numbers are handled appropriately during the unstacking process, addressing the potential KeyError issue.

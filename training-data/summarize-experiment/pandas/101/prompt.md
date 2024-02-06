@@ -118,134 +118,155 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
 
 
-## Test Functions and Error Messages Summary
-The followings are test functions under directory `pandas/tests/dtypes/test_common.py` in the project.
+## Test Case Summary
+The test case being executed is of the function test_astype_nansafe, that is defined in the file test_common.py within the pandas project. This is a parameterized test that runs with different parameters for val and typ. In particular, the parameter combinations that cause the error are when val is equal to np.datetime64("NaT") or np.timedelta64("NaT") and when typ is equal to np.int64.
+
+In the test_astype_nansafe function, an array arr is created with a single value val. The error message that this test is looking for is "Cannot convert NaT values to integer". The test_astype_nansafe function checks whether the call to the astype_nansafe function with the given parameters raises a ValueError with the matching message.
+
+The error message that corresponds to the above test functions indicates that the assertion in the test failed because no ValueError was raised during the execution of the astype_nansafe function call. The call to astype_nansafe was supposed to raise a ValueError with the message "Cannot convert NaT values to integer", but it did not.
+
+Therefore, the issue lies within the astype_nansafe function itself. The specific path of the code where the issue arises is when the input array contains NaT values and the target dtype is np.int64. The relevant section of the astype_nansafe function that leads to the issue is the block containing the following code:
 ```python
-@pytest.mark.parametrize("val", [np.datetime64("NaT"), np.timedelta64("NaT")])
-@pytest.mark.parametrize("typ", [np.int64])
-def test_astype_nansafe(val, typ):
-    arr = np.array([val])
-
-    msg = "Cannot convert NaT values to integer"
-    with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=typ)
-
-@pytest.mark.parametrize("val", [np.datetime64("NaT"), np.timedelta64("NaT")])
-@pytest.mark.parametrize("typ", [np.int64])
-def test_astype_nansafe(val, typ):
-    arr = np.array([val])
-
-    msg = "Cannot convert NaT values to integer"
-    with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=typ)
+elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
+    if not np.isfinite(arr).all():
+        raise ValueError("Cannot convert non-finite values (NA or inf) to integer")
 ```
+In the aforementioned block, the function checks whether the input array contains non-finite values (e.g., NaT or inf) and raises a ValueError if the target dtype is np.int64.
 
-Here is a summary of the test cases and error messages:
-The error message from the failed test case in test_common.py identifies that within the test_astype_nansafe function, the call to the function astype_nansafe with the specified parameters (arr and dtype) did not raise a ValueError as expected.
+The error message, along with the analysis of the buggy function's code, indicates the root cause of the failure in the test_astype_nansafe test case. The astype_nansafe function fails to raise a ValueError for the specific combination of input parameters. This discrepancy can be linked to the condition that checks for non-finite values in the input array and the target dtype being np.int64.
 
-Specifically, the test case checks for the behavior of the astype_nansafe function when attempting to convert "NaT" (Not-a-Time) values to an integer with the np.int64 type. The essence of the test is to verify that a ValueError is correctly raised when the function is called with such parameters.
-Given the parameters, the test aims to safeguard against non-desired conversions or misleading outputs in the astype_nansafe function.
-
-Looking at the astype_nansafe(code), it is evident that the function is intended to safely cast the elements of an array (arr) from one data type (dtype) to another, typically by avoiding potential errors with NaN or other special values.
-
-In the buggy astype_nansafe function, various data type checks and conversions are performed, including handling of datetimes, timedeltas, strings, and other numerical types. Additionally, it includes error-handling through ValueError and TypeError exceptions when the dtype is incompatible with the input data.
-
-In the context of the failed test case, where "NaT" and np.int64 are provided as parameters, the error message from the test output indicates that a ValueError was not raised as expected, suggesting a potential issue with the astype_nansafe function.
-
-The significance of this failure is that the astype_nansafe function might not be correctly handling "NaT" values when casting to an integer data type. There appears to be a discrepancy between the expected behavior, as demonstrated by the test case, and the actual behavior of the astype_nansafe function.
-
-Based on the test code, the key information to pinpoint the root cause of the failure lies in the parameter combination used in the failed test case, which includes an "NaT" value alongside the np.int64 data type. This information indicates that the failure originates from the specific scenario where "NaT" values are being cast to an integer type.
-
-By analyzing the behavior of the astype_nansafe function when handling "NaT" values with np.int64 type, there may be an insight into the exact cause of the failure. Additionally, a thorough examination of the error-handling logic within the astype_nansafe function, particularly with regard to the conversion of special values like "NaT," is crucial for identifying possible bugs in the code and rectifying them.
-
-
-
-## Summary of Runtime Variables and Types in the Buggy Function
-
-To start the analysis, let's examine the function `astype_nansafe`. The function seems to be designed to cast the elements of an array to a given dtype in a nan-safe manner. It takes four parameters: `arr`, which is expected to be a numpy ndarray, `dtype`, which is the desired data type, `copy`, a boolean with a default value of `True`, and `skipna`, another boolean with a default value of `False`.
-
-The function first checks if the `dtype` is an extension array data type using the `is_extension_array_dtype` function. If it is, it constructs an array type and returns the result of the `_from_sequence` function applied to `arr` and `dtype`.
-
-Next, the function checks if the `dtype` is not an instance of `np.dtype`, and if so, it converts it using `pandas_dtype`.
-
-Following these initial checks, the function enters a series of conditionals to handle the casting for specific data types.
-
-Let's refer to the input and output variable logs to identify potential issues as we walk through the function code:
-
-Input Variables:
-- arr: ndarray (specific values not provided in the context)
-- dtype: np.dtype (specific values not provided in the context)
-- copy: bool (default value is True)
-- skipna: bool (default value is False)
-
-Output Variables:
-- Returned values of specific types and values based on the test case logs.
-- Values of key variables during the function's execution.
-
-Now, let's examine the function's conditions and match them with the output variable logs to identify potential issues.
-
-1. Extension Array Data Type Handling:
-   The function checks if the `dtype` is an extension array data type and applies a series of operations if so. This condition is dependent on the `is_extension_array_dtype` function, and without the specific test case data, it's difficult to determine if there are any issues here.
-
-2. Handling String Type:
-   If the `dtype` is of type `str`, the function ravel the array and applies `lib.astype_str` to it with the `skipna` parameter, then reshapes the result. In the output variable logs, we would expect to see the result of the `lib.astype_str` function, as well as the reshaped array.
-
-3. Handling DateTime64 Data Type:
-   The function checks if the array has datetime64 data type. Based on the test case logs, we would expect to see the result of the specific conditional block that holds the logic for handling datetime64 data type.
-
-4. Handling Timedelta64 Data Type:
-   Similar to datetime64, the function has a conditional block for handling timedelta64 data type. The output variable logs should show the result of this block if it's relevant to the test case.
-
-5. Floating to Integer Conversion:
-   The function checks for specific data type conversions between floating and integer types and raises a ValueError if non-finite values are encountered. In the output variable logs, any raised ValueError or unexpected behavior related to floating to integer conversion should be noted.
-
-6. Object Data Type Handling:
-   The function contains conditionals for handling object data types, including specific operations for datetime and timedelta arrays. In the output variable logs, we would expect to see the result of these conditionals if relevant to the test case.
-
-7. Handling 'datetime64' or 'timedelta64' Data Type with No Unit:
-   If the `dtype` is 'datetime64' or 'timedelta64' without a unit, the function raises a ValueError. If the test case involves such a scenario, the output variable logs should capture this raised ValueError.
-
-8. Default Case:
-   For all other cases, the function defaults to casting using `arr.astype(dtype, copy=True)` if `copy` is True, and `arr.view(dtype)` if `copy` is False.
-
-The thorough analysis of both the function code and the input/output variable logs is essential to uncover the root cause of the buggy behavior and devise a solution. Without specific test case data, it's challenging to pinpoint the exact issue, but a detailed examination of the function's logic and the observed variable values would be crucial in tracking down the bug.
+In order to address this issue, the offending block in the astype_nansafe function needs to be revisited to ensure that it correctly handles the situation where the input array contains NaT values and the target dtype is np.int64. This may involve modifying the condition and the corresponding error message, refining the logic to capture all potential non-finite values or validating the behavior for array-to-integer conversions involving NaT values.
 
 
 
 ## Summary of Expected Parameters and Return Values in the Buggy Function
 
-Based on the provided source code and expected return values for different test cases, the core logic of the `astype_nansafe` function can be summarized as follows:
+Based on the provided code and the expected return values for the test cases, it is observed that the function `astype_nansafe` is designed to cast the elements of an array to a given dtype in a nan-safe manner. 
 
-1. The function first checks if the provided `dtype` is an extension dtype. If it is, it constructs the array type using the specified `dtype` and returns the result.
+The function takes four input parameters:
+1. `arr` - An ndarray containing elements to be cast to the specified dtype.
+2. `dtype` - The target numpy data type to which the elements should be cast.
+3. `copy` - A boolean flag indicating whether a copy of the array should be made.
+4. `skipna` - A boolean flag indicating whether NaN values should be skipped when casting as a string-type.
 
-2. If the `dtype` is not an extension dtype, the function ensures that it is an instance of `np.dtype` and then checks for different scenarios based on the data type of the input array `arr`.
+The function proceeds to handle different data type and dtype combinations by applying specific rules for each case. It evaluates the `dtype` and `arr` to determine the appropriate action for the conversion.
 
-3. If the `dtype` is a string type, it uses a library function to cast the elements of the input array to the specified `dtype` and then reshapes the array.
+For example, if the `dtype` is an extension array dtype, the function calls on the extension dtype to construct the array type and then returns the constructed array type from the sequence with the specified dtype.
 
-4. If the input array `arr` is of datetime64 type, the function performs various checks and conversions based on the specified `dtype`, and raises appropriate errors or type errors if necessary.
+Furthermore, it handles specific dtype cases such as string types, datetime64/timedelta64 types, floating to integer conversions, and object types like datetime and timedelta. In each case, specific rules are applied to safely convert the array elements.
 
-5. Similarly, if the input array `arr` is of timedelta64 type, the function handles different scenarios based on the specified `dtype`, performs conversions, and raises errors as needed.
+Based on the expected variable values and types before the function returns, it is clear that the function effectively handles the conversion of datatypes and dtype combinations to match the expected output.
 
-6. If the input array `arr` is of float type and the specified `dtype` is an integer type, the function checks for non-finite values and raises a value error if they are present.
-
-7. If the input array `arr` is of object type, the function handles conversions for integer, datetime, and timedelta types based on the specified `dtype`.
-
-8. Finally, if none of the above conditions are met, the function performs an explicit copy if required, or directly returns the input array casted to the specified `dtype`.
-
-Based on the input parameter values and expected variable values for each test case, the function's core logic and behavior have been analyzed comprehensively to understand its behavior and output.
+Overall, the function contains complex logic to handle various data type and dtype combinations, including nan-safe handling, and makes use of NumPy and Pandas functionality to fulfill the conversion requirements.
 
 
 
-## Summary of the GitHub Issue Related to the Bug
+# A GitHub issue title for this bug
+```text
+BUG: Don't cast categorical nan to int
+```
 
-Summary:
-The bug revolves around the issue of converting categorical data with NaN values to integers. When attempting to convert a categorical series with NaN values to an integer, the NaN values are incorrectly converted to a large negative integer, rather than being properly represented as NaN. Additionally, when trying to use d.astype('Int8'), there is an error message indicating that the dtype is not understood. The expected behavior is for NaN in the categorical data to be converted to NaN in the integer or float representation. This bug has been identified with Python version 3.7.4, pandas version 0.25.1, and numpy version 1.17.2.
+## The associated detailed issue description
+```text
+ closes Converting from categorical to int ignores NaNs #28406
+ passes black pandas
+ tests added / passed
+ whatsnew entry
+This raises an error when attempting to cast a Categorical or CategoricalIndex containing nans to an integer dtype. Also had to remove the casting within get_indexer_non_unique since this won't always be possible.
+```
 
-The bug report includes a code sample, expected output, and system version details, providing valuable information for debugging. It has been confirmed that the issue is reproducible, and the necessary tests have been added and passed. The suggested fix entails removing the casting within get_indexer_non_unique since this won't always be possible.
+# A GitHub issue title for this bug
+```text
+Converting from categorical to int ignores NaNs
+```
 
-In order to resolve this bug effectively, it will be imperative to identify the root cause of the incorrect conversion of categorical NaN values to integers and address it in a manner that aligns with the expected output. Additionally, the error message related to d.astype('Int8') should be analyzed and addressed to ensure that the dtype is properly understood.
+## The associated detailed issue description
+```text
+Code Sample, a copy-pastable example if possible
+In [6]: s = pd.Series([1, 0, None], dtype='category')                                                                                                                                                                                            
 
-Overall, a focused approach to debugging this issue will involve tracking the conversion process, handling of NaN values, and the interpretation of data types, with particular attention to addressing the issue in a manner that is compatible with the expected behavior.
+In [7]: s                                                                                                                                                                                                                                      
+Out[7]: 
+0      1
+1      0
+2    NaN
+dtype: category
+Categories (2, int64): [0, 1]
+
+In [8]: s.astype(int)                                                                                                                                                                                                                          
+Out[8]: 
+0                      1
+1                      0
+2   -9223372036854775808  # <- this is unexpected
+dtype: int64
+Problem description
+When converting categorical series back into Int column, it converts NaN to incorect integer negative value.
+
+Expected Output
+I would expect that NaN in category converts to NaN in IntX(nullable integer) or float.
+
+When trying to use d.astype('Int8'), I get an error dtype not understood
+
+Output of pd.show_versions()
+In [147]: pd.show_versions()                                                                                                                                                                                                                   
+
+INSTALLED VERSIONS
+------------------
+commit           : None
+python           : 3.7.4.final.0
+python-bits      : 64
+OS               : Linux
+OS-release       : 5.2.13-arch1-1-ARCH
+machine          : x86_64
+processor        : 
+byteorder        : little
+LC_ALL           : None
+LANG             : en_US.UTF-8
+LOCALE           : en_US.UTF-8
+
+pandas           : 0.25.1
+numpy            : 1.17.2
+pytz             : 2019.2
+dateutil         : 2.8.0
+pip              : 19.2.3
+setuptools       : 41.2.0
+Cython           : None
+pytest           : 5.1.2
+hypothesis       : None
+sphinx           : None
+blosc            : None
+feather          : 0.4.0
+xlsxwriter       : None
+lxml.etree       : None
+html5lib         : None
+pymysql          : None
+psycopg2         : None
+jinja2           : None
+IPython          : 7.8.0
+pandas_datareader: None
+bs4              : None
+bottleneck       : None
+fastparquet      : None
+gcsfs            : None
+lxml.etree       : None
+matplotlib       : None
+numexpr          : 2.7.0
+odfpy            : None
+openpyxl         : None
+pandas_gbq       : None
+pyarrow          : 0.14.1
+pytables         : None
+s3fs             : None
+scipy            : None
+sqlalchemy       : None
+tables           : 3.5.2
+xarray           : None
+xlrd             : None
+xlwt             : None
+xlsxwriter       : None
+```
+
+
 
 
 

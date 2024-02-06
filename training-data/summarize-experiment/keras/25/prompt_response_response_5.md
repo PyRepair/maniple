@@ -1,3 +1,11 @@
+The potential error location within the `_preprocess_numpy_input` function is when the mode equals 'torch' and the `data_format` is 'channels_last'. In this case, the code attempts to subtract a list from an array, resulting in a type mismatch error and causing a `UFuncTypeError`.
+
+The reason for this bug is that the `mean` list is not explicitly converted to the same data type as the input array `x`. This leads to a type mismatch when performing arithmetic operations, resulting in the `UFuncTypeError`.
+
+To fix this issue, we can explicitly convert the `mean` list to the same data type as `x` using NumPy's `astype` function before performing the subtraction operation. This will ensure that the `mean` values are compatible with the data type of the input array `x` and prevent type casting issues.
+
+Here's the corrected code for the `_preprocess_numpy_input` function:
+
 ```python
 import numpy as np
 
@@ -25,29 +33,51 @@ def _preprocess_numpy_input(x, data_format, mode):
         x /= 127.5
         x -= 1.
         return x
-    elif mode == 'torch':
-        x = x.astype('float32') # explicitly cast to float32
-        x /= 255.
+
+    if mode == 'torch':
+        x = x / 255.
+        mean = np.array([0.485, 0.456, 0.406], dtype=x.dtype)
+        std = np.array([0.229, 0.224, 0.225], dtype=x.dtype)
     else:
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
             if x.ndim == 3:
-                x = x[:, ::-1, ...]
+                x = x[::-1, ...]
             else:
-                x = x[:, :, ::-1, ...]
+                x = x[:, ::-1, ...]
         else:
             # 'RGB'->'BGR'
             x = x[..., ::-1]
-
-    mean = np.array([103.939, 116.779, 123.68], dtype=np.float32)
-    std = None
-    if mode == 'torch':
-        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+            mean = np.array([103.939, 116.779, 123.68], dtype=x.dtype)
+            std = None
 
     # Zero-center by mean pixel
-    x -= mean
-    if std is not None:
-        x /= std
-
+    if data_format == 'channels_first':
+        if x.ndim == 3:
+            x[0, :, :] -= mean[0]
+            x[1, :, :] -= mean[1]
+            x[2, :, :] -= mean[2]
+            if std is not None:
+                x[0, :, :] /= std[0]
+                x[1, :, :] /= std[1]
+                x[2, :, :] /= std[2]
+        else:
+            x[:, 0, :, :] -= mean[0]
+            x[:, 1, :, :] -= mean[1]
+            x[:, 2, :, :] -= mean[2]
+            if std is not None:
+                x[:, 0, :, :] /= std[0]
+                x[:, 1, :, :] /= std[1]
+                x[:, 2, :, :] /= std[2]
+    else:
+        x[..., 0] -= mean[0]
+        x[..., 1] -= mean[1]
+        x[..., 2] -= mean[2]
+        if std is not None:
+            x[..., 0] /= std[0]
+            x[..., 1] /= std[1]
+            x[..., 2] /= std[2]
     return x
-```
+``` 
+
+This corrected code explicitly converts the `mean` list to the same data type as the input array `x` using NumPy's `dtype` parameter, ensuring that the operation is performed with compatible data types and fixing the `UFuncTypeError` issue.

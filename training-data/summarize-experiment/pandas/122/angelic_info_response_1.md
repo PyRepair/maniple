@@ -1,6 +1,7 @@
-Summary:
-The given function 'equals' takes two input parameters, 'self' and 'other', which are both BlockManager objects. The function first checks if the axes of both BlockManagers are of the same length. If not, it returns False. Then, it checks if all the elements of the axes are equal using the 'equals' method, and if not, it returns False. 
+The "equals" function takes in two parameters, "self" and "other", both of type BlockManager. It first compares the axes of both BlockManagers and returns False if they have different lengths or if any of the corresponding axes are not equal. 
 
-After that, both BlockManagers are consolidated in place, and the function compares the lengths of their 'blocks'. If the lengths are not equal, it returns False. Next, the function sorts the 'blocks' of both BlockManagers using the 'canonicalize' function, which combines the type name and 'mgr_locs' of the blocks.
+It then consolidates both BlockManagers in place and checks if the number of blocks within each BlockManager is the same. If not, it returns False.
 
-Finally, the function checks if each block of 'self_blocks' equals the corresponding block in 'other_blocks'. If any of the blocks are not equal, it returns False. If all the comparisons pass, the function returns True.
+The function then defines a "canonicalize" function that takes a block and returns a tuple of the block's dtype name and mgr_locs. It then sorts the blocks of both BlockManagers using this "canonicalize" function and checks if all corresponding blocks are equal.
+
+To summarize, the function first checks the axes and block count, then consolidates the BlockManagers, sorts and compares the blocks, and returns True if all conditions are met, and False otherwise.

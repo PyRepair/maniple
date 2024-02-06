@@ -1,29 +1,22 @@
-Based on the given buggy function and the test cases, it seems the bug is related to the unstacking operation, especially when dealing with MultiIndex objects in the input data. The error message indicates that there are issues with the level names, and the `KeyError` is being raised when attempting to retrieve the index of a level from a Tuple.
-
-The potential error location within the problematic function is most likely the part where it deals with the hierarchical columns and processes the levels for unstacking.
-
-The bug is occurring due to the mismatch between the level names provided in the test case and the actual level names in the MultiIndex of the DataFrame. This leads to the code attempting to access a level that does not exist, triggering the `KeyError`.
-
-To fix the bug, the function needs to handle the hierarchical column names and level numbers correctly. It needs to use the level numbers instead of the level names when performing unstacking.
-
-The corrected code for the `_unstack_multiple` function, which addresses the bug and handles the hierarchical columns more accurately, is provided below:
-
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
-    # Process the level numbers instead of level names
-    clocs = [data.index._get_level_number(i) for i in clocs]
+    # NOTE: This doesn't deal with hierarchical columns yet
 
-    rlocs = [i for i in range(data.index.nlevels) if i not in clocs]
+    index = data.index
 
-    clevels = [data.index.levels[i] for i in clocs]
-    ccodes = [data.index.codes[i] for i in clocs]
-    cnames = [data.index.names[i] for i in clocs]
-    rlevels = [data.index.levels[i] for i in rlocs]
-    rcodes = [data.index.codes[i] for i in rlocs]
-    rnames = [data.index.names[i] for i in rlocs]
+    clocs = [index._get_level_number(i) for i in clocs]
+
+    rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+    clevels = [index.levels[i] for i in clocs]
+    ccodes = [index.codes[i] for i in clocs]
+    cnames = [index.names[i] for i in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
 
     shape = [len(x) for x in clevels]
     group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
@@ -69,7 +62,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
         else:
             unstcols = unstacked.columns
         new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.columns.name] + cnames
+        new_names = [data.columns.names[0]] + cnames
 
         new_codes = [unstcols.codes[0]]
         for rec in recons_codes:
@@ -86,5 +79,3 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
-
-The provided corrected code addresses the issue by correctly handling the level numbers and names when performing unstacking operations on a MultiIndex. The changes made ensure that the function processes the levels accurately and produces the expected output without raising any errors.

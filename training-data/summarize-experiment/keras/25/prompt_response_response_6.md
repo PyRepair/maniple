@@ -1,12 +1,10 @@
-The identified bug in the `_preprocess_numpy_input` function revolves around the handling of different data types and the lack of proper condition checks and return statements. The code lacks consistency in handling the 'mode' and 'data_format' combinations, leading to incomplete or incorrect preprocessing of the input array 'x'.
+The potential error location within the `_preprocess_numpy_input` function is when the `mode` equals 'torch' and `data_format` is 'channels_last'. Specifically, the issue arises when trying to perform arithmetic operations on the `mean` list and the input array `x`, which results in a type mismatch error.
 
-To address this bug, the following steps should be taken:
-1. Apply consistent handling of data types: In the case of input array 'x' with dtype 'int32', explicit casts and consistent data type handling should be implemented to ensure compatibility and prevent UFuncTypeError.
-2. Correct the condition logic: The if-else conditions based on 'mode' and 'data_format' need to be reviewed and corrected to ensure accurate preprocessing based on the specified mode and data format.
-3. Channel manipulation operations: The channel manipulation and conversion from 'RGB' to 'BGR' need to be handled accurately based on the data format.
-4. Add missing return statement: For 'mode' other than 'tf', return statements need to be added to ensure the necessary preprocessing operations are performed and the preprocessed array is returned.
+The reason behind the bug is the mismatched data type for the `mean` list and the input array `x`, leading to a type casting issue when performing arithmetic operations. To fix this bug, it is necessary to ensure that the `mean` values are of the same data type as the input array `x`.
 
-Here's the corrected version of the `_preprocess_numpy_input` function that resolves the bug:
+A possible approach for fixing the bug is to explicitly convert the `mean` list to the same data type as the input array `x` before performing the subtraction operation. This can be achieved using NumPy's `astype` function to convert the `mean` list to the same data type as `x`, ensuring compatibility and preventing type casting issues.
+
+Here's the corrected code for the `_preprocess_numpy_input` function:
 
 ```python
 import numpy as np
@@ -32,35 +30,52 @@ def _preprocess_numpy_input(x, data_format, mode):
         Preprocessed Numpy array.
     """
     if mode == 'tf':
-        x = x.astype(np.float32)  # Convert to float32 to ensure compatibility
         x /= 127.5
         x -= 1.
         return x
 
     if mode == 'torch':
-        x = x.astype(np.float32)  # Convert to float32 to ensure compatibility
         x /= 255.
-        mean = [0.485, 0.456, 0.406]
-        std = [0.229, 0.224, 0.225]
-        x = (x - mean) / std
+        mean = np.array([0.485, 0.456, 0.406], dtype=x.dtype)
+        std = np.array([0.229, 0.224, 0.225], dtype=x.dtype)
     else:
-        if data_format == 'channels_last':
+        if data_format == 'channels_first':
             # 'RGB'->'BGR'
-            x = x.astype(np.float32)  # Convert to float32 to ensure compatibility
-            x = x[..., ::-1]
-            mean = [103.939, 116.779, 123.68]
-            x -= mean
-        else:
-            # 'RGB'->'BGR'
-            x = x.astype(np.float32)  # Convert to float32 to ensure compatibility
             if x.ndim == 3:
                 x = x[::-1, ...]
             else:
                 x = x[:, ::-1, ...]
-            mean = [103.939, 116.779, 123.68]
-            x -= mean
+        else:
+            # 'RGB'->'BGR'
+            x = x[..., ::-1]
+            mean = np.array([103.939, 116.779, 123.68], dtype=x.dtype)
+            std = None
 
+    # Zero-center by mean pixel
+    if data_format == 'channels_first':
+        if x.ndim == 3:
+            x[0, :, :] -= mean[0]
+            x[1, :, :] -= mean[1]
+            x[2, :, :] -= mean[2]
+            if std is not None:
+                x[0, :, :] /= std[0]
+                x[1, :, :] /= std[1]
+                x[2, :, :] /= std[2]
+        else:
+            x[:, 0, :, :] -= mean[0]
+            x[:, 1, :, :] -= mean[1]
+            x[:, 2, :, :] -= mean[2]
+            if std is not None:
+                x[:, 0, :, :] /= std[0]
+                x[:, 1, :, :] /= std[1]
+                x[:, 2, :, :] /= std[2]
+    else:
+        x[..., 0] -= mean[0]
+        x[..., 1] -= mean[1]
+        x[..., 2] -= mean[2]
+        if std is not None:
+            x[..., 0] /= std[0]
+            x[..., 1] /= std[1]
+            x[..., 2] /= std[2]
     return x
 ```
-
-This revised version of the function includes explicit data type conversions, corrected condition logic, accurate channel manipulation based on the data format, and added return statements for consistent preprocessing based on the specified mode and data format. This corrected function will effectively address the identified bug and ensure accurate preprocessing of the input array 'x'.

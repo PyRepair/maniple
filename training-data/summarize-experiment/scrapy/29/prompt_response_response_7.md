@@ -1,23 +1,20 @@
-Based on the error message and the test case, it is evident that the `request_httprepr` function encounters a `None` value for the `parsed.hostname` attribute when processing non-HTTP requests. This causes the `to_bytes` function to raise a `TypeError` as it expects a unicode, string, or bytes object but receives a `NoneType`.
+The error occurs when the `to_bytes` function is called with the `parsed.hostname` variable, which is `None` in the case of `file://` URLs. This triggers a `TypeError` because the `to_bytes` function cannot handle a `None` type.
 
-The potential error location is in the line `s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"` where the `parsed.hostname` is expected to have a valid value but it is sometimes `None` for non-HTTP requests.
+To fix this bug, we need to handle the case where the parsed URL scheme is not HTTP or HTTPS. We can modify the `request_httprepr` function to check if the parsed `scheme` is `http` or `https` before constructing the raw HTTP representation. If the scheme is not `http` or `https`, we can set the `host` to the `netloc` of the parsed URL.
 
-The reason behind the bug is that the function does not handle non-HTTP requests correctly. It assumes that the `parsed` result always contains a valid hostname, which is not the case for non-HTTP requests.
-
-To fix the bug, the function should be modified to handle non-HTTP requests gracefully by checking for the presence of a hostname in the parsed result before using it to construct the raw HTTP representation. If the hostname is not present, a default value or an empty string can be used to ensure that the `to_bytes` function does not encounter a `NoneType` object.
-
-Here is the corrected code for the `request_httprepr` function:
+Here's the corrected function:
 
 ```python
 def request_httprepr(request):
     parsed = urlparse_cached(request)
-    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
+    if parsed.scheme in ['http', 'https']:
+        path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
+        host = parsed.hostname
+    else:
+        path = parsed.path or '/'
+        host = parsed.netloc
     s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
-    
-    # Add Host header only if the parsed hostname exists
-    if parsed.hostname:
-        s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"
-    
+    s += b"Host: " + to_bytes(host) + b"\r\n"
     if request.headers:
         s += request.headers.to_string() + b"\r\n"
     s += b"\r\n"
@@ -25,4 +22,6 @@ def request_httprepr(request):
     return s
 ```
 
-In the corrected code, a conditional check is added to verify the presence of a hostname in the parsed result before adding the `Host` header to the raw HTTP representation. If the hostname exists, it is added to the `s` variable; otherwise, it is skipped to avoid encountering a `NoneType` object. This modification ensures that the function can handle non-HTTP requests without encountering errors.
+This revised function first checks if the scheme is `http` or `https` and constructs the `path` and `host` variables accordingly. If the scheme is not `http` or `https`, it sets the `path` to the parsed path or '/' and the `host` to the parsed netloc.
+
+By adding this conditional check, we can ensure that the `parsed.hostname` is only used when the scheme is `http` or `https`, thus resolving the issue.

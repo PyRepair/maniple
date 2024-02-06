@@ -1,12 +1,6 @@
-The identified bug in the provided function `_preprocess_numpy_input` is related to the improper handling of data types, particularly when the input array `x` is of type 'int32'. This results in a UFuncTypeError due to the mismatch in data types during the subtraction operation.
-
-To fix this issue, the function needs to explicitly handle the input array `xint` with `dtype('int32')` separately within the `_preprocess_numpy_input` function to ensure consistent data type usage. Additionally, proper checks and conversions should be implemented to handle the data type differences for different modes and data formats to avoid similar errors in the future.
-
-In the corrected code, I will explicitly cast the computed values to the same data type as the input array `xint` before performing the subtraction operation, ensuring that the data types are compatible and consistent throughout the computation.
-
-Here's the corrected code for the `_preprocess_numpy_input` function:
-
 ```python
+import numpy as np
+
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -28,18 +22,15 @@ def _preprocess_numpy_input(x, data_format, mode):
         Preprocessed Numpy array.
     """
     if mode == 'tf':
-        x = x.astype('float32')
         x /= 127.5
         x -= 1.
         return x
 
     if mode == 'torch':
-        x = x.astype('float32')
         x /= 255.
-        mean = np.array([0.485, 0.456, 0.406], dtype='float32')
-        std = np.array([0.229, 0.224, 0.225], dtype='float32')
+        mean = np.array([0.485, 0.456, 0.406], dtype=x.dtype)
+        std = np.array([0.229, 0.224, 0.225], dtype=x.dtype)
     else:
-        x = x.astype('float32')
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
             if x.ndim == 3:
@@ -49,8 +40,8 @@ def _preprocess_numpy_input(x, data_format, mode):
         else:
             # 'RGB'->'BGR'
             x = x[..., ::-1]
-        mean = np.array([103.939, 116.779, 123.68], dtype='float32')
-        std = None
+            mean = np.array([103.939, 116.779, 123.68], dtype=x.dtype)
+            std = None
 
     # Zero-center by mean pixel
     if data_format == 'channels_first':
@@ -80,5 +71,3 @@ def _preprocess_numpy_input(x, data_format, mode):
             x[..., 2] /= std[2]
     return x
 ```
-
-The corrected code explicitly handles the data type conversion for all modes and data formats to ensure consistent and compatible data types throughout the preprocessing operations on the input array. This corrected version should resolve the UFuncTypeError and ensure proper preprocessing of the input array based on the specified mode and data format.

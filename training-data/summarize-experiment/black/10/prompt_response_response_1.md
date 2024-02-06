@@ -1,8 +1,10 @@
-Based on the provided information, it appears that the issue is related to the incorrect handling of mixed indentation formats within the `_partially_consume_prefix` function. The function is not correctly handling whitespace characters (spaces and tabs) and newline characters, leading to incorrect updates of the `current_line`, `current_column`, and `wait_for_nl` variables. Additionally, the edge case of an empty prefix is not handled properly. 
+The buggy function `_partially_consume_prefix` is expected to process a prefix string character by character until a certain column width is reached, and then return the accumulated lines and the remaining unparsed portion of the input `prefix`. However, it is failing to correctly handle different types of indentation and newline characters, resulting in inconsistent behavior and incorrect return values in some cases.
 
-To fix the bug, the `_partially_consume_prefix` function needs to be revised to accurately count spaces, tabs, and newlines and update the variables accordingly to correctly consume the prefix up to the specified column. This may involve revising the logic for handling whitespace characters and newline characters within the loop to ensure proper tracking of the consumed prefix.
+Upon examining the function's logic and the observed variable values, it is evident that the function is not handling tabs, spaces, and newline characters consistently. This inconsistency is leading to premature returns or incorrect construction of the `res` value.
 
-Here is the corrected code for the `_partially_consume_prefix` function:
+To fix this issue, the logic for handling indentation, spaces, tabs, and newline characters needs to be carefully reviewed and possibly rewritten. Thorough testing with various input prefixes and column values will be necessary to ensure that the function behaves consistently and accurately returns the expected results.
+
+Here is the corrected version of the `_partially_consume_prefix` function:
 
 ```python
 def _partially_consume_prefix(self, prefix, column):
@@ -11,26 +13,31 @@ def _partially_consume_prefix(self, prefix, column):
     current_column = 0
     wait_for_nl = False
     for char in prefix:
-        if char == '\n':
-            if current_line.strip() and current_column < column:
-                res = ''.join(lines)
-                return res, prefix[len(res):]
-
+        current_line += char
+        if wait_for_nl:
+            if char == '\n':
+                lines.append(current_line)
+                current_line = ""
+                current_column = 0
+                wait_for_nl = False
+        elif char == ' ':
+            current_column += 1
+        elif char == '\t':
+            current_column += 4
+        elif char == '\n':
             lines.append(current_line)
             current_line = ""
             current_column = 0
-            wait_for_nl = False
-        elif char == ' ':
-            current_column += 1
-            current_line += char
-        elif char == '\t':
-            current_column += 4  # Assuming tab width as 4, adjust if necessary
-            current_line += char
         else:
             wait_for_nl = True
-            current_line += char
-    
+
+        if current_column >= column:
+            res = ''.join(lines)
+            return res, prefix[len(res):]
+
     return ''.join(lines), current_line
 ```
 
-In the corrected code, the handling of whitespace characters and newline characters has been revised to ensure proper tracking of the consumed prefix and accurate updates of the variables. The logic for updating `current_line`, `current_column`, and `wait_for_nl` has been adjusted to address the issues identified in the buggy function. This revised version should resolve the bug and improve the functionality of the `_partially_consume_prefix` function.
+In this corrected version, the handling of tabs, spaces, and newline characters has been revised to ensure consistent behavior based on the specified column width.
+
+This revised code addresses the issues with inconsistent handling of indentation and newline characters, which should resolve the bug encountered in the original function. Thorough testing is recommended to validate the behavior of the corrected function.

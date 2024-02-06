@@ -1,22 +1,20 @@
-Based on the provided buggy function and the error message, as well as the test case, it seems that the issue occurs when using the pivot_table function with multi-index columns only. The failing test `test_pivot_table_multiindex_only` indicates that an AttributeError is raised when attempting to access the `columns` attribute on the returned Series object.
+The bug in the `pivot_table` function is likely arising from the handling of the input data, causing the function to return a 'Series' object instead of a 'DataFrame' object in certain cases. This leads to the AttributeError when trying to access the 'columns' attribute.
 
-The potential error location within the function could be in the segment related to handling multi-index columns. It seems that the function may not be returning the expected Series object with the appropriate attributes in this specific scenario.
+To address this issue, it's important to review the data manipulation and column handling within the function, with a focus on ensuring that a 'DataFrame' object is consistently returned. The interaction between the function and input data should also be examined, as it may contribute to the unexpected output. Additionally, the `.groupby()` and `.agg()` process should be scrutinized to ensure correct calculations and handling of dimensions.
 
-The bug occurs because the pivot_table function does not handle multi-index columns correctly, resulting in an incorrect return type or attribute access issue when dealing with this specific case.
-
-To fix the bug, it is necessary to modify the pivot_table function to correctly handle multi-index columns, ensuring that it returns the expected Series object with the appropriate attributes. This may involve making adjustments to the aggregation and grouping operations, as well as the construction of the pivot table.
-
-Now, here's the corrected code for the pivot_table function:
+Based on these considerations, the following revised version of the `pivot_table` function is provided as a drop-in replacement for the buggy version:
 
 ```python
+# Corrected version of the pivot_table function
+
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data,
-    values=None,
-    index=None,
-    columns=None,
-    aggfunc="mean",
+    data: DataFrame,
+    values: Union[str, List[str]] = None,
+    index: Union[str, List[str]] = None,
+    columns: Union[str, List[str]] = None,
+    aggfunc: Union[str, List[Callable]] = "mean",
     fill_value=None,
     margins=False,
     dropna=True,
@@ -49,13 +47,41 @@ def pivot_table(
 
     keys = index + columns
 
-    # Rest of the function remains unchanged, with specific adjustments made to handle multi-index columns.
+    if isinstance(values, str):
+        values = [values]
 
-    # Handle multi-index columns
-    table = data.pivot_table(values=values, index=index, columns=columns, aggfunc=aggfunc, fill_value=fill_value, margins=margins, dropna=dropna, margins_name=margins_name, observed=observed)
+    if values is None:
+        values = data.columns
+
+    agg_columns = keys + values
+
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
+    
+    if isinstance(agged, ABCDataFrame) and dropna:
+        agged = agged.dropna()
+
+    if columns is not None:
+        table = agged
+
+        if table.index.nlevels > 1:
+            index_names = table.index.names[: len(index)]
+            to_unstack = [i for i in range(len(index), len(keys))]
+            table = table.unstack(to_unstack)
+
+    if not dropna:
+        if columns:
+            table = table.reindex(
+                MultiIndex.from_product(
+                    [getattr(data[col], "fillna")("") for col in columns]
+                ),
+                axis=1,
+            )
+
+    if fill_value is not None:
+        table = table.fillna(fill_value)
 
     return table
 ```
-This change involves utilizing the built-in pandas `pivot_table` method within the function, as it is specifically designed to handle pivot table creation with multi-index columns. The changes ensure that the multi-index column case is handled correctly, returning the expected output Series object with the appropriate attributes.
 
-By utilizing the pandas `pivot_table` method directly, we can simplify the function and avoid potential issues related to the specific handling of multi-index columns within the custom implementation. This revised function should resolve the bug and ensure correct behavior when dealing with multi-index columns in pivot table creation.
+In the revised version of the function, additional checks and manipulations are included to ensure that the `DataFrame` returned by the function is consistent and maintains the correct dimensions and columns throughout the processing. This should address the bug and ensure that the function produces the expected output for the provided test cases.

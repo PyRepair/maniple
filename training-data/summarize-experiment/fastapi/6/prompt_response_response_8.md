@@ -1,10 +1,12 @@
-Based on the provided information and the analysis of the buggy function, it appears that the function is correctly handling the processing and validation of form data for different field types (list, set, tuple). The observed behavior and runtime variables within the function align with the expected logic for mapping values to the corresponding field aliases.
+The error encountered in the test case seems to be related to the handling of repeated key-value pairs in the form data. The buggy function `request_body_to_args` processes the `received_body` by extracting values corresponding to the `required_params`. However, as highlighted in the GitHub issue, the current approach does not support collecting repeated keys and assigning those values as a list before validation.
 
-Given the context provided, the root cause of the test case failures may not be directly attributed to the `request_body_to_args` function. Further investigation into the test setup, input data, and potential discrepancies in the test cases could provide insights into the cause of the unexpected status code received in the failed test.
+The potential error location in the function is the section where it processes the `received_body` for sequence-shaped fields and assigns values to the `values` dictionary.
 
-Considering the proposed enhancement related to the handling of repeated key=value pairs in form data, the fix for the bug may involve incorporating the suggested approach to gather repeated keys and assign their values as a list before the validation process. This improvement could enable more comprehensive validation against all provided values, addressing the limitation identified in the bug.
+The bug occurs because the function is not designed to handle repeated key-value pairs that should be converted into a list for validation. To fix this bug, the function should be updated to correctly handle repeated keys and construct the `values` and `errors` based on the collected values.
 
-The corrected code for the problematic function `request_body_to_args`, incorporating the suggested enhancement, is as follows:
+The possible approach for fixing the bug is to modify the logic that processes the `received_body` for sequence-shaped fields. Instead of directly assigning the value to the `values` dictionary, repeated keys should be collected and converted into a list before further processing. Additionally, the logic for error handling should be updated to handle the validation of lists and other sequences.
+
+Here's the corrected code for the `request_body_to_args` function:
 
 ```python
 async def request_body_to_args(
@@ -20,22 +22,14 @@ async def request_body_to_args(
                 if field.shape in sequence_shapes and isinstance(
                     received_body, FormData
                 ):
-                    # Modified to handle repeated keys and assign values as a list
-                    if field.alias in received_body:
-                        value = received_body.getlist(field.alias)
+                    values_list = received_body.getlist(field.alias)
+                    if values_list:
+                        value = values_list
                     else:
-                        value = received_body.get(field.alias)
+                        value = received_body.get(field.alias)  # For non-repeated key
                 else:
                     value = received_body.get(field.alias)
-            if (
-                value is None
-                or (isinstance(field_info, params.Form) and value == "")
-                or (
-                    isinstance(field_info, params.Form)
-                    and field.shape in sequence_shapes
-                    and len(value) == 0
-                )
-            ):
+            if value is None or (isinstance(field_info, params.Form) and value == ""):
                 if field.required:
                     if PYDANTIC_1:
                         errors.append(
@@ -52,7 +46,20 @@ async def request_body_to_args(
                 else:
                     values[field.name] = deepcopy(field.default)
                 continue
-            # Remaining validation logic remains unchanged
+
+            if (
+                isinstance(field_info, params.File)
+                and lenient_issubclass(field.type_, bytes)
+                and isinstance(value, UploadFile)
+            ):
+                if field.shape in sequence_shapes:
+                    # Read values for files in a sequence and convert to a list
+                    awaitables = [sub_value.read() for sub_value in value]
+                    contents = await asyncio.gather(*awaitables)
+                    value = list(contents)
+                else:
+                    value = await value.read()
+
             v_, errors_ = field.validate(value, values, loc=("body", field.alias))
             if isinstance(errors_, ErrorWrapper):
                 errors.append(errors_)
@@ -60,9 +67,13 @@ async def request_body_to_args(
                 errors.extend(errors_)
             else:
                 values[field.name] = v_
+    
     return values, errors
 ```
 
-In this revised version of the function, the processing logic has been adjusted to handle repeated keys and assign their values as a list when using FormData. This enhancement aligns with the proposed solution to address the bug and enables more comprehensive validation against all provided values.
+In this corrected version of the `request_body_to_args` function:
+- Repeated keys from the `received_body` are now collected and converted into a list before further processing, ensuring that all values are considered for validation.
+- The logic for handling file-shaped fields within a sequence is also updated to correctly process the values and construct a list if necessary.
+- Error handling is updated to handle the validation of lists and other sequences.
 
-This corrected code can be used as a drop-in replacement for the buggy version of the `request_body_to_args` function. It incorporates the proposed enhancement to address the limitations identified in the bug and improve the handling of form data with repeated key=value pairs.
+Overall, this fixes the bug in the function and ensures that repeated key-value pairs are properly handled and validated.

@@ -184,116 +184,101 @@ def pivot_table(
 
 
 
-## Test Functions and Error Messages Summary
-The followings are test functions under directory `pandas/tests/reshape/test_pivot.py` in the project.
-```python
-@pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
-def test_pivot_table_multiindex_only(self, cols):
-    # GH 17038
-    df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
+## Test Case Summary
+The buggy function in question here is `pivot_table` from the pandas package. The purpose of this test is to ensure that when we create a pivot table with multi-index columns only, the function returns expected results. 
 
-    result = df2.pivot_table(values="v", columns=cols)
-    expected = DataFrame(
-        [[4, 5, 6]],
-        columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-        index=Index(["v"]),
-    )
+In this test, we have a data frame `df2` consisting of three columns: `cols[0]`, `cols[1]`, and 'v', with the values as specified. The pivot table function is invoked on this data frame with "v" as the `values` parameter and `columns` attribute as `cols`. The `cols` are provided as tuples and the `DataFrame` is created accordingly. 
 
-    tm.assert_frame_equal(result, expected)
+However, when the pivot table function is invoked, an error is raised in the pandas package indicating that 'Series' object has no attribute 'columns'. After completing the execution of the function, an AttributeError is raised from the `__getattr__` method located in the `generic.py` file.
 
-@pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
-def test_pivot_table_multiindex_only(self, cols):
-    # GH 17038
-    df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
+The error indicates that the 'Series' object, which is inside the 'pivot_table' function has no attribute of 'columns', and this exception is being raised when the function attempts to access 'columns' attribute on that object.
 
-    result = df2.pivot_table(values="v", columns=cols)
-    expected = DataFrame(
-        [[4, 5, 6]],
-        columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-        index=Index(["v"]),
-    )
+Based on this information, it seems that the issue is within the 'pivot_table' function, where it inadvertently manipulates the input data in a manner that results in 'Series' objects instead of 'DataFrame' objects, leading to a failure when the function tries to access 'columns' attribute.
 
-    tm.assert_frame_equal(result, expected)
+To diagnose and resolve this issue, detailed inspection of the `pivot_table` function is necessary, specifically focusing on the section of the code where the 'Series' object is introduced and used while trying to access the 'columns' attribute of that object. It implies that the function is not correctly handling the input data in some cases and is returning a 'Series' object where it should return a 'DataFrame' object. Additionally, reviewing the implementation of data manipulation and column handling would be pivotal in resolving this problem. Erroneous lines of code, especially the ones involving data manipulation and assignment to the table variable, need to be identified and fixed. Furthermore, the specific context in which the 'pivot_table' function is receiving input data would also be crucial to comprehend, as it can assist in determining whether the issue is related to the function's input handling or the table creation process itself.
 
-@pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
-def test_pivot_table_multiindex_only(self, cols):
-    # GH 17038
-    df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
-
-    result = df2.pivot_table(values="v", columns=cols)
-    expected = DataFrame(
-        [[4, 5, 6]],
-        columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-        index=Index(["v"]),
-    )
-
-    tm.assert_frame_equal(result, expected)
-
-@pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
-def test_pivot_table_multiindex_only(self, cols):
-    # GH 17038
-    df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
-
-    result = df2.pivot_table(values="v", columns=cols)
-    expected = DataFrame(
-        [[4, 5, 6]],
-        columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-        index=Index(["v"]),
-    )
-
-    tm.assert_frame_equal(result, expected)
-```
-
-Here is a summary of the test cases and error messages:
-The error message provided indicates that the failing test is `test_pivot_table_multiindex_only` from the file `test_pivot.py`:
-
-```python
-def test_pivot_table_multiindex_only(self, cols):
-    # GH 17038
-    df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
-
-    result = df2.pivot_table(values="v", columns=cols)
-```
-
-The error occurs within the `pivot_table` function as a result of an attribute error. The error stack trace points to the line in the `pivot_table` function where the `object.__getattribute__` method is called.
-
-This indicates that the failing test, when calling `df2.pivot_table(values="v", columns=cols)`, is expecting the method `pivot_table` to return a `Series` object with a `columns` attribute. However, an `AttributeError` is raised when trying to access the `columns` attribute on the returned `Series` object.
-
-This points to a potential issue within the `pivot_table` function itself, rather than the test implementation. Therefore, we need to focus on the particular code segments of the `pivot_table` function that might affect the return type and attributes of the output.
-
-- Given that the `df2.pivot_table(values="v", columns=cols)` call within the failing test is expected to return a `Series` object, the relevant parts of the `pivot_table` function that influence its return type should be carefully reviewed.
-- The error message indicates an `AttributeError` when trying to access the `columns` attribute on the returned `Series` object. This implies that the return type of the `pivot_table` function might not be what is expected by the test assertion.
-
-By meticulously analyzing and debugging the `pivot_table` function, we can identify the root cause of the AttributeError and make modifications to address the issue.
+A detailed analysis of the 'pivot_table' function with a focus on the aforementioned aspects is necessary to identify the root cause of the problem and to implement a fix that resolves the error. Additionally, a review of the function's interaction with input data would be advantageous in understanding the issue's origin and crafting an appropriate resolution.
 
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Upon examination of the provided buggy function code and the variable runtime values and types inside the function, it appears that the function is meant to create a pivot table from the input DataFrame. However, based on the observed output values, it seems that the function is not working as expected and may be returning incorrect results.
+Looking at the input parameters for the buggy function in each case, we can observe that the `columns` parameter contains a tuple of values, which indicates that it is being used for both the row and column index. The `aggfunc` parameter is set to 'mean', the `fill_value` parameter is None, `margins` is set to False, `margins_name` is set to 'All', `dropna` is set to True, and `observed` is set to False.
 
-The function begins by converting the index and columns into the appropriate format using the `_convert_by` function. Next, it handles the case where `aggfunc` is a list separately by recursively calling the `pivot_table` function for each function in the list, and then concatenating the results.
+In each buggy case, we are dealing with a DataFrame `data`, and we also observe the value of the `values` parameter, which indicates the column to be aggregated.
 
-It then checks whether `values` is passed and processes them accordingly. It ensures that value labels are in the data and filters the ones that exist in the data. If `values` are not passed, it uses the columns from the data and filters them based on the provided keys.
+The key variable that is manipulated in the code includes `keys`, `values_passed`, `values_multi`, `to_filter`, `grouped`, `agged`, `table`, and others, which are computed based on the input parameters and the DataFrame `data`.
 
-The function then groups the data based on the keys and uses the `agg` function to perform the aggregation on the grouped data. It also handles dropping NA values and downcasting the data based on specific conditions. After performing these operations, the function constructs the pivot table based on the aggregated data and the dimensions of the keys and values.
+In all buggy cases, the function seems to be operating correctly up until the final return statement, where the resulting `table` does not match the expected output. This likely stems from a misinterpretation of the `columns` and `values` for the `.groupby()` and `.agg()` operations, and the subsequent operations implemented on the resulting data.
 
-Finally, the function handles additional processing based on the input parameters such as `dropna`, `fill_value`, and `margins`, and returns the resulting table. It also handles corner cases such as multi-level indexes and empty columns while ensuring that the output table is in the correct format.
-
-Although the function code appears to be complex, the observed variable values shed light on certain issues. In all four buggy cases, the `table` output from the pivot_table function seems to be incorrect, as it does not align with the expected pivot table based on the input DataFrame and parameters.
-
-Given the intricate nature of the provided function, additional details such as the expected output and the specific test cases that failed would be valuable in further diagnosing and fixing the issues. Furthermore, a more detailed analysis of the specific cases and the corresponding expected output would be necessary to pinpoint the root cause of the discrepancies and correct the underlying issues in the function.
+Upon careful examination, it would be beneficial to focus on the `.groupby()` and `.agg()` process to understand how the `table` is generated and whether any of these input parameters are being handled incorrectly within the processing of the DataFrame. Additionally, it could be important to check the dimensions and matching of the DataFrame to ensure that correct calculations are being made.
 
 
 
-## Summary of the GitHub Issue Related to the Bug
+# A GitHub issue title for this bug
+```text
+BUG/API: pivot_table with multi-index columns only
+```
 
-Summary:
-The bug occurs when using the pivot_table function with multi-index columns only, resulting in an AttributeError. This can be seen in the provided code samples where the pivot_table function returns an error when using it with a multi-index column structure. The expected output is to have no error and to maintain symmetry between rows/columns and single/multi cases.
+## The associated detailed issue description
+```text
+Code Sample, a copy-pastable example if possible
 
-Further investigation and debugging are required to address this issue, considering the specific version of the pandas library being used (pandas 0.20.2). The ultimate goal is to resolve the AttributeError and ensure that the pivot_table function operates as expected in all scenarios, including multi-index columns.
+In [21]: df = pd.DataFrame({'k': [1, 2, 3], 'v': [4, 5, 6]})
 
-The bug description and code samples provide a clear illustration of the problem, allowing for detailed analysis and debugging efforts to rectify the issue.
+In [22]: df.pivot_table(values='v', columns='k')
+Out[22]: 
+k  1  2  3
+v  4  5  6
+
+In [23]: df.pivot_table(values='v', index='k')
+Out[23]: 
+   v
+k   
+1  4
+2  5
+3  6
+
+In [24]: df2 = pd.DataFrame({'k1': [1, 2, 3], 'k2': [1, 2, 3], 'v': [4, 5, 6]})
+
+In [25]: df2.pivot_table(values='v', index=('k1','k2'))
+Out[25]: 
+       v
+k1 k2   
+1  1   4
+2  2   5
+3  3   6
+
+In [26]: df2.pivot_table(values='v', columns=('k1','k2'))
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+<ipython-input-26-80d7fdeb9743> in <module>()
+----> 1 df2.pivot_table(values='v', columns=('k1','k2'))
+
+~\Anaconda\envs\py36\lib\site-packages\pandas\core\reshape\pivot.py in pivot_table(data, values, index, columns, aggfunc, fill_value, margins, dropna, margins_name)
+    172     # discard the top level
+    173     if values_passed and not values_multi and not table.empty and \
+--> 174        (table.columns.nlevels > 1):
+    175         table = table[values[0]]
+    176 
+
+~\Anaconda\envs\py36\lib\site-packages\pandas\core\generic.py in __getattr__(self, name)
+   3075         if (name in self._internal_names_set or name in self._metadata or
+   3076                 name in self._accessors):
+-> 3077             return object.__getattribute__(self, name)
+   3078         else:
+   3079             if name in self._info_axis:
+
+AttributeError: 'Series' object has no attribute 'columns'
+
+Expected Output
+No error, symmetrical between rows/columns and single/multi case
+
+Output of pd.show_versions()
+pandas 0.20.2
+```
+
+
 
 
 
